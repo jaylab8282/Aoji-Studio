@@ -25,6 +25,8 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.53.4.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    // Spring Boot 4.1: MockMvc 테스트 지원(@AutoConfigureMockMvc)이 starter-test에서 분리됨.
+    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.yaml:snakeyaml")
 }
 

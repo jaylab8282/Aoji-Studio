@@ -22,7 +22,7 @@
 - Depends on: -
 
 ## T-002 인증 · 토큰 · Origin 규칙
-- Status: todo
+- Status: done
 - Scope: Backend
 - FR: FR-003, FR-013
 - AC: FR-003-AC1, FR-003-AC2, FR-013-AC8

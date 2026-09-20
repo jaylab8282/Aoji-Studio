@@ -2,7 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **보류 중(사용자 지시)**. T-001 done·커밋 완료. 다음 할 일: Build 단계 시작 — T-002(인증·토큰·Origin)와 T-003(Registry)는 둘 다 T-001에만 의존하므로 하나씩 순서대로(T-002 → T-003) backend-developer 실행 → reviewer scope:task. T-020(도우미)·T-023(재생 도구·fixture)도 의존 없음.
+- Current: T-003 (round 1)
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -15,7 +15,13 @@
 - 2026-09-20 scaffolder(T-001) 완료. 팀장 직접 확인: backend build+test 7개 통과, frontend build/test 4개/lint/typecheck 통과, helper test 1개 통과, e2e 실제 컨테이너(127.0.0.1:4190) GET / 200 + check-port PASS + Playwright 1 passed, down -v 정리 확인. CLAUDE.md e2e 명령 순서에서 `E2E_FIXTURE_DIR` export 누락으로 check-port.sh 실패 → 팀장이 export 방식으로 수정 후 재확인 통과.
 - 2026-09-20 T-001 PASS → 커밋 `chore: project scaffold`. 사용자 지시로 작업 보류.
 
+## Log (cont.)
+- 2026-09-21 재개. T-002 시작.
+- 2026-09-21 T-002 PASS (round 1) → 커밋 `feat(T-002)`. 리뷰: docs/reviews/T-002.md. 문서 정합성 요청 대기: architecture §5 표에 /api/helper/token 예외 명시
+
 ## Decisions
+- D-012 라이브러리 승인: `spring-boot-starter-webmvc-test`(test scope) — Spring Boot 4.1이 MockMvc 테스트 지원을 분리한 공식 스타터, Apache-2.0, 확정 스택 안 / T-002
+- D-013 이후 backend 태스크 프롬프트에 공통 주의 전달: Spring Boot 4.1 = Jackson 3(`tools.jackson.databind`), MockMvc는 `org.springframework.boot.webmvc.test.autoconfigure`, autoconfigure 패키지 재구성 / T-003~T-012
 - D-009 Dockerfile backend-build 스테이지는 `eclipse-temurin:21-jdk`(Gradle 8.14가 JDK 25를 실행 JVM으로 지원하지 않음) + toolchain으로 JDK 25 컴파일, 런타임은 `eclipse-temurin:25-jre` — 확정 스택(Java 25 실행) 유지, 로컬(JDK 21+toolchain)과 동일 구조 / T-001
 - D-010 Spring Boot 4.1 모듈 재구성으로 `DataSourceAutoConfiguration` 패키지가 `org.springframework.boot.jdbc.autoconfigure`로 이동 — import만 조정, 의존성 추가 없음 / T-001
 - D-011 CLAUDE.md e2e 명령: `export E2E_FIXTURE_DIR=...`로 통일(각 단계에 env 전달) — 팀장이 직접 수정 / T-001

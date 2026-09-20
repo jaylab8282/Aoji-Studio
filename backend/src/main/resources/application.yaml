@@ -34,4 +34,6 @@ jaystudio:
   mount-path: ${JAYSTUDIO_MOUNT_PATH:/workspace}
   data-path: ${JAYSTUDIO_DATA_PATH:/data}
   helper-url: ${JAYSTUDIO_HELPER_URL:http://127.0.0.1:4181}
+  # 비어 있으면 OriginFilter가 http://127.0.0.1:<public-port>를 기본값으로 계산한다(architecture.md §4.2·§5).
+  # dev 프로필(application-dev.yaml)은 이 값을 5173으로 완전히 대체한다.
   allowed-origins: ${JAYSTUDIO_ALLOWED_ORIGINS:}
