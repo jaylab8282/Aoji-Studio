@@ -2,7 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: T-003 (round 1)
+- Current: T-005 (round 1)
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -17,9 +17,11 @@
 
 ## Log (cont.)
 - 2026-09-21 재개. T-002 시작.
-- 2026-09-21 T-002 PASS (round 1) → 커밋 `feat(T-002)`. 리뷰: docs/reviews/T-002.md. 문서 정합성 요청 대기: architecture §5 표에 /api/helper/token 예외 명시
+- 2026-09-21 T-002 PASS (round 1) → 커밋 `feat(T-002)`. 리뷰: docs/reviews/T-002.md. 문서 정합성 → 커밋 2ab9ae2
+- 2026-09-21 T-003 PASS (round 2, fix 1회: file 필드 파일명·description 타입·teams 심볼릭 링크) → 커밋 `feat(T-003)`
 
 ## Decisions
+- D-014 `.jaystudio/teams/*.json` 심볼릭 링크도 PathGuard로 거부(읽지 않고 형식 오류) — NFR-07 "심볼릭 링크는 따라가지 않는다"는 일반 원칙 / T-003
 - D-012 라이브러리 승인: `spring-boot-starter-webmvc-test`(test scope) — Spring Boot 4.1이 MockMvc 테스트 지원을 분리한 공식 스타터, Apache-2.0, 확정 스택 안 / T-002
 - D-013 이후 backend 태스크 프롬프트에 공통 주의 전달: Spring Boot 4.1 = Jackson 3(`tools.jackson.databind`), MockMvc는 `org.springframework.boot.webmvc.test.autoconfigure`, autoconfigure 패키지 재구성 / T-003~T-012
 - D-009 Dockerfile backend-build 스테이지는 `eclipse-temurin:21-jdk`(Gradle 8.14가 JDK 25를 실행 JVM으로 지원하지 않음) + toolchain으로 JDK 25 컴파일, 런타임은 `eclipse-temurin:25-jre` — 확정 스택(Java 25 실행) 유지, 로컬(JDK 21+toolchain)과 동일 구조 / T-001

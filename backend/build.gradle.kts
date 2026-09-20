@@ -23,11 +23,12 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.xerial:sqlite-jdbc:3.53.4.0")
+    // YAML frontmatter 파싱 (ADR-19). Spring Boot가 기본 포함하는 버전을 그대로 쓴다.
+    implementation("org.yaml:snakeyaml")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     // Spring Boot 4.1: MockMvc 테스트 지원(@AutoConfigureMockMvc)이 starter-test에서 분리됨.
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-    testImplementation("org.yaml:snakeyaml")
 }
 
 tasks.withType<Test> {

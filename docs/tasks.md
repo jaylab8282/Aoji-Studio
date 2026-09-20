@@ -39,7 +39,7 @@
 - Depends on: T-001
 
 ## T-003 프로젝트 폴더 스캔 · 정의 파일 검증 · 구성 파일 해석 (Registry)
-- Status: todo
+- Status: done
 - Scope: Backend
 - FR: FR-001, FR-002, FR-006, FR-014
 - AC: FR-001-AC1, FR-001-AC2, FR-002-AC1, FR-002-AC2, FR-002-AC3, FR-002-AC4, FR-002-AC5, FR-002-AC6, FR-006-AC11, FR-014-AC3
