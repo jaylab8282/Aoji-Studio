@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "name": "broken-ref",
+  "description": "members에 정의 파일이 없는 name 포함 → 참조 깨짐",
+  "lead": "valid-agent",
+  "members": ["no-such-agent"],
+  "createdAt": "2026-09-20T10:00:00+09:00",
+  "updatedAt": "2026-09-20T10:00:00+09:00"
+}

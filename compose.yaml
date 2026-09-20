@@ -1,0 +1,23 @@
+services:
+  jaystudio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jaystudio:local
+    platform: linux/arm64
+    user: "1000:1000"
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Seoul
+      JAYSTUDIO_HOST_PATH: ${JAYSTUDIO_HOST_PATH:?JAYSTUDIO_HOST_PATH를 .env에 설정하세요}
+      JAYSTUDIO_PUBLIC_PORT: ${JAYSTUDIO_PORT:?JAYSTUDIO_PORT를 .env에 설정하세요}
+      JAYSTUDIO_MOUNT_PATH: /workspace
+      JAYSTUDIO_DATA_PATH: /data
+    ports:
+      - "127.0.0.1:${JAYSTUDIO_PORT:?JAYSTUDIO_PORT를 .env에 설정하세요}:4180"
+    volumes:
+      - ${JAYSTUDIO_HOST_PATH:?JAYSTUDIO_HOST_PATH를 .env에 설정하세요}:/workspace
+      - jaystudio-data:/data
+
+volumes:
+  jaystudio-data:

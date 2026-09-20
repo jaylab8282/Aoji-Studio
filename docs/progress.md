@@ -1,14 +1,24 @@
 # Progress
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
-- Phase: scaffold
-- Current: architect ADR-17 수정 + scaffolder(T-001) 병렬 실행 중
+- Phase: build
+- Current: **보류 중(사용자 지시)**. T-001 done·커밋 완료. 다음 할 일: Build 단계 시작 — T-002(인증·토큰·Origin)와 T-003(Registry)는 둘 다 T-001에만 의존하므로 하나씩 순서대로(T-002 → T-003) backend-developer 실행 → reviewer scope:task. T-020(도우미)·T-023(재생 도구·fixture)도 의존 없음.
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
 - 2026-09-20 시작. final 문서 두 개 Status: Approved / v1 확인. CLAUDE.md Automation: design_checkpoint on, max_fix_rounds 3.
 
+## Log (cont.)
+- 2026-09-20 architect ADR-17 수정 완료(계약 변경 없음) → 커밋 5bcd613 `docs: architecture design`
+
+## Log (cont.)
+- 2026-09-20 scaffolder(T-001) 완료. 팀장 직접 확인: backend build+test 7개 통과, frontend build/test 4개/lint/typecheck 통과, helper test 1개 통과, e2e 실제 컨테이너(127.0.0.1:4190) GET / 200 + check-port PASS + Playwright 1 passed, down -v 정리 확인. CLAUDE.md e2e 명령 순서에서 `E2E_FIXTURE_DIR` export 누락으로 check-port.sh 실패 → 팀장이 export 방식으로 수정 후 재확인 통과.
+- 2026-09-20 T-001 PASS → 커밋 `chore: project scaffold`. 사용자 지시로 작업 보류.
+
 ## Decisions
+- D-009 Dockerfile backend-build 스테이지는 `eclipse-temurin:21-jdk`(Gradle 8.14가 JDK 25를 실행 JVM으로 지원하지 않음) + toolchain으로 JDK 25 컴파일, 런타임은 `eclipse-temurin:25-jre` — 확정 스택(Java 25 실행) 유지, 로컬(JDK 21+toolchain)과 동일 구조 / T-001
+- D-010 Spring Boot 4.1 모듈 재구성으로 `DataSourceAutoConfiguration` 패키지가 `org.springframework.boot.jdbc.autoconfigure`로 이동 — import만 조정, 의존성 추가 없음 / T-001
+- D-011 CLAUDE.md e2e 명령: `export E2E_FIXTURE_DIR=...`로 통일(각 단계에 env 전달) — 팀장이 직접 수정 / T-001
 - D-008 04-4 표시 중 03 캐릭터는 표시만 모두 `대기`(FR-007-E1 문구대로, 사용자 확인). 내부 상태·01·02는 그대로. architect에 ADR-17·ui-spec·T-016 수정 요청 / T-016, T-024
 - D-001 Automation 기본값 CLAUDE.md 그대로: design_checkpoint on, max_fix_rounds 3
 - D-002 ADR-05 승인: NFR-04 "127.0.0.1 바인딩"은 호스트 노출(compose `127.0.0.1:` ports, 개발 서버, 도우미) 기준으로 판정. 컨테이너 안 프로세스는 네임스페이스 인터페이스 바인딩 — Docker 포트 공개 구조상 불가피, 노출 결과는 동일 / T-001, T-024

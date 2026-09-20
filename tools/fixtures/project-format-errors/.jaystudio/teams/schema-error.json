@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 2,
+  "name": "schema-error",
+  "description": "schemaVersion이 1이 아님 → 구성 파일 형식 오류",
+  "lead": null,
+  "members": [],
+  "createdAt": "2026-09-20T10:00:00+09:00",
+  "updatedAt": "2026-09-20T10:00:00+09:00"
+}

@@ -1,0 +1,28 @@
+# E2E 전용 compose 오버레이 (architecture.md §8.1).
+# 실행 전 반드시 fixture 폴더를 임시 폴더로 복사하고 E2E_FIXTURE_DIR로 지정한다.
+# 실제 JayStudio/.claude·.jaystudio는 절대 마운트하지 않는다(Automation Policy).
+services:
+  jaystudio-e2e:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: jaystudio:e2e
+    platform: linux/arm64
+    user: "1000:1000"
+    restart: "no"
+    environment:
+      TZ: Asia/Seoul
+      JAYSTUDIO_HOST_PATH: ${E2E_FIXTURE_DIR:?E2E_FIXTURE_DIR(mktemp -d로 만든 fixture 임시 폴더)를 지정하세요}
+      JAYSTUDIO_PUBLIC_PORT: "4190"
+      JAYSTUDIO_MOUNT_PATH: /workspace
+      JAYSTUDIO_DATA_PATH: /data
+      JAYSTUDIO_HELPER_URL: http://127.0.0.1:4191
+      JAYSTUDIO_ALLOWED_ORIGINS: http://127.0.0.1:4190
+    ports:
+      - "127.0.0.1:4190:4180"
+    volumes:
+      - ${E2E_FIXTURE_DIR:?E2E_FIXTURE_DIR를 지정하세요}:/workspace
+      - jaystudio-e2e-data:/data
+
+volumes:
+  jaystudio-e2e-data:

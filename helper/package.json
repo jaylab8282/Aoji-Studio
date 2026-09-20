@@ -1,0 +1,13 @@
+{
+  "name": "jaystudio-helper",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "맥북 호스트에서 127.0.0.1:4181로 떠서 Terminal.app을 여는 열기 도우미. 외부 npm 의존 없음(conventions.md §3 Helper).",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

@@ -1,0 +1,87 @@
+/*
+ * ui-spec.md §공통 "디자인 토큰 → 코드 매핑" 그대로.
+ * Tailwind 4의 @theme 변수 네임스페이스 규칙에 따라 유틸리티가 자동 생성된다:
+ *   --color-*  → bg-*, text-*, border-* 등
+ *   --radius-* → rounded-*
+ *   --spacing-* → p-*, m-*, gap-*, w-*, h-* 등 (전역 spacing 스케일에 추가)
+ *   --width-* / --height-* → w-* / h-*
+ *   --text-*  → text-* (font-size)
+ *   --font-*  → font-* (font-family)
+ *   --shadow-* → shadow-*
+ */
+@theme {
+  /* 배경과 면 */
+  --color-page: #0e1320;
+  --color-chrome: #121826;
+  --color-card: #161d2c;
+  --color-card-alt: #141b29;
+  --color-inset: #10161f;
+  --color-selected: #1d2738;
+  --color-soft: #171f2e;
+  --color-grid-line: #182030;
+
+  /* 선과 글자 */
+  --color-border: #27313f;
+  --color-border-strong: #2c3648;
+  --color-border-dashed: #3b4759;
+  --color-text: #e7ecf6;
+  --color-text-secondary: #b7c2d4;
+  --color-text-mono: #c7d1e0;
+  --color-text-muted: #93a0b5;
+  --color-text-faint: #6f7c91;
+  --color-link: #7fb8ff;
+  --color-on-accent: #0b1119;
+
+  /* 상태 */
+  --color-running: #3dd68c;
+  --color-running-soft: rgba(61, 214, 140, 0.16);
+  --color-running-border: #2c4a3c;
+  --color-waiting: #ff9a4d;
+  --color-waiting-soft: rgba(255, 154, 77, 0.18);
+  --color-idle: #55627a;
+  --color-danger: #ff8a8a;
+  --color-danger-soft: rgba(255, 107, 107, 0.12);
+  --color-danger-border: #5a3a3a;
+
+  /* 글꼴 (self-host, frontend/public/fonts) */
+  --font-sans: "IBM Plex Sans KR", -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* 글자 크기 */
+  --text-title: 25px;
+  --text-section: 14.5px;
+  --text-body: 13px;
+  --text-aux: 12px;
+  --text-min: 10px;
+  --text-min-mono: 10.5px;
+  --text-kpi: 34px;
+
+  /* 모서리 */
+  --radius-control: 9px;
+  --radius-card: 12px;
+  --radius-chip: 10px;
+  --radius-badge: 6px;
+
+  /* 간격 */
+  --spacing-page-x: 32px;
+  --spacing-card: 16px;
+  --spacing-card-lg: 18px;
+
+  /* 레이아웃 치수 */
+  --width-sidebar: 248px;
+  --width-panel: 360px;
+  --height-header: 64px;
+  --height-btn: 42px;
+  --height-btn-sm: 34px;
+
+  /* 발광 (실행 중 표시등 전용) */
+  --shadow-glow: 0 0 9px rgba(61, 214, 140, 0.8);
+}
+
+/* 오피스·층 배경 격자선 (24px 간격, design-tokens.md `grid/line`) */
+@utility office-grid {
+  background-image:
+    linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

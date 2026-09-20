@@ -6,7 +6,7 @@
 - 모든 태스크는 실제 `JayStudio/.claude`·`.jaystudio`를 건드리지 않는다. 테스트는 `tools/fixtures/*`를 임시 폴더로 복사한다.
 
 ## T-001 프로젝트 스캐폴드 · 컨테이너 · 기동 보안 기본값
-- Status: todo
+- Status: done
 - Scope: Backend, Frontend, Tools
 - FR: FR-014
 - AC: -
