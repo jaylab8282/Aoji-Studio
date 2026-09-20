@@ -46,6 +46,10 @@
 - MUST 예외는 `ApiExceptionHandler`가 `ApiError`로 변환한다. 컨트롤러에서 `ResponseEntity`로 에러 본문을 직접 만들지 않는다. 이유: 에러 형식 통일.
 - MUST 로그 레벨 기본 `INFO`, DevTools·Actuator 의존성 금지, `server.error.include-stacktrace=never`. 이유: 디버그 기본 꺼짐.
 - SHOULD 외부 라이브러리는 ADR-19 목록 안에서 쓴다. 추가하려면 ADR에 먼저 적는다.
+- Spring Boot 4.1 구현 주의 (T-001·T-002에서 확인된 사실):
+  - MUST JSON은 Jackson 3 — 패키지 `tools.jackson.databind.*`(`ObjectMapper`, `JsonNode`), 어노테이션은 `com.fasterxml.jackson.annotation.*`만 유지. `com.fasterxml.jackson.databind.*` import 금지. 이유: Spring Boot 4는 Jackson 3를 기본으로 쓰며 2.x 클래스는 자동 구성에 연결되지 않는다.
+  - MUST MockMvc 테스트는 `spring-boot-starter-webmvc-test` 의존성 + `org.springframework.boot.webmvc.test.autoconfigure.*`(`@WebMvcTest`, `@AutoConfigureMockMvc`)를 쓴다. `spring-boot-starter-test`의 옛 `org.springframework.boot.test.autoconfigure.web.servlet.*` 경로는 없다.
+  - MUST 자동 구성 클래스는 재구성된 패키지로 참조한다(예: `org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration`, `org.springframework.boot.webmvc.autoconfigure.*`). `org.springframework.boot.autoconfigure.<module>.*` 옛 경로를 `@ImportAutoConfiguration`·`exclude`에 쓰지 않는다. 이유: 컴파일은 되어도 제외·임포트가 무시되어 테스트 컨텍스트가 어긋난다.
 
 ### Frontend (React 19.3, TS 5, Vite 8, Tailwind 4.3)
 - MUST `tsconfig` `strict: true`, `noUncheckedIndexedAccess: true`. `any` 금지(`unknown` 후 좁히기). 이유: 계약 불일치를 타입체크로 잡는다.

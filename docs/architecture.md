@@ -148,7 +148,8 @@ Jay_Studio/
 |---|---|---|
 | `/hooks/events` | `Content-Type: application/json` + `X-JayStudio-Collect-Token` == `.jaystudio/collect-token` 내용 | 401 (본문 없음). Content-Type 불일치는 415 |
 | `/api/auth/browser-token` | Origin 규칙(아래) | 403 |
-| `/api/**` 읽기(GET) | Origin 규칙 | 403 |
+| `/api/**` 읽기(GET) — 아래 예외 제외 | Origin 규칙 | 403 |
+| `/api/helper/token` (GET, 예외) | Origin 규칙 + `X-JayStudio-Browser-Token` — 도우미 토큰은 브라우저 토큰을 통과한 요청에만 전달한다(FR-013-AC8, api-spec `security: browserToken`) | 403 (`FORBIDDEN_ORIGIN` / `UNAUTHORIZED_TOKEN`) |
 | `/api/**` 변경(POST/PUT/DELETE) | Origin 규칙 + `X-JayStudio-Browser-Token` | 403 |
 | `/api/stream` (SSE) | Origin 규칙 + `?token=` | 403 |
 | 정적 파일 `/`, `/assets/**`, SPA 경로 | 없음 | - |
