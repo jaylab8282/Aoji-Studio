@@ -2,7 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **보류 중(사용자 지시)**. 백엔드 API 태스크 전부 완료(T-001~T-012 done, 12/24, backend 277 tests). 재개 절차: (1) architect 제안 판단 — api-spec `Settings.mountPath` 제거 여부(UI 미사용, 계약 변경 절차 필요, 영향 T-012·T-022·프론트 타입). 제거 안 하면 그대로 진행. (2) T-013 프론트 공통 셸·스토어·SSE 클라이언트부터 frontend-developer로 시작(depends T-002·T-003, 백엔드 API 전부 실제 구현됨 → MOCKED APIS 없어야 함). (3) 이후 T-014~T-019, T-020(helper)·T-021·T-022·T-023·T-024.
+- Current: **보류 중(사용자 지시)**. 계약 변경(D-021 Settings.mountPath 제거) 문서는 contract 리뷰 PASS 후 커밋. T-012는 재작업 중(`in_progress`) — backend-developer가 Settings DTO·테스트에서 mountPath 제거 중이며 결과는 working tree 미커밋으로 보관. **재개 시 첫 작업(사용자 지시)**: `git status`로 T-012 재작업 변경 확인 → 팀장 `cd backend && ./gradlew build` → reviewer scope task(T-012) round 3 → PASS 시 `feat(T-012)` 재커밋·done. 그 다음 T-013(frontend)부터.
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -35,9 +35,11 @@
 - 2026-09-21 T-011 PASS (round 1) → 커밋 `feat(T-011)`. 리뷰: docs/reviews/T-011.md. 문서 불일치 1건(conventions §5 삭제 204 vs api-spec 200+body) architect 요청 진행 중
 - 2026-09-21 T-012 round 1 NEEDS_FIX: [Major] tasks.md Done when vs api-spec mountPath 모순(테스트가 @TempDir로 우연히 통과) → D-020, architect 문서 정정 + backend 테스트 정정·hook 예시 서식 §7.1 맞춤
 - 2026-09-21 architect 완료(계약 변경 없음): tasks.md T-012 AC4 문구, conventions §5 삭제 코드 예외 + 마운트 경로 MUST에 Settings.mountPath 예외, ADR-20 추가. architect 제안(보류): `Settings.mountPath`는 UI 미사용이라 T-013 이전에 계약 변경 절차로 제거 검토 — 재개 시 팀장이 판단
-- 2026-09-21 T-012 PASS (round 2, fix 1회: AC4 테스트 정정·hook 예시 §7.1 서식) → 커밋 `feat(T-012)`. 리뷰: docs/reviews/T-012.md. 사람 확인 H-2·H-3 대기. **백엔드 API 완료** → 사용자 지시로 보류.
+- 2026-09-21 T-012 PASS (round 2, fix 1회: AC4 테스트 정정·hook 예시 §7.1 서식) → 커밋 `feat(T-012)` c5bce54. 리뷰: docs/reviews/T-012.md. 사람 확인 H-2·H-3 대기. **백엔드 API 완료**.
+- 2026-09-21 계약 변경 D-021(사용자 승인): architect api-spec Settings.mountPath 제거·ADR-20 갱신·conventions §5 복원·tasks.md 정리 → contract 리뷰 PASS(docs/reviews/contract-settings-mountPath.md) → 커밋 `docs: contract change`. T-012 재작업은 backend 진행 중, 리뷰는 다음 세션 프론트 시작 전(사용자 지시).
 
 ## Decisions
+- D-021 api-spec `Settings.mountPath` 제거(계약 변경, 사용자 승인) — UI 미표시·filePath는 상대 경로·절대 경로는 hostPath만이라 프론트가 컨테이너 경로를 알 이유 없음, FR-014-AC4·conventions MUST와의 예외 처리 부담 제거. 사용자 보이는 동작·FR 의미 변경 없음. 프론트 착수 전이라 영향 최소 / T-012, T-022
 - D-020 api-spec `Settings.mountPath`(required, 컨테이너 경로 예: /workspace)는 계약대로 유지. FR-014-AC4는 '표시' 요건이고 ui-spec SCR-07은 hostPath만 표시하므로 위반 아님. tasks.md T-012 Done when 문구('응답에 /workspace 없음')가 api-spec과 모순 → architect가 'UI 표시 값에 컨테이너 경로 미포함'으로 정정, 테스트도 그 기준으로 정정. 계약 변경 없음 / T-012, T-022
 - D-019 PUT /api/agents/{name}에서 워크플로우 불변이어도 role(member↔lead) 변경을 구성 파일에 반영하고, 자기 자신이 아닌 lead가 있으면 409 LEAD_EXISTS — api-spec AgentUpdateRequest.role 필수·PUT 409 LEAD_EXISTS '다른 팀장' 문구·ui-spec 06 역할 라디오 수정 모드 활성이 근거. 구성 파일 1회 쓰기 → 정의 파일 순서, 실패 시 원본 바이트 원복(ADR-08 소속 변경 패턴 축소형, architect 변경 불필요) / T-010, T-019
 - D-018 T-009 해석 승인(리뷰어 확인): rejected `FORMAT_ERROR`는 요청 name = 형식 오류 파일 stem일 때 / `LEAD_EXISTS` 메시지는 ui-spec FR-010-AC4 문구 `이미 팀장이 있습니다 (<lead>)` 재사용(code만 계약) / `ALREADY_ASSIGNED`는 어떤 워크플로우든 소속이면 거부 / lead 판정은 registry 유효 lead(`Workflow.lead()`) 기준 — 모두 api-spec·final 문구 범위 안 / T-009, T-018
@@ -60,5 +62,6 @@
 - D-007 ADR-11 승인: 도우미는 osascript를 argv로 spawn(shell:false), 문자열 삽입 값은 고정 경로와 정규식 검증 name뿐 — FR-013-AC11 취지(셸 조합 없음) 충족 / T-020
 
 ## Escalations
+- E-003 [resolved] Settings.mountPath 제거 여부(architect 제안) — 사용자: 제거
 - E-001 [resolved] 04-4 캐릭터 색: 문서대로(모두 대기색) vs architect 안(실제 상태 유지) — 사용자: 문서대로
 - E-002 [resolved] 설계 승인(design checkpoint) — 사용자: 승인, 진행

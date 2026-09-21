@@ -800,10 +800,9 @@ components:
 
     Settings:
       type: object
-      required: [hostPath, mountPath, agentCount, skillCount, writable, formatErrorCount, agentsDirMissing, terminalApp, defaultSessionCommand, leadSessionCommandTemplate, helperUrl, collectUrl, hookConfigured, hookSettingsExample, teamsPath, trashPath, retentionDays, allowedHttpHookUrlsNote]
+      required: [hostPath, agentCount, skillCount, writable, formatErrorCount, agentsDirMissing, terminalApp, defaultSessionCommand, leadSessionCommandTemplate, helperUrl, collectUrl, hookConfigured, hookSettingsExample, teamsPath, trashPath, retentionDays, allowedHttpHookUrlsNote]
       properties:
-        hostPath: { type: string }
-        mountPath: { type: string, example: "/workspace" }
+        hostPath: { type: string, example: "/Users/jaybee/Desktop/JayStudio", description: "맥북 경로(FR-014-AC4). 컨테이너 마운트 경로는 응답에 넣지 않는다(ADR-20)" }
         agentCount: { type: [integer, "null"] }
         skillCount: { type: integer }
         writable: { type: boolean }

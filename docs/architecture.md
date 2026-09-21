@@ -449,7 +449,8 @@ LiveState {
 | 도우미 | Node 내장 `http`, `crypto`, `child_process`, `node:test` | 외부 의존 없음 확정 |
 | 이벤트 재생 | Node 내장 `fetch` | 〃 |
 
-### ADR-20 `Settings.mountPath`와 FR-014-AC4 해석 (팀장 결정 D-020, 2026-09-21)
-- 배경: api-spec `Settings`는 `mountPath`(컨테이너 경로, 예 `/workspace`)를 required로 정의하는데, tasks.md T-012 Done when과 conventions §5는 "응답에 `/workspace` 절대 경로 없음"이라 적혀 서로 모순이었다.
-- 결정: api-spec은 그대로 둔다(계약 변경 없음). FR-014-AC4 원문은 "맥북 경로를 **표시**한다"이므로 검증 대상은 UI에 표시되는 값(`hostPath`·`defaultSessionCommand`·`leadSessionCommandTemplate`·`teamsPath`·`trashPath`)이다. `mountPath`는 컨테이너 경로를 담되 ui-spec SCR-07에서 표시하지 않는다. tasks.md·conventions.md 문구를 이에 맞춰 수정.
-- 선택지: (a) `mountPath` 제거(계약 변경, 프론트 타입·백엔드 DTO·테스트 수정 필요) / (b) 유지 + 문구 정리. (b) 채택 — T-011·T-012 구현이 진행 중이라 계약을 흔들지 않는다. 제거는 별도 계약 변경 절차로 검토.
+### ADR-20 `Settings.mountPath`와 FR-014-AC4 해석 (팀장 결정 D-020 → D-021, 2026-09-21)
+- 배경: api-spec `Settings`는 `mountPath`(컨테이너 경로, 예 `/workspace`)를 required로 정의하는데, tasks.md T-012 Done when과 conventions §5는 "응답에 `/workspace` 절대 경로 없음"이라 적혀 서로 모순이었다. FR-014-AC4 원문은 "맥북 경로를 **표시**한다"이므로 검증 대상은 UI에 표시되는 값(`hostPath`·`defaultSessionCommand`·`leadSessionCommandTemplate`·`teamsPath`·`trashPath`)이다.
+- 선택지: (a) `mountPath` 제거(계약 변경, 프론트 타입·백엔드 DTO·테스트 수정 필요) / (b) 유지 + 문구 정리.
+- 1차 결정(D-020): (b) 채택 — T-011·T-012 구현이 진행 중이라 계약을 흔들지 않고, tasks.md·conventions.md 문구만 "UI 표시 값에 컨테이너 경로 미포함"으로 정정. 제거는 별도 계약 변경 절차로 검토.
+- 최종 결정(D-021, 사용자 승인): **(a) 제거 채택**. `Settings` 스키마에서 `mountPath`를 `required`·`properties` 모두 제거(계약 변경). 이유: ui-spec 어느 화면도 `mountPath`를 표시하지 않고, 모든 `filePath`는 마운트 루트 상대 경로이며 절대 경로는 `hostPath`로만 만들므로 Frontend가 컨테이너 경로를 알 이유가 없다. 이에 따라 conventions §5의 마운트 경로 MUST는 예외 없이 "API 응답에 컨테이너 마운트 절대 경로를 넣지 않는다"로 되돌린다. `JAYSTUDIO_MOUNT_PATH`는 서버 내부 설정(§4 환경 변수 표)으로 유지. 사용자에게 보이는 동작·FR 의미 변경 없음. 영향 태스크: T-012(백엔드 DTO·테스트), T-013 이후 프론트 타입은 처음부터 제거된 계약으로 작성. `Snapshot.config`(`Config` 스키마)에는 `mountPath`가 원래 없어 T-007 영향 없음.
