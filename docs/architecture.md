@@ -407,6 +407,7 @@ LiveState {
 
 ### ADR-10 세션 키와 부모 판정
 - 결정: 레코드 키 = `agent_id ?? session_id`. 서브에이전트 부모 = 같은 `session_id`의 메인 레코드. 없으면 `idle` 메인 레코드를 만든다. 정의 없는 서브에이전트는 부모가 워크플로우 소속 정의 에이전트일 때만 03에 표시. 이유: FR-004-AC4(`agent_id` 단위), FR-007-AC3(부모 = 같은 `session_id`의 `--agent` 세션), FR-004-E1(거부하지 않음). 로비 부모의 정의 없는 서브에이전트는 표시할 층이 없으므로 01 이벤트에만 나온다(FR-003-E2 "이벤트는 저장하고 01에 표시").
+- 추가(D-016, T-006): `--agent <미정의 name>`으로 시작한 메인 세션(`agent_id` 없고 `agent_type`이 정상 정의 파일에 없음)은 로비(`agent_type` 없음, FR-003-AC5)도 워크플로우 밖 에이전트(정상 정의 파일, FR-004-AC7)도 정의 없는 서브에이전트(`agent_id` 있음)도 아니므로 `Live`(`agents`/`lobby`/`undefinedSubagents`)에 넣지 않고, 이벤트는 저장해 01 이벤트 목록(`EventRow.agentLabel = agent_type`, `workflow = null`)에만 나온다.
 
 ### ADR-11 도우미 실행 방식
 - 결정: `spawn('/usr/bin/osascript', [...argv], {shell:false})`, 명령은 argv 마지막 항목으로 전달(§7.2). `projectDir`는 기동 시 금지 문자 검사, `leadName`은 요청마다 정규식 검사. `GET /health`(Origin 검사만)로 설치 여부 확인, `OPTIONS /open` preflight 처리. `--dry-run`은 실행 대신 stdout 기록. 이유: Terminal.app `do script`는 명령 문자열이 필요하므로 완전한 argv 실행은 불가능하다. 대신 도우미 안에서는 셸을 쓰지 않고, 문자열에 들어가는 두 값이 모두 엄격 검증된 상수·정규식 값이라 주입 여지가 없다(FR-013-AC11 의도). `open -a Terminal <script>` 방식은 임시 파일 생성이 필요해 배제.
