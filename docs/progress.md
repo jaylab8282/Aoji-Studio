@@ -2,7 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **보류 중(사용자 지시)**. 커밋 확정 상태는 T-009까지(aa72c8b). T-010은 backend-developer가 실행 중인 채로 보류됨(tasks.md `in_progress`) — 결과가 와도 검증·리뷰·커밋하지 않고 working tree 미커밋으로 보관. 재개 절차: (1) `git -C Jay_Studio status`로 T-010 미커밋 변경 확인 → 있으면 팀장 `cd backend && ./gradlew build` 확인 후 reviewer scope task(T-010) round 1부터, 없으면 T-010을 backend-developer로 새로 시작. (2) 이후 T-011 → T-012 → T-013(frontend)부터. (3) 후속 Minor 목록은 Log 참조.
+- Current: **보류 중(사용자 지시)**. 커밋 확정 상태는 T-009까지(aa72c8b). T-010 backend-developer는 **세션 한도(429)로 중간에 종료됨** — working tree에 미완성·미검증 변경이 남아 있음(AgentController, AgentDefinitionWriter, ModelValidator, DefinitionFileDeleter, PathGuardConfig, AgentCreateTest, ModelValidatorTest 신규 + ApiException·WorkflowController·RegistryService·WorkflowConfigStore·RegistryServiceTest 수정). PUT 수정 API·AgentUpdateTest는 미착수로 보임. 재개 절차: (1) backend-developer를 새로 실행하되 프롬프트에 '기존 미커밋 T-010 변경을 읽고 이어서 완성(빌드 통과 상태로)'을 넣는다 — 폐기하고 새로 시작해도 됨. (2) DONE 후 팀장 `cd backend && ./gradlew build` 확인 → reviewer scope task(T-010) round 1. (2) 이후 T-011 → T-012 → T-013(frontend)부터. (3) 후속 Minor 목록은 Log 참조.
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -28,7 +28,7 @@
 - 2026-09-21 T-004 PASS (round 2, fix 1회: rescanNow ReentrantLock + 동시성 테스트) → 커밋 `feat(T-004)`. 리뷰: docs/reviews/T-004.md. 남은 Minor: FolderPoller Javadoc 오버로드 참조·SSE 파서 테스트 유틸 중복(후속)
 - 2026-09-21 T-008 PASS (round 1) → 커밋 `feat(T-008)`. 리뷰: docs/reviews/T-008.md. WriteLock·AtomicFileWriter·WriteAccessGuard(READ_ONLY 공통)는 T-009~T-011 공유. 남은 Minor: 인프라 테스트 ID 주석·PathGuard 공용 빈(후속)
 - 2026-09-21 T-009 PASS (round 1) → 커밋 `feat(T-009)` aa72c8b. 리뷰: docs/reviews/T-009.md. 이슈 없음
-- 2026-09-21 T-010 backend-developer 시작 직후 사용자 지시로 보류(실행 중인 개발 에이전트 결과는 미커밋 보관, 검증·리뷰 미실시).
+- 2026-09-21 T-010 backend-developer 시작 직후 사용자 지시로 보류. 개발 에이전트는 세션 한도(429)로 중간 종료 → 부분 변경 미커밋 보관(검증·리뷰 미실시).
 
 ## Decisions
 - D-018 T-009 해석 승인(리뷰어 확인): rejected `FORMAT_ERROR`는 요청 name = 형식 오류 파일 stem일 때 / `LEAD_EXISTS` 메시지는 ui-spec FR-010-AC4 문구 `이미 팀장이 있습니다 (<lead>)` 재사용(code만 계약) / `ALREADY_ASSIGNED`는 어떤 워크플로우든 소속이면 거부 / lead 판정은 registry 유효 lead(`Workflow.lead()`) 기준 — 모두 api-spec·final 문구 범위 안 / T-009, T-018
