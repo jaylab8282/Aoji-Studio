@@ -101,7 +101,7 @@
 - Depends on: T-002, T-003
 
 ## T-006 세션 상태 기계 · 에이전트 집계 · 로비 · 서브에이전트
-- Status: todo
+- Status: done
 - Scope: Backend
 - FR: FR-003, FR-004, FR-007
 - AC: FR-003-AC4, FR-003-AC5, FR-003-AC6, FR-004-AC1, FR-004-AC2, FR-004-AC3, FR-004-AC4, FR-004-AC5, FR-004-AC7, FR-007-AC3, FR-007-AC5, FR-007-AC6

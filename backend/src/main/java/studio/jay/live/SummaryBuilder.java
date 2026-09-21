@@ -49,6 +49,14 @@ public class SummaryBuilder {
         };
     }
 
+    /**
+     * PreToolUse류 이벤트의 대상 요약(파일 경로·명령·패턴 등 첫 값, 마스킹 전). {@code SessionStateMachine}
+     * 의 {@code AgentLive.currentTool.target}(api-spec) 계산도 같은 규칙을 쓴다.
+     */
+    public static String extractTarget(HookPayload payload) {
+        return target(payload);
+    }
+
     private static String target(HookPayload payload) {
         Map<String, Object> toolInput = payload.toolInput();
         for (String key : TARGET_KEYS) {

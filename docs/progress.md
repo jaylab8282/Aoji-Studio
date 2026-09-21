@@ -2,7 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: T-006 (round 1)
+- Current: **보류 중(사용자 지시)**. T-006 done·커밋 완료. 다음 할 일: T-007(SSE 스트림·스냅샷 API, depends T-006) → T-004(폴링·rescan, depends T-003·T-007). 재개 시 architect에 문서 요청 1건 묶어 보내기: ADR-10에 D-016(미정의 agent_type 메인 세션은 Live 미표시) 한 줄 명시 + HookEventReceived Javadoc stale은 T-007 개발자에게 정리 지시.
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -20,8 +20,10 @@
 - 2026-09-21 T-002 PASS (round 1) → 커밋 `feat(T-002)`. 리뷰: docs/reviews/T-002.md. 문서 정합성 → 커밋 2ab9ae2
 - 2026-09-21 T-003 PASS (round 2, fix 1회: file 필드 파일명·description 타입·teams 심볼릭 링크) → 커밋 `feat(T-003)` 204ec6d
 - 2026-09-21 T-005 PASS (round 2, fix 1회: SQLite 손상 복구 구현 D-015) → 커밋 `feat(T-005)`. 남은 Minor: 테스트 죽은 설정 정리·로그 assertion(후속)
+- 2026-09-21 T-006 PASS (round 1) → 커밋 `feat(T-006)`. 사용자 지시로 보류.
 
 ## Decisions
+- D-016 `--agent <미정의 name>` 메인 세션(agent_type이 정의 파일에 없음)은 Live(agents/lobby/undefinedSubagents)에 표시하지 않고 이벤트 목록에만(agentLabel=agent_type, workflow=null) — FR-003-AC5 로비 정의(agent_type 없는 세션)·FR-004-AC7(정의된 에이전트)·api-spec EventRow 문구 그대로. ADR-10 명시 요청 예정 / T-006
 - D-015 architecture §9 SQLite 손상 자동 복구는 설계 문서 범위 안이므로 축소하지 않고 T-005에서 구현: 자체 `DataSource` 빈 생성 전에 quick_check → 실패 시 `events.db(-wal/-shm)`를 `events.db.corrupt-<시각>`으로 이동 후 새로 생성. 통합 테스트 1개 추가 / T-005
 - D-014 `.jaystudio/teams/*.json` 심볼릭 링크도 PathGuard로 거부(읽지 않고 형식 오류) — NFR-07 "심볼릭 링크는 따라가지 않는다"는 일반 원칙 / T-003
 - D-012 라이브러리 승인: `spring-boot-starter-webmvc-test`(test scope) — Spring Boot 4.1이 MockMvc 테스트 지원을 분리한 공식 스타터, Apache-2.0, 확정 스택 안 / T-002
