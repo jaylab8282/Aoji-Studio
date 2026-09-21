@@ -2,20 +2,25 @@ package studio.jay.registry;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.NoSuchFileException;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import studio.jay.files.AtomicFileWriter;
 import studio.jay.files.PathGuard;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * 구성 파일 읽기·스키마 검증 (architecture.md §6.2, ADR-06, FR-002-AC5·AC6).
+ * 구성 파일 읽기·스키마 검증·만들기·삭제 (architecture.md §6.2, ADR-06, ADR-08, FR-002-AC5·AC6,
+ * FR-008, FR-017).
  */
 class WorkflowConfigStoreTest {
 
@@ -24,7 +29,7 @@ class WorkflowConfigStoreTest {
 
     Path teamsDir;
 
-    private final WorkflowConfigStore store = new WorkflowConfigStore(new ObjectMapper());
+    private final WorkflowConfigStore store = new WorkflowConfigStore(new ObjectMapper(), new AtomicFileWriter());
 
     @BeforeEach
     void createTeamsDir() throws IOException {
@@ -256,5 +261,69 @@ class WorkflowConfigStoreTest {
 
         assertThat(result.workflows()).isEmpty();
         assertThat(result.formatErrors()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("[FR-008] create → 파일 생성, schemaVersion 1, lead null, members 빈 배열")
+    void createWritesEmptyWorkflowConfigFile() throws IOException {
+        store.create(pathGuard(), "새워크플로우", "설명입니다");
+
+        Path created = teamsDir.resolve("새워크플로우.json");
+        assertThat(Files.exists(created)).isTrue();
+
+        WorkflowScanResult result = store.readAll(teamsDir, Set.of(), pathGuard());
+        assertThat(result.workflows()).hasSize(1);
+        Workflow workflow = result.workflows().get(0);
+        assertThat(workflow.name()).isEqualTo("새워크플로우");
+        assertThat(workflow.description()).isEqualTo("설명입니다");
+        assertThat(workflow.lead()).isNull();
+        assertThat(workflow.members()).isEmpty();
+        assertThat(workflow.rawMemberCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("[FR-001-AC6] create가 teams 디렉터리를 첫 호출 때 만든다")
+    void createMakesTeamsDirectoryWhenMissing() throws IOException {
+        Path freshMountRoot = Files.createTempDirectory("jaystudio-workflow-create");
+        try {
+            Path freshTeamsDir = freshMountRoot.resolve(".jaystudio").resolve("teams");
+            assertThat(Files.exists(freshTeamsDir)).isFalse();
+
+            store.create(new PathGuard(freshMountRoot), "첫팀", "");
+
+            assertThat(Files.isDirectory(freshTeamsDir)).isTrue();
+            assertThat(Files.exists(freshTeamsDir.resolve("첫팀.json"))).isTrue();
+        } finally {
+            deleteRecursively(freshMountRoot);
+        }
+    }
+
+    @Test
+    @DisplayName("[FR-017-AC4] delete → 파일 삭제(휴지통 이동 없음)")
+    void deleteRemovesConfigFile() throws IOException {
+        store.create(pathGuard(), "삭제할팀", "");
+        Path target = teamsDir.resolve("삭제할팀.json");
+        assertThat(Files.exists(target)).isTrue();
+
+        store.delete(pathGuard(), "삭제할팀");
+
+        assertThat(Files.exists(target)).isFalse();
+    }
+
+    @Test
+    @DisplayName("[FR-017-E2] 존재하지 않는 파일 delete → IOException")
+    void deleteMissingFileThrows() {
+        assertThatThrownBy(() -> store.delete(pathGuard(), "없는팀")).isInstanceOf(NoSuchFileException.class);
+    }
+
+    private static void deleteRecursively(Path root) throws IOException {
+        if (!Files.exists(root)) {
+            return;
+        }
+        try (var paths = Files.walk(root)) {
+            for (Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(path);
+            }
+        }
     }
 }

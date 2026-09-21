@@ -2,7 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: T-008 (round 1) — 워크플로우 추가·삭제 API. 이후 T-009~T-012 backend API, T-013부터 frontend
+- Current: T-009 (round 1) — 기존 에이전트 가져오기 API. 이후 T-010~T-012 backend API, T-013부터 frontend
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -26,6 +26,7 @@
 - 2026-09-21 T-007 PASS (round 1) → 커밋 `feat(T-007)`. 리뷰: docs/reviews/T-007.md. 실측 SSE p95 2.4ms, /api/state 12.7ms, heartbeat 15.0s. 남은 Minor: SseHub live 재조회·@Async 큐 초과 정책(후속)
 - 2026-09-21 T-004 round 1 NEEDS_FIX: [Major] RegistryService.rescanNow 폴러·API 동시 호출 시 revision 역행 가능 → 같은 backend 에이전트에 수정 요청 / [Major] ADR-04 측정치 미기록 → 팀장이 architecture.md에 기록(실제 1s 간격 p95 1,016~1,025ms, 오버헤드 65~82ms)
 - 2026-09-21 T-004 PASS (round 2, fix 1회: rescanNow ReentrantLock + 동시성 테스트) → 커밋 `feat(T-004)`. 리뷰: docs/reviews/T-004.md. 남은 Minor: FolderPoller Javadoc 오버로드 참조·SSE 파서 테스트 유틸 중복(후속)
+- 2026-09-21 T-008 PASS (round 1) → 커밋 `feat(T-008)`. 리뷰: docs/reviews/T-008.md. WriteLock·AtomicFileWriter·WriteAccessGuard(READ_ONLY 공통)는 T-009~T-011 공유. 남은 Minor: 인프라 테스트 ID 주석·PathGuard 공용 빈(후속)
 
 ## Decisions
 - D-017 ADR-04 측정: 실제 1초 간격 실측은 '정의 파일 추가' 1종류(100회)로 충족, 나머지 5종류는 50ms 주입 간격으로 동일 poll() 경로의 오버헤드만 측정 — 지연 = 간격(≤1s)+오버헤드(≤85ms)이므로 전 종류 1.5s 안. `jaystudio.poll-interval-ms`는 테스트 주입 전용 프로퍼티(운영 yaml·env 미노출, 기본 1000). 리뷰어 동의 / T-004

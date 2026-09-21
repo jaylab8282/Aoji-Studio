@@ -143,7 +143,7 @@
 - Depends on: T-006
 
 ## T-008 워크플로우 추가 · 삭제 API
-- Status: todo
+- Status: done
 - Scope: Backend
 - FR: FR-001, FR-008, FR-017
 - AC: FR-001-AC6, FR-008-AC1, FR-008-AC2, FR-017-AC1, FR-017-AC4, FR-017-AC5

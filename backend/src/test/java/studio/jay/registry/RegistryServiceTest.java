@@ -223,8 +223,14 @@ class RegistryServiceTest {
         }
 
         @Bean
-        WorkflowConfigStore workflowConfigStore(ObjectMapper objectMapper) {
-            return new WorkflowConfigStore(objectMapper);
+        studio.jay.files.AtomicFileWriter atomicFileWriter() {
+            return new studio.jay.files.AtomicFileWriter();
+        }
+
+        @Bean
+        WorkflowConfigStore workflowConfigStore(
+                ObjectMapper objectMapper, studio.jay.files.AtomicFileWriter atomicFileWriter) {
+            return new WorkflowConfigStore(objectMapper, atomicFileWriter);
         }
 
         @Bean
