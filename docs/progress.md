@@ -2,7 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: T-012 (round 1) — 설정 API·hook 설정 예시·명령 문자열. 이후 T-013(frontend)부터. architect 문서 요청 대기 목록: conventions §5 '삭제 204' 문구 정리(엔드포인트 spec 본문 우선)
+- Current: **보류 중(사용자 지시)**. 백엔드 API 태스크 전부 완료(T-001~T-012 done, 12/24, backend 277 tests). 재개 절차: (1) architect 제안 판단 — api-spec `Settings.mountPath` 제거 여부(UI 미사용, 계약 변경 절차 필요, 영향 T-012·T-022·프론트 타입). 제거 안 하면 그대로 진행. (2) T-013 프론트 공통 셸·스토어·SSE 클라이언트부터 frontend-developer로 시작(depends T-002·T-003, 백엔드 API 전부 실제 구현됨 → MOCKED APIS 없어야 함). (3) 이후 T-014~T-019, T-020(helper)·T-021·T-022·T-023·T-024.
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -32,9 +32,13 @@
 - 2026-09-21 재개(3차). T-010 부분 변경 컴파일 통과 확인 → backend-developer로 이어서 완성(AgentUpdateTest 11개 추가, 257 tests).
 - 2026-09-21 T-010 round 1 NEEDS_FIX: [Major] PUT에서 워크플로우 불변 시 role 변경이 구성 파일에 반영 안 됨(19개 ID 테스트는 전부 PASS, 계약 갭) → 같은 backend 에이전트에 수정 요청(D-019)
 - 2026-09-21 T-010 PASS (round 2, fix 1회: 같은 워크플로우 role 변경 반영 + description 줄바꿈 거부) → 커밋 `feat(T-010)`. 리뷰: docs/reviews/T-010.md. 남은 Minor: role-only 롤백 실패 주입 테스트·AgentController 메서드 길이·frontmatter 주석/따옴표 테스트(후속)
-- 2026-09-21 T-011 PASS (round 1) → 커밋 `feat(T-011)`. 리뷰: docs/reviews/T-011.md. 문서 불일치 1건(conventions §5 삭제 204 vs api-spec 200+body) architect 요청 대기
+- 2026-09-21 T-011 PASS (round 1) → 커밋 `feat(T-011)`. 리뷰: docs/reviews/T-011.md. 문서 불일치 1건(conventions §5 삭제 204 vs api-spec 200+body) architect 요청 진행 중
+- 2026-09-21 T-012 round 1 NEEDS_FIX: [Major] tasks.md Done when vs api-spec mountPath 모순(테스트가 @TempDir로 우연히 통과) → D-020, architect 문서 정정 + backend 테스트 정정·hook 예시 서식 §7.1 맞춤
+- 2026-09-21 architect 완료(계약 변경 없음): tasks.md T-012 AC4 문구, conventions §5 삭제 코드 예외 + 마운트 경로 MUST에 Settings.mountPath 예외, ADR-20 추가. architect 제안(보류): `Settings.mountPath`는 UI 미사용이라 T-013 이전에 계약 변경 절차로 제거 검토 — 재개 시 팀장이 판단
+- 2026-09-21 T-012 PASS (round 2, fix 1회: AC4 테스트 정정·hook 예시 §7.1 서식) → 커밋 `feat(T-012)`. 리뷰: docs/reviews/T-012.md. 사람 확인 H-2·H-3 대기. **백엔드 API 완료** → 사용자 지시로 보류.
 
 ## Decisions
+- D-020 api-spec `Settings.mountPath`(required, 컨테이너 경로 예: /workspace)는 계약대로 유지. FR-014-AC4는 '표시' 요건이고 ui-spec SCR-07은 hostPath만 표시하므로 위반 아님. tasks.md T-012 Done when 문구('응답에 /workspace 없음')가 api-spec과 모순 → architect가 'UI 표시 값에 컨테이너 경로 미포함'으로 정정, 테스트도 그 기준으로 정정. 계약 변경 없음 / T-012, T-022
 - D-019 PUT /api/agents/{name}에서 워크플로우 불변이어도 role(member↔lead) 변경을 구성 파일에 반영하고, 자기 자신이 아닌 lead가 있으면 409 LEAD_EXISTS — api-spec AgentUpdateRequest.role 필수·PUT 409 LEAD_EXISTS '다른 팀장' 문구·ui-spec 06 역할 라디오 수정 모드 활성이 근거. 구성 파일 1회 쓰기 → 정의 파일 순서, 실패 시 원본 바이트 원복(ADR-08 소속 변경 패턴 축소형, architect 변경 불필요) / T-010, T-019
 - D-018 T-009 해석 승인(리뷰어 확인): rejected `FORMAT_ERROR`는 요청 name = 형식 오류 파일 stem일 때 / `LEAD_EXISTS` 메시지는 ui-spec FR-010-AC4 문구 `이미 팀장이 있습니다 (<lead>)` 재사용(code만 계약) / `ALREADY_ASSIGNED`는 어떤 워크플로우든 소속이면 거부 / lead 판정은 registry 유효 lead(`Workflow.lead()`) 기준 — 모두 api-spec·final 문구 범위 안 / T-009, T-018
 - D-017 ADR-04 측정: 실제 1초 간격 실측은 '정의 파일 추가' 1종류(100회)로 충족, 나머지 5종류는 50ms 주입 간격으로 동일 poll() 경로의 오버헤드만 측정 — 지연 = 간격(≤1s)+오버헤드(≤85ms)이므로 전 종류 1.5s 안. `jaystudio.poll-interval-ms`는 테스트 주입 전용 프로퍼티(운영 yaml·env 미노출, 기본 1000). 리뷰어 동의 / T-004

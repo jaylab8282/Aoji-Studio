@@ -77,10 +77,10 @@
 
 ## 5. API 요청·응답 형식
 
-- MUST 요청·응답은 `application/json; charset=utf-8`. 성공 응답 코드: 조회 200, 생성 201, 삭제 204, 부분 성공 200 + `rejected`. 이유: api-spec.
+- MUST 요청·응답은 `application/json; charset=utf-8`. 성공 응답 코드: 조회 200, 생성 201, 삭제는 api-spec의 해당 엔드포인트에 응답 본문이 정의되어 있으면 그 코드·본문(예: `DELETE /api/agents/{name}` → 200 + `{trashPath, removedFromWorkflow}`), 없으면 204, 부분 성공 200 + `rejected`. 이유: api-spec이 엔드포인트별 계약의 기준.
 - MUST 변경 요청 헤더 `X-JayStudio-Browser-Token`, 수집 헤더 `X-JayStudio-Collect-Token`, 도우미 헤더 `X-JayStudio-Helper-Token`. 이유: 토큰 이름 통일.
 - MUST 경로 변수 `name`은 `^[a-z0-9-]{1,64}$`, `workflow`는 decode 후 워크플로우 이름 규칙으로 서버가 검증한다. 이유: NFR-07.
-- MUST API 응답에 마운트 절대 경로(`/workspace/...`)를 넣지 않는다. `filePath`는 마운트 루트 기준 상대 경로, `hostPath`만 맥북 절대 경로. 이유: FR-014-AC4.
+- MUST API 응답 중 UI에 표시되는 값에 컨테이너 마운트 절대 경로(`/workspace/...`)를 넣지 않는다. `filePath`는 마운트 루트 기준 상대 경로, `hostPath`·명령 문자열은 맥북 절대 경로. 예외: `Settings.mountPath`는 api-spec대로 컨테이너 마운트 루트 경로를 담되 UI에 표시하지 않는다(ADR-20). 이유: FR-014-AC4.
 - SHOULD 응답 필드 추가는 하위 호환(추가만)으로 하고 api-spec을 먼저 고친다(architect).
 
 ## 6. 보안 규칙 (기본값)

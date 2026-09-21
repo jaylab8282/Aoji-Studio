@@ -87,6 +87,11 @@ public class CollectTokenStore {
         return bytes;
     }
 
+    /** 현재 수집 토큰 값(07 hook 설정 예시에 넣기 위함, FR-014-AC2). */
+    public String token() {
+        return token;
+    }
+
     /** 상수 시간 비교로 수집 토큰 값을 검사한다. */
     public boolean matches(String candidate) {
         if (candidate == null || token == null) {

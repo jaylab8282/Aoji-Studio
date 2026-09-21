@@ -232,7 +232,7 @@
 - Depends on: T-010
 
 ## T-012 설정 API · hook 설정 예시 · 명령 문자열
-- Status: todo
+- Status: done
 - Scope: Backend
 - FR: FR-014, FR-003, FR-013
 - AC: FR-014-AC1, FR-014-AC2, FR-014-AC4, FR-003-AC8, FR-013-AC1, FR-013-AC2, FR-013-AC5
@@ -243,7 +243,7 @@
 - Done when:
   - FR-014-AC1 — 정적 검사: `settings.json`을 쓰는 코드 경로 없음(`grep -r "settings.json"` 결과가 읽기 전용 클래스뿐) — 리뷰어 확인 + 통합 `[FR-014-AC1] GET /api/settings 호출 후 fixture settings.json mtime 불변`
   - FR-014-AC2 — 단위 `HookSettingsExampleBuilderTest [FR-014-AC2][FR-003-AC8][FR-003-AC9] JSON 파싱 가능, 키 12개 정확히, 각 type http · url = collectUrl · headers.X-JayStudio-Collect-Token = 토큰 · timeout 3` + 통합 `[FR-014-AC2] 예시를 fixture settings.json으로 쓰면 hookConfigured true` + 사람 H-2
-  - FR-014-AC4 — 통합 `SettingsControllerTest [FR-014-AC4] hostPath = env 값, 응답에 '/workspace' 절대 경로 없음`
+  - FR-014-AC4 — 통합 `SettingsControllerTest [FR-014-AC4] hostPath = env 값(JAYSTUDIO_HOST_PATH 그대로), UI에 표시되는 값(hostPath·defaultSessionCommand·leadSessionCommandTemplate·teamsPath·trashPath)에 컨테이너 경로(mountPath 값) 미포함. mountPath 자체는 api-spec대로 컨테이너 경로(JAYSTUDIO_MOUNT_PATH)이며 ui-spec SCR-07에서 표시하지 않음(ADR-20)`
   - FR-003-AC8 — 위 단위 테스트(`timeout: 3`, `type: http`) + 사람 H-5
   - FR-013-AC1 — 단위 `CommandStringsTest [FR-013-AC1] defaultSessionCommand == 'cd "<hostPath>" && claude'` + 사람 H-3
   - FR-013-AC2 — 단위 `[FR-013-AC2] leadSessionCommandTemplate == 'cd "<hostPath>" && claude --agent <팀장 name>'` + 사람 H-3

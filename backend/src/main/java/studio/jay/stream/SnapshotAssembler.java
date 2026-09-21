@@ -47,10 +47,15 @@ public class SnapshotAssembler {
                 OffsetDateTime.now(), buildConfig(), registryService.current(), liveStateService.live(), recentEvents);
     }
 
-    private Config buildConfig() {
+    /**
+     * api-spec {@code Config}를 조립한다. {@code SettingsController}(T-012)도 이 메서드로 같은
+     * {@code hostPath}·{@code collectUrl}·{@code helperUrl}·{@code defaultSessionCommand} 값을 얻어
+     * {@code GET /api/state}·{@code GET /api/settings}가 같은 값을 보이도록 한다.
+     */
+    public Config buildConfig() {
         String publicOrigin = "http://127.0.0.1:" + appProperties.getPublicPort();
         String collectUrl = publicOrigin + "/hooks/events";
-        String defaultSessionCommand = "cd \"" + appProperties.getHostPath() + "\" && claude";
+        String defaultSessionCommand = CommandStrings.defaultSessionCommand(appProperties.getHostPath());
         return new Config(
                 appProperties.getHostPath(),
                 publicOrigin,
