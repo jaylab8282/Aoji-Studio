@@ -184,7 +184,7 @@
 - Depends on: T-008
 
 ## T-010 에이전트 만들기 · 수정 API (정의 파일 + 구성 파일 원자성)
-- Status: todo
+- Status: in_progress
 - Scope: Backend
 - FR: FR-010, FR-011, FR-002
 - AC: FR-010-AC1, FR-010-AC2, FR-010-AC3, FR-010-AC5, FR-010-AC7, FR-011-AC1, FR-011-AC2, FR-011-AC3, FR-011-AC4, FR-011-AC5, FR-011-AC6

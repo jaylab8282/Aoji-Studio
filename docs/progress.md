@@ -2,7 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: T-010 (round 1) — 에이전트 만들기·수정 API. 이후 T-011·T-012 backend API, T-013부터 frontend
+- Current: **보류 중(사용자 지시, T-009까지 완료·커밋됨)**. T-010은 보류 지시 직전에 backend-developer가 시작된 상태(tasks.md `in_progress`) — 결과가 와도 리뷰·커밋하지 않고 working tree에 미커밋으로 남긴다. 재개 시: `git -C Jay_Studio status`로 T-010 미커밋 변경이 있으면 팀장이 `./gradlew build` 확인 → reviewer scope task(T-010) round 1부터 진행. 변경이 없으면 T-010을 backend-developer로 새로 시작. 이후 T-011 → T-012 → T-013(frontend)부터.
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -27,7 +27,8 @@
 - 2026-09-21 T-004 round 1 NEEDS_FIX: [Major] RegistryService.rescanNow 폴러·API 동시 호출 시 revision 역행 가능 → 같은 backend 에이전트에 수정 요청 / [Major] ADR-04 측정치 미기록 → 팀장이 architecture.md에 기록(실제 1s 간격 p95 1,016~1,025ms, 오버헤드 65~82ms)
 - 2026-09-21 T-004 PASS (round 2, fix 1회: rescanNow ReentrantLock + 동시성 테스트) → 커밋 `feat(T-004)`. 리뷰: docs/reviews/T-004.md. 남은 Minor: FolderPoller Javadoc 오버로드 참조·SSE 파서 테스트 유틸 중복(후속)
 - 2026-09-21 T-008 PASS (round 1) → 커밋 `feat(T-008)`. 리뷰: docs/reviews/T-008.md. WriteLock·AtomicFileWriter·WriteAccessGuard(READ_ONLY 공통)는 T-009~T-011 공유. 남은 Minor: 인프라 테스트 ID 주석·PathGuard 공용 빈(후속)
-- 2026-09-21 T-009 PASS (round 1) → 커밋 `feat(T-009)`. 리뷰: docs/reviews/T-009.md. 이슈 없음
+- 2026-09-21 T-009 PASS (round 1) → 커밋 `feat(T-009)` aa72c8b. 리뷰: docs/reviews/T-009.md. 이슈 없음
+- 2026-09-21 T-010 backend-developer 시작 직후 사용자 지시로 보류. T-010 결과는 미커밋 상태로 보관(검증·리뷰 미실시).
 
 ## Decisions
 - D-018 T-009 해석 승인(리뷰어 확인): rejected `FORMAT_ERROR`는 요청 name = 형식 오류 파일 stem일 때 / `LEAD_EXISTS` 메시지는 ui-spec FR-010-AC4 문구 `이미 팀장이 있습니다 (<lead>)` 재사용(code만 계약) / `ALREADY_ASSIGNED`는 어떤 워크플로우든 소속이면 거부 / lead 판정은 registry 유효 lead(`Workflow.lead()`) 기준 — 모두 api-spec·final 문구 범위 안 / T-009, T-018
