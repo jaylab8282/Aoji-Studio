@@ -148,6 +148,129 @@ public class WorkflowConfigStore {
         atomicFileWriter.write(target, objectMapper.writeValueAsBytes(content));
     }
 
+    /** 구성 파일 경로(T-010/011 롤백용 원본 바이트 백업·복원에도 쓴다). */
+    public Path configFilePath(PathGuard pathGuard, String workflowName) {
+        return pathGuard.resolve(JAYSTUDIO_SEGMENT, TEAMS_SEGMENT, WorkflowNameValidator.fileName(workflowName));
+    }
+
+    /** 쓰기 전 원본 바이트를 백업한다(ADR-08 "원본 바이트를 메모리에 보관", T-010/011 롤백용). */
+    public byte[] readRawBytes(PathGuard pathGuard, String workflowName) throws IOException {
+        return Files.readAllBytes(configFilePath(pathGuard, workflowName));
+    }
+
+    /** {@link #readRawBytes}로 백업한 원본 바이트를 그대로 되돌린다(롤백은 최선 노력, ADR-08). */
+    public void restoreRawBytes(PathGuard pathGuard, String workflowName, byte[] original) throws IOException {
+        atomicFileWriter.write(configFilePath(pathGuard, workflowName), original);
+    }
+
+    /**
+     * 에이전트 하나를 워크플로우에 반영한다(api-spec {@code POST /api/agents} 만들기, {@code PUT
+     * /api/agents/{name}} 소속 변경, FR-010, FR-011-AC3). {@code role}이 {@link Role#LEAD}면
+     * 팀장을 이 name으로 바꾼다(호출자가 팀장 충돌을 이미 검증했다고 가정한다 — 이 메서드는 덮어쓰기만
+     * 한다). {@link Role#MEMBER}면 members에 더한다. 정의 파일은 건드리지 않는다.
+     */
+    public void addMember(PathGuard pathGuard, String workflowName, String name, Role role) throws IOException {
+        Path target = configFilePath(pathGuard, workflowName);
+        pathGuard.assertNotSymlink(target);
+        RawWorkflowFile raw = readRaw(target);
+
+        String lead = role == Role.LEAD ? name : raw.lead();
+        Set<String> members = new TreeSet<>(raw.members());
+        if (role == Role.LEAD) {
+            members.remove(name);
+        } else {
+            members.add(name);
+        }
+        if (lead != null) {
+            members.remove(lead);
+        }
+
+        writeRaw(target, workflowName, raw.description(), lead, members, raw.createdAt());
+    }
+
+    /**
+     * 워크플로우에서 name을 뺀다(팀장이면 {@code lead}를 null로, 팀원이면 목록에서 제거). 이 name이
+     * 팀장·팀원 어느 쪽도 아니면 아무 일도 하지 않는다(api-spec {@code PUT /api/agents/{name}} 소속
+     * 변경, FR-011-AC3).
+     */
+    public void removeMember(PathGuard pathGuard, String workflowName, String name) throws IOException {
+        Path target = configFilePath(pathGuard, workflowName);
+        pathGuard.assertNotSymlink(target);
+        RawWorkflowFile raw = readRaw(target);
+
+        String lead = name.equals(raw.lead()) ? null : raw.lead();
+        Set<String> members = new TreeSet<>(raw.members());
+        members.remove(name);
+
+        writeRaw(target, workflowName, raw.description(), lead, members, raw.createdAt());
+    }
+
+    /**
+     * {@code lead}·{@code members}에 있는 {@code oldName}을 {@code newName}으로 바꾼다(api-spec
+     * {@code PUT /api/agents/{name}} 이름 변경, FR-011-AC2 "구성 파일 참조도 함께 바뀐다"). 같은
+     * 워크플로우 안에서 이름만 바뀌는 경우(소속 워크플로우는 그대로, 역할도 그대로)에 쓴다. 역할은
+     * {@code oldName}이 있던 자리(팀장/팀원)를 그대로 유지한다.
+     */
+    public void renameMember(PathGuard pathGuard, String workflowName, String oldName, String newName) throws IOException {
+        renameMember(pathGuard, workflowName, oldName, newName, null);
+    }
+
+    /**
+     * 이름과 역할을 함께 바꾼다(api-spec {@code PUT /api/agents/{name}} 이름 변경 + 역할 변경 동시,
+     * FR-011-AC2·D-019). {@code newRole}이 {@code null}이면 {@link #renameMember(PathGuard, String,
+     * String, String)}와 같이 기존 역할을 유지한다. 아니면 {@code oldName}을 완전히 빼고 {@code newName}을
+     * {@code newRole}(팀장이면 lead, 팀원이면 members)로 다시 넣는다 — 구성 파일 쓰기 1회로 이름·역할
+     * 변경을 함께 반영한다(ADR-08). 팀장 충돌(다른 팀장이 이미 있음) 검증은 호출자가 이 메서드를 부르기
+     * 전에 끝낸다(이 메서드는 덮어쓰기만 한다).
+     */
+    public void renameMember(PathGuard pathGuard, String workflowName, String oldName, String newName, Role newRole)
+            throws IOException {
+        Path target = configFilePath(pathGuard, workflowName);
+        pathGuard.assertNotSymlink(target);
+        RawWorkflowFile raw = readRaw(target);
+
+        boolean oldWasLead = oldName.equals(raw.lead());
+        Role effectiveRole = newRole != null ? newRole : (oldWasLead ? Role.LEAD : Role.MEMBER);
+
+        String lead = oldWasLead ? null : raw.lead();
+        Set<String> members = new TreeSet<>(raw.members());
+        members.remove(oldName);
+
+        if (effectiveRole == Role.LEAD) {
+            lead = newName;
+        } else {
+            members.add(newName);
+        }
+        if (lead != null) {
+            members.remove(lead);
+        }
+
+        writeRaw(target, workflowName, raw.description(), lead, members, raw.createdAt());
+    }
+
+    /**
+     * 이름은 그대로 두고 역할만 바꾼다(lead↔member, api-spec {@code PUT /api/agents/{name}} 역할 변경,
+     * D-019). {@code name}이 이미 {@code role} 자리에 있으면 결과는 같다(멱등). 팀장 충돌 검증은
+     * 호출자가 먼저 끝낸다.
+     */
+    public void setMemberRole(PathGuard pathGuard, String workflowName, String name, Role role) throws IOException {
+        renameMember(pathGuard, workflowName, name, name, role);
+    }
+
+    private void writeRaw(
+            Path target, String workflowName, String description, String lead, Set<String> members, String createdAt)
+            throws IOException {
+        Map<String, Object> content = new LinkedHashMap<>();
+        content.put("schemaVersion", SCHEMA_VERSION);
+        content.put("name", workflowName);
+        content.put("description", description);
+        content.put("lead", lead);
+        content.put("members", List.copyOf(members));
+        content.put("createdAt", createdAt);
+        content.put("updatedAt", OffsetDateTime.now().toString());
+        atomicFileWriter.write(target, objectMapper.writeValueAsBytes(content));
+    }
+
     /** {@link #addMembers} 전용 — 검증 없이 구성 파일 원본 필드만 읽는다(파일은 호출 시점에 이미 스키마 검증을 통과했다). */
     private RawWorkflowFile readRaw(Path file) throws IOException {
         JsonNode root = objectMapper.readTree(Files.readString(file, StandardCharsets.UTF_8));

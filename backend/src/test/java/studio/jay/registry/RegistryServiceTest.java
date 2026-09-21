@@ -239,12 +239,18 @@ class RegistryServiceTest {
         }
 
         @Bean
+        studio.jay.files.PathGuard pathGuard(AppProperties appProperties) {
+            return new studio.jay.files.PathGuard(Path.of(appProperties.getMountPath()));
+        }
+
+        @Bean
         RegistryService registryService(
                 AppProperties appProperties,
                 ProjectFolderScanner scanner,
                 WorkflowConfigStore workflowConfigStore,
-                HookConfigDetector hookConfigDetector) {
-            return new RegistryService(appProperties, scanner, workflowConfigStore, hookConfigDetector);
+                HookConfigDetector hookConfigDetector,
+                studio.jay.files.PathGuard pathGuard) {
+            return new RegistryService(appProperties, scanner, workflowConfigStore, hookConfigDetector, pathGuard);
         }
     }
 }

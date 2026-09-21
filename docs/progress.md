@@ -2,7 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **보류 중(사용자 지시)**. 커밋 확정 상태는 T-009까지(aa72c8b). T-010 backend-developer는 **세션 한도(429)로 중간에 종료됨** — working tree에 미완성·미검증 변경이 남아 있음(AgentController, AgentDefinitionWriter, ModelValidator, DefinitionFileDeleter, PathGuardConfig, AgentCreateTest, ModelValidatorTest 신규 + ApiException·WorkflowController·RegistryService·WorkflowConfigStore·RegistryServiceTest 수정). PUT 수정 API·AgentUpdateTest는 미착수로 보임. 재개 절차: (1) backend-developer를 새로 실행하되 프롬프트에 '기존 미커밋 T-010 변경을 읽고 이어서 완성(빌드 통과 상태로)'을 넣는다 — 폐기하고 새로 시작해도 됨. (2) DONE 후 팀장 `cd backend && ./gradlew build` 확인 → reviewer scope task(T-010) round 1. (2) 이후 T-011 → T-012 → T-013(frontend)부터. (3) 후속 Minor 목록은 Log 참조.
+- Current: T-011 (round 1) — 워크플로우에서 제거 API(휴지통). 이후 T-012 → T-013(frontend)
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -29,8 +29,12 @@
 - 2026-09-21 T-008 PASS (round 1) → 커밋 `feat(T-008)`. 리뷰: docs/reviews/T-008.md. WriteLock·AtomicFileWriter·WriteAccessGuard(READ_ONLY 공통)는 T-009~T-011 공유. 남은 Minor: 인프라 테스트 ID 주석·PathGuard 공용 빈(후속)
 - 2026-09-21 T-009 PASS (round 1) → 커밋 `feat(T-009)` aa72c8b. 리뷰: docs/reviews/T-009.md. 이슈 없음
 - 2026-09-21 T-010 backend-developer 시작 직후 사용자 지시로 보류. 개발 에이전트는 세션 한도(429)로 중간 종료 → 부분 변경 미커밋 보관(검증·리뷰 미실시).
+- 2026-09-21 재개(3차). T-010 부분 변경 컴파일 통과 확인 → backend-developer로 이어서 완성(AgentUpdateTest 11개 추가, 257 tests).
+- 2026-09-21 T-010 round 1 NEEDS_FIX: [Major] PUT에서 워크플로우 불변 시 role 변경이 구성 파일에 반영 안 됨(19개 ID 테스트는 전부 PASS, 계약 갭) → 같은 backend 에이전트에 수정 요청(D-019)
+- 2026-09-21 T-010 PASS (round 2, fix 1회: 같은 워크플로우 role 변경 반영 + description 줄바꿈 거부) → 커밋 `feat(T-010)`. 리뷰: docs/reviews/T-010.md. 남은 Minor: role-only 롤백 실패 주입 테스트·AgentController 메서드 길이·frontmatter 주석/따옴표 테스트(후속)
 
 ## Decisions
+- D-019 PUT /api/agents/{name}에서 워크플로우 불변이어도 role(member↔lead) 변경을 구성 파일에 반영하고, 자기 자신이 아닌 lead가 있으면 409 LEAD_EXISTS — api-spec AgentUpdateRequest.role 필수·PUT 409 LEAD_EXISTS '다른 팀장' 문구·ui-spec 06 역할 라디오 수정 모드 활성이 근거. 구성 파일 1회 쓰기 → 정의 파일 순서, 실패 시 원본 바이트 원복(ADR-08 소속 변경 패턴 축소형, architect 변경 불필요) / T-010, T-019
 - D-018 T-009 해석 승인(리뷰어 확인): rejected `FORMAT_ERROR`는 요청 name = 형식 오류 파일 stem일 때 / `LEAD_EXISTS` 메시지는 ui-spec FR-010-AC4 문구 `이미 팀장이 있습니다 (<lead>)` 재사용(code만 계약) / `ALREADY_ASSIGNED`는 어떤 워크플로우든 소속이면 거부 / lead 판정은 registry 유효 lead(`Workflow.lead()`) 기준 — 모두 api-spec·final 문구 범위 안 / T-009, T-018
 - D-017 ADR-04 측정: 실제 1초 간격 실측은 '정의 파일 추가' 1종류(100회)로 충족, 나머지 5종류는 50ms 주입 간격으로 동일 poll() 경로의 오버헤드만 측정 — 지연 = 간격(≤1s)+오버헤드(≤85ms)이므로 전 종류 1.5s 안. `jaystudio.poll-interval-ms`는 테스트 주입 전용 프로퍼티(운영 yaml·env 미노출, 기본 1000). 리뷰어 동의 / T-004
 - D-016 `--agent <미정의 name>` 메인 세션(agent_type이 정의 파일에 없음)은 Live(agents/lobby/undefinedSubagents)에 표시하지 않고 이벤트 목록에만(agentLabel=agent_type, workflow=null) — FR-003-AC5 로비 정의(agent_type 없는 세션)·FR-004-AC7(정의된 에이전트)·api-spec EventRow 문구 그대로. ADR-10에 명시 완료 / T-006

@@ -51,13 +51,13 @@ public class RegistryService {
             AppProperties appProperties,
             ProjectFolderScanner projectFolderScanner,
             WorkflowConfigStore workflowConfigStore,
-            HookConfigDetector hookConfigDetector) {
+            HookConfigDetector hookConfigDetector,
+            PathGuard pathGuard) {
         this.appProperties = appProperties;
         this.projectFolderScanner = projectFolderScanner;
         this.workflowConfigStore = workflowConfigStore;
         this.hookConfigDetector = hookConfigDetector;
-        // 마운트 루트는 기동 후 바뀌지 않으므로(FR-001-AC5) PathGuard를 한 번만 만들어 재사용한다.
-        this.pathGuard = new PathGuard(Path.of(appProperties.getMountPath()));
+        this.pathGuard = pathGuard;
     }
 
     @PostConstruct

@@ -1,7 +1,6 @@
 package studio.jay.api;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -16,7 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import studio.jay.config.AppProperties;
 import studio.jay.files.PathGuard;
 import studio.jay.files.WriteLock;
 import studio.jay.live.LiveStateService;
@@ -61,15 +59,14 @@ public class WorkflowController {
             WriteAccessGuard writeAccessGuard,
             SseHub sseHub,
             LiveStateService liveStateService,
-            AppProperties appProperties) {
+            PathGuard pathGuard) {
         this.registryService = registryService;
         this.workflowConfigStore = workflowConfigStore;
         this.writeLock = writeLock;
         this.writeAccessGuard = writeAccessGuard;
         this.sseHub = sseHub;
         this.liveStateService = liveStateService;
-        // 마운트 루트는 기동 후 바뀌지 않으므로(FR-001-AC5) RegistryService와 같은 방식으로 한 번만 만든다.
-        this.pathGuard = new PathGuard(Path.of(appProperties.getMountPath()));
+        this.pathGuard = pathGuard;
     }
 
     @PostMapping
