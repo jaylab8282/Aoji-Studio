@@ -8,9 +8,10 @@ import studio.jay.events.EventRow;
  * (architecture.md §3.2 데이터 흐름의 "SessionStateMachine.apply" → "SseHub.broadcast(live, event)"
  * 연결 지점). {@code HookCollectController}는 이 이벤트만 발행하고 상태 계산·SSE 방송은 하지 않는다.
  *
- * <p>T-006({@code LiveStateService})이 이 이벤트를 구독해 상태를 갱신하고, T-007({@code SseHub})이
- * 다시 그 결과를 구독해 방송한다. 이 태스크(T-005)에는 리스너가 없으므로 발행은 아무 효과가 없고
- * 수집 응답(204)을 막지 않는다(NFR-02, FR-003-AC3 100ms).
+ * <p>{@code LiveStateService#onHookEventReceived}가 요청 스레드에서 이 이벤트를 동기로 구독해 상태를
+ * 갱신하고 {@link LiveStateChanged}를 발행한다. {@code studio.jay.stream.SseHub}는 그 결과를
+ * {@code @Async} 리스너로 구독해 방송만 한다. 상태 계산은 동기이므로 수집 응답(204)에 100ms 안에
+ * 반영되고, 방송은 비동기라 응답을 막지 않는다(NFR-02, FR-003-AC3 100ms).
  */
 public class HookEventReceived extends ApplicationEvent {
 

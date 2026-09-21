@@ -126,7 +126,7 @@
 - Depends on: T-005
 
 ## T-007 SSE 스트림 · 스냅샷 API
-- Status: todo
+- Status: done
 - Scope: Backend
 - FR: FR-004, FR-005, FR-016
 - AC: FR-004-AC6, FR-005-AC6
