@@ -1,16 +1,19 @@
 package studio.jay.registry;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import org.springframework.stereotype.Component;
 import studio.jay.files.AtomicFileWriter;
 import studio.jay.files.PathGuard;
@@ -107,6 +110,72 @@ public class WorkflowConfigStore {
         pathGuard.assertNotSymlink(target);
         Files.delete(target);
     }
+
+    /**
+     * 기존 에이전트를 워크플로우에 가져온다(api-spec {@code POST /api/workflows/{workflow}/members},
+     * FR-009). 호출자가 검증(중복 팀장·이미 소속 등)을 이미 끝낸 뒤, 실제로 받아들인 항목만 넘긴다.
+     * 정의 파일은 건드리지 않는다(FR-009-AC3). {@code newLeadOrNull}이 있으면 팀장을 그 값으로
+     * 바꾸고, 없으면 원본 {@code lead} 값을 그대로 둔다(호출자가 이미 "팀장이 있는데 lead 포함"을
+     * 걸렀으므로 이 메서드는 덮어쓰기만 한다). {@code newMembers}는 원본 {@code members}(깨진 참조
+     * 포함)에 더해지고, 저장 시 중복 제거·오름차순 정렬한다(architecture.md §6.2). {@code createdAt}은
+     * 원본 값을 보존하고 {@code updatedAt}만 갱신한다.
+     */
+    public void addMembers(PathGuard pathGuard, String workflowName, String newLeadOrNull, Collection<String> newMembers)
+            throws IOException {
+        Path target = pathGuard.resolve(JAYSTUDIO_SEGMENT, TEAMS_SEGMENT, WorkflowNameValidator.fileName(workflowName));
+        pathGuard.assertNotSymlink(target);
+
+        RawWorkflowFile raw = readRaw(target);
+
+        String lead = newLeadOrNull != null ? newLeadOrNull : raw.lead();
+
+        Set<String> mergedMembers = new TreeSet<>(raw.members());
+        mergedMembers.addAll(newMembers);
+        // lead는 members에 중복 포함될 수 없다(ADR-06 스키마 불변식).
+        if (lead != null) {
+            mergedMembers.remove(lead);
+        }
+
+        Map<String, Object> content = new LinkedHashMap<>();
+        content.put("schemaVersion", SCHEMA_VERSION);
+        content.put("name", workflowName);
+        content.put("description", raw.description());
+        content.put("lead", lead);
+        content.put("members", List.copyOf(mergedMembers));
+        content.put("createdAt", raw.createdAt());
+        content.put("updatedAt", OffsetDateTime.now().toString());
+
+        atomicFileWriter.write(target, objectMapper.writeValueAsBytes(content));
+    }
+
+    /** {@link #addMembers} 전용 — 검증 없이 구성 파일 원본 필드만 읽는다(파일은 호출 시점에 이미 스키마 검증을 통과했다). */
+    private RawWorkflowFile readRaw(Path file) throws IOException {
+        JsonNode root = objectMapper.readTree(Files.readString(file, StandardCharsets.UTF_8));
+
+        JsonNode descriptionNode = root.get("description");
+        String description = descriptionNode != null && descriptionNode.isString() ? descriptionNode.asString() : "";
+
+        JsonNode leadNode = root.get("lead");
+        String lead = leadNode != null && leadNode.isString() ? leadNode.asString() : null;
+
+        List<String> members = new ArrayList<>();
+        JsonNode membersNode = root.get("members");
+        if (membersNode != null && membersNode.isArray()) {
+            for (JsonNode item : membersNode) {
+                if (item.isString()) {
+                    members.add(item.asString());
+                }
+            }
+        }
+
+        JsonNode createdAtNode = root.get("createdAt");
+        String createdAt =
+                createdAtNode != null && createdAtNode.isString() ? createdAtNode.asString() : OffsetDateTime.now().toString();
+
+        return new RawWorkflowFile(description, lead, members, createdAt);
+    }
+
+    private record RawWorkflowFile(String description, String lead, List<String> members, String createdAt) {}
 
     private static Path teamsDir(Path mountRoot) {
         return mountRoot.resolve(JAYSTUDIO_SEGMENT).resolve(TEAMS_SEGMENT);

@@ -2,7 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: T-009 (round 1) — 기존 에이전트 가져오기 API. 이후 T-010~T-012 backend API, T-013부터 frontend
+- Current: T-010 (round 1) — 에이전트 만들기·수정 API. 이후 T-011·T-012 backend API, T-013부터 frontend
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -27,8 +27,10 @@
 - 2026-09-21 T-004 round 1 NEEDS_FIX: [Major] RegistryService.rescanNow 폴러·API 동시 호출 시 revision 역행 가능 → 같은 backend 에이전트에 수정 요청 / [Major] ADR-04 측정치 미기록 → 팀장이 architecture.md에 기록(실제 1s 간격 p95 1,016~1,025ms, 오버헤드 65~82ms)
 - 2026-09-21 T-004 PASS (round 2, fix 1회: rescanNow ReentrantLock + 동시성 테스트) → 커밋 `feat(T-004)`. 리뷰: docs/reviews/T-004.md. 남은 Minor: FolderPoller Javadoc 오버로드 참조·SSE 파서 테스트 유틸 중복(후속)
 - 2026-09-21 T-008 PASS (round 1) → 커밋 `feat(T-008)`. 리뷰: docs/reviews/T-008.md. WriteLock·AtomicFileWriter·WriteAccessGuard(READ_ONLY 공통)는 T-009~T-011 공유. 남은 Minor: 인프라 테스트 ID 주석·PathGuard 공용 빈(후속)
+- 2026-09-21 T-009 PASS (round 1) → 커밋 `feat(T-009)`. 리뷰: docs/reviews/T-009.md. 이슈 없음
 
 ## Decisions
+- D-018 T-009 해석 승인(리뷰어 확인): rejected `FORMAT_ERROR`는 요청 name = 형식 오류 파일 stem일 때 / `LEAD_EXISTS` 메시지는 ui-spec FR-010-AC4 문구 `이미 팀장이 있습니다 (<lead>)` 재사용(code만 계약) / `ALREADY_ASSIGNED`는 어떤 워크플로우든 소속이면 거부 / lead 판정은 registry 유효 lead(`Workflow.lead()`) 기준 — 모두 api-spec·final 문구 범위 안 / T-009, T-018
 - D-017 ADR-04 측정: 실제 1초 간격 실측은 '정의 파일 추가' 1종류(100회)로 충족, 나머지 5종류는 50ms 주입 간격으로 동일 poll() 경로의 오버헤드만 측정 — 지연 = 간격(≤1s)+오버헤드(≤85ms)이므로 전 종류 1.5s 안. `jaystudio.poll-interval-ms`는 테스트 주입 전용 프로퍼티(운영 yaml·env 미노출, 기본 1000). 리뷰어 동의 / T-004
 - D-016 `--agent <미정의 name>` 메인 세션(agent_type이 정의 파일에 없음)은 Live(agents/lobby/undefinedSubagents)에 표시하지 않고 이벤트 목록에만(agentLabel=agent_type, workflow=null) — FR-003-AC5 로비 정의(agent_type 없는 세션)·FR-004-AC7(정의된 에이전트)·api-spec EventRow 문구 그대로. ADR-10에 명시 완료 / T-006
 - D-015 architecture §9 SQLite 손상 자동 복구는 설계 문서 범위 안이므로 축소하지 않고 T-005에서 구현: 자체 `DataSource` 빈 생성 전에 quick_check → 실패 시 `events.db(-wal/-shm)`를 `events.db.corrupt-<시각>`으로 이동 후 새로 생성. 통합 테스트 1개 추가 / T-005

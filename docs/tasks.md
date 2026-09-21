@@ -167,7 +167,7 @@
 - Depends on: T-003, T-004
 
 ## T-009 기존 에이전트 가져오기 API
-- Status: todo
+- Status: done
 - Scope: Backend
 - FR: FR-009
 - AC: FR-009-AC3, FR-009-AC4

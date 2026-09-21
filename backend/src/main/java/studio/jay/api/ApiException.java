@@ -53,6 +53,15 @@ public class ApiException extends RuntimeException {
                 HttpStatus.CONFLICT, new ApiError("WORKFLOW_NOT_EMPTY", "팀원이 있어 삭제할 수 없습니다"));
     }
 
+    /**
+     * FR-009-AC4·FR-010-AC4 서버 판정 — 대상 워크플로우에 팀장이 이미 있는데 요청에 {@code lead}
+     * 역할이 포함됨. 문구는 ui-spec.md 277행의 팀장 비활성 이유와 같은 형태를 쓴다.
+     */
+    public static ApiException leadExists(String currentLead) {
+        return new ApiException(
+                HttpStatus.CONFLICT, new ApiError("LEAD_EXISTS", "이미 팀장이 있습니다 (" + currentLead + ")"));
+    }
+
     public HttpStatus status() {
         return status;
     }

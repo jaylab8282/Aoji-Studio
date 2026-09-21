@@ -2,6 +2,12 @@ package studio.jay.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -14,8 +20,11 @@ import studio.jay.config.AppProperties;
 import studio.jay.files.PathGuard;
 import studio.jay.files.WriteLock;
 import studio.jay.live.LiveStateService;
+import studio.jay.registry.AgentDef;
+import studio.jay.registry.FormatError;
 import studio.jay.registry.RegistryService;
 import studio.jay.registry.RegistrySnapshot;
+import studio.jay.registry.Role;
 import studio.jay.registry.Workflow;
 import studio.jay.registry.WorkflowConfigStore;
 import studio.jay.registry.WorkflowNameValidator;
@@ -129,6 +138,118 @@ public class WorkflowController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * 기존 에이전트 가져오기(api-spec {@code POST /api/workflows/{workflow}/members}, FR-009).
+     *
+     * <p>순서(설계대로): 요청 검증(팀장 2명 이상 → 400 {@code fields.members}) → 락 안에서 다시 스캔 →
+     * 대상 워크플로우 확인(없으면 404) → 대상에 이미 팀장이 있는데 요청에 {@code lead}가 있으면 409
+     * {@code LEAD_EXISTS}로 전체 거부(파일 변경 없음) → 나머지 항목을 하나씩 판정해 부분 성공을
+     * 허용한다(FR-009-E2). 정의 파일은 전혀 건드리지 않고 {@link WorkflowConfigStore#addMembers}로
+     * 구성 파일에만 반영한다(FR-009-AC3).
+     */
+    @PostMapping("/{workflow}/members")
+    public ResponseEntity<ImportMembersResponse> importMembers(
+            @PathVariable String workflow, @RequestBody(required = false) ImportMembersRequest request) {
+        writeAccessGuard.assertWritable();
+
+        List<MemberInput> requestedMembers = request == null || request.members() == null
+                ? List.of()
+                : request.members();
+        if (requestedMembers.isEmpty()) {
+            throw ApiException.validation("members", "가져올 항목을 선택하세요");
+        }
+
+        long leadCount = requestedMembers.stream().filter(m -> m.role() == Role.LEAD).count();
+        if (leadCount >= 2) {
+            throw ApiException.validation("members", "팀장은 1명만 선택할 수 있습니다");
+        }
+
+        ImportMembersResponse response = writeLock.runLocked(() -> {
+            RegistrySnapshot fresh = registryService.rescanNow();
+            Workflow target = fresh.workflows().stream()
+                    .filter(w -> w.name().equals(workflow))
+                    .findFirst()
+                    .orElseThrow(ApiException::workflowNotFound);
+
+            boolean requestHasLead = requestedMembers.stream().anyMatch(m -> m.role() == Role.LEAD);
+            if (target.lead() != null && requestHasLead) {
+                throw ApiException.leadExists(target.lead());
+            }
+
+            Map<String, AgentDef> agentsByName = new LinkedHashMap<>();
+            for (AgentDef agentDef : fresh.agents()) {
+                agentsByName.put(agentDef.name(), agentDef);
+            }
+            Set<String> formatErrorAgentStems = new LinkedHashSet<>();
+            for (FormatError formatError : fresh.formatErrors()) {
+                if (formatError.kind() == FormatError.Kind.AGENT && formatError.file().endsWith(".md")) {
+                    formatErrorAgentStems.add(
+                            formatError.file().substring(0, formatError.file().length() - ".md".length()));
+                }
+            }
+
+            List<String> added = new ArrayList<>();
+            List<RejectedMember> rejected = new ArrayList<>();
+            String newLead = null;
+            Set<String> newMembers = new LinkedHashSet<>();
+
+            for (MemberInput member : requestedMembers) {
+                String name = member.name();
+                AgentDef agentDef = agentsByName.get(name);
+                if (agentDef != null) {
+                    if (agentDef.workflow() != null) {
+                        // FR-009-E2 — 팝업을 여는 사이 다른 탭이 이미 다른(또는 같은) 워크플로우에 넣었다.
+                        rejected.add(new RejectedMember(name, "ALREADY_ASSIGNED"));
+                        continue;
+                    }
+                    added.add(name);
+                    if (member.role() == Role.LEAD) {
+                        newLead = name;
+                    } else {
+                        newMembers.add(name);
+                    }
+                } else if (formatErrorAgentStems.contains(name)) {
+                    // 근거: api-spec rejected.reason enum. 정의 파일이 팝업을 연 뒤 형식 오류로 바뀐 경우.
+                    rejected.add(new RejectedMember(name, "FORMAT_ERROR"));
+                } else {
+                    // 근거: api-spec rejected.reason enum. 정의 파일이 팝업을 연 뒤 삭제된 경우.
+                    rejected.add(new RejectedMember(name, "NOT_FOUND"));
+                }
+            }
+
+            if (!added.isEmpty()) {
+                try {
+                    workflowConfigStore.addMembers(pathGuard, workflow, newLead, newMembers);
+                } catch (IOException | IllegalArgumentException e) {
+                    throw ApiException.ioFailed("구성 파일 쓰기 실패 · 구성 파일은 변경하지 않았습니다");
+                }
+            }
+
+            RegistrySnapshot after =
+                    registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot, liveStateService.live()));
+            Workflow updated = after.workflows().stream()
+                    .filter(w -> w.name().equals(workflow))
+                    .findFirst()
+                    .orElseThrow(() -> ApiException.ioFailed("가져오기 확인 실패 · 다시 읽어보세요"));
+
+            return new ImportMembersResponse(List.copyOf(added), List.copyOf(rejected), updated);
+        });
+
+        return ResponseEntity.ok(response);
+    }
+
     /** api-spec {@code POST /api/workflows} 요청 본문. */
     public record CreateWorkflowRequest(String name, String description) {}
+
+    /** api-spec {@code POST /api/workflows/{workflow}/members} 요청 본문. */
+    public record ImportMembersRequest(List<MemberInput> members) {}
+
+    /** {@code members[]} 원소. */
+    public record MemberInput(String name, Role role) {}
+
+    /** api-spec {@code POST /api/workflows/{workflow}/members} 200 응답. */
+    public record ImportMembersResponse(List<String> added, List<RejectedMember> rejected, Workflow workflow) {}
+
+    /** api-spec {@code rejected[]} 원소. {@code reason}은 {@code ALREADY_ASSIGNED|NOT_FOUND|FORMAT_ERROR}. */
+    public record RejectedMember(String name, String reason) {}
 }
