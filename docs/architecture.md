@@ -381,6 +381,7 @@ LiveState {
 - 선택지: (a) Java `WatchService`(inotify) / (b) 1초 폴링(경로·크기·mtime 스냅샷 비교) / (c) 둘 병행
 - 결정: (b). 이유: Docker Desktop(macOS) bind mount의 inotify 전달은 파일 공유 백엔드(VirtioFS·gRPC FUSE) 설정에 따라 다르고, 호스트에서 바꾼 파일의 이벤트가 누락되는 사례가 알려져 있어 결정적이지 않다. 감시 대상은 `.claude/agents/*.md`(≤100), `.claude/skills/*/SKILL.md`(존재 여부), `.claude/settings.json`, `.jaystudio/teams/*.json`(≤30), `.jaystudio/helper-token` — 폴링 1회가 디렉터리 목록 4개 + stat 수백 회로 수 ms다. 변경 감지(≤1s) + 변경 파일만 재파싱(≤50ms) + SSE 방송(≤50ms)으로 FR-001-AC3 2초를 만족한다.
 - 측정 의무: T-004 완료 조건에 "fixture에서 파일 생성 → SSE `registry` 수신까지 100회 측정 p95 < 1.5s" 통합 테스트를 포함한다. 미달이면 간격을 500ms로 줄인다(그래도 CPU 영향 미미). 결과는 T-004 완료 시 이 ADR에 추가한다.
+- 측정 결과(T-004, 2026-09-21, `FolderPollerRealPollIntervalLatencyTest`·`FolderPollerLatencyTest`, 각 100회, 파일 변경 → SSE `registry` 수신): 실제 1초 간격 — 정의 파일 추가 p95 1,016~1,025ms, max 1,028ms(< 1.5s, 간격 유지). 스캔·재파싱·방송 오버헤드(폴링 간격 50ms 주입, 동일 `poll()` 경로) — 정의 파일 추가 69~78ms / 수정 71~79ms / 삭제 73~82ms, 구성 파일 추가 65~70ms / 수정 65~70ms / 삭제 69~75ms. 따라서 실제 감지 지연 ≈ 폴링 간격(≤1s) + ≤85ms로 모든 종류가 1.5s 안. 간격 500ms 축소 불필요.
 - 크기·mtime이 같은 1초 내 재수정은 놓칠 수 있다. `다시 읽기`(FR-001-AC4)와 변경 API 후 `rescanNow()`가 이를 보완한다.
 
 ### ADR-05 컨테이너 바인딩 해석

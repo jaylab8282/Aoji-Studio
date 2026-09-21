@@ -156,6 +156,54 @@ class RegistryServiceTest {
         });
     }
 
+    @Test
+    @DisplayName("[FR-001-AC4] 동시 rescanNow() 호출 → revision 항상 단조 증가, 마지막 스냅샷이 최신")
+    void concurrentRescansNeverRegressRevision() throws Exception {
+        writeAgent("concurrent.md", "concurrent-agent");
+
+        contextRunner().run(context -> {
+            RegistryService registryService = context.getBean(RegistryService.class);
+            int threadCount = 8;
+            int iterationsPerThread = 25;
+
+            java.util.concurrent.ExecutorService executor =
+                    java.util.concurrent.Executors.newFixedThreadPool(threadCount);
+            java.util.List<Integer> revisions = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+            // 각 호출이 반환한 revision을 받은 "직후" current().revision()이 그보다 뒤로 가면 안 된다
+            // (review NEEDS_FIX round 1: 먼저 시작해 나중에 끝난 호출이 최신 스냅샷을 오래된 것으로
+            // 덮어쓰는 경합 방지). rescanLock으로 빌드+채번+set이 하나의 임계 구역이므로 항상 성립해야 한다.
+            java.util.List<java.util.concurrent.Callable<Void>> tasks = new java.util.ArrayList<>();
+            for (int t = 0; t < threadCount; t++) {
+                tasks.add(() -> {
+                    for (int i = 0; i < iterationsPerThread; i++) {
+                        RegistrySnapshot snapshot = registryService.rescanNow();
+                        revisions.add(snapshot.revision());
+                        assertThat(registryService.current().revision())
+                                .as("rescanNow()가 revision %d를 반환한 직후 current()는 그보다 뒤처지면 안 된다",
+                                        snapshot.revision())
+                                .isGreaterThanOrEqualTo(snapshot.revision());
+                    }
+                    return null;
+                });
+            }
+
+            java.util.List<java.util.concurrent.Future<Void>> futures = executor.invokeAll(tasks);
+            for (java.util.concurrent.Future<Void> future : futures) {
+                future.get(30, java.util.concurrent.TimeUnit.SECONDS);
+            }
+            executor.shutdown();
+
+            // revisionCounter는 AtomicInteger로 그 자체가 중복을 만들지 않지만, 락으로 빌드+set을 하나로
+            // 묶었으므로 반환된 revision 집합에 중복이 없고 최댓값 = 최종 current() revision이어야 한다.
+            java.util.Set<Integer> uniqueRevisions = new java.util.HashSet<>(revisions);
+            assertThat(uniqueRevisions).hasSize(revisions.size());
+            int maxRevision = java.util.Collections.max(revisions);
+            assertThat(registryService.current().revision())
+                    .as("마지막으로 반영된 스냅샷이 항상 최신(가장 큰 revision)이어야 한다")
+                    .isEqualTo(maxRevision);
+        });
+    }
+
     @Configuration
     @EnableConfigurationProperties(AppProperties.class)
     static class TestConfig {

@@ -65,7 +65,7 @@
 - Depends on: T-001
 
 ## T-004 파일 변경 감지 (1초 폴링) · 다시 읽기
-- Status: todo
+- Status: done
 - Scope: Backend
 - FR: FR-001
 - AC: FR-001-AC3, FR-001-AC4
