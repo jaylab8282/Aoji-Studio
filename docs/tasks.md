@@ -80,7 +80,7 @@
 - Depends on: T-003, T-007
 
 ## T-005 hook 수집 · 요약 · 마스킹 · 이벤트 저장 · 보존
-- Status: todo
+- Status: done
 - Scope: Backend
 - FR: FR-003, FR-015
 - AC: FR-003-AC3, FR-003-AC7, FR-003-AC9, FR-003-AC10, FR-015-AC1, FR-015-AC2, FR-015-AC3

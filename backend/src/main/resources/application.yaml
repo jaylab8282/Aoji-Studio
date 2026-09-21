@@ -3,15 +3,12 @@ spring:
     name: jaystudio
   sql:
     init:
+      # DataSource는 spring.datasource.*가 아니라 studio.jay.config.SqliteConfig가 직접 만든다
+      # (jaystudio.data-path 기준, 기동 시 손상 파일 복구 포함, architecture.md §6.5·§9). 이 설정은
+      # 그 빈을 대상으로 schema.sql만 적용한다.
       mode: always
       schema-locations: classpath:schema.sql
       continue-on-error: false
-  datasource:
-    url: jdbc:sqlite:${jaystudio.data-path}/events.db
-    driver-class-name: org.sqlite.JDBC
-    hikari:
-      # SQLite는 쓰기 주체가 하나여야 한다(architecture.md §6.5).
-      maximum-pool-size: 1
 
 server:
   error:
