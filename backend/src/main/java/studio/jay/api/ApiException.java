@@ -85,6 +85,12 @@ public class ApiException extends RuntimeException {
                 new ApiError("AGENT_BUSY", "작업 중에는 수정할 수 없습니다 · 대기가 되면 다시 시도하세요"));
     }
 
+    /** FR-012-E2 — 제거 시점에 상태가 running/waiting. api-spec 문구 그대로(update의 {@link #agentBusy()}와 문구 다름). */
+    public static ApiException agentBusyOnRemove() {
+        return new ApiException(
+                HttpStatus.CONFLICT, new ApiError("AGENT_BUSY", "작업 중에는 제거할 수 없습니다"));
+    }
+
     /** FR-011-AC4 — {@code expectedRevision} 불일치. {@code details.currentRevision}·{@code details.modifiedAt}. */
     public static ApiException revisionConflict(String currentRevision, OffsetDateTime modifiedAt) {
         Map<String, Object> details = new LinkedHashMap<>();

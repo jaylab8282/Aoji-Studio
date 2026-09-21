@@ -2,7 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: T-011 (round 1) — 워크플로우에서 제거 API(휴지통). 이후 T-012 → T-013(frontend)
+- Current: T-012 (round 1) — 설정 API·hook 설정 예시·명령 문자열. 이후 T-013(frontend)부터. architect 문서 요청 대기 목록: conventions §5 '삭제 204' 문구 정리(엔드포인트 spec 본문 우선)
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -32,6 +32,7 @@
 - 2026-09-21 재개(3차). T-010 부분 변경 컴파일 통과 확인 → backend-developer로 이어서 완성(AgentUpdateTest 11개 추가, 257 tests).
 - 2026-09-21 T-010 round 1 NEEDS_FIX: [Major] PUT에서 워크플로우 불변 시 role 변경이 구성 파일에 반영 안 됨(19개 ID 테스트는 전부 PASS, 계약 갭) → 같은 backend 에이전트에 수정 요청(D-019)
 - 2026-09-21 T-010 PASS (round 2, fix 1회: 같은 워크플로우 role 변경 반영 + description 줄바꿈 거부) → 커밋 `feat(T-010)`. 리뷰: docs/reviews/T-010.md. 남은 Minor: role-only 롤백 실패 주입 테스트·AgentController 메서드 길이·frontmatter 주석/따옴표 테스트(후속)
+- 2026-09-21 T-011 PASS (round 1) → 커밋 `feat(T-011)`. 리뷰: docs/reviews/T-011.md. 문서 불일치 1건(conventions §5 삭제 204 vs api-spec 200+body) architect 요청 대기
 
 ## Decisions
 - D-019 PUT /api/agents/{name}에서 워크플로우 불변이어도 role(member↔lead) 변경을 구성 파일에 반영하고, 자기 자신이 아닌 lead가 있으면 409 LEAD_EXISTS — api-spec AgentUpdateRequest.role 필수·PUT 409 LEAD_EXISTS '다른 팀장' 문구·ui-spec 06 역할 라디오 수정 모드 활성이 근거. 구성 파일 1회 쓰기 → 정의 파일 순서, 실패 시 원본 바이트 원복(ADR-08 소속 변경 패턴 축소형, architect 변경 불필요) / T-010, T-019

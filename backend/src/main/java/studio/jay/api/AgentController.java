@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import studio.jay.files.DefinitionFileDeleter;
 import studio.jay.files.PathGuard;
+import studio.jay.files.TrashService;
 import studio.jay.files.WriteLock;
 import studio.jay.live.AgentLive;
 import studio.jay.live.LiveStateService;
@@ -43,13 +45,14 @@ import studio.jay.registry.WorkflowConfigStore;
 import studio.jay.stream.SseHub;
 
 /**
- * 에이전트 만들기·수정·조회 (api-spec {@code GET/POST/PUT /api/agents[/{name}]}, FR-010, FR-011,
- * FR-002-AC3, tasks.md T-010). 제거({@code DELETE})는 T-011 범위다.
+ * 에이전트 만들기·수정·조회·제거 (api-spec {@code GET/POST/PUT/DELETE /api/agents[/{name}]},
+ * FR-010, FR-011, FR-012, FR-002-AC3, tasks.md T-010·T-011).
  *
  * <p>쓰기 흐름은 {@link WorkflowController}와 같다(architecture.md §3.2): {@link WriteLock} 안에서
- * 최신 상태로 다시 스캔해 검증한 뒤 {@link AgentDefinitionWriter}·{@link WorkflowConfigStore}로 쓰고,
- * 같은 락 안에서 다시 스캔해 응답 전에 registry를 갱신하고 SSE로 방송한다. 정의 파일·구성 파일이 함께
- * 바뀌는 조작(만들기, 이름 변경, 소속 변경)은 ADR-08의 순서·롤백을 그대로 따른다.
+ * 최신 상태로 다시 스캔해 검증한 뒤 {@link AgentDefinitionWriter}·{@link WorkflowConfigStore}·{@link
+ * TrashService}로 쓰고, 같은 락 안에서 다시 스캔해 응답 전에 registry를 갱신하고 SSE로 방송한다. 정의
+ * 파일·구성 파일이 함께 바뀌는 조작(만들기, 이름 변경, 소속 변경, 제거)은 ADR-08의 순서·롤백을 그대로
+ * 따른다.
  */
 @RestController
 @RequestMapping("/api/agents")
@@ -64,6 +67,7 @@ public class AgentController {
     private final AgentDefinitionParser agentDefinitionParser;
     private final AgentDefinitionWriter agentDefinitionWriter;
     private final DefinitionFileDeleter definitionFileDeleter;
+    private final TrashService trashService;
     private final WriteLock writeLock;
     private final WriteAccessGuard writeAccessGuard;
     private final SseHub sseHub;
@@ -76,6 +80,7 @@ public class AgentController {
             AgentDefinitionParser agentDefinitionParser,
             AgentDefinitionWriter agentDefinitionWriter,
             DefinitionFileDeleter definitionFileDeleter,
+            TrashService trashService,
             WriteLock writeLock,
             WriteAccessGuard writeAccessGuard,
             SseHub sseHub,
@@ -86,6 +91,7 @@ public class AgentController {
         this.agentDefinitionParser = agentDefinitionParser;
         this.agentDefinitionWriter = agentDefinitionWriter;
         this.definitionFileDeleter = definitionFileDeleter;
+        this.trashService = trashService;
         this.writeLock = writeLock;
         this.writeAccessGuard = writeAccessGuard;
         this.sseHub = sseHub;
@@ -330,6 +336,57 @@ public class AgentController {
         });
 
         return ResponseEntity.ok(result);
+    }
+
+    @DeleteMapping("/{name}")
+    public ResponseEntity<AgentRemoveResult> delete(@PathVariable String name) {
+        writeAccessGuard.assertWritable();
+
+        AgentRemoveResult result = writeLock.runLocked(() -> {
+            RegistrySnapshot fresh = registryService.rescanNow();
+            AgentDef current = findAgentDef(fresh, name).orElseThrow(ApiException::agentNotFound);
+            assertNotBusyForRemoval(name);
+
+            Path file = pathGuard.resolve(".claude", "agents", name + ".md");
+            TrashService.MoveResult moved;
+            try {
+                moved = trashService.move(pathGuard, file, name);
+            } catch (IOException | IllegalArgumentException e) {
+                throw ApiException.ioFailed("정의 파일을 휴지통으로 옮기지 못했습니다 · 아무것도 바꾸지 않았습니다");
+            }
+
+            String removedFromWorkflow = current.workflow();
+            if (removedFromWorkflow != null) {
+                try {
+                    workflowConfigStore.removeMember(pathGuard, removedFromWorkflow, name);
+                } catch (IOException | IllegalArgumentException e) {
+                    restoreFromTrashQuietly(moved.trashFile(), file);
+                    throw ApiException.ioFailed("구성 파일 갱신 실패 · 정의 파일을 휴지통에서 되돌렸습니다");
+                }
+            }
+
+            registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot, liveStateService.live()));
+            return new AgentRemoveResult(moved.relativePath(), removedFromWorkflow);
+        });
+
+        return ResponseEntity.ok(result);
+    }
+
+    /** FR-012-AC6·E2 — 제거 시점 상태가 running/waiting이면 거부한다. */
+    private void assertNotBusyForRemoval(String name) {
+        Status status = statusOf(name);
+        if (status == Status.RUNNING || status == Status.WAITING) {
+            throw ApiException.agentBusyOnRemove();
+        }
+    }
+
+    /** ADR-08 "제거" 롤백 — 구성 파일 갱신 실패 시 정의 파일을 휴지통에서 원위치로 되돌린다(최선 노력). */
+    private void restoreFromTrashQuietly(Path trashFile, Path originalFile) {
+        try {
+            trashService.restore(trashFile, originalFile);
+        } catch (IOException ignored) {
+            // 원복은 최선 노력이다(ADR-08) — 실패해도 상위 500 응답으로 사용자에게 이미 알린다.
+        }
     }
 
     /** ADR-08 "수정(소속 변경)": 이전 구성 파일 → 새 구성 파일 → 정의 파일. 실패 시 역순 원복. 이름도 바뀌면 정의 파일 다음 옛 파일 삭제. */
@@ -616,6 +673,9 @@ public class AgentController {
             String toolsMode,
             List<String> tools,
             String body) {}
+
+    /** api-spec {@code DELETE /api/agents/{name}} 200 응답. */
+    public record AgentRemoveResult(String trashPath, String removedFromWorkflow) {}
 
     /** api-spec {@code AgentUpdateRequest}. */
     public record AgentUpdateRequest(

@@ -214,7 +214,7 @@
 - Depends on: T-006, T-008
 
 ## T-011 워크플로우에서 제거 API (휴지통)
-- Status: todo
+- Status: done
 - Scope: Backend
 - FR: FR-012
 - AC: FR-012-AC2, FR-012-AC4, FR-012-AC5, FR-012-AC6
