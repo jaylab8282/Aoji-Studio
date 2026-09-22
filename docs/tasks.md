@@ -272,15 +272,16 @@
 - Depends on: T-001, T-007
 
 ## T-014 01 홈 화면
-- Status: todo
+- Status: in_progress
 - Scope: Frontend
 - FR: FR-005, FR-001, FR-015
 - AC: FR-005-AC1, FR-005-AC2, FR-005-AC3, FR-005-AC4, FR-005-AC5, FR-005-AC7, FR-005-AC8, FR-005-AC10
 - Errors: FR-005-E1, FR-001-E1
 - Screens: SCR-01, SCR-04-1, SCR-04-5, SCR-04-7
 - Backend: 없음
-- Frontend: `screens/home/*`(KPI 4, 상태 막대, 대표 카드, 이벤트 표), `lib/derive/featuredWorkflows.ts`, `NoEventsYet`, `AgentsDirMissing`, `EmptyWorkflowCard`
+- Frontend: `screens/home/*`(KPI 4, 상태 막대, 대표 카드, 이벤트 표), `lib/derive/featuredWorkflows.ts`, `NoEventsYet`, `AgentsDirMissing`, `EmptyWorkflowCard`. 추가(D-022, ADR-21): `styles/theme.css`에 `--radius-dot: 3px` 추가, `components/ui/StatusDot`의 `radius-badge` 임시 사용을 `rounded-dot`으로 교체(T-013 리뷰 Minor 해소)
 - Done when:
+  - 토큰 규칙(D-022) — 리뷰어 코드 확인: `theme.css` `@theme`에 `--radius-dot: 3px` 존재, `StatusDot`이 `rounded-dot` 사용, `radius-badge` 참조·임시 주석 제거
   - FR-005-AC1 — 단위 `HomeScreen.test [FR-005-AC1] fixture 스냅샷 → '3 / 10', 권한 대기 1` + E2E-04
   - FR-005-AC2 — 단위 `[FR-005-AC2] 막대 범례 수 합 = agentCount` + E2E-04
   - FR-005-AC3 — 단위 `featuredWorkflows.test [FR-005-AC3] 활성 워크플로우 우선 → 최근 이벤트 내림차순 → 이벤트 없음 이름 오름차순, 최대 3`

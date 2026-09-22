@@ -454,3 +454,8 @@ LiveState {
 - 선택지: (a) `mountPath` 제거(계약 변경, 프론트 타입·백엔드 DTO·테스트 수정 필요) / (b) 유지 + 문구 정리.
 - 1차 결정(D-020): (b) 채택 — T-011·T-012 구현이 진행 중이라 계약을 흔들지 않고, tasks.md·conventions.md 문구만 "UI 표시 값에 컨테이너 경로 미포함"으로 정정. 제거는 별도 계약 변경 절차로 검토.
 - 최종 결정(D-021, 사용자 승인): **(a) 제거 채택**. `Settings` 스키마에서 `mountPath`를 `required`·`properties` 모두 제거(계약 변경). 이유: ui-spec 어느 화면도 `mountPath`를 표시하지 않고, 모든 `filePath`는 마운트 루트 상대 경로이며 절대 경로는 `hostPath`로만 만들므로 Frontend가 컨테이너 경로를 알 이유가 없다. 이에 따라 conventions §5의 마운트 경로 MUST는 예외 없이 "API 응답에 컨테이너 마운트 절대 경로를 넣지 않는다"로 되돌린다. `JAYSTUDIO_MOUNT_PATH`는 서버 내부 설정(§4 환경 변수 표)으로 유지. 사용자에게 보이는 동작·FR 의미 변경 없음. 영향 태스크: T-012(백엔드 DTO·테스트), T-013 이후 프론트 타입은 처음부터 제거된 계약으로 작성. `Snapshot.config`(`Config` 스키마)에는 `mountPath`가 원래 없어 T-007 영향 없음.
+
+### ADR-21 상태 점 모서리 토큰 `--radius-dot` (팀장 결정 D-022, 2026-09-22)
+- 배경: `docs/ui/ui-rules.md` 1은 "상태 점·사각형은 9~10px, 모서리 3px"로 정하는데, `design-tokens.md` 모서리 행(9/12/10/6)과 ui-spec 토큰 매핑 표에는 3px 값이 없었다. T-013은 conventions §7(임의 값 금지)을 지켜 `StatusDot`에 `--radius-badge`(6px)를 임시로 썼다(리뷰 Minor).
+- 선택지: (a) ui-rules 3px를 전용 토큰으로 매핑 표에 추가 / (b) 6px 배지 토큰을 그대로 두고 ui-rules 문구를 바꿈 — (b)는 `docs/ui/`(확정 UI 기준) 수정이라 architect 권한 밖이고 기준을 코드에 맞추는 역전이다.
+- 결정: **(a)** `--radius-dot: 3px` → Tailwind `rounded-dot`. 상태 점·사각형(`StatusDot`) 전용이며 다른 요소에는 쓰지 않는다. 문서 표기 누락 정정이므로 api-spec·realtime-spec·FR 의미는 변경 없음(계약 변경 아님). `theme.css`·`StatusDot` 반영은 frontend-developer가 T-014에서 한다.

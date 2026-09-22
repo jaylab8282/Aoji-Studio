@@ -49,6 +49,7 @@
 | 최소 | 10px (캐릭터 상태 글자), 10.5px (캐릭터 name) | `--text-min`, `--text-min-mono` |
 | KPI 숫자 | 34px / 700 mono (01 PNG 기준) | `--text-kpi` |
 | 모서리 | 버튼·입력 9 / 카드 12 / 칩 10 / 배지 6 | `--radius-control`, `--radius-card`, `--radius-chip`, `--radius-badge` |
+| 상태 점 모서리 (ui-rules 1) | 3px (상태 점·사각형 전용, 다른 요소에 쓰지 않음) | `--radius-dot` → `rounded-dot` (ADR-21, D-022) |
 | 화면 좌우 여백 | 32px | `--spacing-page-x` → `px-page-x` |
 | 카드 안 여백 | 16~18px | `--spacing-card` (16) `--spacing-card-lg` (18) |
 | 요소 사이 | 6/8/10/14/16/18 | Tailwind 기본 spacing 스케일 사용 (`gap-1.5`=6 … `gap-4.5`=18) |
@@ -68,7 +69,7 @@
 | `TopBar` | 01·02·03·07 | 왼쪽 브레드크럼/제목 + 프로젝트 칩 `● 프로젝트 · <hostPath>`(`snapshot.config.hostPath`, mono, 01·02·03만), 오른쪽 `127.0.0.1 전용`(정적, faint). 02는 오른쪽에 `Claude 열기 · 기본 세션` 버튼 추가 |
 | `DisconnectBanner` (04-3) | 전 화면 상단 | `connectionStore.state === 'disconnected'`일 때만. `실시간 연결이 끊겼습니다 · N초 후 재연결` + `지금 재연결`(secondary). 배경 `danger-soft`, 테두리 `danger-border`, 글자 `danger`. 아래 작은 줄 `마지막 갱신 <hh:mm:ss> 기준 화면 유지` |
 | `Skeleton` | 전 화면 | `bg-soft` 블록, 애니메이션 없음 |
-| `StatusDot` / `StatusLabel` | 전 화면 | 9~10px 사각, 모서리 3px, running은 `shadow-glow`. `StatusLabel` = 점 + 글자 |
+| `StatusDot` / `StatusLabel` | 전 화면 | 9~10px 사각, 모서리 `--radius-dot`(3px, `rounded-dot`), running은 `shadow-glow`. `StatusLabel` = 점 + 글자. 이 문서의 모든 `●` 상태 점(`CollectorStatus`, 01 KPI 4·`실시간 연결됨`, 02 범례, 03 04-4 배너·패널 `상태`, 07 `열기 도우미`·`hook 설정` 행)은 `StatusDot`으로 그린다. 03 오피스 캐릭터·02 책상은 상태 점이 없다(셔츠·모니터 색 + 상태 글자, pixel-sprites 기준). `TopBar` 프로젝트 칩의 `●`는 상태가 아닌 장식이라 이 규칙 대상이 아니다 |
 | `WorkflowChip` | 01·02·03 | `lib/derive/workflowChip.ts`: waiting>0 → `권한 대기 N명`(waiting-soft 배경·waiting 글자) / running>0 → `실행 중 N명`(running-soft·running) / 둘 다 0 → `모두 대기`(bg-selected·text-secondary). **우선순위: 권한 대기가 있으면 권한 대기 칩**(01 PNG 카드 2) |
 | `Button` | 전 화면 | variant `primary`/`terminal`/`secondary`/`add`/`danger`, `disabledReason` → 점선 테두리 + faint 글자 + 옆 이유 한 줄 |
 | `Dialog` | 05·06 | 가운데 모달, 배경 dim, `bg-card` 12px, ESC·`취소`로 닫기. 04-3 배너는 모달 뒤 화면 상단에 그대로 |
