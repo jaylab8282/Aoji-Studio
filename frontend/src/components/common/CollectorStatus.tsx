@@ -12,7 +12,7 @@ export function CollectorStatus() {
   const loading = !ready || registry === null || live === null;
 
   return (
-    <div className="border-t border-border px-4 py-3 flex flex-col gap-1.5">
+    <div className="mx-3 mb-4 rounded-card border border-border bg-card px-3 py-3 flex flex-col gap-1.5">
       <p className="text-aux text-text-muted">{COLLECTOR_STATUS_TITLE}</p>
       {loading ? (
         <>

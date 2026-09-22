@@ -272,7 +272,7 @@
 - Depends on: T-001, T-007
 
 ## T-014 01 홈 화면
-- Status: in_progress
+- Status: done
 - Scope: Frontend
 - FR: FR-005, FR-001, FR-015
 - AC: FR-005-AC1, FR-005-AC2, FR-005-AC3, FR-005-AC4, FR-005-AC5, FR-005-AC7, FR-005-AC8, FR-005-AC10
@@ -296,7 +296,7 @@
 - Depends on: T-013
 
 ## T-015 02 에이전트 워크플로우 층 뷰
-- Status: todo
+- Status: in_progress
 - Scope: Frontend
 - FR: FR-006, FR-004, FR-003, FR-001, FR-002, FR-013, FR-017
 - AC: FR-006-AC1, FR-006-AC2, FR-006-AC3, FR-006-AC4, FR-006-AC5, FR-006-AC6, FR-006-AC7, FR-006-AC8, FR-006-AC9, FR-006-AC10, FR-006-AC11, FR-006-AC12, FR-004-AC7, FR-003-AC5, FR-013-AC3, FR-002-AC2
