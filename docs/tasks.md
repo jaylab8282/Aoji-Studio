@@ -232,7 +232,7 @@
 - Depends on: T-010
 
 ## T-012 설정 API · hook 설정 예시 · 명령 문자열
-- Status: in_progress
+- Status: done
 - Scope: Backend
 - FR: FR-014, FR-003, FR-013
 - AC: FR-014-AC1, FR-014-AC2, FR-014-AC4, FR-003-AC8, FR-013-AC1, FR-013-AC2, FR-013-AC5

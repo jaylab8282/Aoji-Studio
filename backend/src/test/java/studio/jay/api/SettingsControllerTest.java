@@ -75,7 +75,7 @@ class SettingsControllerTest {
         JsonNode body = getSettings();
 
         String[] requiredFields = {
-            "hostPath", "mountPath", "agentCount", "skillCount", "writable", "formatErrorCount",
+            "hostPath", "agentCount", "skillCount", "writable", "formatErrorCount",
             "agentsDirMissing", "terminalApp", "defaultSessionCommand", "leadSessionCommandTemplate",
             "helperUrl", "collectUrl", "hookConfigured", "hookSettingsExample", "teamsPath", "trashPath",
             "retentionDays", "allowedHttpHookUrlsNote"
@@ -86,28 +86,22 @@ class SettingsControllerTest {
     }
 
     @Test
-    void hostPathEqualsEnvValueAndUiDisplayedFieldsExcludeMountPath() throws Exception {
-        // [FR-014-AC4][D-020] FR-014-AC4는 "표시" 요건이다: hostPath는 env(JAYSTUDIO_HOST_PATH) 값
-        // 그대로이고, UI(ui-spec SCR-07)가 실제로 보여주는 값들에는 컨테이너 마운트 경로가 섞이지 않는다.
-        // mountPath 자체는 api-spec 계약대로 설정값을 그대로 담아 반환한다(D-020) — 응답 전체에 특정
-        // 문자열이 없다고 주장하는 거짓 보증은 하지 않는다.
-        JsonNode body = getSettings();
+    void hostPathEqualsEnvValueAndResponseExcludesContainerMountPath() throws Exception {
+        // [FR-014-AC4][D-021] hostPath == JAYSTUDIO_HOST_PATH env 값. api-spec Settings에서
+        // mountPath 필드가 제거되었으므로(D-021) 응답 본문 전체에 컨테이너 마운트 경로
+        // (jaystudio.mount-path 값)가 없어야 하고, mountPath 키 자체도 없어야 한다.
+        MvcResult result = mockMvc.perform(get("/api/settings").header("Origin", ALLOWED_ORIGIN))
+                .andExpect(status().isOk())
+                .andReturn();
+        String responseBody = result.getResponse().getContentAsString();
+        JsonNode body = objectMapper.readTree(responseBody);
 
         assertThat(body.get("hostPath").asString()).isEqualTo(HOST_PATH);
         assertThat(body.get("terminalApp").asString()).isEqualTo("macOS 기본 터미널");
 
-        // mountPath는 계약대로 설정값(여기서는 @TempDir 경로) 그대로 반환된다.
         String mountPathValue = mountRoot.toString();
-        assertThat(body.get("mountPath").asString()).isEqualTo(mountPathValue);
-
-        // UI에 실제로 표시되는 값들(ui-spec SCR-07)에는 mountPath 값이 섞이지 않는다.
-        assertThat(body.get("hostPath").asString()).doesNotContain(mountPathValue);
-        assertThat(body.get("defaultSessionCommand").asString()).doesNotContain(mountPathValue);
-        assertThat(body.get("leadSessionCommandTemplate").asString()).doesNotContain(mountPathValue);
-        assertThat(body.get("teamsPath").asString()).doesNotContain(mountPathValue);
-        assertThat(body.get("trashPath").asString()).doesNotContain(mountPathValue);
-        assertThat(body.get("collectUrl").asString()).doesNotContain(mountPathValue);
-        assertThat(body.get("hookSettingsExample").asString()).doesNotContain(mountPathValue);
+        assertThat(responseBody).as("응답 본문 전체에 컨테이너 마운트 경로 값이 없어야 한다").doesNotContain(mountPathValue);
+        assertThat(body.has("mountPath")).as("mountPath 키 자체가 없어야 한다").isFalse();
 
         // [FR-014-AC4] GET /api/state의 Config와 같은 값 (한 곳에서 조립해 두 API가 공유)
         MvcResult stateResult = mockMvc.perform(get("/api/state").header("Origin", ALLOWED_ORIGIN))

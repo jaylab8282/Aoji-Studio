@@ -2,10 +2,10 @@ package studio.jay.api;
 
 /**
  * api-spec {@code Settings} — {@code GET /api/settings} 응답(07 화면, FR-014). {@code hostPath}만
- * 맥북 절대 경로이고, 그 밖에는 마운트 절대 경로를 담지 않는다(conventions.md §5, FR-014-AC4).
+ * 맥북 절대 경로이고, 컨테이너 마운트 절대 경로({@code JAYSTUDIO_MOUNT_PATH} 값)는 응답에 넣지 않는다
+ * (conventions.md §5, FR-014-AC4, D-021 — api-spec {@code Settings}에서 {@code mountPath} 필드 제거).
  *
  * @param hostPath 맥북 절대 경로({@code JAYSTUDIO_HOST_PATH}, FR-014-AC4)
- * @param mountPath 컨테이너 안 마운트 경로({@code JAYSTUDIO_MOUNT_PATH})
  * @param agentCount 정상 정의 파일 수. {@code agentsDirMissing}이면 null
  * @param skillCount {@code .claude/skills/*&#47;SKILL.md} 폴더 수
  * @param writable 마운트 쓰기 가능 여부
@@ -25,7 +25,6 @@ package studio.jay.api;
  */
 public record Settings(
         String hostPath,
-        String mountPath,
         Integer agentCount,
         int skillCount,
         boolean writable,

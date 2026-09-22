@@ -4,7 +4,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import studio.jay.collect.CollectTokenStore;
-import studio.jay.config.AppProperties;
 import studio.jay.registry.HookSettingsExampleBuilder;
 import studio.jay.registry.RegistryService;
 import studio.jay.registry.RegistrySnapshot;
@@ -21,6 +20,10 @@ import studio.jay.stream.SnapshotAssembler;
  *
  * <p>이 컨트롤러는 {@code .claude/settings.json}을 쓰지 않는다 — 읽기는 {@link RegistryService#current()}
  * 가 스캔 시점에 이미 읽어 둔 {@link RegistrySnapshot#hookConfigured()}를 그대로 쓴다(FR-014-AC1).
+ *
+ * <p>컨테이너 마운트 절대 경로({@code JAYSTUDIO_MOUNT_PATH} 값, {@code AppProperties.getMountPath()})는
+ * 응답 어디에도 넣지 않는다(D-021, conventions.md §5) — api-spec {@code Settings}에는 {@code mountPath}
+ * 필드가 없다.
  */
 @RestController
 @RequestMapping("/api")
@@ -35,19 +38,16 @@ public class SettingsController {
 
     private final SnapshotAssembler snapshotAssembler;
     private final RegistryService registryService;
-    private final AppProperties appProperties;
     private final CollectTokenStore collectTokenStore;
     private final HookSettingsExampleBuilder hookSettingsExampleBuilder;
 
     public SettingsController(
             SnapshotAssembler snapshotAssembler,
             RegistryService registryService,
-            AppProperties appProperties,
             CollectTokenStore collectTokenStore,
             HookSettingsExampleBuilder hookSettingsExampleBuilder) {
         this.snapshotAssembler = snapshotAssembler;
         this.registryService = registryService;
-        this.appProperties = appProperties;
         this.collectTokenStore = collectTokenStore;
         this.hookSettingsExampleBuilder = hookSettingsExampleBuilder;
     }
@@ -61,7 +61,6 @@ public class SettingsController {
 
         return new Settings(
                 config.hostPath(),
-                appProperties.getMountPath(),
                 registry.agentCount(),
                 registry.skillCount(),
                 registry.writable(),
