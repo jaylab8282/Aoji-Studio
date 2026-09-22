@@ -459,3 +459,7 @@ LiveState {
 - 배경: `docs/ui/ui-rules.md` 1은 "상태 점·사각형은 9~10px, 모서리 3px"로 정하는데, `design-tokens.md` 모서리 행(9/12/10/6)과 ui-spec 토큰 매핑 표에는 3px 값이 없었다. T-013은 conventions §7(임의 값 금지)을 지켜 `StatusDot`에 `--radius-badge`(6px)를 임시로 썼다(리뷰 Minor).
 - 선택지: (a) ui-rules 3px를 전용 토큰으로 매핑 표에 추가 / (b) 6px 배지 토큰을 그대로 두고 ui-rules 문구를 바꿈 — (b)는 `docs/ui/`(확정 UI 기준) 수정이라 architect 권한 밖이고 기준을 코드에 맞추는 역전이다.
 - 결정: **(a)** `--radius-dot: 3px` → Tailwind `rounded-dot`. 상태 점·사각형(`StatusDot`) 전용이며 다른 요소에는 쓰지 않는다. 문서 표기 누락 정정이므로 api-spec·realtime-spec·FR 의미는 변경 없음(계약 변경 아님). `theme.css`·`StatusDot` 반영은 frontend-developer가 T-014에서 한다.
+
+### ADR-22 ui-spec `Sidebar` 로고·워드마크 표기 보완 (팀장 결정 D-023, 2026-09-22)
+- 배경: 확정 기준 `docs/ui/screens/01-home.png` 좌상단에 초록 로고 아이콘 + `Jay Studio` 워드마크가 있으나 ui-spec §공통 `AppShell` 행에 그 설명이 없었다(T-014 리뷰 Minor). 구현(커밋 `bacd00e`)은 이미 PNG대로 반영됨.
+- 결정: ui-spec §공통 컴포넌트 표에 `Sidebar` 행을 분리해 로고 아이콘(`bg-running rounded-control`, 글리프 없음)·워드마크(`APP_WORDMARK`)·`--height-header` 정렬, 탭 inset·선택 탭 표현, `CollectorStatus` 카드 스타일을 구현과 PNG에 맞게 적는다. 기존 토큰·공통 컴포넌트만 사용하며 새 시각 요소 없음. api-spec·realtime-spec·FR 의미 변경 없음(계약 변경 아님), 코드 변경 없음.
