@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import { router } from "./router";
+import { startStream } from "../api/stream";
 import "../styles/base.css";
 
 const container = document.getElementById("root");
@@ -14,3 +15,6 @@ createRoot(container).render(
     <RouterProvider router={router} />
   </StrictMode>,
 );
+
+// realtime-spec.md §4: SSE 연결은 앱당 하나만 연다.
+startStream();

@@ -251,7 +251,7 @@
 - Depends on: T-002, T-003
 
 ## T-013 프론트 공통 셸 · 스토어 · SSE 클라이언트 · 04-3 배너 · 스켈레톤
-- Status: todo
+- Status: done
 - Scope: Frontend
 - FR: FR-016, FR-003, FR-005
 - AC: FR-016-AC1, FR-016-AC2, FR-016-AC3, FR-016-AC4, FR-003-AC6, FR-005-AC9

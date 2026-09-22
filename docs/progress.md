@@ -2,7 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: T-013 (round 1)
+- Current: T-014 (round 1)
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -40,7 +40,10 @@
 
 - 2026-09-22 재개(4차). T-012 재작업(D-021 반영) 팀장 검증 `./gradlew test --rerun-tasks` 277 tests/0 fail/0 skip → reviewer Round 3 PASS → 커밋 `feat(T-012)` 재작업. T-012 done. T-013 시작.
 
+- 2026-09-22 T-013 PASS (round 1) → 커밋 `feat(T-013)`. 리뷰: docs/reviews/T-013.md. 리뷰어 라이브 재현으로 FR-016-AC2 확인. 남은 Minor: 끊김 스크린샷은 첫 연결 실패 케이스(기록으로 갈음)·StatusDot 3px 토큰 부재 → architect 토큰 추가 요청 후 T-014에서 반영
+
 ## Decisions
+- D-022 StatusDot 모서리 3px 토큰 부재는 계약·요구사항 의미와 무관한 문서 표기 누락 → architect에 ui-spec 토큰 매핑 표 `--radius-dot`(3px) 추가 요청, frontend-developer가 T-014에서 theme.css·StatusDot 반영. T-013은 임의 값 금지를 지켜 6px 토큰 사용한 상태로 PASS / T-013, T-014
 - D-021 api-spec `Settings.mountPath` 제거(계약 변경, 사용자 승인) — UI 미표시·filePath는 상대 경로·절대 경로는 hostPath만이라 프론트가 컨테이너 경로를 알 이유 없음, FR-014-AC4·conventions MUST와의 예외 처리 부담 제거. 사용자 보이는 동작·FR 의미 변경 없음. 프론트 착수 전이라 영향 최소 / T-012, T-022
 - D-020 api-spec `Settings.mountPath`(required, 컨테이너 경로 예: /workspace)는 계약대로 유지. FR-014-AC4는 '표시' 요건이고 ui-spec SCR-07은 hostPath만 표시하므로 위반 아님. tasks.md T-012 Done when 문구('응답에 /workspace 없음')가 api-spec과 모순 → architect가 'UI 표시 값에 컨테이너 경로 미포함'으로 정정, 테스트도 그 기준으로 정정. 계약 변경 없음 / T-012, T-022
 - D-019 PUT /api/agents/{name}에서 워크플로우 불변이어도 role(member↔lead) 변경을 구성 파일에 반영하고, 자기 자신이 아닌 lead가 있으면 409 LEAD_EXISTS — api-spec AgentUpdateRequest.role 필수·PUT 409 LEAD_EXISTS '다른 팀장' 문구·ui-spec 06 역할 라디오 수정 모드 활성이 근거. 구성 파일 1회 쓰기 → 정의 파일 순서, 실패 시 원본 바이트 원복(ADR-08 소속 변경 패턴 축소형, architect 변경 불필요) / T-010, T-019
