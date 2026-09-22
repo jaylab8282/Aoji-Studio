@@ -2,7 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: T-015 (round 1). **사용자 지시: T-015 리뷰·커밋 완료 후 보류.**
+- Current: **보류 중(사용자 지시)**. T-015(02 층 뷰) frontend-developer DONE(개발자 보고: 22 files/84 tests·lint·typecheck·build 통과, 스크린샷 docs/reviews/screens/T-015/02-workflows.png) — working tree 미커밋 보관(32개 파일), **팀장 검증·리뷰 미실시**(사용자 지시로 다음 세션에서). **재개 시 첫 작업**: `git status`로 T-015 변경 확인 → 팀장 `cd frontend && npm test && npm run lint && npm run typecheck && npm run build` → 스크린샷을 docs/ui/screens/02-workflows.png와 대조 → reviewer scope task(T-015) round 1 → PASS 시 `feat(T-015)` 커밋·done. 그 다음 T-016(03 상세·픽셀 오피스, Depends T-013·T-015)부터. 개발자 NOTES: 헤더 'Claude 열기' onClick 없음(T-021 범위), dialog 버튼은 URL만 변경(T-017~019), 줌·미니맵 단위 테스트 없음(E2E-12는 T-024), router.test 기대값 교정, TopBar `handle.rightExtra` 메커니즘 추가(공통 셸 변경 — 리뷰 시 타당성 확인).
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -45,6 +45,9 @@
 - 2026-09-22 T-014 round 1 NEEDS_FIX: [Major] 사이드바 로고/워드마크 누락(T-013 Sidebar.tsx, 기준 PNG 대비) → 같은 frontend 에이전트에 수정 요청(사이드바 구조 전반 기준 이미지 맞춤 포함)
 
 - 2026-09-22 T-014 PASS (round 2, fix 1회: 사이드바 로고/워드마크·메뉴 inset·수집 상태 카드) → 커밋 `feat(T-014)`. 리뷰: docs/reviews/T-014.md. 남은 Minor: ui-spec AppShell 표 로고·워드마크 표기 누락 → architect 요청(D-023)
+
+- 2026-09-22 D-023 architect ui-spec Sidebar 행 신설·CollectorStatus 카드 표기(ADR-22, 계약 변경 없음) → 커밋 3089b26
+- 2026-09-22 T-015 frontend-developer DONE(미커밋, 미검증·미리뷰). 사용자 지시로 보류.
 
 ## Decisions
 - D-023 ui-spec §공통 AppShell 표에 로고·워드마크(`Jay Studio`) 설명 누락은 기준 PNG에 있는 요소의 문서 표기 누락(계약·FR 무관) → architect에 문서 보완 요청, 코드 변경 없음 / T-014
