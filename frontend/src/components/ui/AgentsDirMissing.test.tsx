@@ -86,4 +86,31 @@ describe("AgentsDirMissing", () => {
 
     expect(await screen.findByText("다시 읽지 못했습니다 · 다시 읽을 수 없습니다")).toBeInTheDocument();
   });
+
+  it("[conventions §4] 알 수 없는 오류 → 공통 문구(내부 오류 표현 노출 없음)", async () => {
+    snapshotStore.replace(buildSnapshotFixture());
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/api/auth/browser-token")) {
+          return jsonResponse({ token: "a".repeat(64) });
+        }
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <AgentsDirMissing hostPath="/Users/jaybee/Desktop/JayStudio" />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 읽기" }));
+
+    const message = await screen.findByText(
+      "다시 읽지 못했습니다 · 서버에 연결할 수 없습니다 · 다시 시도하세요",
+    );
+    expect(message.textContent).not.toMatch(/TypeError|Failed to fetch/);
+  });
 });

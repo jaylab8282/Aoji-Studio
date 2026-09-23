@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkflowDeleteDialog } from "./WorkflowDeleteDialog";
 import { WorkflowAddDialog } from "../workflow-add/WorkflowAddDialog";
@@ -32,6 +32,15 @@ function stubFetch(deleteResponse: () => Response | Promise<Response>) {
     }),
   );
   return calls;
+}
+
+/** 가짜 타이머 구간에서 fetch 체인(마이크로태스크)을 흘려보낸다. */
+async function flushPromises() {
+  await act(async () => {
+    for (let round = 0; round < 20; round += 1) {
+      await Promise.resolve();
+    }
+  });
 }
 
 function renderDialog(onClose = vi.fn(), workflowName = "개발부서") {
@@ -102,19 +111,115 @@ describe("WorkflowDeleteDialog", () => {
     resolveDelete(emptyResponse(204));
   });
 
-  it("[FR-017-E1] 409 WORKFLOW_NOT_EMPTY → 문구 표시 후 닫힘", async () => {
-    stubFetch(() =>
-      jsonResponse({ code: "WORKFLOW_NOT_EMPTY", message: "팀원이 있어 삭제할 수 없습니다" }, 409),
+  it("[FR-017-E1] 409 WORKFLOW_NOT_EMPTY → 3초 후 닫힘", async () => {
+    // 지속 시간은 ui-spec.md SCR-05-3이 명시한 3000ms다(ADR-34).
+    vi.useFakeTimers();
+    try {
+      stubFetch(() =>
+        jsonResponse({ code: "WORKFLOW_NOT_EMPTY", message: "팀원이 있어 삭제할 수 없습니다" }, 409),
+      );
+      const onClose = renderDialog();
+
+      typeConfirmName("개발부서");
+      fireEvent.click(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" }));
+      await flushPromises();
+
+      expect(screen.getByRole("alert")).toHaveTextContent("팀원이 있어 삭제할 수 없습니다");
+      expect(onClose).not.toHaveBeenCalled();
+
+      // 2.9초까지는 사유가 보이고 팝업이 열려 있다.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2900);
+      });
+      expect(screen.getByRole("alert")).toHaveTextContent("팀원이 있어 삭제할 수 없습니다");
+      expect(onClose).not.toHaveBeenCalled();
+
+      // 3.0초에 한 번만 닫힌다(02 갱신은 SSE `registry`가 한다).
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100);
+      });
+      expect(onClose).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3000);
+      });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("[FR-017-E1] 안내 표시 중 삭제 버튼 비활성(중복 DELETE 0건, 이유 줄 없음)", async () => {
+    vi.useFakeTimers();
+    try {
+      const calls = stubFetch(() =>
+        jsonResponse({ code: "WORKFLOW_NOT_EMPTY", message: "팀원이 있어 삭제할 수 없습니다" }, 409),
+      );
+      renderDialog();
+
+      typeConfirmName("개발부서");
+      const deleteButton = screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" });
+      fireEvent.click(deleteButton);
+      await flushPromises();
+
+      // 이름이 그대로 일치해도 안내 표시 중에는 다시 누를 수 없다(같은 DELETE 중복 전송 방지).
+      expect(deleteButton).toBeDisabled();
+      fireEvent.click(deleteButton);
+      await flushPromises();
+      expect(calls).toHaveLength(1);
+
+      // 진행 중 비활성이므로 이유 줄은 붙지 않는다(ADR-35).
+      expect(screen.queryByText("쓰기 권한 없음")).not.toBeInTheDocument();
+      expect(screen.queryByText("팀원을 먼저 제거하세요")).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("[FR-017-E1] 안내 중 취소·ESC → 3초를 기다리지 않고 즉시 닫힘", async () => {
+    vi.useFakeTimers();
+    try {
+      stubFetch(() =>
+        jsonResponse({ code: "WORKFLOW_NOT_EMPTY", message: "팀원이 있어 삭제할 수 없습니다" }, 409),
+      );
+      const onClose = renderDialog();
+
+      typeConfirmName("개발부서");
+      fireEvent.click(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" }));
+      await flushPromises();
+
+      const cancelButton = screen.getByRole("button", { name: "취소" });
+      expect(cancelButton).toBeEnabled();
+      fireEvent.click(cancelButton);
+      expect(onClose).toHaveBeenCalledTimes(1);
+
+      // ESC도 같은 구간에서 그대로 동작한다(§공통 `Dialog`).
+      fireEvent.keyDown(window, { key: "Escape" });
+      expect(onClose).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("[FR-017-E1] 알 수 없는 오류 → 공통 문구(내부 오류 표현 노출 없음)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/api/auth/browser-token")) {
+          return jsonResponse({ token: "a".repeat(64) });
+        }
+        throw new TypeError("Failed to fetch");
+      }),
     );
-    const onClose = renderDialog();
+    renderDialog();
 
     typeConfirmName("개발부서");
     fireEvent.click(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("팀원이 있어 삭제할 수 없습니다");
-    expect(onClose).not.toHaveBeenCalled();
-    // 사유를 보여준 뒤 팝업이 닫힌다(02 갱신은 SSE `registry`가 한다).
-    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("서버에 연결할 수 없습니다 · 다시 시도하세요");
+    expect(alert.textContent).not.toMatch(/TypeError|Failed to fetch/);
   });
 
   it("[FR-017-E2] 500 → message, 팝업 유지", async () => {
@@ -127,7 +232,8 @@ describe("WorkflowDeleteDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("구성 파일 삭제 실패 · 파일은 그대로입니다");
-    await new Promise((resolve) => setTimeout(resolve, 1800));
+    // FR-017-E1 안내 시간(3000ms, ADR-34)이 지나도 500은 팝업을 닫지 않는다.
+    await new Promise((resolve) => setTimeout(resolve, 3200));
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole("heading", { name: "개발부서 워크플로우를 삭제할까요?" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" })).toBeEnabled();

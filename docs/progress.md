@@ -2,10 +2,11 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: T-017 done·커밋 완료. **architect A-7~A-9 문서 확정 요청 진행 중** → 그 결과로 T-FIX-02(코드 Minor) 처리 후 T-018
-  - 남은 태스크: T-018(05 가져오기) → T-019(06 폼·충돌·제거) → T-020(도우미) → T-021~T-024
-  - 팝업 태스크(T-018·T-019)는 비활성 버튼을 처음부터 **ADR-29 표현**으로, 팝업 껍데기는 `Dialog`, 이름 확인형은 `ConfirmByNameDialog`(T-017 산출물), `?dialog=` 결선은 `useDialog()`+`DialogHost` 분기 추가로 한다
-  - 후속 Minor 목록(완료를 막지 않음): T-015 책상 가로·세로 pitch·13자 이름 열 번짐·미니맵 줌 deps → **T-024** / `Claude 열기`·`팀장 호출` onClick → **T-021** / 04-4 변형 캐처 갱신 → **T-024**(D-032) / playwright.config viewport 1280×720 덮어쓰기 → **T-024** / TopBar 긴 hostPath 2줄 접힘(T-013) → 후속
+- Current: **보류 중(사용자 지시)**. T-017 · ADR-33~35 문서 · T-FIX-02 모두 done·커밋 완료, working tree 깨끗함
+  - **재개 시 첫 작업**: **T-018**(05 기존 에이전트 가져오기 UI) 시작. Frontend 단독, Depends(T-017) 충족됨
+  - T-018 프롬프트에 반드시 넣을 것: ① ADR-33 정적 검사 확장(JSX 텍스트 노드·`[N]` 미검출 — tasks.md T-018에 항목 추가해 둠, `선택한 [N]명 가져오기`가 바로 이 경우다) ② ADR-35 비활성 이유 줄은 ui-spec §공통 목록 지정 지점에만 ③ 팝업 껍데기 `Dialog`·`?dialog=` 결선은 `useDialog()`+`DialogHost` 분기 추가 ④ 비활성 버튼은 기존 `Button`(ADR-29)
+  - 남은 태스크: T-018 → T-019(06 폼·06-5·06-6, `ConfirmByNameDialog` 재사용) → T-020(도우미) → T-021~T-024
+  - 후속 Minor 목록(완료를 막지 않음): T-015 책상 가로·세로 pitch·13자 이름 열 번짐·미니맵 줌 deps → **T-024** / `Claude 열기`·`팀장 호출` onClick → **T-021** / 04-4 변형 캐처 갱신 → **T-024**(D-032) / playwright.config viewport 1280×720 덮어쓰기 → **T-024** / TopBar 긴 hostPath 2줄 접힘(T-013) → 후속 / `[FR-017-E2]` 실제 3200ms sleep(테스트 시간) → 후속
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -69,6 +70,10 @@
 - 2026-09-23 사용자 지시로 보류. T-017은 시작하지 않음
 
 ## Decisions
+- D-038 T-FIX-02 리뷰 Minor 2(정적 검사가 JSX 텍스트 노드·`[N]`·`<N>`를 못 잡음)를 **T-018로 이관** — T-018이 구현할 `선택한 [N]명 가져오기`가 정확히 그 미검출 사례이고, conventions §3이 `[N]`을 명시적으로 금지하므로 검사 확장 시점이 T-018 착수 직전이 가장 낫다. tasks.md T-018 Done when에 항목 추가 완료 / T-FIX-02, T-018
+- D-037 개발자 보고 중 "기존 `[FR-017-E1]` 단언이 1500·3000 어느 값에서도 통과해 값 변경을 잡지 못했다"는 **사실이 아니다** — 리뷰어가 `git show HEAD:` 로 변경 전 테스트를 복원해 3000ms 상수로 3회 재생한 결과 3/3 FAIL(약 3.06s 타임아웃). 기존 테스트는 비어 있지 않았고 1500→3000 변경을 실제로 잡았다. 다만 교체본이 더 강하고(2.9초 하한·정확한 호출 수·3s→10ms) 코드 결함이 아니므로 **기록만 하고 재작업하지 않는다**. 교훈: 개발 에이전트의 '기존 테스트가 비어 있었다'는 주장은 반증 가능한 형태로 받고 리뷰어가 실측하게 할 것 / T-FIX-02
+- D-036 `ConfirmByNameDialog`에 optional `confirmDisabled` 추가를 승인 — ADR-34의 '안내 표시 중 확인 버튼만 비활성, 취소·ESC는 열어 둠'을 기존 `pending`으로 표현할 수 없다(`pending`은 취소·입력까지 잠근다). 기본값 `false`라 T-019의 06-6 재사용에 부담 없음(리뷰어 확인). 계약·ui-spec 변경 아님 / T-FIX-02, T-019
+- D-035b A-8의 1.5초→3초는 사용자에게 보이는 **시간 값**이 바뀌지만 **에스컬레이션하지 않는다** — architect가 동작 종류를 바꾸는 선택지(사람이 닫을 때까지 유지)를 택하지 않았고, FR-017-E1 문구('문구 표시 후 닫힘')는 시간을 규정하지 않아 설계가 공백을 메운 것이다. 계약·FR 의미 변경 없음 / T-FIX-02
 - D-035 T-017 리뷰 Minor 5건의 처리 분배: 문서 근거 부재 2건(대괄호 표기 규칙·FR-017-E1 지속 시간)과 비활성 이유 한 줄 적용 범위는 **architect A-7~A-9로 확정**(T-018·T-019가 같은 팝업 계열이라 지금 정해야 같은 논점이 3번 반복되지 않는다). 코드 2건(409 안내 중 삭제 버튼 재활성·`String(error)` 노출)은 **T-FIX-02**로 묶는다 — `String(error)`는 T-013 산출물 `AgentsDirMissing.tsx`와 같은 패턴이라 T-017만의 결함이 아니고 `client.ts` 정규화가 옳은 수정 위치(D-031과 같은 방식) / T-017, T-FIX-02
 - D-034 T-017 `NOT_EMPTY_NOTICE_MS = 1500`을 **PASS를 막지 않는 Minor로 수용** — 자동 닫힘 자체는 ui-spec이 요구하고 동작 지연이라 design-token 대상이 아니다. 다만 CopyButton 1.5초(성공 확인용)를 '읽어야 하는 거부 사유'의 근거로 쓴 것은 약하다는 리뷰어 판단에 동의해 A-8로 확정 요청 / T-017
 - D-033 05-L 비활성 `만들기`·05-3 비활성 `삭제`에 **이유 한 줄을 붙이지 않는 것을 승인** — ui-spec SCR-05-L `빈` 열이 이유 문구를 주지 않았고 05-3은 버튼 라벨(`삭제 (이름 일치 시 활성)`)이 조건을 말한다. 없는 문구를 지어내면 conventions §2 MUST(문서 문구 그대로) 위반이 된다. ui-rules 2 표의 '옆에 이유 한 줄'과의 문자적 충돌만 A-9로 확정 요청(코드 변경 없음). `writable=false`는 지정대로 `쓰기 권한 없음`을 붙였다 / T-017, T-018, T-019
@@ -112,3 +117,6 @@
 
 - 2026-09-23 재개(6차). T-017 시작(Depends T-014·T-015 done, working tree 깨끗, final v1 = Approved Versions 일치).
 - 2026-09-23 T-017 **PASS (round 1)** → 커밋 `feat(T-017)`. 리뷰: docs/reviews/T-017.md. 테스트 175→**200**(45 files), 기대값 교정·삭제·skip **0건**. AC 6·E 5 전부 연결, Blocker·Major 0. 팀장 직접 검증: test·lint·typecheck·build 통과, 설계 문서 미수정, 임시 캡처 스크립트 정리 확인(tools/e2e/tests = health.spec.ts만), router.tsx·App.tsx diff가 **추가만**임을 확인. **구조 수확**: `ConfirmByNameDialog`가 06-6 재사용 가능 형태(리뷰어가 notes[]·placeholder까지 SCR-06-6 대조), `?dialog=`를 `useDialog()`+`DialogHost` 한 곳으로 모아 T-018·T-019는 분기만 추가하면 된다. Minor 5건 → 문서 2건(A-7~A-9 architect) · 코드 2건(T-FIX-02) · 태스크 1건(T-019에 기록 완료)
+- 2026-09-24 architect A-7~A-9 확정 완료(ADR-33~35, **계약 변경 없음**) → 커밋 `docs:` ece1f25. ADR-33 대괄호 = 데이터 출처가 해석((a)치환/(b)placeholder/(c)괄호만 벗김), 화면에 괄호 미노출(예외: 서버가 준 값의 괄호) / ADR-34 FR-017-E1 안내 **3000ms** + 표시 중 확인 버튼 비활성 + 취소·ESC 조기 닫기 / ADR-35 비활성 이유 줄은 ui-spec 지정 지점에만 + **전 화면 비활성 지점 목록 신설**(이유 있음 7종·없음 6종, 신설 문구 0건). 팀장 확인: 네 문서 교차 grep·요소 표 1:1 대조 결과 보고, ADR 헤딩 중복 0
+- 2026-09-24 T-FIX-02 **PASS (round 1)** → 커밋 `feat(T-FIX-02)`. 리뷰: docs/reviews/T-FIX-02.md. 테스트 200→**210**, skip·삭제 0. 팀장 검증: test·lint·typecheck·build 통과, e2e 폴더 정리, 설계 문서 미수정, `client.ts` diff 직접 확인. **리뷰어가 개발자 보고 1건을 실측으로 반증**(아래 D-037). `client.ts` 전 예외 정규화는 리뷰어가 throw 지점을 전수 추적해 확인, `normalizeError`가 ApiError는 **같은 인스턴스**를 돌려주므로 code·fields 분기 회귀 없음. 정적 검사는 리뷰어가 probe 파일을 심어 **실제로 잡는 것**과 **못 잡는 두 경로**를 모두 실측 → 후자는 T-018로 이관
+- 2026-09-24 사용자 지시로 보류. T-018은 시작하지 않음

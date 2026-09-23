@@ -2,11 +2,13 @@
  * api-spec.yaml 계약대로 fetch를 감싼 유일한 진입점(conventions.md §3 Frontend MUST).
  * - 브라우저 토큰은 모듈 메모리에만 둔다(localStorage·sessionStorage·cookie 금지, architecture.md §5 ADR-01).
  * - 403 UNAUTHORIZED_TOKEN은 토큰 재발급 후 1회만 자동 재시도한다(conventions.md §4).
- * - 에러 응답은 항상 `ApiError`로 변환해 던진다.
+ * - 이 모듈이 던지는 오류는 예외 없이 `ApiError`다. 에러 응답뿐 아니라 네트워크 예외·형식이 깨진
+ *   응답 본문도 `NETWORK_ERROR` + conventions.md §4 MUST 문구로 정규화하므로, 호출부는 `String(error)`
+ *   같은 내부 표현을 화면에 올리지 않는다.
  */
+import { UNKNOWN_ERROR_MESSAGE } from "../lib/text";
 import type { ApiErrorBody, ApiErrorCode } from "./types";
 
-const NETWORK_ERROR_MESSAGE = "서버에 연결할 수 없습니다 · 다시 시도하세요";
 const BROWSER_TOKEN_HEADER = "X-JayStudio-Browser-Token";
 
 export class ApiError extends Error {
@@ -23,6 +25,18 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * conventions.md §4 MUST: 화면에 오르는 오류는 언제나 `ApiError`다.
+ * `ApiError`가 아닌 모든 예외(fetch 실패, JSON 파싱 실패, 그 밖의 런타임 오류)는
+ * 내부 표현을 노출하지 않도록 `NETWORK_ERROR` + 공통 문구로 바꾼다.
+ */
+function normalizeError(error: unknown): ApiError {
+  if (error instanceof ApiError) {
+    return error;
+  }
+  return new ApiError({ code: "NETWORK_ERROR", message: UNKNOWN_ERROR_MESSAGE });
+}
+
 // 브라우저 토큰은 메모리 모듈 변수에만 저장한다. 절대 storage류에 쓰지 않는다.
 let cachedBrowserToken: string | null = null;
 let tokenFetchPromise: Promise<string> | null = null;
@@ -32,12 +46,17 @@ async function fetchBrowserToken(): Promise<string> {
   try {
     res = await fetch("/api/auth/browser-token", { method: "GET" });
   } catch {
-    throw new ApiError({ code: "NETWORK_ERROR", message: NETWORK_ERROR_MESSAGE });
+    throw new ApiError({ code: "NETWORK_ERROR", message: UNKNOWN_ERROR_MESSAGE });
   }
   if (!res.ok) {
     throw await toApiError(res);
   }
-  const body = (await res.json()) as { token: string };
+  let body: { token: string };
+  try {
+    body = (await res.json()) as { token: string };
+  } catch {
+    throw new ApiError({ code: "NETWORK_ERROR", message: UNKNOWN_ERROR_MESSAGE });
+  }
   cachedBrowserToken = body.token;
   return body.token;
 }
@@ -54,6 +73,8 @@ export async function getBrowserToken(forceRefresh = false): Promise<string> {
   tokenFetchPromise = promise;
   try {
     return await promise;
+  } catch (error) {
+    throw normalizeError(error);
   } finally {
     if (tokenFetchPromise === promise) {
       tokenFetchPromise = null;
@@ -66,13 +87,13 @@ async function toApiError(res: Response): Promise<ApiError> {
     const body = (await res.json()) as ApiErrorBody;
     return new ApiError(body);
   } catch {
-    return new ApiError({ code: "NETWORK_ERROR", message: NETWORK_ERROR_MESSAGE });
+    return new ApiError({ code: "NETWORK_ERROR", message: UNKNOWN_ERROR_MESSAGE });
   }
 }
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
-async function request<T>(method: Method, path: string, body?: unknown, isRetry = false): Promise<T> {
+async function sendRequest<T>(method: Method, path: string, body?: unknown, isRetry = false): Promise<T> {
   const headers: Record<string, string> = {};
   let requestBody: string | undefined;
   if (body !== undefined) {
@@ -88,14 +109,14 @@ async function request<T>(method: Method, path: string, body?: unknown, isRetry 
   try {
     res = await fetch(path, { method, headers, body: requestBody });
   } catch {
-    throw new ApiError({ code: "NETWORK_ERROR", message: NETWORK_ERROR_MESSAGE });
+    throw new ApiError({ code: "NETWORK_ERROR", message: UNKNOWN_ERROR_MESSAGE });
   }
 
   if (res.status === 403 && !isRetry) {
     const error = await toApiError(res);
     if (error.code === "UNAUTHORIZED_TOKEN") {
       await getBrowserToken(true);
-      return request<T>(method, path, body, true);
+      return sendRequest<T>(method, path, body, true);
     }
     throw error;
   }
@@ -112,6 +133,15 @@ async function request<T>(method: Method, path: string, body?: unknown, isRetry 
     return undefined as T;
   }
   return JSON.parse(text) as T;
+}
+
+/** 모든 공개 호출의 단일 출구. 어떤 예외가 나와도 `ApiError`만 밖으로 나간다. */
+async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+  try {
+    return await sendRequest<T>(method, path, body);
+  } catch (error) {
+    throw normalizeError(error);
+  }
 }
 
 export function apiGet<T>(path: string): Promise<T> {

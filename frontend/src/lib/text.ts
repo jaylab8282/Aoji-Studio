@@ -55,6 +55,10 @@ export function lastUpdatedLabel(hhmmss: string): string {
 // 워크플로우 칩 (lib/derive/workflowChip.ts에서 조립하는 문구 그대로 보관)
 export const WORKFLOW_CHIP_ALL_IDLE_TEXT = "모두 대기";
 
+// 알 수 없는 오류 공통 문구 (conventions.md §4 MUST). 네트워크 예외·형식이 깨진 응답처럼
+// 서버가 사용자용 `message`를 주지 못한 모든 경우에 이 문구 하나만 쓴다(api/client.ts가 정규화).
+export const UNKNOWN_ERROR_MESSAGE = "서버에 연결할 수 없습니다 · 다시 시도하세요";
+
 // CopyButton (ui-spec §공통)
 export const COPY_BUTTON_DEFAULT_LABEL = "복사";
 export const COPY_BUTTON_COPIED_LABEL = "복사됨";
@@ -283,9 +287,12 @@ export const CONFIRM_BY_NAME_INPUT_LABEL = "확인을 위해 이름 입력";
 
 // SCR-05-L 워크플로우 추가 (FR-008)
 export const WORKFLOW_ADD_TITLE = "워크플로우 추가";
-/** ui-spec.md SCR-05-L 제목 행: 데이터 출처 `정적`. 만들어질 파일 경로 규칙을 그대로 설명한다. */
+/**
+ * ui-spec.md SCR-05-L 제목 행: 데이터 출처 `정적`. 만들어질 파일 경로 규칙을 그대로 설명한다.
+ * 와이어프레임 표기의 괄호는 ADR-33 (c) 정적 텍스트이므로 괄호 기호만 벗기고 낱말은 그대로 둔다.
+ */
 export const WORKFLOW_ADD_DESCRIPTION =
-  "구성 파일 .jaystudio/teams/[이름].json(팀장·팀원 목록)이 만들어집니다.";
+  "구성 파일 .jaystudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다.";
 export const WORKFLOW_NAME_LABEL = "이름";
 export const WORKFLOW_NAME_PLACEHOLDER = "개발부서";
 export const WORKFLOW_NAME_HINT = "이름 중복 불가 · 개수 제한 없음";

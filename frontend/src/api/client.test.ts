@@ -114,4 +114,53 @@ describe("client", () => {
       message: "서버에 연결할 수 없습니다 · 다시 시도하세요",
     });
   });
+
+  it("[conventions §4] JSON 파싱 실패·네트워크 예외 → ApiError 정규화", async () => {
+    const { ApiError, apiGet, apiPost } = await import("./client");
+
+    // 1) 200인데 본문이 JSON이 아니면 `JSON.parse`가 SyntaxError를 던진다.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/api/auth/browser-token")) {
+          return jsonResponse({ token: "a".repeat(64) });
+        }
+        return new Response("not-json", { status: 200, headers: { "Content-Type": "application/json" } });
+      }),
+    );
+
+    const parseError = await apiGet("/api/state").catch((error: unknown) => error);
+    expect(parseError).toBeInstanceOf(ApiError);
+    expect(parseError).toMatchObject({
+      code: "NETWORK_ERROR",
+      message: "서버에 연결할 수 없습니다 · 다시 시도하세요",
+    });
+    expect(String((parseError as Error).message)).not.toMatch(/SyntaxError|JSON/);
+
+    // 2) 토큰 발급 응답이 깨져도(POST 경로) 같은 `ApiError`로 나온다.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("<html>", { status: 200, headers: { "Content-Type": "text/html" } })),
+    );
+
+    const tokenError = await apiPost("/api/workflows", { name: "x" }).catch((error: unknown) => error);
+    expect(tokenError).toBeInstanceOf(ApiError);
+    expect(tokenError).toMatchObject({
+      code: "NETWORK_ERROR",
+      message: "서버에 연결할 수 없습니다 · 다시 시도하세요",
+    });
+
+    // 3) fetch 자체가 문자열을 던지는 등 Error가 아닌 값도 정규화된다.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw "boom";
+      }),
+    );
+
+    const oddError = await apiGet("/api/state").catch((error: unknown) => error);
+    expect(oddError).toBeInstanceOf(ApiError);
+    expect((oddError as Error).message).toBe("서버에 연결할 수 없습니다 · 다시 시도하세요");
+  });
 });

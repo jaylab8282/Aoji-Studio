@@ -16,6 +16,7 @@ import {
   OPEN_SETTINGS_BUTTON_LABEL,
   RESCAN_BUTTON_LABEL,
   RESCAN_BUTTON_LOADING_LABEL,
+  UNKNOWN_ERROR_MESSAGE,
   agentsDirMissingPath,
   rescanFailedMessage,
 } from "../../lib/text";
@@ -32,7 +33,9 @@ export function AgentsDirMissing({ hostPath }: { hostPath: string }) {
       const registry = await apiPost<Registry>("/api/registry/rescan");
       snapshotStore.setRegistry(registry);
     } catch (error) {
-      const message = error instanceof ApiError ? error.message : String(error);
+      // client.ts가 모든 예외를 `ApiError`로 정규화한다. 알 수 없는 오류 문구는
+      // conventions.md §4 MUST의 공통 문구 하나만 쓴다.
+      const message = error instanceof ApiError ? error.message : UNKNOWN_ERROR_MESSAGE;
       setErrorMessage(rescanFailedMessage(message));
     } finally {
       setRescanning(false);

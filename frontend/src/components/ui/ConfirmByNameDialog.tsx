@@ -7,6 +7,7 @@
  * 이름이 정확히 일치할 때만 실행 버튼이 활성이다(FR-017-AC3, FR-012-AC1).
  * 비활성 표현은 `Button`이 ADR-29대로 처리한다(채움 배경 없음 · 점선 · faint).
  * 실행 조건은 버튼 라벨(`… (이름 일치 시 활성)`)이 말하므로 별도 이유 줄을 덧붙이지 않는다.
+ * 진행 중(`pending`)·`confirmDisabled` 비활성에도 이유 줄을 붙이지 않는다(ADR-35).
  */
 import { useId, useState } from "react";
 import { Dialog } from "./Dialog";
@@ -25,6 +26,11 @@ interface ConfirmByNameDialogProps {
   confirmLabel: string;
   confirmPendingLabel: string;
   pending: boolean;
+  /**
+   * 요청이 끝난 뒤에도 실행 버튼만 비활성으로 묶어 둘 때 쓴다(05-3 FR-017-E1 안내 표시 중,
+   * 같은 요청을 두 번 보내지 않기 위함 — ADR-34). `취소`·ESC는 그대로 열려 있다.
+   */
+  confirmDisabled?: boolean;
   /** 서버 `ApiError.message` 등 팝업 안에 표시할 사유. */
   errorMessage: string | null;
   onConfirm: () => void;
@@ -38,6 +44,7 @@ export function ConfirmByNameDialog({
   confirmLabel,
   confirmPendingLabel,
   pending,
+  confirmDisabled = false,
   errorMessage,
   onConfirm,
   onClose,
@@ -78,7 +85,12 @@ export function ConfirmByNameDialog({
           <Button variant="secondary" size="sm" disabled={pending} onClick={onClose}>
             {CANCEL_BUTTON_LABEL}
           </Button>
-          <Button variant="danger" size="sm" disabled={!nameMatches || pending} onClick={onConfirm}>
+          <Button
+            variant="danger"
+            size="sm"
+            disabled={!nameMatches || pending || confirmDisabled}
+            onClick={onConfirm}
+          >
             {pending ? confirmPendingLabel : confirmLabel}
           </Button>
         </div>

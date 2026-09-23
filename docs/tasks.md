@@ -400,7 +400,7 @@
 - Depends on: T-014, T-015
 
 ## T-FIX-02 ADR-33·ADR-34 05 팝업 정합 (대괄호 표기 · FR-017-E1 안내 3초)
-- Status: todo
+- Status: done
 - Scope: Frontend
 - FR: FR-008, FR-017(문서 정합 수정 — ADR-33, ADR-34)
 - AC: 없음(기존 AC 유지)
@@ -414,6 +414,7 @@
   - ADR-34 / FR-017-E1 — `NOT_EMPTY_NOTICE_MS = 3000`이고 ui-spec SCR-05-3의 3000ms와 같다. 단위 `[FR-017-E1] 409 WORKFLOW_NOT_EMPTY → 3초 후 닫힘`(2.9초 시점 미닫힘 / 3.0초 후 `onClose` 1회), `[FR-017-E1] 안내 표시 중 삭제 버튼 비활성`(중복 DELETE 0건), `[FR-017-E1] 안내 중 취소 → 즉시 닫힘`
   - 회귀 — `[FR-017-E2] 500 → message, 팝업 유지`의 타이머 단언을 3초 기준으로 교정한다(삭제·skip 금지). `cd frontend && npm test` 통과 수가 줄지 않는다
   - 캡처 재대조 — 05-L을 재캡처해 `docs/reviews/screens/T-FIX-02/`에 두고 설명줄 문구를 확인한다
+  - (팀장 추가, T-017 리뷰 Minor 4) 비-ApiError 예외 노출 제거 — `String(error)`를 화면에 그대로 쓰지 않는다. `api/client.ts`에서 모든 예외를 `ApiError`로 정규화하고, 알 수 없는 오류 문구는 conventions §4 MUST의 `서버에 연결할 수 없습니다 · 다시 시도하세요`를 쓴다. 대상은 `WorkflowAddDialog.tsx:84`·`WorkflowDeleteDialog.tsx:52`와 같은 패턴인 T-013 산출물 `AgentsDirMissing.tsx:35`까지 셋 다. 단위 `client.test [conventions §4] JSON 파싱 실패·네트워크 예외 → ApiError 정규화` + 각 팝업의 `알 수 없는 오류 → 공통 문구` 단언
 - Depends on: T-017
 
 ## T-018 05 기존 에이전트 가져오기 UI
@@ -435,6 +436,7 @@
   - FR-009-E1 — 단위 `[FR-009-E1] 400 fields.members → 표시`
   - FR-009-E2 — 단위 `[FR-009-E2] rejected ALREADY_ASSIGNED → 행별 사유, 팝업 유지, 목록 갱신`
   - FR-009-E3 — 단위 `[FR-009-E3] 500 → message`
+  - (팀장 추가, T-FIX-02 리뷰 Minor 2) ADR-33 정적 검사 확장 — `text.test.ts`의 검사가 **JSX 텍스트 노드**와 **`[N]`·`<N>`(한글 없는 자리표시)**를 잡지 못한다(리뷰어가 probe 파일로 실측). T-018이 `선택한 [N]명 가져오기`를 구현하므로 여기서 메운다: `PLACEHOLDER_PATTERN`을 conventions §3 금지 목록(`[N]` 포함)까지 덮도록 넓히고 JSX 텍스트 노드도 검사 범위에 넣는다. 단위 `text.test [ADR-33] JSX 텍스트 노드·[N] 자리표시도 잡는다`
   - ADR-33·ADR-35 정합 — 05-R 문구에 대괄호 자리표시를 남기지 않는다(`선택한 N명 가져오기`는 (a) 치환). `가져오기`·`선택한 0명 가져오기` 비활성에는 이유 줄을 붙이지 않고, `writable=false`·`+ 새로 만들기`만 `쓰기 권한 없음`을 붙인다. 단위 `[FR-009-AC5][ADR-35] 0명 비활성에 이유 줄 없음, writable=false는 '쓰기 권한 없음'`
 - Depends on: T-017
 

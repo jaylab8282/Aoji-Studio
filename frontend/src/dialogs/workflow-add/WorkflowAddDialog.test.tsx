@@ -69,7 +69,7 @@ describe("WorkflowAddDialog", () => {
 
     expect(screen.getByRole("heading", { name: "워크플로우 추가" })).toBeInTheDocument();
     expect(
-      screen.getByText("구성 파일 .jaystudio/teams/[이름].json(팀장·팀원 목록)이 만들어집니다."),
+      screen.getByText("구성 파일 .jaystudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다."),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -78,6 +78,20 @@ describe("WorkflowAddDialog", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("이름 중복 불가 · 개수 제한 없음")).toBeInTheDocument();
     expect(screen.getByLabelText("설명 (선택)")).toBeInTheDocument();
+  });
+
+  it("[ADR-33] 설명줄 문구는 괄호 없는 정적 텍스트, 설명 placeholder는 `한 줄 설명`", () => {
+    renderDialog();
+
+    // (c) 정적 텍스트: 괄호 기호만 벗기고 낱말은 그대로다(ui-spec.md SCR-05-L).
+    const description = screen.getByText(
+      "구성 파일 .jaystudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다.",
+    );
+    expect(description).toBeInTheDocument();
+    expect(description.textContent).not.toMatch(/[[\]]/);
+
+    // (b) 입력 예시: placeholder는 괄호를 벗긴 설명 문구 그대로 유지한다(회귀 확인).
+    expect(screen.getByLabelText("설명 (선택)")).toHaveAttribute("placeholder", "한 줄 설명");
   });
 
   it("[SCR-05-L] 이름이 비면 `만들기` 비활성, 입력하면 활성", () => {
@@ -211,6 +225,19 @@ describe("WorkflowAddDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "만들기" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("서버에 연결할 수 없습니다 · 다시 시도하세요");
+  });
+
+  it("[conventions §4] 형식이 깨진 응답 → 알 수 없는 오류 공통 문구", async () => {
+    // JSON이 아닌 본문은 `SyntaxError`를 던진다. 내부 오류 표현이 화면에 오르면 안 된다.
+    stubFetch(() => new Response("not-json", { status: 201, headers: { "Content-Type": "application/json" } }));
+    renderDialog();
+
+    typeName("개발부서");
+    fireEvent.click(screen.getByRole("button", { name: "만들기" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("서버에 연결할 수 없습니다 · 다시 시도하세요");
+    expect(alert.textContent).not.toMatch(/SyntaxError|JSON/);
   });
 
   it("[SCR-05-L] 취소 → 팝업 닫힘", () => {

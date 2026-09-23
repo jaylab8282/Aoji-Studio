@@ -16,6 +16,7 @@ import { useSnapshotStore } from "../../state/snapshotStore";
 import { normalizeWorkflowName, workflowNameError } from "../../lib/validators";
 import {
   CANCEL_BUTTON_LABEL,
+  UNKNOWN_ERROR_MESSAGE,
   WORKFLOW_ADD_DESCRIPTION,
   WORKFLOW_ADD_LEAD_NOTICE,
   WORKFLOW_ADD_SUBMIT_LABEL,
@@ -81,7 +82,9 @@ export function WorkflowAddDialog({ onClose }: { onClose: () => void }) {
       if (fieldReason !== undefined) {
         setNameError(fieldReason);
       } else {
-        setFormError(apiError === null ? String(error) : apiError.message);
+        // client.ts가 모든 예외를 `ApiError`로 정규화한다. 알 수 없는 오류 문구는
+        // conventions.md §4 MUST의 공통 문구 하나만 쓴다.
+        setFormError(apiError === null ? UNKNOWN_ERROR_MESSAGE : apiError.message);
       }
       setPending(false);
     }
