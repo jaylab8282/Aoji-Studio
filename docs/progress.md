@@ -2,9 +2,10 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: T-016 done. architect에 ui-spec 문서 확정 6건(A-1~A-6) 요청 중 — 끝나면 T-017(05 워크플로우 추가·05-3 삭제 확인 UI) 시작.
-  - A-3(비활성 버튼 배경)·A-4(03 프로젝트 칩)·A-5(19px 토큰)가 확정되면 **이미 done인 T-013·T-014 공통 컴포넌트 수정 + 01·02 확정 캐처 재대조**가 필요할 수 있다. architect의 AFFECTED TASKS를 보고 후속 태스크 생성 여부를 판단할 것
-  - A-2가 기준 PNG 우선으로 뒤집히면 `lib/derive/officeSeats.ts`와 테스트 재작업 발생
+- Current: **보류 중(사용자 지시)**. T-016·T-FIX-01 모두 done·커밋 완료, working tree 깨끗함.
+  - **재개 시 첫 작업**: **T-017**(05 워크플로우 추가 · 05-3 삭제 확인 UI) 시작. Frontend 단독, Depends 충족됨
+  - 팝업 태스크(T-017~T-019)는 비활성 버튼을 처음부터 **ADR-29 표현**(variant 배경 없음·점선·faint)으로 구현할 것. `Dialog` 공통 컴포넌트는 T-013에 이미 있다
+  - 후속 Minor 목록(완료를 막지 않음): T-015 책상 가로·세로 pitch·13자 이름 열 번짐·미니맵 줌 deps → **T-024** / `Claude 열기`·`팀장 호출` onClick → **T-021** / T-FIX-01 `opacity-100` 잔재·활성 variant 단언 강화 → 후속 / 04-4 변형 캐처 갱신 → **T-024**(D-032)
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -63,7 +64,13 @@
 
 - 2026-09-23 T-016 **PASS (round 1)** → 커밋 `feat(T-016)` db4a460. 리뷰: docs/reviews/T-016.md. 테스트 109→166개. AC 13·E 2 전부 연결. Blocker·Major 0. **D-008/ADR-17 검증 핵심**: 04-4 중 03은 전원 `대기` 표시, 같은 스냅샷 객체로 02를 렌더하면 `작업 중` 유지됨을 두 테스트가 쌍으로 증명(리뷰어 확인). 계약·보안·공통 파일 회귀 없음. Minor 5건은 전부 ui-spec 문구 공백·내부 충돌 → architect A-1~A-6 요청
 
+- 2026-09-23 architect A-1~A-6 확정 완료(ADR-27~32, 계약 변경 없음) → 커밋 `docs: ...` fab8a57. ADR-28이 서브에이전트 칸을 '부모 다음 칸'으로 확정해 officeSeats 재작업 없음. ADR-31은 19px 토큰 추가 거부(design-tokens 단계 신설은 architect 권한 밖). 코드 수정이 필요한 ADR-29·ADR-30은 T-FIX-01로 분리
+- 2026-09-23 T-FIX-01 **PASS (round 1)** → 커밋 `feat(T-FIX-01)` a26f025. 리뷰: docs/reviews/T-FIX-01.md. 테스트 166→175, **기존 테스트 기대값 교정·삭제·skip 0건**. 리뷰어 픽셀 대조로 01·02·03 변경 영역이 ADR-29·ADR-30 해당 부분 + 데이터 차이뿐임을 확인(02 diff 밴드 4개, 03은 칩·패널 버튼 영역). T-013~T-016 회귀 없음. **부수 수확**: router.test가 손으로 복제한 라우트 표 대신 실제 routes를 쓰게 돼 기존 표에 빠져 있던 rightExtra·catch-all이 이제 검증된다. 비활성 버튼 표현 단언이 T-014로부터 공백이었는데 Button 단위 테스트가 생겨 메워짐
+- 2026-09-23 사용자 지시로 보류. T-017은 시작하지 않음
+
 ## Decisions
+- D-032 `03-workflow-detail-collector-down.png`(04-4 변형) 재캐처는 이번에 하지 않고 T-024 공식 스크린샷에서 갱신 — ADR-27 판정 경로(live.status)는 T-FIX-01 변경과 무관하고 비활성 버튼 모양은 일반 03 캐처로 검증됨(리뷰어 의견과 같음) / T-FIX-01, T-024
+- D-031 ADR-29·ADR-30은 코드 수정이 필요하나 이미 done인 T-013·T-014 공통 산출물이다. **계약 변경이 아니므로 해당 태스크를 todo로 되돌리지 않고** T-FIX-01을 신설해 처리하고 01·02·03 확정 캐처를 재대조했다 / T-013, T-014, T-FIX-01
 - D-030 T-016 비활성 버튼·03 프로젝트 칩·로딩 스켈레톤·19px 토큰은 모두 T-013·T-014 공통 산출물 사안이라 **T-016 재작업 대상이 아니다**. ui-spec 문구가 없거나 내부 충돌이므로 architect 확정 후 별도 처리 — 리뷰어 의견과 같음 / T-016
 - D-029 T-016의 `정의 수정`·`제거` 비활성 판정에 표시 상태(displayStatus)가 아닌 **실제 `live.status`**를 쓰는 것을 승인 — ui-spec SCR-03 해당 행 데이터 출처가 `live.agents[name].status`이고, ADR-17 고정 열거에 버튼이 없으며, 표시 상태로 활성화하면 열리자마자 서버가 AGENT_BUSY로 거부하는 팝업이 열려 FR-011-AC5·FR-012-AC6 위반. 다만 04-4에서 '상태 대기 + 사유 작업 중에는…'가 모순으로 보일 수 있어 architect A-1로 문서 명시 요청 / T-016
 - D-028 기준 PNG D 카드 테두리 `#4A2C2C` vs 구현 `#5A3A3A` — `design-tokens.md:45`가 `danger-border=#5A3A3A`이므로 **구현이 옳다**. 기준 PNG가 토큰 밖 색을 쓴 목업 오차로 보고 결함으로 다루지 않음(ADR-24와 같은 판단 방식) / T-015
