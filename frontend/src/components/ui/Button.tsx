@@ -1,6 +1,8 @@
 /**
  * ui-spec.md §공통 Button, ui-rules.md 2, conventions.md §3 Frontend MUST.
  * variant는 이 다섯 가지만 쓴다. `disabledReason`이 있으면 비활성 + 옆에 이유를 보여준다.
+ * 라벨과 이유는 한 줄로 고정한다(`whitespace-nowrap`): 좁은 칸에서도 글자가 쪼개지지 않고
+ * 클릭 영역 높이(`h-btn`/`h-btn-sm`)가 유지된다(ui-rules.md 2, NFR-12 최소 34px).
  * 눌러도 아무 일도 없는 활성 버튼을 만들지 않는다.
  */
 import type { ButtonHTMLAttributes, ReactNode } from "react";
@@ -45,12 +47,14 @@ export function Button({
         type="button"
         disabled={isDisabled}
         aria-disabled={isDisabled}
-        className={`inline-flex items-center justify-center rounded-control text-body font-medium transition-colors duration-200 disabled:border-dashed disabled:text-text-faint disabled:opacity-100 ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]}`}
+        className={`inline-flex items-center justify-center whitespace-nowrap rounded-control text-body font-medium transition-colors duration-200 disabled:border-dashed disabled:text-text-faint disabled:opacity-100 ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]}`}
         {...rest}
       >
         {children}
       </button>
-      {disabledReason ? <span className="text-aux text-text-faint">{disabledReason}</span> : null}
+      {disabledReason ? (
+        <span className="whitespace-nowrap text-aux text-text-faint">{disabledReason}</span>
+      ) : null}
     </span>
   );
 }

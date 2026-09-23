@@ -6,6 +6,7 @@ import type { Live, Registry } from "../../api/types";
 import { EmptyWorkflowCard } from "../../components/ui/EmptyWorkflowCard";
 import { WorkflowChip } from "../../components/ui/WorkflowChip";
 import { featuredWorkflows, type FeaturedWorkflow } from "../../lib/derive/featuredWorkflows";
+import { workflowCardBorder } from "../../lib/derive/workflowCardBorder";
 import { formatDateHm } from "../../lib/format/time";
 import {
   FEATURED_WORKFLOWS_SUBTITLE,
@@ -18,12 +19,6 @@ import {
   workflowCardCountsLabel,
 } from "../../lib/text";
 
-const BORDER_BY_TONE: Record<FeaturedWorkflow["chip"]["variant"], string> = {
-  running: "border-running-border",
-  waiting: "border-waiting",
-  idle: "border-border",
-};
-
 function activityText(activity: FeaturedWorkflow["activity"]): string {
   if (activity.kind === "recent") return recentActivityLabel(activity.title, activity.summary);
   if (activity.kind === "last") return lastActivityLabel(formatDateHm(activity.at));
@@ -31,10 +26,17 @@ function activityText(activity: FeaturedWorkflow["activity"]): string {
 }
 
 function WorkflowCard({ workflow }: { workflow: FeaturedWorkflow }) {
+  // 테두리 색은 01·02 공용 규칙 하나로만 정한다(ADR-24, conventions.md §7 MUST). 01 카드에는 팀장 없음 표시가 없다.
+  const borderClass = workflowCardBorder({
+    running: workflow.counts.running,
+    waiting: workflow.counts.waiting,
+    leadMissing: false,
+  });
+
   return (
     <Link
       to="/workflows"
-      className={`rounded-card border ${BORDER_BY_TONE[workflow.chip.variant]} bg-card p-card flex flex-col gap-2 hover:bg-selected`}
+      className={`rounded-card border ${borderClass} bg-card p-card flex flex-col gap-2 hover:bg-selected`}
     >
       <div className="flex items-start justify-between gap-2">
         <p className="text-section font-semibold text-text">{workflow.name}</p>

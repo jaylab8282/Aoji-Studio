@@ -40,6 +40,14 @@ body,
   height: 100%;
 }
 
+/*
+ * 02 본문 루트 높이 = 뷰포트 − 상단 헤더 (ui-spec.md SCR-02 레이아웃 항, ADR-23).
+ * 값은 theme 토큰 `--height-header`로만 만든다(conventions.md §7 — 임의값 금지).
+ */
+@utility h-body-viewport {
+  height: calc(100dvh - var(--height-header));
+}
+
 body {
   margin: 0;
 }

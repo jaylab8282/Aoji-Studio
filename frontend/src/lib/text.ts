@@ -3,6 +3,7 @@
  * 컴포넌트는 이 파일의 상수만 쓰고 문자열을 직접 적지 않는다.
  */
 import type { Status } from "../api/types";
+import type { FloorSummary } from "./derive/floorSummary";
 
 // 공통 상태 글자 (ui-rules.md 1, conventions.md §7)
 export const STATUS_LABEL_TEXT: Record<Status, string> = {
@@ -133,3 +134,83 @@ export const EVENTS_TABLE_COL_EVENT = "이벤트";
 export const EVENTS_TABLE_COL_SUMMARY = "요약";
 export const EVENTS_TABLE_FOOTNOTE = "token·key·password 등 기본 패턴은 ••••••••로 가림";
 export const EMPTY_VALUE_TEXT = "-";
+
+// SCR-02 에이전트 워크플로우 층 뷰
+export const WORKFLOWS_SUMMARY_PROJECT_LABEL = "JayStudio";
+export const WORKFLOWS_SUMMARY_CLAUDE_LABEL = ".claude";
+export function workflowsSummaryCountsLabel(
+  agentCount: number | string,
+  skillCount: number,
+  workflowCount: number,
+): string {
+  return `에이전트 ${agentCount} · 스킬 ${skillCount} · 워크플로우 ${workflowCount}`;
+}
+// N=0이면 링크가 비활성이라 "· 가져오기"를 붙이지 않는다(ui-spec.md SCR-02 "워크플로우 밖 에이전트" 행).
+export function outsideAgentsLinkLabel(count: number): string {
+  const base = `워크플로우 밖 에이전트 ${count}`;
+  return count === 0 ? base : `${base} · 가져오기`;
+}
+export const CREATE_AGENT_BUTTON_LABEL = "+ 에이전트 만들기";
+export const OPEN_DEFAULT_SESSION_BUTTON_LABEL = "Claude 열기 · 기본 세션";
+
+export const SEARCH_PLACEHOLDER = "워크플로우·에이전트 이름 검색";
+export function floorSelectAllLabel(count: number): string {
+  return `전체 층 (${count}개)`;
+}
+export const ADD_WORKFLOW_HEADER_BUTTON_LABEL = "+ 워크플로우 추가";
+export const SEARCH_NO_RESULTS_TEXT = "검색 결과가 없습니다";
+
+export const LOBBY_TITLE = "로비 · 메인 세션";
+export const LOBBY_SUBTITLE = "에이전트 지정 없이 실행 중인 Claude Code 세션";
+export const LOBBY_EMPTY_TEXT = "실행 중인 메인 세션 없음";
+// 로비 전용 짧은 표기: waiting은 "입력 대기"(ui-spec SCR-02 로비 표, 02 PNG). 다른 화면의
+// STATUS_LABEL_TEXT_SHORT("권한 대기")와 문구가 다르다.
+export const LOBBY_STATUS_TEXT: Record<Status, string> = {
+  running: "작업 중",
+  waiting: "입력 대기",
+  idle: "대기",
+};
+
+export function floorMemberCountLabel(count: number): string {
+  return `${count}명`;
+}
+export const FLOOR_NO_LEAD_TEXT = "팀장 없음";
+/** 층 헤더 요약(FR-006-AC5). 집계는 `lib/derive/floorSummary.ts`가 하고 여기서는 문구만 만든다. */
+export function floorSummaryLabel(summary: FloorSummary): string {
+  if (summary.allIdle) return WORKFLOW_CHIP_ALL_IDLE_TEXT;
+  const parts: string[] = [];
+  if (summary.running > 0) parts.push(`실행 중 ${summary.running}명`);
+  if (summary.waiting > 0) parts.push(`권한 대기 ${summary.waiting}명`);
+  return parts.join(" · ");
+}
+export const FLOOR_NO_LEAD_WARNING = "팀장이 없습니다 · 팀장을 만들거나 가져오세요";
+function koreanSubjectParticle(text: string): "이" | "가" {
+  const last = text.trim().slice(-1).toLowerCase();
+  return "aeiou".includes(last) ? "가" : "이";
+}
+export function floorDuplicateWarning(name: string): string {
+  return `${name}${koreanSubjectParticle(name)} 여러 워크플로우에 있습니다 · 구성 파일을 확인하세요`;
+}
+export const FLOOR_EMPTY_TEXT = "에이전트가 없습니다 · 만들거나 가져오세요";
+export const FLOOR_IMPORT_BUTTON_LABEL = "가져오기";
+export const FLOOR_CREATE_BUTTON_LABEL = "+ 만들기";
+export const FLOOR_DETAIL_BUTTON_LABEL = "상세 →";
+export const FLOOR_DELETE_BUTTON_LABEL = "삭제";
+export const FLOOR_DELETE_DISABLED_REASON = "팀원을 먼저 제거하세요";
+export const LEAD_BADGE_TEXT = "팀장";
+
+export function formatErrorListTitle(count: number): string {
+  return `읽지 못한 정의 파일 ${count}개`;
+}
+export const FORMAT_ERROR_FOOTNOTE = "오류 파일은 층에 표시하지 않고 목록만 표시 · 수정은 에디터에서";
+export const FORMAT_ERROR_EDIT_LINK_LABEL = "정상 파일은 수정 팝업에서 편집 →";
+
+export const ZOOM_IN_LABEL = "+";
+export const ZOOM_OUT_LABEL = "−";
+export const ZOOM_FIT_LABEL = "맞춤";
+
+/** 책상·오피스 캐릭터 상태 글자 + 서브에이전트 부모 접미(FR-006-AC1·AC3, FR-007-AC3). */
+export function agentStatusWithParent(status: Status, parentLabel: string | null): string {
+  const base = STATUS_LABEL_TEXT_SHORT[status];
+  return parentLabel ? `${base} · 부모 ${parentLabel}` : base;
+}

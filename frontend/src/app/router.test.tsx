@@ -47,8 +47,10 @@ describe("router", () => {
   });
 
   it("[T-001] /workflows 경로 → 에이전트 워크플로우 화면 렌더", () => {
+    // T-015부터 02는 TopBar 브레드크럼("에이전트 워크플로우")만 제목이고 본문에 별도 h1이 없다
+    // (ui-spec.md SCR-02, ui-rules.md 7). 로비 카드 제목으로 올바른 화면이 렌더됐는지 확인한다.
     render(<RouterProvider router={buildRouter("/workflows")} />);
-    expect(screen.getByRole("heading", { name: "에이전트 워크플로우" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "로비 · 메인 세션" })).toBeInTheDocument();
   });
 
   it("[T-001] /workflows/:name 경로 → 워크플로우 이름 렌더", () => {

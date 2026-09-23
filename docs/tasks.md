@@ -297,7 +297,7 @@
 - Depends on: T-013
 
 ## T-015 02 에이전트 워크플로우 층 뷰
-- Status: in_progress
+- Status: done
 - Scope: Frontend
 - FR: FR-006, FR-004, FR-003, FR-001, FR-002, FR-013, FR-017
 - AC: FR-006-AC1, FR-006-AC2, FR-006-AC3, FR-006-AC4, FR-006-AC5, FR-006-AC6, FR-006-AC7, FR-006-AC8, FR-006-AC9, FR-006-AC10, FR-006-AC11, FR-006-AC12, FR-004-AC7, FR-003-AC5, FR-013-AC3, FR-002-AC2
@@ -332,7 +332,7 @@
 - Depends on: T-013
 
 ## T-016 03 워크플로우 상세 · 픽셀 오피스
-- Status: todo
+- Status: in_progress
 - Scope: Frontend
 - FR: FR-007, FR-011, FR-012, FR-013, FR-017
 - AC: FR-007-AC1, FR-007-AC2, FR-007-AC3, FR-007-AC4, FR-007-AC5, FR-007-AC6, FR-007-AC7, FR-007-AC8, FR-007-AC9, FR-011-AC5, FR-012-AC6, FR-013-AC4, FR-017-AC4

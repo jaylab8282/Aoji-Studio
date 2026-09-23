@@ -1,6 +1,7 @@
 /**
  * ui-spec.md §공통 TopBar(64px): 왼쪽 브레드크럼/제목 + 프로젝트 칩, 오른쪽 "127.0.0.1 전용".
- * 화면별 추가 버튼(예: 02 "Claude 열기")은 `rightExtra`로 받는다.
+ * 화면별 추가 버튼(예: 02 "Claude 열기")은 `rightExtra`로 받아 "127.0.0.1 전용" 오른쪽(맨 끝)에 둔다
+ * (docs/ui/screens/02-workflows.png 상단바 순서).
  */
 import type { ReactNode } from "react";
 import { useSnapshotStore } from "../../state/snapshotStore";
@@ -31,8 +32,8 @@ export function TopBar({ breadcrumb, rightExtra }: TopBarProps) {
         )}
       </div>
       <div className="flex items-center gap-3">
-        {rightExtra}
         <span className="text-aux text-text-faint">{LOCAL_ONLY_TEXT}</span>
+        {rightExtra}
       </div>
     </header>
   );
