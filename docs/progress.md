@@ -2,10 +2,10 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **보류 중(사용자 지시)**. T-016·T-FIX-01 모두 done·커밋 완료, working tree 깨끗함.
-  - **재개 시 첫 작업**: **T-017**(05 워크플로우 추가 · 05-3 삭제 확인 UI) 시작. Frontend 단독, Depends 충족됨
-  - 팝업 태스크(T-017~T-019)는 비활성 버튼을 처음부터 **ADR-29 표현**(variant 배경 없음·점선·faint)으로 구현할 것. `Dialog` 공통 컴포넌트는 T-013에 이미 있다
-  - 후속 Minor 목록(완료를 막지 않음): T-015 책상 가로·세로 pitch·13자 이름 열 번짐·미니맵 줌 deps → **T-024** / `Claude 열기`·`팀장 호출` onClick → **T-021** / T-FIX-01 `opacity-100` 잔재·활성 variant 단언 강화 → 후속 / 04-4 변형 캐처 갱신 → **T-024**(D-032)
+- Current: T-017 done·커밋 완료. **architect A-7~A-9 문서 확정 요청 진행 중** → 그 결과로 T-FIX-02(코드 Minor) 처리 후 T-018
+  - 남은 태스크: T-018(05 가져오기) → T-019(06 폼·충돌·제거) → T-020(도우미) → T-021~T-024
+  - 팝업 태스크(T-018·T-019)는 비활성 버튼을 처음부터 **ADR-29 표현**으로, 팝업 껍데기는 `Dialog`, 이름 확인형은 `ConfirmByNameDialog`(T-017 산출물), `?dialog=` 결선은 `useDialog()`+`DialogHost` 분기 추가로 한다
+  - 후속 Minor 목록(완료를 막지 않음): T-015 책상 가로·세로 pitch·13자 이름 열 번짐·미니맵 줌 deps → **T-024** / `Claude 열기`·`팀장 호출` onClick → **T-021** / 04-4 변형 캐처 갱신 → **T-024**(D-032) / playwright.config viewport 1280×720 덮어쓰기 → **T-024** / TopBar 긴 hostPath 2줄 접힘(T-013) → 후속
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -69,6 +69,9 @@
 - 2026-09-23 사용자 지시로 보류. T-017은 시작하지 않음
 
 ## Decisions
+- D-035 T-017 리뷰 Minor 5건의 처리 분배: 문서 근거 부재 2건(대괄호 표기 규칙·FR-017-E1 지속 시간)과 비활성 이유 한 줄 적용 범위는 **architect A-7~A-9로 확정**(T-018·T-019가 같은 팝업 계열이라 지금 정해야 같은 논점이 3번 반복되지 않는다). 코드 2건(409 안내 중 삭제 버튼 재활성·`String(error)` 노출)은 **T-FIX-02**로 묶는다 — `String(error)`는 T-013 산출물 `AgentsDirMissing.tsx`와 같은 패턴이라 T-017만의 결함이 아니고 `client.ts` 정규화가 옳은 수정 위치(D-031과 같은 방식) / T-017, T-FIX-02
+- D-034 T-017 `NOT_EMPTY_NOTICE_MS = 1500`을 **PASS를 막지 않는 Minor로 수용** — 자동 닫힘 자체는 ui-spec이 요구하고 동작 지연이라 design-token 대상이 아니다. 다만 CopyButton 1.5초(성공 확인용)를 '읽어야 하는 거부 사유'의 근거로 쓴 것은 약하다는 리뷰어 판단에 동의해 A-8로 확정 요청 / T-017
+- D-033 05-L 비활성 `만들기`·05-3 비활성 `삭제`에 **이유 한 줄을 붙이지 않는 것을 승인** — ui-spec SCR-05-L `빈` 열이 이유 문구를 주지 않았고 05-3은 버튼 라벨(`삭제 (이름 일치 시 활성)`)이 조건을 말한다. 없는 문구를 지어내면 conventions §2 MUST(문서 문구 그대로) 위반이 된다. ui-rules 2 표의 '옆에 이유 한 줄'과의 문자적 충돌만 A-9로 확정 요청(코드 변경 없음). `writable=false`는 지정대로 `쓰기 권한 없음`을 붙였다 / T-017, T-018, T-019
 - D-032 `03-workflow-detail-collector-down.png`(04-4 변형) 재캐처는 이번에 하지 않고 T-024 공식 스크린샷에서 갱신 — ADR-27 판정 경로(live.status)는 T-FIX-01 변경과 무관하고 비활성 버튼 모양은 일반 03 캐처로 검증됨(리뷰어 의견과 같음) / T-FIX-01, T-024
 - D-031 ADR-29·ADR-30은 코드 수정이 필요하나 이미 done인 T-013·T-014 공통 산출물이다. **계약 변경이 아니므로 해당 태스크를 todo로 되돌리지 않고** T-FIX-01을 신설해 처리하고 01·02·03 확정 캐처를 재대조했다 / T-013, T-014, T-FIX-01
 - D-030 T-016 비활성 버튼·03 프로젝트 칩·로딩 스켈레톤·19px 토큰은 모두 T-013·T-014 공통 산출물 사안이라 **T-016 재작업 대상이 아니다**. ui-spec 문구가 없거나 내부 충돌이므로 architect 확정 후 별도 처리 — 리뷰어 의견과 같음 / T-016
@@ -106,3 +109,6 @@
 - E-003 [resolved] Settings.mountPath 제거 여부(architect 제안) — 사용자: 제거
 - E-001 [resolved] 04-4 캐릭터 색: 문서대로(모두 대기색) vs architect 안(실제 상태 유지) — 사용자: 문서대로
 - E-002 [resolved] 설계 승인(design checkpoint) — 사용자: 승인, 진행
+
+- 2026-09-23 재개(6차). T-017 시작(Depends T-014·T-015 done, working tree 깨끗, final v1 = Approved Versions 일치).
+- 2026-09-23 T-017 **PASS (round 1)** → 커밋 `feat(T-017)`. 리뷰: docs/reviews/T-017.md. 테스트 175→**200**(45 files), 기대값 교정·삭제·skip **0건**. AC 6·E 5 전부 연결, Blocker·Major 0. 팀장 직접 검증: test·lint·typecheck·build 통과, 설계 문서 미수정, 임시 캡처 스크립트 정리 확인(tools/e2e/tests = health.spec.ts만), router.tsx·App.tsx diff가 **추가만**임을 확인. **구조 수확**: `ConfirmByNameDialog`가 06-6 재사용 가능 형태(리뷰어가 notes[]·placeholder까지 SCR-06-6 대조), `?dialog=`를 `useDialog()`+`DialogHost` 한 곳으로 모아 T-018·T-019는 분기만 추가하면 된다. Minor 5건 → 문서 2건(A-7~A-9 architect) · 코드 2건(T-FIX-02) · 태스크 1건(T-019에 기록 완료)

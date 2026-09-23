@@ -1,4 +1,5 @@
-import { createBrowserRouter, Navigate, type RouteObject } from "react-router-dom";
+import { useCallback } from "react";
+import { createBrowserRouter, Navigate, useSearchParams, type RouteObject } from "react-router-dom";
 import { App } from "./App";
 import { HomeScreen } from "../screens/home/HomeScreen";
 import { WorkflowsScreen } from "../screens/workflows/WorkflowsScreen";
@@ -42,3 +43,31 @@ export const routes: RouteObject[] = [
 ];
 
 export const router = createBrowserRouter(routes);
+
+// ADR-14 / ui-spec.md §공통: 05·06 팝업은 라우트가 아니라 `?dialog=` search param이다.
+// 여는 쪽은 `lib/dialogNavigate.ts`의 `useDialogNavigate()`, 읽고 닫는 쪽은 이 훅을 쓴다.
+export interface DialogRoute {
+  /** `?dialog=` 값. 팝업이 없으면 null */
+  name: string | null;
+  /** `?workflow=` 값(팝업 대상 워크플로우). 없으면 null */
+  workflow: string | null;
+  /** 팝업을 닫는다: `?dialog`·`?workflow`만 지우고 나머지 쿼리(03의 `?agent=` 등)는 보존한다. */
+  close: () => void;
+}
+
+export function useDialog(): DialogRoute {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const close = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("dialog");
+    next.delete("workflow");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  return {
+    name: searchParams.get("dialog"),
+    workflow: searchParams.get("workflow"),
+    close,
+  };
+}

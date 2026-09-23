@@ -275,3 +275,36 @@ export const PANEL_FOOTNOTE_TERMINAL_SUFFIX = "로 연 터미널에서 직접 �
 export function leadAgentCommand(lead: string): string {
   return `claude --agent ${lead}`;
 }
+
+// 05·06 공통 팝업 (ui-spec.md SCR-05·SCR-06)
+export const CANCEL_BUTTON_LABEL = "취소";
+/** 05-3·06-6 확인 입력 라벨(ui-spec.md SCR-05-3·SCR-06-6 `확인을 위해 이름 입력`). */
+export const CONFIRM_BY_NAME_INPUT_LABEL = "확인을 위해 이름 입력";
+
+// SCR-05-L 워크플로우 추가 (FR-008)
+export const WORKFLOW_ADD_TITLE = "워크플로우 추가";
+/** ui-spec.md SCR-05-L 제목 행: 데이터 출처 `정적`. 만들어질 파일 경로 규칙을 그대로 설명한다. */
+export const WORKFLOW_ADD_DESCRIPTION =
+  "구성 파일 .jaystudio/teams/[이름].json(팀장·팀원 목록)이 만들어집니다.";
+export const WORKFLOW_NAME_LABEL = "이름";
+export const WORKFLOW_NAME_PLACEHOLDER = "개발부서";
+export const WORKFLOW_NAME_HINT = "이름 중복 불가 · 개수 제한 없음";
+/** FR-008-AC2 사전 검증 문구(ui-spec.md SCR-05-L 이름 입력 행). */
+export const WORKFLOW_NAME_RULE_MESSAGE = "1~40자, 한글·영문·숫자·공백·하이픈·언더스코어만";
+export const WORKFLOW_DESCRIPTION_LABEL = "설명 (선택)";
+export const WORKFLOW_DESCRIPTION_PLACEHOLDER = "한 줄 설명";
+/** FR-008-AC3 안내 박스. */
+export const WORKFLOW_ADD_LEAD_NOTICE =
+  "만든 뒤 팀장 1명을 만들거나 가져오세요. 팀장이 없으면 층에 팀장 없음이 표시됩니다.";
+export const WORKFLOW_ADD_SUBMIT_LABEL = "만들기";
+export const WORKFLOW_ADD_SUBMIT_PENDING_LABEL = "만드는 중…";
+
+// SCR-05-3 워크플로우 삭제 확인 (FR-017)
+export function workflowDeleteTitle(name: string): string {
+  return `${name} 워크플로우를 삭제할까요?`;
+}
+export function workflowDeleteConfigNote(name: string): string {
+  return `구성 파일 .jaystudio/teams/${name}.json이 삭제됩니다`;
+}
+export const WORKFLOW_DELETE_CONFIRM_LABEL = "삭제 (이름 일치 시 활성)";
+export const WORKFLOW_DELETE_CONFIRM_PENDING_LABEL = "삭제 중…";

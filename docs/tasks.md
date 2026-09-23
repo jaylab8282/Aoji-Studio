@@ -377,7 +377,7 @@
 - Depends on: T-016
 
 ## T-017 05 워크플로우 추가 · 05-3 삭제 확인 UI
-- Status: todo
+- Status: done
 - Scope: Frontend
 - FR: FR-008, FR-017, FR-005
 - AC: FR-008-AC3, FR-008-AC4, FR-017-AC2, FR-017-AC3, FR-017-AC5
@@ -449,6 +449,8 @@
   - FR-011-E4 — 단위 `[FR-011-E4] 409 AGENT_BUSY → 상단 문구, 폼 값 유지`
   - FR-012-E1 — 단위 `[FR-012-E1] 500 → message, 팝업 유지`
   - FR-012-E2 — 단위 `[FR-012-E2] 409 AGENT_BUSY → 문구`
+  - FR-017-AC5(T-017 리뷰 Minor 5) — 단위 `[FR-017-AC5] 06 폼·06-6 어디에도 워크플로우 이름 편집 입력·버튼 없음`. T-017은 05 범위만 단언했으므로 06 범위를 여기서 메운다
+  - `ConfirmByNameDialog`(T-017 산출물) 재사용 — 06-6 전용 확인 팝업을 새로 만들지 않는다. `notes[]`에 휴지통 안내 + 팀장 안내 2줄을 넘긴다
 - Depends on: T-016, T-017
 
 ## T-020 열기 도우미 (Node) · 설치 스크립트 · plist
