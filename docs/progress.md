@@ -2,7 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **보류 중(사용자 지시)**. T-015(02 층 뷰) frontend-developer DONE(개발자 보고: 22 files/84 tests·lint·typecheck·build 통과, 스크린샷 docs/reviews/screens/T-015/02-workflows.png) — working tree 미커밋 보관(32개 파일), **팀장 검증·리뷰 미실시**(사용자 지시로 다음 세션에서). **재개 시 첫 작업**: `git status`로 T-015 변경 확인 → 팀장 `cd frontend && npm test && npm run lint && npm run typecheck && npm run build` → 스크린샷을 docs/ui/screens/02-workflows.png와 대조 → reviewer scope task(T-015) round 1 → PASS 시 `feat(T-015)` 커밋·done. 그 다음 T-016(03 상세·픽셀 오피스, Depends T-013·T-015)부터. 개발자 NOTES: 헤더 'Claude 열기' onClick 없음(T-021 범위), dialog 버튼은 URL만 변경(T-017~019), 줌·미니맵 단위 테스트 없음(E2E-12는 T-024), router.test 기대값 교정, TopBar `handle.rightExtra` 메커니즘 추가(공통 셸 변경 — 리뷰 시 타당성 확인).
+- Current: T-015 (fix round 1 완료 / Round 2 NEEDS_FIX) — Round 1 이슈 14건 전부 해소. 남은 Major 1건(줌 오버레이가 책상 가림)은 ui-spec '고정' 해석 문제라 architect 확정 요청 중. 이후 frontend fix round 2에서 R1~R5 처리 예정. 이전 기록:  T-015(02 층 뷰) frontend-developer DONE(개발자 보고: 22 files/84 tests·lint·typecheck·build 통과, 스크린샷 docs/reviews/screens/T-015/02-workflows.png) — working tree 미커밋 보관(32개 파일), **팀장 검증·리뷰 미실시**(사용자 지시로 다음 세션에서). **재개 시 첫 작업**: `git status`로 T-015 변경 확인 → 팀장 `cd frontend && npm test && npm run lint && npm run typecheck && npm run build` → 스크린샷을 docs/ui/screens/02-workflows.png와 대조 → reviewer scope task(T-015) round 1 → PASS 시 `feat(T-015)` 커밋·done. 그 다음 T-016(03 상세·픽셀 오피스, Depends T-013·T-015)부터. 개발자 NOTES: 헤더 'Claude 열기' onClick 없음(T-021 범위), dialog 버튼은 URL만 변경(T-017~019), 줌·미니맵 단위 테스트 없음(E2E-12는 T-024), router.test 기대값 교정, TopBar `handle.rightExtra` 메커니즘 추가(공통 셸 변경 — 리뷰 시 타당성 확인).
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -49,7 +49,13 @@
 - 2026-09-22 D-023 architect ui-spec Sidebar 행 신설·CollectorStatus 카드 표기(ADR-22, 계약 변경 없음) → 커밋 3089b26
 - 2026-09-22 T-015 frontend-developer DONE(미커밋, 미검증·미리뷰). 사용자 지시로 보류.
 
+- 2026-09-23 재개(5차). T-015 팀장 검증: `npm test` 22 files/84 tests 통과, lint·typecheck·build 통과. AC/E 20개 중 19개 테스트 ID 연결 확인, FR-006-AC6은 tasks.md가 E2E-12(T-024)로만 지정 → 갭 아님(리뷰어 동의).
+- 2026-09-23 T-015 round 1 NEEDS_FIX: [Major] 층 카드 헤더 버튼 라벨 2줄 줄바꿈(Button whitespace-nowrap 부재) / [Major] TopBar 우측 요소 순서 기준 PNG와 반대 / [Major] 미니맵이 워크플로우 단위 상태를 색만으로 표시(conventions 59행 MUST·FR-006-AC5 위반) + 그리드 비율 미반영 / [Major] 층 요약 문구를 컴포넌트에서 조립(conventions 29·58행 MUST 위반) / Minor 10건 → 같은 범위 frontend-developer에 수정 요청. 리뷰: docs/reviews/T-015.md
+- 2026-09-23 T-015 fix round 1 완료. 팀장 검증 `npm test` 26 files/99 tests(84→99, 감소·skip 없음)·lint·typecheck·build 통과, 캐처 1440×1020 재생성. reviewer Round 2: Round 1 이슈 14건 전부 **해소**(M3·M4는 실질 해소 확인 — workflowChip 의존 제거·순수 함수 분리). 신규 NEEDS_FIX [Major] R1 줌 컨트롤 오버레이가 video-05 책상 이름·상태 글자를 가림(m4 수정의 부작용, pb-32로 해결 불가) → ui-spec 147·148행 '고정' 해석 확정이 필요해 architect 요청 / [Minor] R2 미니맵 뷰포트 높이 계산 / R3 층 카드 테두리가 waiting 우선(#FF9A4D)이나 기준 PNG·design-tokens 39행은 running-border(#2C4A3C) / R4 줌 버튼 감싼 카드 패널이 ui-spec 요소 표에 없음 / R5 책상 간격 gap-4(71px) vs 기준 122px. 공통 컴포넌트(Button·TopBar) 01·03·07 회귀 없음 확인
+
 ## Decisions
+- D-025 로비 상태 표기 `입력 대기`는 ui-spec 140행·기준 PNG와 일치하나 conventions 104행 상태 문구 목록에 없음 → 계약·FR 의미와 무관한 문서 간 표기 불일치이므로 architect에 conventions 보완 요청(코드 변경 없음) / T-015
+- D-024 기준 PNG `02-workflows.png` 층 헤더에 `삭제` 버튼·비활성 사유가 없으나 구현은 표시 — ui-spec 142행·FR-006-AC12·FR-017-AC1 근거이므로 결함 아님. 기준 PNG가 FR-017 확정 이전 산출물이라는 해석 → architect에 ui-spec 주석 보완 요청 / T-015
 - D-023 ui-spec §공통 AppShell 표에 로고·워드마크(`Jay Studio`) 설명 누락은 기준 PNG에 있는 요소의 문서 표기 누락(계약·FR 무관) → architect에 문서 보완 요청, 코드 변경 없음 / T-014
 - D-022 StatusDot 모서리 3px 토큰 부재는 계약·요구사항 의미와 무관한 문서 표기 누락 → architect에 ui-spec 토큰 매핑 표 `--radius-dot`(3px) 추가 요청, frontend-developer가 T-014에서 theme.css·StatusDot 반영. T-013은 임의 값 금지를 지켜 6px 토큰 사용한 상태로 PASS / T-013, T-014
 - D-021 api-spec `Settings.mountPath` 제거(계약 변경, 사용자 승인) — UI 미표시·filePath는 상대 경로·절대 경로는 hostPath만이라 프론트가 컨테이너 경로를 알 이유 없음, FR-014-AC4·conventions MUST와의 예외 처리 부담 제거. 사용자 보이는 동작·FR 의미 변경 없음. 프론트 착수 전이라 영향 최소 / T-012, T-022

@@ -72,6 +72,7 @@
 | `Skeleton` | 전 화면 | `bg-soft` 블록, 애니메이션 없음 |
 | `StatusDot` / `StatusLabel` | 전 화면 | 9~10px 사각, 모서리 `--radius-dot`(3px, `rounded-dot`), running은 `shadow-glow`. `StatusLabel` = 점 + 글자. 이 문서의 모든 `●` 상태 점(`CollectorStatus`, 01 KPI 4·`실시간 연결됨`, 02 범례, 03 04-4 배너·패널 `상태`, 07 `열기 도우미`·`hook 설정` 행)은 `StatusDot`으로 그린다. 03 오피스 캐릭터·02 책상은 상태 점이 없다(셔츠·모니터 색 + 상태 글자, pixel-sprites 기준). `TopBar` 프로젝트 칩의 `●`는 상태가 아닌 장식이라 이 규칙 대상이 아니다 |
 | `WorkflowChip` | 01·02·03 | `lib/derive/workflowChip.ts`: waiting>0 → `권한 대기 N명`(waiting-soft 배경·waiting 글자) / running>0 → `실행 중 N명`(running-soft·running) / 둘 다 0 → `모두 대기`(bg-selected·text-secondary). **우선순위: 권한 대기가 있으면 권한 대기 칩**(01 PNG 카드 2) |
+| `workflowCardBorder` (파생 규칙, 컴포넌트 아님) | 01 대표 카드·02 층 카드 | `lib/derive/workflowCardBorder.ts`: 입력 `{ running, waiting, leadMissing }` → 테두리 토큰. 우선순위 **① `leadMissing` → `danger-border` ② `running > 0` → `running-border` ③ `waiting > 0` → `waiting` ④ 그 외 → `border/default`**. `leadMissing`은 02 층 카드만 `true`가 될 수 있고 01은 항상 `false`를 넘긴다. 칩(`WorkflowChip`)은 waiting 우선, 테두리는 running 우선으로 서로 다르다(ADR-24). 상태를 색으로만 알리는 표시가 아니라 카드 안 요약·칩 글자가 상태를 말한다(conventions §3) |
 | `Button` | 전 화면 | variant `primary`/`terminal`/`secondary`/`add`/`danger`, `disabledReason` → 점선 테두리 + faint 글자 + 옆 이유 한 줄 |
 | `Dialog` | 05·06 | 가운데 모달, 배경 dim, `bg-card` 12px, ESC·`취소`로 닫기. 04-3 배너는 모달 뒤 화면 상단에 그대로 |
 | `FormatErrorList` (04-6) | 02 | 아래 SCR-04-6 |
@@ -111,7 +112,7 @@
 | KPI 4 `수집 상태` `● hook 설정됨`/`hook 설정 안 됨` + `마지막 수신 [hh:mm:ss]` | `registry.hookConfigured`, `live.lastReceivedAt` | `lastReceivedAt` null → `마지막 수신 없음` | 스켈레톤 | - | 유지 | - |
 | 상태 막대 `에이전트 상태 hook 이벤트 기준` + 범례 `작업 중 [N]` `입력·권한 대기 [N]` `대기 [N]` + 3색 막대 | `counts.ts` 3상태 수 (합 = `agentCount`, FR-005-AC2). 막대 비율 = 각 수 / agentCount | `everReceived=false` → 막대 전체 idle색, 범례 `대기 N` (04-1은 이벤트 표 영역에) | 스켈레톤 | 04-5면 숨김 | 유지 | - |
 | 섹션 제목 `에이전트 워크플로우` + `대표 3개 · 실행 중 에이전트가 있는 워크플로우 → 최근 활동순` + 오른쪽 `전체 보기 →` | 정적 | - | - | - | - | `전체 보기 →` → `/workflows` |
-| 대표 워크플로우 카드 ×3: 이름, 칩, 설명, `에이전트 [N] · 스킬 [N]`, `최근 활동 · <요약>` 또는 `마지막 활동 · <yyyy-mm-dd hh:mm>`, `워크플로우 보기 →`(카드 전체 클릭) | `featuredWorkflows.ts`(FR-005-AC3): `registry.workflows` × `live.agents` 상태·`lastEvent.at`. 이름 `workflow.name`, 설명 `workflow.description`, 에이전트 = lead+members 수, 스킬 = `registry.skillCount`(FR-005-AC4), 최근 활동 = 소속 에이전트 `lastEvent` 중 최신 `title · summary`(running/waiting 있을 때) / `마지막 활동 · at`(모두 대기) / `활동 없음`. 카드 테두리: running-border(실행 중) / waiting(권한 대기) / border(모두 대기) | `workflows.length === 0` → 04-7 카드 1장 (FR-005-AC5) | 카드 3장 스켈레톤 | - | 유지 | 카드·`워크플로우 보기 →` → `/workflows` |
+| 대표 워크플로우 카드 ×3: 이름, 칩, 설명, `에이전트 [N] · 스킬 [N]`, `최근 활동 · <요약>` 또는 `마지막 활동 · <yyyy-mm-dd hh:mm>`, `워크플로우 보기 →`(카드 전체 클릭) | `featuredWorkflows.ts`(FR-005-AC3): `registry.workflows` × `live.agents` 상태·`lastEvent.at`. 이름 `workflow.name`, 설명 `workflow.description`, 에이전트 = lead+members 수, 스킬 = `registry.skillCount`(FR-005-AC4), 최근 활동 = 소속 에이전트 `lastEvent` 중 최신 `title · summary`(running/waiting 있을 때) / `마지막 활동 · at`(모두 대기) / `활동 없음`. 카드 테두리: `workflowCardBorder.ts` 공통 규칙(ADR-24) — running>0 → `running-border` / running=0·waiting>0 → `waiting` / 그 외 → `border/default`. **01 대표 카드는 팀장 없음을 표시하지 않으므로 danger 분기를 쓰지 않는다**(`leadMissing: false` 고정, 01 PNG에 해당 표현 없음). 테두리는 칩과 달리 running이 waiting보다 우선한다 | `workflows.length === 0` → 04-7 카드 1장 (FR-005-AC5) | 카드 3장 스켈레톤 | - | 유지 | 카드·`워크플로우 보기 →` → `/workflows` |
 | 실시간 이벤트 카드 제목 `실시간 이벤트` + `최근 [N]개 · 전체 로그 화면 없음` + 오른쪽 `● 실시간 연결됨` | N = `recentEvents.length`(≤50). 연결 표시 = `connectionStore.state` (`connected` → running 점 `실시간 연결됨`, 그 외 `연결 끊김` idle 점) | - | 스켈레톤 | - | `연결 끊김` 표시 | - |
 | 실시간 이벤트 표: 열 `시각` `워크플로우` `에이전트` `이벤트` `요약` | `snapshot.recentEvents[]` (FR-005-AC6 최신순 50): `at`→hh:mm:ss(mono faint), `workflow ?? '-'`(FR-005-AC7), `agentLabel`(mono), `title`(kind `permission`/`permission-denied`는 waiting 색, `tool`·`tool-done`은 running 색 도구명, 그 외 secondary), `summary`(mono, 이미 마스킹됨 FR-005-AC8) | `everReceived=false` → 표 대신 04-1 (FR-005-E1) | 행 5개 스켈레톤 | - | 유지 | 행 클릭 없음 |
 | 표 하단 각주 `token·key·password 등 기본 패턴은 ••••••••로 가림` | 정적 | - | - | - | - | - |
@@ -123,7 +124,11 @@
 ## SCR-02 에이전트 워크플로우 층 뷰 (`/workflows`)
 - FR: FR-006, FR-001, FR-002, FR-003-AC5, FR-004-AC7, FR-013-AC1·AC3·AC6·AC9, FR-017-AC1
 - 기준 이미지: `docs/ui/screens/02-workflows.png`
-- 구성(ui-rules 7): 상단 헤더 → 요약·범례·검색 바 → 로비 → 층 그리드(3열) → 줌 버튼(왼쪽 아래) + 미니맵(오른쪽 아래)
+- 구성(ui-rules 7): 상단 헤더 → 요약·범례·검색 바 → [층 스크롤 영역: 04-6 → 로비 → 층 그리드(3열)] → 하단 컨트롤 영역(줌 버튼 왼쪽 + 미니맵 오른쪽)
+- **레이아웃 — 줌·미니맵 "고정"의 뜻 (ADR-23, T-015 R1 확정)**: 02 본문 루트는 뷰포트 높이에 맞춘 세로 flex다(`height: calc(100dvh - var(--height-header))`). 위에서부터 ① 요약·범례·검색 바(스크롤하지 않음, 높이 자동) ② **층 스크롤 영역** — 04-6 목록·로비·층 그리드를 담는 자체 스크롤 컨테이너(`flex:1; min-height:0; overflow:auto`, 좌우 여백 `--spacing-page-x`) ③ **하단 컨트롤 영역** — 높이 176px 고정(Tailwind 기본 스케일 `h-44`. 줌 버튼 3개(34px) + 사이 6px×2 + 위 24 / 아래 32 여백), 배경 `bg/page`, 테두리·그림자 없음, 좌우 여백 `--spacing-page-x`. 줌 버튼은 ③의 왼쪽 끝 아래, 미니맵은 ③의 오른쪽 끝 아래에 정렬한다(둘 다 `items-end`).
+  - 줌·미니맵은 **스크롤과 무관하게 항상 같은 자리에 보이지만(=고정), 층 스크롤 영역 밖에 있으므로 어떤 스크롤 위치에서도 층·책상 위에 겹치지 않는다**. `position: fixed`로 층 콘텐츠 위에 띄우는 오버레이 배치는 금지한다. 이유: FR-006-AC10(책상마다 이름·상태 글자 표시), `docs/ui/README.md`(요소 가림은 결함).
+  - 층 그리드는 사이드바 오른쪽 전체 폭을 그대로 쓴다(오버레이용 좌·우 여백 컬럼을 두지 않는다). 이유: 기준 PNG의 층 카드 좌우 위치를 그대로 유지한다.
+  - 04-3 배너가 떠 있는 동안에는 배너 높이만큼 페이지(window)가 스크롤될 수 있다(허용). 그 밖에는 window 스크롤이 생기지 않는다.
 
 | 요소 | 데이터 출처 | 빈 | 로딩 | 에러 | 연결 끊김 | 클릭 시 동작·이동 |
 |---|---|---|---|---|---|---|
@@ -138,16 +143,19 @@
 | 버튼 `+ 워크플로우 추가` (add) | - | - | - | `writable=false` → 비활성 `쓰기 권한 없음` | 활성 | `?dialog=workflow-add` |
 | 04-6 목록 (층 위) | `registry.formatErrors.length > 0`일 때 (FR-006-E2) | 없으면 숨김 | - | 아래 SCR-04-6 | 유지 | - |
 | 로비 카드 `로비 · 메인 세션` `에이전트 지정 없이 실행 중인 Claude Code 세션` + 항목 `🧍 [세션 N] · 상태` / `name · 상태` | `live.lobby[]`: `label`, `status`→상태 글자(`작업 중`/`입력 대기`(waiting 짧은 표기)/`대기`) (FR-006-AC9, FR-004-AC7). 작은 픽셀 아이콘은 `DeskSprite`가 아닌 12×16 정면 아이콘(pixel-sprites B 축소) | `lobby.length === 0` → `실행 중인 메인 세션 없음` 한 줄 (secondary) | 스켈레톤 한 줄 | - | 유지 | 없음 |
-| 층 카드(워크플로우마다): 헤더 `[이름]` `[N]명` 칩 + 요약 `실행 중 [N]명 · 권한 대기 [N]명`/`모두 대기`/`팀장 없음`(danger) | `registry.workflows[i]`: N명 = lead+members 수, 요약 = `counts.ts`로 소속 에이전트 상태 집계 (FR-006-AC5). 팀장 없으면 요약 자리에 `팀장 없음`(danger 글자, 02 PNG 워크플로우 D) | `workflows.length === 0` → 04-7 카드 1장 (FR-006-E3) | 층 2개 스켈레톤 | `agentsDirMissing` → 04-5 (층 그리드 자리, FR-006-E1) | 유지 | - |
-| 층 헤더 버튼 `가져오기`(secondary) `+ 만들기`(add) `상세 →`(running 테두리) `삭제`(danger, 작은) | `writable`, `workflow.rawMemberCount` | - | - | `writable=false` → `가져오기`·`+ 만들기`·`삭제` 비활성 `쓰기 권한 없음`. `rawMemberCount > 0` → `삭제` 비활성 `팀원을 먼저 제거하세요`(FR-006-AC12, FR-017-AC1) | 활성 | `가져오기` → `?dialog=import&workflow=<이름>`(고정) / `+ 만들기` → `?dialog=agent-new&workflow=<이름>` / `상세 →` → `/workflows/<이름>` / `삭제` → `?dialog=workflow-delete&workflow=<이름>` (05-3) |
+| 층 카드(워크플로우마다): 헤더 `[이름]` `[N]명` 칩 + 요약 `실행 중 [N]명 · 권한 대기 [N]명`/`모두 대기`/`팀장 없음`(danger) | `registry.workflows[i]`: N명 = lead+members 수, 요약 = `counts.ts`로 소속 에이전트 상태 집계 (FR-006-AC5). 팀장 없으면 요약 자리에 `팀장 없음`(danger 글자, 02 PNG 워크플로우 D). **테두리 색 = `workflowCardBorder.ts`(공통 규칙, ADR-24): 팀장 없음 → `danger-border` / running>0 → `running-border` / running=0·waiting>0 → `waiting` / 그 외 → `border/default`. 칩(권한 대기 우선)과 달리 테두리는 running이 waiting보다 우선한다** — 02 PNG 워크플로우 A(실행 중 5·권한 대기 1)가 `#2C4A3C`이고 `design-tokens.md`에 waiting 전용 테두리 토큰이 없다. 배경은 상태와 무관하게 `bg/card-alt` | `workflows.length === 0` → 04-7 카드 1장 (FR-006-E3) | 층 2개 스켈레톤 | `agentsDirMissing` → 04-5 (층 그리드 자리, FR-006-E1) | 유지 | - |
+| 층 헤더 버튼 `가져오기`(secondary) `+ 만들기`(add) `상세 →`(running 테두리) `삭제`(danger, 작은 — **기준 PNG에 없는 요소. FR-017 확정 이후 추가된 버튼이라 `02-workflows.png`에는 없다. 화면 대조에서 누락·추가로 보지 않는다**, ADR-25) | `writable`, `workflow.rawMemberCount` | - | - | `writable=false` → `가져오기`·`+ 만들기`·`삭제` 비활성 `쓰기 권한 없음`. `rawMemberCount > 0` → `삭제` 비활성 `팀원을 먼저 제거하세요`(FR-006-AC12, FR-017-AC1) | 활성 | `가져오기` → `?dialog=import&workflow=<이름>`(고정) / `+ 만들기` → `?dialog=agent-new&workflow=<이름>` / `상세 →` → `/workflows/<이름>` / `삭제` → `?dialog=workflow-delete&workflow=<이름>` (05-3) |
 | 층 경고 줄 `팀장이 없습니다 · 팀장을 만들거나 가져오세요` (danger-soft 배경, danger 글자) | `workflow.lead === null` (FR-006-AC3) | 팀장 있으면 숨김 | - | - | 유지 | - |
 | 층 경고 줄 `<name>이(가) 여러 워크플로우에 있습니다 · 구성 파일을 확인하세요` | 이 층 소속 에이전트(또는 이 층을 `duplicateWorkflows`에 가진 에이전트) 중 `duplicateWorkflows.length > 0` (FR-006-AC11). 관련 모든 층에 표시 | 없으면 숨김 | - | - | 유지 | - |
 | 층 안 책상(`DeskSprite`) ×N: 캐릭터 + name + 상태 글자, 팀장 `팀장` 배지 | `agentOrder.ts`(FR-006-AC1: lead 첫 자리, 나머지 name 오름차순 `localeCompare` 아닌 단순 `<` 비교), 상태 = `live.agents[name].status`, 상태 글자 `작업 중`/`권한 대기`/`대기` + `parentLabel` 있으면 `· 부모 <라벨>`. 중복 소속 에이전트는 `agent.workflow`(첫 층)에만 책상 (FR-006-AC11). 깨진 참조는 제외 | 인원 0 → 층 안에 `에이전트가 없습니다 · 만들거나 가져오세요` 한 줄 | 스켈레톤 | - | 유지 | 책상 클릭 → `/workflows/<이름>?agent=<name>` (03에서 그 에이전트 선택) |
 | 층 그리드 배치 | `workflowLayout.ts`: 3열, 인원 ≥ 7 → `grid-column: span 3`(FR-006-AC2, 02 PNG 워크플로우 A). 인원 늘면 세로 확장 | - | - | - | - | - |
-| 줌 버튼 `+` `−` `맞춤` (왼쪽 아래 고정, aria-label) | 로컬 `zoom` 50~200% (FR-006-AC6), `맞춤` = 층 그리드 전체가 보이도록 계산 | - | - | - | 활성 | `transform: scale` 층 영역(로비 포함). 단계 10% |
-| 미니맵 (오른쪽 아래 고정) | 층 그리드 축소(1/10) 사각형들 + 현재 뷰포트 테두리(running) | 워크플로우 0 → 숨김 | - | - | 활성 | 클릭 시 해당 위치로 스크롤 |
+| 줌 버튼 `+` `−` `맞춤` (하단 컨트롤 영역 왼쪽 끝. 세로 스택, 버튼 사이 6px, 각 버튼 `aria-label`. 버튼 3개만 놓고 감싸는 카드·패널·테두리를 두지 않는다 — 기준 PNG) | 로컬 `zoom` 50~200% (FR-006-AC6), `맞춤` = **층 스크롤 영역의 `clientWidth`·`clientHeight`** 안에 층 그리드 전체가 들어가도록 계산(window 크기 아님) | - | - | - | 활성 | `transform: scale` 층 영역(로비 포함). 단계 10% |
+| 미니맵 (하단 컨트롤 영역 오른쪽 끝) | 층 그리드 축소(1/10) 사각형들 + 현재 뷰포트 테두리(running). **기준 컨테이너는 층 스크롤 영역**(`scrollTop`·`clientHeight`·`scrollHeight`, window 아님). 테두리 위치 = `scrollTop / scrollHeight`, 높이 = `clientHeight / scrollHeight`(둘 다 zoom 배율이 적용된 값으로 통일, 최소 4%) | 워크플로우 0 → 숨김 | - | - | 활성 | 클릭 시 층 스크롤 영역을 해당 위치로 스크롤(window 스크롤 아님) |
 
 - 비활성 요소: 02에는 팀장 선택 목록·`팀장으로 열기` 메뉴가 **없다**(FR-013-AC3, 와이어프레임 p.2 ▾ 메뉴는 확정 결정으로 제거). 책상 위 도구 말풍선 없음(03 전용).
+- 기준 PNG(`docs/ui/screens/02-workflows.png`)와의 확정된 차이 — 화면 대조 시 결함으로 보지 않는다:
+  1. 층 헤더 `삭제` 버튼과 비활성 사유 `팀원을 먼저 제거하세요`는 기준 PNG에 없다. PNG가 FR-017(워크플로우 삭제) 확정 이전 산출물이기 때문이며, 표시 근거는 FR-006-AC12·FR-017-AC1이다(ADR-25). 그 밖의 요소 누락·추가는 그대로 결함이다.
+  2. 기준 PNG는 콘텐츠 높이가 뷰포트(1020px)에 거의 맞아 "층 그리드 아래 공백"과 "하단 컨트롤 영역"이 같은 그림이 된다. 층이 많아 스크롤이 생기는 경우의 기준은 위 레이아웃 항(ADR-23)이며, 기준 PNG는 이 문제의 판단 근거가 되지 못한다.
 
 ---
 

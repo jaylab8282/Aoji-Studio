@@ -293,6 +293,7 @@
   - FR-005-E1 — 단위 `[FR-005-E1] everReceived false → NoEventsYet, KPI 2·3 숫자 정상` + E2E-01
   - FR-001-E1 — 단위 `[FR-001-E1] agentsDirMissing → KPI 1·2 자리 AgentsDirMissing, 숫자 없음` + E2E-06
   - 화면 대조 — E2E-13 `01-home.png` 캡처 → 리뷰어 대조
+  - 후속(ADR-24, T-015에서 수행): 대표 카드 테두리를 `lib/derive/workflowCardBorder.ts`로 교체(`running>0 && waiting>0`일 때만 결과가 바뀐다). T-014 판정은 유지하고 회귀 확인만 T-015 리뷰에서 한다
 - Depends on: T-013
 
 ## T-015 02 에이전트 워크플로우 층 뷰
@@ -303,8 +304,10 @@
 - Errors: FR-006-E1, FR-006-E2, FR-006-E3, FR-001-E2
 - Screens: SCR-02, SCR-04-5, SCR-04-6, SCR-04-7
 - Backend: 없음
-- Frontend: `screens/workflows/*`(헤더, 요약 바, 검색+드롭다운, 로비, 층 카드, 줌·미니맵), `components/pixel/DeskSprite.tsx`+`palette.ts`, `lib/derive/agentOrder.ts`, `search.ts`, `workflowLayout.ts`, `FormatErrorList`, `lib/format/ellipsis.ts`
+- Frontend: `screens/workflows/*`(헤더, 요약 바, 검색+드롭다운, 로비, 층 카드, 줌·미니맵), `components/pixel/DeskSprite.tsx`+`palette.ts`, `lib/derive/agentOrder.ts`, `search.ts`, `workflowLayout.ts`, `FormatErrorList`, `lib/format/ellipsis.ts`. 추가(ADR-23·ADR-24, 2026-09-23 문서 확정): ① `WorkflowsScreen`을 "요약·검색 바 + 층 스크롤 영역 + 하단 컨트롤 영역(176px)" 세로 flex로 분리하고 줌·미니맵의 `fixed` 오버레이 제거, `Minimap`·`맞춤` 계산 기준을 층 스크롤 영역으로 교체, `ZoomControls`의 감싸는 카드 패널 제거 ② `lib/derive/workflowCardBorder.ts` 신설 후 `Floor.tsx`와 `screens/home/FeaturedWorkflows.tsx`(T-014 구현, 칩 variant → 공용 함수) 교체
 - Done when:
+  - 층 뷰 레이아웃(ADR-23) — 단위 `WorkflowsScreen.test [FR-006-AC10] 줌·미니맵은 층 스크롤 영역 밖 하단 컨트롤 영역에 있고 층 그리드 위에 겹치는 fixed/sticky 요소가 없다` + 리뷰어 화면 대조(층이 뷰포트보다 길 때 책상 이름·상태 글자가 가려지지 않음)
+  - 카드 테두리 규칙(ADR-24) — 단위 `workflowCardBorder.test [FR-006-AC5] 팀장 없음 → danger-border, running>0(waiting>0 포함) → running-border, running=0·waiting>0 → waiting, 모두 대기 → border` + `Floor.test`·`FeaturedWorkflows` 렌더 단언(01·02가 같은 함수를 쓴다)
   - FR-006-AC1 — 단위 `agentOrder.test [FR-006-AC1] lead 첫 자리, 나머지 단순 문자열 오름차순('Z'<'a' 아님, 소문자 name이므로 'a-2'<'a10')`, `Floor.test 팀장 배지` + E2E-02
   - FR-006-AC2 — 단위 `workflowLayout.test [FR-006-AC2] 인원 7 이상 → span 3, 6 이하 → 1`
   - FR-006-AC3 — 단위 `Floor.test [FR-006-AC3] lead null → 경고 줄 문구` + E2E-02
