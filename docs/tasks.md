@@ -359,6 +359,23 @@
   - 화면 대조 — E2E-13 `03-workflow-detail.png` → 리뷰어 대조
 - Depends on: T-013
 
+## T-FIX-01 ADR-29·ADR-30 공통 컴포넌트 정합 (비활성 버튼 표현 · 프로젝트 칩 범위)
+- Status: todo
+- Scope: Frontend
+- FR: 없음(문서 정합 수정 — ADR-29, ADR-30)
+- AC: 없음
+- Errors: 없음
+- Screens: SCR-01, SCR-02, SCR-03, SCR-07(칩 제거만)
+- Backend: 없음
+- Frontend: `components/ui/Button.tsx`(T-014 산출물), `components/common/TopBar.tsx`(T-013 산출물), 칩 설정을 넘기는 라우트/화면 결선
+- 배경: T-016 리뷰 Minor → architect ADR-29·ADR-30 확정. 이미 done인 T-013·T-014 산출물이라 별도 수정 태스크로 분리(D-031). 계약 변경 없음
+- Done when:
+  - ADR-29 — 비활성 버튼은 variant 채움 배경·강조 테두리를 지우고 점선(`border/dashed`) + `text/faint` + 이유 한 줄만 남는다. 단위 `Button.test [ADR-29] primary·danger·terminal·secondary 비활성이 모두 같은 모양(배경 없음·점선·faint)` + 활성 variant 모양은 불변
+  - ADR-30 — 프로젝트 칩은 01·02에만. 03·07에는 없다. `TopBar`가 라우트를 직접 읽지 않고 화면이 넘긴 설정으로 정한다. 단위 `TopBar.test [ADR-30] 칩 표시 설정 on/off` + `router.test`로 01·02 표시·03·07 미표시
+  - 회귀 — 기존 테스트 166개가 줄거나 skip되지 않는다(기대값 교정은 허용, 삭제·skip 금지)
+  - 캐처 재대조 — 01·02·03을 재캐처해 `docs/reviews/screens/T-FIX-01/`에 두고 기준 PNG와 대조. 비활성 버튼이 보이는 화면(02 층 헤더 `삭제`, 03 패널 버튼)을 포함할 것
+- Depends on: T-016
+
 ## T-017 05 워크플로우 추가 · 05-3 삭제 확인 UI
 - Status: todo
 - Scope: Frontend

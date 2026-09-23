@@ -67,13 +67,13 @@
 | `AppShell` (사이드바 248px + 상단바 64px + 본문) | 01·02·03·07 | `Sidebar`(`bg-chrome`, 오른쪽 `border-border`) + `TopBar` + 본문. `Sidebar` 구성은 아래 행 |
 | `Sidebar` (01 PNG 좌측 기준, 01·02·03·07 동일) | 01·02·03·07 | **로고 영역**(위): 높이 `--height-header`(64px, `TopBar`와 수평 정렬) 안에 초록 로고 아이콘(28×28, `bg-running rounded-control`, 글리프 없음, `aria-hidden`) + 워드마크 `Jay Studio`(정적, `lib/text.ts` `APP_WORDMARK`, `text-section font-bold text-text`), 왼쪽 여백 16px. **탭 메뉴**: `홈`/`에이전트 워크플로우`/`설정` 세로 3개, 사이드바 안쪽 여백(inset, 좌우 12px)을 둔 둥근(`rounded-control`) 항목. 선택 탭 `bg-selected` + `text-text` + 왼쪽 초록 바(`border-l-4 border-running`); 비선택 `text-text-secondary`, 왼쪽 바 투명. 클릭 → 해당 라우트. **하단**: `CollectorStatus` 카드(아래 행). 로고·탭은 정적이라 빈/로딩/에러/연결 끊김 상태 없음 |
 | `CollectorStatus` (사이드 탭 하단 카드) | 전 화면 | `Sidebar` 하단에 붙는 카드(`rounded-card border border-border bg-card`, 사이드바 안쪽 여백 12px, 아래 16px). 제목 `수집 상태`(aux, muted), `snapshot.registry.hookConfigured` → `● hook 설정됨`(running 점) / `hook 설정 안 됨`(idle 점), `마지막 수신 <hh:mm:ss>` = `snapshot.live.lastReceivedAt`(null → `마지막 수신 없음`, aux faint). 로딩: 두 줄 스켈레톤 |
-| `TopBar` | 01·02·03·07 | 왼쪽 브레드크럼/제목 + 프로젝트 칩 `● 프로젝트 · <hostPath>`(`snapshot.config.hostPath`, mono, 01·02·03만), 오른쪽 `127.0.0.1 전용`(정적, faint). 02는 오른쪽에 `Claude 열기 · 기본 세션` 버튼 추가 |
+| `TopBar` | 01·02·03·07 | 왼쪽 브레드크럼/제목 + 프로젝트 칩 `● 프로젝트 · <hostPath>`(`snapshot.config.hostPath`, mono, **01·02에만 표시한다. 03·07에는 칩을 두지 않는다** — ADR-30), 오른쪽 `127.0.0.1 전용`(정적, faint). 02는 오른쪽에 `Claude 열기 · 기본 세션` 버튼 추가. 칩 표시 여부는 화면(라우트)별 설정으로 넘기고 `TopBar`가 라우트를 직접 읽지 않는다 |
 | `DisconnectBanner` (04-3) | 전 화면 상단 | `connectionStore.state === 'disconnected'`일 때만. `실시간 연결이 끊겼습니다 · N초 후 재연결` + `지금 재연결`(secondary). 배경 `danger-soft`, 테두리 `danger-border`, 글자 `danger`. 아래 작은 줄 `마지막 갱신 <hh:mm:ss> 기준 화면 유지` |
 | `Skeleton` | 전 화면 | `bg-soft` 블록, 애니메이션 없음 |
 | `StatusDot` / `StatusLabel` | 전 화면 | 9~10px 사각, 모서리 `--radius-dot`(3px, `rounded-dot`), running은 `shadow-glow`. `StatusLabel` = 점 + 글자. 이 문서의 모든 `●` 상태 점(`CollectorStatus`, 01 KPI 4·`실시간 연결됨`, 02 범례, 03 04-4 배너·패널 `상태`, 07 `열기 도우미`·`hook 설정` 행)은 `StatusDot`으로 그린다. 03 오피스 캐릭터·02 책상은 상태 점이 없다(셔츠·모니터 색 + 상태 글자, pixel-sprites 기준). `TopBar` 프로젝트 칩의 `●`는 상태가 아닌 장식이라 이 규칙 대상이 아니다 |
 | `WorkflowChip` | 01·02·03 | `lib/derive/workflowChip.ts`: waiting>0 → `권한 대기 N명`(waiting-soft 배경·waiting 글자) / running>0 → `실행 중 N명`(running-soft·running) / 둘 다 0 → `모두 대기`(bg-selected·text-secondary). **우선순위: 권한 대기가 있으면 권한 대기 칩**(01 PNG 카드 2) |
 | `workflowCardBorder` (파생 규칙, 컴포넌트 아님) | 01 대표 카드·02 층 카드 | `lib/derive/workflowCardBorder.ts`: 입력 `{ running, waiting, leadMissing }` → 테두리 토큰. 우선순위 **① `leadMissing` → `danger-border` ② `running > 0` → `running-border` ③ `waiting > 0` → `waiting` ④ 그 외 → `border/default`**. `leadMissing`은 02 층 카드만 `true`가 될 수 있고 01은 항상 `false`를 넘긴다. 칩(`WorkflowChip`)은 waiting 우선, 테두리는 running 우선으로 서로 다르다(ADR-24). 상태를 색으로만 알리는 표시가 아니라 카드 안 요약·칩 글자가 상태를 말한다(conventions §3) |
-| `Button` | 전 화면 | variant `primary`/`terminal`/`secondary`/`add`/`danger`, `disabledReason` → 점선 테두리 + faint 글자 + 옆 이유 한 줄 |
+| `Button` | 전 화면 | variant `primary`/`terminal`/`secondary`/`add`/`danger`. **비활성(`disabledReason` 또는 `disabled`)일 때는 variant의 채움 배경과 강조 테두리 색을 모두 지우고**(배경 투명, 테두리 `border/dashed` 점선) faint 글자 + 옆 이유 한 줄만 남긴다. 즉 비활성은 variant 표현 위에 덧칠하는 상태가 아니라 variant 표현을 대체하는 여섯 번째 표현이다(ui-rules 2 표의 `비활성` 행, ADR-29). 비활성 버튼은 variant와 무관하게 모두 같은 모양이다 |
 | `Dialog` | 05·06 | 가운데 모달, 배경 dim, `bg-card` 12px, ESC·`취소`로 닫기. 04-3 배너는 모달 뒤 화면 상단에 그대로 |
 | `FormatErrorList` (04-6) | 02 | 아래 SCR-04-6 |
 | `AgentsDirMissing` (04-5) | 01·02·07 | 아래 SCR-04-5 |
@@ -88,7 +88,7 @@
 
 | 상태 | 표현 |
 |---|---|
-| 로딩 (04-2) | 첫 `snapshot`(또는 `GET /api/state`) 전: 숫자·이름·카드·층 자리 `Skeleton`. `0`이나 빈 문구를 먼저 보여주지 않는다 |
+| 로딩 (04-2) | 첫 `snapshot`(또는 `GET /api/state`) 전: 숫자·이름·카드·층 자리 `Skeleton`. `0`이나 빈 문구를 먼저 보여주지 않는다. **구현 기준(ADR-32): 스냅샷을 기다리는 본문 요소의 로딩은 `AppShell`이 `snapshotStore.ready === false` 동안 본문 전체를 대신 그리는 공통 스켈레톤 하나로 충족한다.** 각 화면 요소 표의 `로딩` 열에 적힌 `스켈레톤`·`스켈레톤 N개`는 "그 요소가 로딩 중 값을 보이지 않는다"는 뜻이며 화면마다 별도 스켈레톤 컴포넌트를 만들라는 뜻이 아니다. **예외 — 자체 스켈레톤을 갖는 요소**: 본문 밖에 있어 공통 스켈레톤이 덮지 않는 요소(`TopBar` 프로젝트 칩, `CollectorStatus`)와, 스냅샷이 아닌 자체 API 호출·부분 갱신으로 채워지는 요소(SCR-03 패널 `최근 이벤트` 4줄, SCR-05-R 목록 5행, SCR-06 폼 필드, SCR-07 `GET /api/settings` 값 행) |
 | 에러 | 카드 안에 `무엇을 못 했는지 + 원인 + 복구 버튼`. API 실패는 `ApiError.message` 그대로 |
 | 연결 끊김 (04-3) | `DisconnectBanner`. 화면은 마지막 스냅샷 유지. 버튼은 그대로 활성(요청 실패 시 에러 표시) |
 | 수집 중단·미수신 | `CollectorStatus`·01 KPI에 `hook 설정 안 됨` 또는 마지막 수신 시각. 03은 04-4 배너 |
@@ -168,23 +168,35 @@
 |---|---|---|---|---|---|---|
 | 브레드크럼 `홈 / 에이전트 워크플로우 / [이름]` | `:name` | - | - | - | - | `홈` → `/`, `에이전트 워크플로우` → `/workflows` |
 | 버튼 `‹` (aria-label `에이전트 워크플로우로`) | - | - | - | - | - | `/workflows` |
-| 헤더 `[이름]` `에이전트 [N] · 스킬 [N]` 칩 `실행 중 [N]명` `팀장 [name]` | `registry.workflows.find(name)`: 에이전트 = lead+members 수, 스킬 = `skillCount`, 칩 = `workflowChip.ts`(FR-007-AC9), 팀장 = `lead`(mono) / null → `팀장 없음`(danger) | - | 스켈레톤 | 워크플로우 없음 → 화면 본문 전체를 `워크플로우를 찾을 수 없습니다` + 버튼 `에이전트 워크플로우로`(primary → `/workflows`)로 대체 (FR-007-E2, FR-017-AC4) | 유지 | - |
+| 헤더 `[이름]` `에이전트 [N] · 스킬 [N]` 칩 `실행 중 [N]명` `팀장 [name]` | `registry.workflows.find(name)`: 에이전트 = lead+members 수, 스킬 = `skillCount`, 칩 = `workflowChip.ts`(FR-007-AC9), 팀장 = `lead`(mono) / null → `팀장 없음`(danger). **04-4 표시 중에도 칩은 실제 `live.agents[*].status`로 계산한다**(표시 고정 대상이 아니다 — ADR-27) | - | 공통(AppShell) | 워크플로우 없음 → 화면 본문 전체를 `워크플로우를 찾을 수 없습니다` + 버튼 `에이전트 워크플로우로`(primary → `/workflows`)로 대체 (FR-007-E2, FR-017-AC4) | 유지 | - |
 | 버튼 `>_ 팀장 호출 · 터미널 열기` (terminal) | `workflow.lead`, `GET /api/helper/token`, 도우미 `POST /open {target:'lead', leadName}` (FR-013-AC2·AC6). 명령 표시·복사 = `cd "<config.hostPath>" && claude --agent <lead>` | `lead === null` → 비활성 + `팀장 없음` (FR-007-AC8, FR-013-AC4) | 비활성 | 무응답 → `HelperMissingDialog`(팀장 명령 포함, FR-013-AC9) / 403 → `도우미 인증 실패 · 도우미를 다시 설치하세요` / 400 → 도우미 message / 누른 직후 `registry.agents`에 lead가 없으면 호출하지 않고 `팀장이 없습니다` 표시 (FR-013-E4) | 활성 | 도우미 호출. 이동 없음 |
 | 04-4 배너 (오피스 카드 위) | `isCollectorDown = !live.everReceived || !registry.hookConfigured` (FR-007-E1, ADR-17): `● hook 이벤트 수신 없음 · 마지막 수신 <yyyy-mm-dd hh:mm 또는 없음>` (idle 점, bg-soft). **수집 중단 규칙: 배너가 표시되는 동안 03의 캐릭터·상태 글자·선택 패널 상태는 표시만 `대기`로 고정한다(`displayStatus = isCollectorDown ? 'idle' : live.status`). 01·02·API 값은 그대로** | 조건 아니면 숨김 | - | - | 유지 | - |
 | 오피스 카드 제목 `오피스` `에이전트 1명 = 캐릭터 1개 · 팀장 첫 자리, 나머지 이름순` | 정적 | - | - | - | - | - |
-| 오피스 그리드 캐릭터(`OfficeSprite`) ×N: 말풍선, 캐릭터, `팀장` 배지, name 칩, 상태 글자 | `agentOrder.ts`(FR-007-AC1), `live.agents[name]`: 말풍선 = `actionLabel.ts`(FR-007-AC2: waiting → 주황 채움 `권한 요청`; running + currentTool Edit/Write/NotebookEdit → `타이핑 · <도구>`; Read/Grep/Glob → `읽기 · <도구>`; 그 밖 도구 → `<도구>`; running인데 currentTool null → `작업 중`; idle → 회색 `대기`). 셔츠·모니터 = 상태색. 상태 글자 = `작업 중`/`권한 대기`/`대기` + `parentLabel` → `· 부모 <라벨>`(FR-007-AC3). **수집 중단(04-4 표시 중): 상태 입력을 `idle`로 바꿔 렌더링 → 셔츠·모니터 대기색, 말풍선 회색 `대기`, 상태 글자 `대기`(부모 접미 없음)** | 인원 0 → 3칸 모두 `빈 자리` | 캐릭터 자리 스켈레톤 3개 | - | 유지 | 칸 클릭 → 선택(패널 갱신). 선택 칸 = running 테두리 + running-soft 배경 |
-| 정의 없는 서브에이전트 작은 캐릭터(`OfficeSprite small`) | `live.undefinedSubagents.filter(s => s.parentAgentName이 이 워크플로우 소속)` → 부모 칸 바로 다음 칸. name 칩 `<agentType>`, 상태 글자 `작업 중 · 부모 <parentLabel>`, 말풍선 = `actionLabel.ts`(currentTool) (FR-007-AC3). `SubagentStop` 후 `live`에서 빠지면 사라짐. **수집 중단(04-4 표시 중): 셔츠 대기색, 말풍선·상태 글자 `대기`** | 없으면 없음 | - | - | 유지 | 클릭 → 선택 불가(패널 변화 없음, 커서 기본) |
+| 오피스 그리드 캐릭터(`OfficeSprite`) ×N: 말풍선, 캐릭터, `팀장` 배지, name 칩, 상태 글자 | `agentOrder.ts`(FR-007-AC1), `live.agents[name]`: 말풍선 = `actionLabel.ts`(FR-007-AC2: waiting → 주황 채움 `권한 요청`; running + currentTool Edit/Write/NotebookEdit → `타이핑 · <도구>`; Read/Grep/Glob → `읽기 · <도구>`; 그 밖 도구 → `<도구>`; running인데 currentTool null → `작업 중`; idle → 회색 `대기`). 셔츠·모니터 = 상태색. 상태 글자 = `작업 중`/`권한 대기`/`대기` + `parentLabel` → `· 부모 <라벨>`(FR-007-AC3). **수집 중단(04-4 표시 중): 상태 입력을 `idle`로 바꿔 렌더링 → 셔츠·모니터 대기색, 말풍선 회색 `대기`, 상태 글자 `대기`(부모 접미 없음)** | 인원 0 → 3칸 모두 `빈 자리` | 공통(AppShell) | - | 유지 | 칸 클릭 → 선택(패널 갱신). 선택 칸 = running 테두리 + running-soft 배경 |
+| 정의 없는 서브에이전트 작은 캐릭터(`OfficeSprite small`) | `live.undefinedSubagents.filter(s => s.parentAgentName이 이 워크플로우 소속)` → **부모 칸 바로 다음 칸**(부모 뒤 나머지 칸은 한 칸씩 밀린다. 기준 PNG와 다르며 FR-007-AC3 문구가 기준 — 아래 확정 차이 1, ADR-28). name 칩 `<agentType>`, 상태 글자 `작업 중 · 부모 <parentLabel>`, 말풍선 = `actionLabel.ts`(currentTool) (FR-007-AC3). `SubagentStop` 후 `live`에서 빠지면 사라짐. **수집 중단(04-4 표시 중): 셔츠 대기색, 말풍선·상태 글자 `대기`** | 없으면 없음 | - | - | 유지 | 클릭 → 선택 불가(패널 변화 없음, 커서 기본) |
 | 빈 자리 칸 (점선, `빈 자리`) | 마지막 줄 3열 채우기 (FR-007-AC1) | 인원이 3의 배수면 없음 | - | - | - | 없음 |
 | 오피스 하단 범례 `동작 매핑 타이핑 = Edit·Write 읽기 = Read·Grep·Glob 주황 말풍선 = 권한 요청 회색 = 대기 작은 캐릭터 = 서브에이전트` | 정적 | - | - | - | - | - |
 | 패널 제목 `선택한 에이전트` `기본 선택 = 팀장` | 정적 | - | - | - | - | - |
-| 패널 name `[name]` + `팀장` 배지, 경로 `.claude/agents/<파일명>.md` | 선택 = URL `?agent=` → 없으면 lead → 없으면 첫 자리 (FR-007-AC4). `agent.filePath`(faint mono) | 인원 0 → 패널 본문 `선택할 에이전트가 없습니다` | 스켈레톤 | - | 유지 | - |
-| 패널 표: `상태` / `현재 도구` / `세션 시작` / `서브에이전트` / `작업 폴더` | `live.agents[name]`: `StatusLabel(status)`, `currentTool ? name + ' · ' + target : '-'`(FR-007-AC5), `sessionStartedAt`→hh:mm:ss 또는 `-`, `childCount`, `cwd ?? '-'`(경로는 `hostPath` 접두를 잘라 요약, title로 전체). **수집 중단(04-4 표시 중): `상태` = `대기`(idle 점), `현재 도구` = `-`. 세션 시작·서브에이전트·작업 폴더는 값 그대로** | - | 스켈레톤 | - | 유지 | - |
+| 패널 name `[name]` + `팀장` 배지, 경로 `.claude/agents/<파일명>.md` | 선택 = URL `?agent=` → 없으면 lead → 없으면 첫 자리 (FR-007-AC4). `agent.filePath`(faint mono). **글꼴은 `--text-section`(14.5px) mono bold** — `design-tokens.md` 글꼴 크기 단계에 19px 계열이 없어 기준 PNG와 크기가 다르다(아래 확정 차이 4, ADR-31) | 인원 0 → 패널 본문 `선택할 에이전트가 없습니다` | 공통(AppShell) | - | 유지 | - |
+| 패널 표: `상태` / `현재 도구` / `세션 시작` / `서브에이전트` / `작업 폴더` | `live.agents[name]`: `StatusLabel(status)`, `currentTool ? name + ' · ' + target : '-'`(FR-007-AC5), `sessionStartedAt`→hh:mm:ss 또는 `-`, `childCount`, `cwd ?? '-'`(경로는 `hostPath` 접두를 잘라 요약, title로 전체). **수집 중단(04-4 표시 중): `상태` = `대기`(idle 점), `현재 도구` = `-`. 세션 시작·서브에이전트·작업 폴더는 값 그대로** | - | 공통(AppShell) | - | 유지 | - |
 | 패널 `최근 이벤트` 목록 ×10: `[hh:mm] <title>` | `GET /api/agents/{name}/events?limit=10` (선택 변경·재연결 시 호출) + SSE `event` prepend (FR-007-AC6) | 0건 → `최근 이벤트 없음` | 4줄 스켈레톤 | API 실패 → `최근 이벤트를 불러오지 못했습니다` + `다시 시도` | 유지 | 없음 |
 | 버튼 `정의 수정` (primary, 넓게) | `live.agents[name].status`, `writable` | - | 비활성 | status ≠ idle → 비활성 `작업 중에는 수정할 수 없습니다`(FR-011-AC5). `writable=false` → `쓰기 권한 없음` | 활성 | `?dialog=agent-edit&agent=<name>` (06 수정) |
 | 버튼 `제거` (danger) | 같은 조건 | - | 비활성 | status ≠ idle → 비활성 `작업 중에는 제거할 수 없습니다`(FR-012-AC6). `writable=false` → `쓰기 권한 없음` | 활성 | `?dialog=agent-remove&agent=<name>` (06-6) |
 | 패널 각주 `제거 = 휴지통(.jaystudio/trash/)으로 이동 · 원문 로그 보기 없음` / `작업 지시는 상단 팀장 호출로 연 터미널에서 직접 한다 · claude --agent <lead>` | 정적 + `workflow.lead` | lead 없으면 두 번째 줄 `팀장 없음` | - | - | - | - |
 
+- `정의 수정`·`제거`의 판정·배치 규칙
+  - **비활성 판정은 04-4 표시 중에도 실제 `live.agents[name].status`를 쓴다**(표시용 `displayStatus`가 아니다 — ADR-27). 표시 상태(`대기`)로 활성화하면 열자마자 서버가 409 `AGENT_BUSY`로 거부하는 팝업이 열려 FR-011-AC5·FR-012-AC6을 위반한다. 그래서 04-4 표시 중에는 패널 `상태`가 `대기`인데 버튼 이유가 `작업 중에는 …`일 수 있다. 이 조합은 04-4 배너 각주(`캐릭터는 모두 회색 대기`)가 "지금 보이는 대기는 수집 중단 때문"이라고 이미 설명하므로 그대로 둔다(새 문구를 만들지 않는다).
+  - 배치: 비활성 사유가 없으면 기준 PNG대로 한 줄(`정의 수정` 넓게 + 오른쪽 `제거`). **비활성 사유가 하나라도 있으면 세로 스택**으로 바꾸고 `정의 수정`은 넓게 늘리지 않는다(버튼 + 사유 한 줄이 360px 패널에서 겹치지 않게. `docs/ui/README.md` 요소 가림 금지 — 아래 확정 차이 3, ADR-28).
+  - 모양: 비활성일 때는 §공통 `Button`대로 variant 채움 배경 없이 점선 + faint + 이유 한 줄이다(ADR-29).
+
 - 비활성 요소: 원문 로그 보기(Out of Scope), 작은 캐릭터 선택(정의 파일 없음), 정의 없는 서브에이전트의 부모가 로비·워크플로우 밖이면 03에 표시하지 않음(ADR-10).
+- 기준 PNG(`docs/ui/screens/03-workflow-detail.png`)와의 확정된 차이 — 화면 대조 시 결함으로 보지 않는다(ADR-28. SCR-02의 같은 목록과 형식·효력이 같다). **이 목록에 없는 요소 누락·추가·순서 차이는 그대로 결함이다.**
+  1. **서브에이전트 칸 위치**: 기준 PNG는 `[서브에이전트 1]`을 정의된 에이전트 4명 뒤 5번째 칸에 두지만, 구현은 **부모 칸 바로 다음 칸**(부모가 첫 자리면 2번째 칸)에 둔다. FR-007-AC3 "부모 캐릭터 **다음 칸**"(Must)과 위 요소 표가 일치하고, PNG의 5번째 배치는 어떤 규칙으로도 도출되지 않으며 `docs/ui/pixel-sprites.md` §배치 "부모 아래·옆"(부모가 1번 칸이면 2번 또는 4번)도 만족하지 않는다. 기준 PNG는 이름·수치가 모두 `[N]`·`[dev-lead]`인 placeholder 목업이므로 Must 문구가 우선한다.
+  2. **패널 `상태`의 상태 점**: 기준 PNG는 색 글자만 보이나 구현은 `StatusDot` + 글자다. §공통 `StatusDot` 행이 "03 04-4 배너·패널 `상태`"를 명시하므로 구현이 기준이다.
+  3. **패널 버튼 배치와 모양**: 기준 PNG는 `정의 수정`(초록 채움, 넓게) + `제거`가 활성 상태로 한 줄에 있다. 기준 PNG의 선택 에이전트는 `작업 중`이므로 위 요소 표(FR-011-AC5·FR-012-AC6)에 따르면 실제로는 두 버튼이 **비활성**이어야 한다 — PNG는 비활성 상태를 그리지 않은 목업이다. 구현 기준은 위 "판정·배치 규칙"(비활성이면 세로 스택 + 채움 배경 없는 점선 표현, ADR-29)이다.
+  4. **패널 name 글꼴 크기**: 기준 PNG는 약 19px이나 `docs/ui/design-tokens.md` 글꼴 크기 단계(제목 24~26 / 섹션 14~15 / 본문 12.5~13 / 보조 11.5~12 / 최소 10)에 19px 계열이 없다. 토큰 밖 임의값을 쓰지 않고 `--text-section`(14.5px)을 쓴다.
+  5. **헤더 칩 문구**: 기준 PNG의 `실행 중 [N]명`은 placeholder다. 실제 문구는 `workflowChip.ts`의 waiting 우선 규칙(ui-rules 1, §공통 `WorkflowChip`)을 따르므로 권한 대기가 있으면 `권한 대기 N명`이다.
+- 상단 바에 프로젝트 칩을 두지 않는다(기준 PNG·위 요소 표 일치, §공통 `TopBar`, ADR-30). 이것은 확정 차이가 아니라 구현이 맞춰야 할 기준이다.
 
 ---
 
@@ -215,7 +227,14 @@
 |---|---|---|---|---|---|---|
 | 배너 `● hook 이벤트 수신 없음 · 마지막 수신 [yyyy-mm-dd hh:mm]`(없으면 `없음`) | `isCollectorDown = !live.everReceived || !registry.hookConfigured`, `live.lastReceivedAt` (FR-007-E1) | - | - | - | 유지 | - |
 | 캐릭터·상태 글자·선택 패널 상태 (03 오피스·패널 요소) | **04-4 표시 중에는 `live` 값과 무관하게 대기색 + `대기` 글자로 표시**(말풍선 회색 `대기`, 현재 도구 `-`). 표시만 바꾸며 `live`·01·02는 그대로 (ADR-17) | - | - | - | 유지 | - |
+| 헤더 칩(`WorkflowChip`)·패널 버튼 `정의 수정`·`제거` | **표시 고정 대상이 아니다.** 04-4 표시 중에도 실제 `live.agents[name].status`로 칩 문구와 버튼 비활성·사유를 정한다 (ADR-27) | - | - | - | 유지 | 버튼 동작은 SCR-03과 같다 |
 | 각주 `Claude Code 미실행 또는 컨테이너 재시작 · 캐릭터는 모두 회색 대기` | 정적 | - | - | - | - | - |
+
+- **표시 고정(`displayStatus`) 대상과 비대상 — 04-4의 확정 경계 (ADR-17 + ADR-27)**
+  - 고정하는 것(표시만 `대기`): 03 오피스 캐릭터의 셔츠·모니터 색과 말풍선, 캐릭터 아래 상태 글자(부모 접미 없음), 작은 캐릭터(서브에이전트), 선택 패널의 `상태`·`현재 도구`.
+  - 고정하지 않는 것(실제 `live` 값 그대로): 03 헤더 칩, 패널 `세션 시작`·`서브에이전트`·`작업 폴더`·`최근 이벤트`, 패널 `정의 수정`·`제거`의 비활성 판정과 사유, `팀장 호출 · 터미널 열기`, 01·02·07의 모든 표시, `GET /api/state`·SSE 값.
+  - 이유: 고정은 "수집이 끊겨 지금 상태를 알 수 없다"는 **표시** 규칙(FR-007-E1)이고, 버튼 비활성은 "서버가 거부할 동작을 막는다"는 **동작 가드**(FR-011-AC5·FR-012-AC6)다. 칩을 고정하면 같은 워크플로우가 01·02와 03에서 다른 칩으로 보인다.
+  - 그 결과 04-4 표시 중에는 패널 `상태 대기`와 버튼 사유 `작업 중에는 …`이 함께 보일 수 있다. 배너 각주가 이유를 이미 설명하므로 문구를 새로 만들지 않는다.
 
 ### SCR-04-5 에이전트 폴더 읽기 실패 (01 KPI 1·2 자리, 02 층 그리드 자리, 07 프로젝트 폴더 카드)
 | 요소 | 데이터 출처 | 빈 | 로딩 | 에러 | 연결 끊김 | 클릭 시 동작·이동 |

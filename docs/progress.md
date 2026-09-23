@@ -2,7 +2,9 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: T-016 (03 워크플로우 상세 · 픽셀 오피스) 진행 중. T-015 done.
+- Current: T-016 done. architect에 ui-spec 문서 확정 6건(A-1~A-6) 요청 중 — 끝나면 T-017(05 워크플로우 추가·05-3 삭제 확인 UI) 시작.
+  - A-3(비활성 버튼 배경)·A-4(03 프로젝트 칩)·A-5(19px 토큰)가 확정되면 **이미 done인 T-013·T-014 공통 컴포넌트 수정 + 01·02 확정 캐처 재대조**가 필요할 수 있다. architect의 AFFECTED TASKS를 보고 후속 태스크 생성 여부를 판단할 것
+  - A-2가 기준 PNG 우선으로 뒤집히면 `lib/derive/officeSeats.ts`와 테스트 재작업 발생
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -59,7 +61,11 @@
 - 2026-09-23 T-015 **PASS (Round 4, fix 3회)** → 커밋 `feat(T-015)` fc18749. 리뷰: docs/reviews/T-015.md(Round 1~4). M1 해소를 리뷰어 PIL 실측으로 확인(span-3 9열·span-1 4열, pitch 균일·이름 길이 의존 소멸, A 9+3 기준 일치). `justify-items-center`도 기준 PNG가 열 중앙 정렬(여백 대칭)임을 실측해 타당 판정. 그리드 전환 회귀 없음(인원 0·검색 필터·span 경계 7명·D 2명·T-014). 테스트 109개. **남은 Minor는 전부 후속 태스크로**: m5 가로 pitch(75 vs 86, 원인 `--spacing-card` 16px vs 기준 10px — 01·03 공유 토큰이라 값 변경은 architect 판단)·m1 세로 pitch·m6 13자 이름 열 번짐 → T-024 E2E-13 / m2 미니맵 줌 반응 → T-024 E2E-12 / m4 `Claude 열기` onClick → T-021
 - 2026-09-23 T-016 시작(Depends T-013·T-015 모두 done). Frontend 단독 범위.
 
+- 2026-09-23 T-016 **PASS (round 1)** → 커밋 `feat(T-016)` db4a460. 리뷰: docs/reviews/T-016.md. 테스트 109→166개. AC 13·E 2 전부 연결. Blocker·Major 0. **D-008/ADR-17 검증 핵심**: 04-4 중 03은 전원 `대기` 표시, 같은 스냅샷 객체로 02를 렌더하면 `작업 중` 유지됨을 두 테스트가 쌍으로 증명(리뷰어 확인). 계약·보안·공통 파일 회귀 없음. Minor 5건은 전부 ui-spec 문구 공백·내부 충돌 → architect A-1~A-6 요청
+
 ## Decisions
+- D-030 T-016 비활성 버튼·03 프로젝트 칩·로딩 스켈레톤·19px 토큰은 모두 T-013·T-014 공통 산출물 사안이라 **T-016 재작업 대상이 아니다**. ui-spec 문구가 없거나 내부 충돌이므로 architect 확정 후 별도 처리 — 리뷰어 의견과 같음 / T-016
+- D-029 T-016의 `정의 수정`·`제거` 비활성 판정에 표시 상태(displayStatus)가 아닌 **실제 `live.status`**를 쓰는 것을 승인 — ui-spec SCR-03 해당 행 데이터 출처가 `live.agents[name].status`이고, ADR-17 고정 열거에 버튼이 없으며, 표시 상태로 활성화하면 열리자마자 서버가 AGENT_BUSY로 거부하는 팝업이 열려 FR-011-AC5·FR-012-AC6 위반. 다만 04-4에서 '상태 대기 + 사유 작업 중에는…'가 모순으로 보일 수 있어 architect A-1로 문서 명시 요청 / T-016
 - D-028 기준 PNG D 카드 테두리 `#4A2C2C` vs 구현 `#5A3A3A` — `design-tokens.md:45`가 `danger-border=#5A3A3A`이므로 **구현이 옳다**. 기준 PNG가 토큰 밖 색을 쓴 목업 오차로 보고 결함으로 다루지 않음(ADR-24와 같은 판단 방식) / T-015
 - D-027 책상 열 수 규칙은 architect 문서 확정 **불필요**로 판단 — 기준 PNG 실측(A 폭 1106/pitch 123/9열, B·C·D 폭 344/pitch 86.3/4열)이 '카드 폭 균등 분할'을 이미 확정 기준으로 제시한다. ui-spec 한 줄 추가는 T-016 오피스 그리드와의 일관성을 위해 권장이나 수정의 선행 조건은 아니다 / T-015
 - D-026 ADR-24가 이미 done인 T-014(01 대표 카드 테두리)에 영향을 주지만 **계약 변경이 아니고**(architect `CONTRACT CHANGE: no`) 결과가 달라지는 경우가 `running>0 && waiting>0` 하나뿐이라 T-014를 todo로 되돌리지 않고 T-015 수정에 포함해 회귀만 확인(tasks.md T-014에 후속 메모 기록, Round 3 리뷰어가 회귀 없음 확인) / T-014, T-015
