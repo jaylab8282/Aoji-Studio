@@ -360,7 +360,7 @@
 - Depends on: T-013
 
 ## T-FIX-01 ADR-29·ADR-30 공통 컴포넌트 정합 (비활성 버튼 표현 · 프로젝트 칩 범위)
-- Status: todo
+- Status: done
 - Scope: Frontend
 - FR: 없음(문서 정합 수정 — ADR-29, ADR-30)
 - AC: 없음

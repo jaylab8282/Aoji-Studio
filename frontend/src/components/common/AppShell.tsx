@@ -13,17 +13,19 @@ import { useSnapshotStore } from "../../state/snapshotStore";
 interface AppShellProps {
   breadcrumb: ReactNode;
   rightExtra?: ReactNode;
+  /** 프로젝트 칩 표시 여부(01·02만 true). 라우트 handle에서 내려온다(ADR-30). */
+  showProjectChip?: boolean;
   children: ReactNode;
 }
 
-export function AppShell({ breadcrumb, rightExtra, children }: AppShellProps) {
+export function AppShell({ breadcrumb, rightExtra, showProjectChip = false, children }: AppShellProps) {
   const { ready } = useSnapshotStore();
 
   return (
     <div className="flex min-h-screen bg-page text-text">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar breadcrumb={breadcrumb} rightExtra={rightExtra} />
+        <TopBar breadcrumb={breadcrumb} rightExtra={rightExtra} showProjectChip={showProjectChip} />
         <DisconnectBanner />
         <main className="flex-1">{ready ? children : <AppShellSkeleton />}</main>
       </div>

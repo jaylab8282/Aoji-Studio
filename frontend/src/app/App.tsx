@@ -7,10 +7,12 @@ type RouteHandle = {
   breadcrumb?: ReactNode | ((params: Readonly<Record<string, string | undefined>>) => ReactNode);
   /** TopBar 오른쪽 추가 버튼(예: 02 "Claude 열기 · 기본 세션", ui-spec.md §공통 TopBar). */
   rightExtra?: () => ReactNode;
+  /** TopBar 프로젝트 칩 표시 여부. 01·02만 true(ADR-30). TopBar는 라우트를 직접 읽지 않는다. */
+  showProjectChip?: boolean;
 };
 
 // AppShell(사이드바·상단바)·04-3 배너·SSE 연결은 T-013에서 채운다.
-// 브레드크럼·오른쪽 추가 버튼은 각 라우트의 `handle.breadcrumb`·`handle.rightExtra`에서 가져온다.
+// 브레드크럼·오른쪽 추가 버튼·프로젝트 칩 표시 여부는 각 라우트의 `handle`에서 가져온다.
 export function App() {
   const matches = useMatches();
   const params = useParams();
@@ -21,7 +23,7 @@ export function App() {
   const rightExtra = handle?.rightExtra?.();
 
   return (
-    <AppShell breadcrumb={breadcrumb} rightExtra={rightExtra}>
+    <AppShell breadcrumb={breadcrumb} rightExtra={rightExtra} showProjectChip={handle?.showProjectChip === true}>
       <Outlet />
     </AppShell>
   );

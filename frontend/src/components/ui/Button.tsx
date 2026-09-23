@@ -1,6 +1,8 @@
 /**
  * ui-spec.md §공통 Button, ui-rules.md 2, conventions.md §3 Frontend MUST.
  * variant는 이 다섯 가지만 쓴다. `disabledReason`이 있으면 비활성 + 옆에 이유를 보여준다.
+ * 비활성은 variant 표현을 대체한다(ADR-29): 채움 배경·강조 테두리 색을 지우고 점선 + faint 글자만 남겨
+ * variant와 무관하게 모두 같은 모양이 된다. 활성 variant 모양은 그대로다.
  * 라벨과 이유는 한 줄로 고정한다(`whitespace-nowrap`): 좁은 칸에서도 글자가 쪼개지지 않고
  * 클릭 영역 높이(`h-btn`/`h-btn-sm`)가 유지된다(ui-rules.md 2, NFR-12 최소 34px).
  * 눌러도 아무 일도 없는 활성 버튼을 만들지 않는다.
@@ -20,6 +22,7 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "cla
 }
 
 // ui-rules.md 2 표: 주 동작 / 터미널 열기 / 보조 / 추가 / 위험
+// 여섯 번째 행 `비활성`은 variant 위에 덧칠하는 상태가 아니라 variant 표현을 대체한다(ADR-29).
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: "bg-running text-on-accent border border-running",
   terminal: "bg-running-soft text-running border border-running",
@@ -27,6 +30,12 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   add: "bg-transparent text-text border border-border-dashed border-dashed",
   danger: "bg-danger-soft text-danger border border-danger-border",
 };
+
+// ADR-29 / conventions.md §7 MUST: 비활성은 variant와 무관하게 한 가지 모양이다.
+// 채움 배경과 강조 테두리 색을 지우고 점선(`border/dashed`) + `text/faint` 글자만 남긴다.
+// 새 색·새 토큰을 만들지 않는다.
+const DISABLED_CLASSES =
+  "bg-transparent text-text-faint border border-border-dashed border-dashed opacity-100";
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
   md: "h-btn px-4",
@@ -50,7 +59,7 @@ export function Button({
         type="button"
         disabled={isDisabled}
         aria-disabled={isDisabled}
-        className={`inline-flex items-center justify-center whitespace-nowrap rounded-control text-body font-medium transition-colors duration-200 disabled:border-dashed disabled:text-text-faint disabled:opacity-100 ${fullWidth ? "flex-1" : ""} ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]}`}
+        className={`inline-flex items-center justify-center whitespace-nowrap rounded-control text-body font-medium transition-colors duration-200 ${fullWidth ? "flex-1" : ""} ${isDisabled ? DISABLED_CLASSES : VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]}`}
         {...rest}
       >
         {children}
