@@ -2,7 +2,11 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: T-015 (fix round 1 완료 / Round 2 NEEDS_FIX) — Round 1 이슈 14건 전부 해소. 남은 Major 1건(줌 오버레이가 책상 가림)은 ui-spec '고정' 해석 문제라 architect 확정 요청 중. 이후 frontend fix round 2에서 R1~R5 처리 예정. 이전 기록:  T-015(02 층 뷰) frontend-developer DONE(개발자 보고: 22 files/84 tests·lint·typecheck·build 통과, 스크린샷 docs/reviews/screens/T-015/02-workflows.png) — working tree 미커밋 보관(32개 파일), **팀장 검증·리뷰 미실시**(사용자 지시로 다음 세션에서). **재개 시 첫 작업**: `git status`로 T-015 변경 확인 → 팀장 `cd frontend && npm test && npm run lint && npm run typecheck && npm run build` → 스크린샷을 docs/ui/screens/02-workflows.png와 대조 → reviewer scope task(T-015) round 1 → PASS 시 `feat(T-015)` 커밋·done. 그 다음 T-016(03 상세·픽셀 오피스, Depends T-013·T-015)부터. 개발자 NOTES: 헤더 'Claude 열기' onClick 없음(T-021 범위), dialog 버튼은 URL만 변경(T-017~019), 줌·미니맵 단위 테스트 없음(E2E-12는 T-024), router.test 기대값 교정, TopBar `handle.rightExtra` 메커니즘 추가(공통 셸 변경 — 리뷰 시 타당성 확인).
+- Current: **보류 중(사용자 지시)**. T-015 fix round 3(max 3 전부 사용) 완료, **팀장 검증까지 마침 / reviewer Round 4 미실시**(사용자 지시로 다음 세션). 변경 46개 미커밋 보관.
+  - **재개 시 첫 작업**: `git status`로 T-015 변경 확인 → `cd frontend && npm test && npm run lint && npm run typecheck && npm run build` → `reviewer` scope task **Round 4** → PASS면 `feat(T-015)` 커밋·done → T-016(03 상세·픽셀 오피스, Depends T-013·T-015)
+  - **Round 4에서 볼 것**: M1(책상 열 수) 해소 여부 + 그리드 전환 회귀. 팀장 사전 확인으로는 A 9+3, B·C·D 4열로 기준과 같은 배치
+  - **max_fix_rounds 3회를 전부 사용했다.** Round 4에서 Major가 또 나오면 임의로 라운드를 늘리지 말고 T-015를 `blocked` 처리 후 에스컬레이션할 것
+  - **후속 Minor(Round 3 분류, T-015 완료를 막지 않음)**: ① 책상 줄 세로 pitch가 기준보다 17px 큼(기준 92 / 구현 109) ② 미니맵 테두리가 줌 변경에 반응 안 함(`Minimap.tsx:57` deps에 zoom 없음, 검증은 E2E-12/T-024) ③ span-1 카드 열 폭 74.8px라 12자에 가까운 긴 이름이 이웃 열로 번질 수 있음(현 픽스처 최장 10자에선 겹침 없음, ui-spec 근거 없어 미수정) ④ `Claude 열기` onClick은 T-021에서 해소 확인
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -53,7 +57,13 @@
 - 2026-09-23 T-015 round 1 NEEDS_FIX: [Major] 층 카드 헤더 버튼 라벨 2줄 줄바꿈(Button whitespace-nowrap 부재) / [Major] TopBar 우측 요소 순서 기준 PNG와 반대 / [Major] 미니맵이 워크플로우 단위 상태를 색만으로 표시(conventions 59행 MUST·FR-006-AC5 위반) + 그리드 비율 미반영 / [Major] 층 요약 문구를 컴포넌트에서 조립(conventions 29·58행 MUST 위반) / Minor 10건 → 같은 범위 frontend-developer에 수정 요청. 리뷰: docs/reviews/T-015.md
 - 2026-09-23 T-015 fix round 1 완료. 팀장 검증 `npm test` 26 files/99 tests(84→99, 감소·skip 없음)·lint·typecheck·build 통과, 캐처 1440×1020 재생성. reviewer Round 2: Round 1 이슈 14건 전부 **해소**(M3·M4는 실질 해소 확인 — workflowChip 의존 제거·순수 함수 분리). 신규 NEEDS_FIX [Major] R1 줌 컨트롤 오버레이가 video-05 책상 이름·상태 글자를 가림(m4 수정의 부작용, pb-32로 해결 불가) → ui-spec 147·148행 '고정' 해석 확정이 필요해 architect 요청 / [Minor] R2 미니맵 뷰포트 높이 계산 / R3 층 카드 테두리가 waiting 우선(#FF9A4D)이나 기준 PNG·design-tokens 39행은 running-border(#2C4A3C) / R4 줌 버튼 감싼 카드 패널이 ui-spec 요소 표에 없음 / R5 책상 간격 gap-4(71px) vs 기준 122px. 공통 컴포넌트(Button·TopBar) 01·03·07 회귀 없음 확인
 
+- 2026-09-23 T-015 fix round 2(ADR-23~26 반영) 완료. 팀장 검증 28 files/108 tests·lint·typecheck·build 통과. reviewer Round 3: R1~R4 **해소**(줌 오버레이 가림 해결·미니맵 기준 교체·테두리 공용 함수·줌 버튼 패널 제거), R5 **부분 해소** → [Major] M1 span-1 카드 책상 열 수(기준 4열 vs 구현 B 2열·C 3열). 리뷰어 PIL 실측으로 기준 규칙 확정: 책상 열은 카드 폭을 균등 분할(span-3 9열, span-1 4열), pitch는 파생값. 개발자의 '고정 gap으로 재현 불가'는 맞지만 '그래서 ui-spec 규칙이 필요하다'는 불성립 — 원인은 `flex` 항목 폭이 이름 글자 길이를 따라간 것(architect 불필요). T-014 회귀 없음 확인
+- 2026-09-23 T-015 fix round 3(마지막) 완료: 책상 컨테이너를 등폭 CSS 그리드로 교체·열 수를 span에서 파생(grid-cols-9 / grid-cols-4)·`gap-x-16` 제거·`justify-items-center`. 팀장 검증 28 files/**109 tests**·lint·typecheck·build 통과, 1440×1020 재캐처. 팀장 육안 확인으로 A 9+3, B·C·D 4열 = 기준 배치. **reviewer Round 4 미실시 — 사용자 지시로 보류.** 리뷰 없이 PASS 판정할 수 없어 T-015는 in_progress 유지·미커밋 보관
+
 ## Decisions
+- D-028 기준 PNG D 카드 테두리 `#4A2C2C` vs 구현 `#5A3A3A` — `design-tokens.md:45`가 `danger-border=#5A3A3A`이므로 **구현이 옳다**. 기준 PNG가 토큰 밖 색을 쓴 목업 오차로 보고 결함으로 다루지 않음(ADR-24와 같은 판단 방식) / T-015
+- D-027 책상 열 수 규칙은 architect 문서 확정 **불필요**로 판단 — 기준 PNG 실측(A 폭 1106/pitch 123/9열, B·C·D 폭 344/pitch 86.3/4열)이 '카드 폭 균등 분할'을 이미 확정 기준으로 제시한다. ui-spec 한 줄 추가는 T-016 오피스 그리드와의 일관성을 위해 권장이나 수정의 선행 조건은 아니다 / T-015
+- D-026 ADR-24가 이미 done인 T-014(01 대표 카드 테두리)에 영향을 주지만 **계약 변경이 아니고**(architect `CONTRACT CHANGE: no`) 결과가 달라지는 경우가 `running>0 && waiting>0` 하나뿐이라 T-014를 todo로 되돌리지 않고 T-015 수정에 포함해 회귀만 확인(tasks.md T-014에 후속 메모 기록, Round 3 리뷰어가 회귀 없음 확인) / T-014, T-015
 - D-025 로비 상태 표기 `입력 대기`는 ui-spec 140행·기준 PNG와 일치하나 conventions 104행 상태 문구 목록에 없음 → 계약·FR 의미와 무관한 문서 간 표기 불일치이므로 architect에 conventions 보완 요청(코드 변경 없음) / T-015
 - D-024 기준 PNG `02-workflows.png` 층 헤더에 `삭제` 버튼·비활성 사유가 없으나 구현은 표시 — ui-spec 142행·FR-006-AC12·FR-017-AC1 근거이므로 결함 아님. 기준 PNG가 FR-017 확정 이전 산출물이라는 해석 → architect에 ui-spec 주석 보완 요청 / T-015
 - D-023 ui-spec §공통 AppShell 표에 로고·워드마크(`Jay Studio`) 설명 누락은 기준 PNG에 있는 요소의 문서 표기 누락(계약·FR 무관) → architect에 문서 보완 요청, 코드 변경 없음 / T-014
