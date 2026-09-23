@@ -399,6 +399,23 @@
   - FR-005-AC5 — E2E-01 `01 04-7 카드 → 05 왼쪽 열림 → 만들기 후 /workflows`
 - Depends on: T-014, T-015
 
+## T-FIX-02 ADR-33·ADR-34 05 팝업 정합 (대괄호 표기 · FR-017-E1 안내 3초)
+- Status: todo
+- Scope: Frontend
+- FR: FR-008, FR-017(문서 정합 수정 — ADR-33, ADR-34)
+- AC: 없음(기존 AC 유지)
+- Errors: FR-017-E1
+- Screens: SCR-05-L, SCR-05-3
+- Backend: 없음
+- Frontend: `lib/text.ts`(`WORKFLOW_ADD_DESCRIPTION`), `dialogs/workflow-delete/WorkflowDeleteDialog.tsx`(상수·주석·안내 중 버튼 상태), 두 파일의 단위 테스트 기대값
+- 배경: T-017 리뷰 Minor 1·2(+ Minor 3과 같은 결론) → architect ADR-33·ADR-34 확정. 이미 done인 T-017 산출물이라 별도 수정 태스크로 분리(T-FIX-01 선례). 계약 변경 없음
+- Done when:
+  - ADR-33 — `WORKFLOW_ADD_DESCRIPTION`이 `구성 파일 .jaystudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다.`다(대괄호 없음). 단위 `WorkflowAddDialog.test [ADR-33] 설명줄 문구` + 정적 검사: `frontend/src`의 화면 문구 상수에 `[`로 시작하는 한글 자리표시 0건. 설명 입력 placeholder는 `한 줄 설명` 그대로(회귀 확인)
+  - ADR-34 / FR-017-E1 — `NOT_EMPTY_NOTICE_MS = 3000`이고 ui-spec SCR-05-3의 3000ms와 같다. 단위 `[FR-017-E1] 409 WORKFLOW_NOT_EMPTY → 3초 후 닫힘`(2.9초 시점 미닫힘 / 3.0초 후 `onClose` 1회), `[FR-017-E1] 안내 표시 중 삭제 버튼 비활성`(중복 DELETE 0건), `[FR-017-E1] 안내 중 취소 → 즉시 닫힘`
+  - 회귀 — `[FR-017-E2] 500 → message, 팝업 유지`의 타이머 단언을 3초 기준으로 교정한다(삭제·skip 금지). `cd frontend && npm test` 통과 수가 줄지 않는다
+  - 캡처 재대조 — 05-L을 재캡처해 `docs/reviews/screens/T-FIX-02/`에 두고 설명줄 문구를 확인한다
+- Depends on: T-017
+
 ## T-018 05 기존 에이전트 가져오기 UI
 - Status: todo
 - Scope: Frontend
@@ -418,6 +435,7 @@
   - FR-009-E1 — 단위 `[FR-009-E1] 400 fields.members → 표시`
   - FR-009-E2 — 단위 `[FR-009-E2] rejected ALREADY_ASSIGNED → 행별 사유, 팝업 유지, 목록 갱신`
   - FR-009-E3 — 단위 `[FR-009-E3] 500 → message`
+  - ADR-33·ADR-35 정합 — 05-R 문구에 대괄호 자리표시를 남기지 않는다(`선택한 N명 가져오기`는 (a) 치환). `가져오기`·`선택한 0명 가져오기` 비활성에는 이유 줄을 붙이지 않고, `writable=false`·`+ 새로 만들기`만 `쓰기 권한 없음`을 붙인다. 단위 `[FR-009-AC5][ADR-35] 0명 비활성에 이유 줄 없음, writable=false는 '쓰기 권한 없음'`
 - Depends on: T-017
 
 ## T-019 06 에이전트 만들기 · 수정 · 06-5 충돌 · 06-6 제거 UI
@@ -451,6 +469,8 @@
   - FR-012-E2 — 단위 `[FR-012-E2] 409 AGENT_BUSY → 문구`
   - FR-017-AC5(T-017 리뷰 Minor 5) — 단위 `[FR-017-AC5] 06 폼·06-6 어디에도 워크플로우 이름 편집 입력·버튼 없음`. T-017은 05 범위만 단언했으므로 06 범위를 여기서 메운다
   - `ConfirmByNameDialog`(T-017 산출물) 재사용 — 06-6 전용 확인 팝업을 새로 만들지 않는다. `notes[]`에 휴지통 안내 + 팀장 안내 2줄을 넘긴다
+  - ADR-33 정합 — 06 `설명 (description)` placeholder는 대괄호 없이 `언제 이 에이전트에게 일을 맡기는지`, 도구 기타 입력 라벨은 `기타`다. 단위 `[ADR-33] 06 폼 placeholder·라벨에 대괄호 없음`
+  - ADR-35 정합 — 이유 줄을 붙이는 곳은 `이미 팀장이 있습니다 (<lead>)`(FR-010-AC4), `도구 방식을 고르세요`(FR-010-AC2), `작업 중에는 제거할 수 없습니다`(FR-012-AC6), `쓰기 권한 없음`(FR-010-E2)뿐이다. 필수값 미입력 `저장`, 이름 불일치 `제거 (이름 일치 시 활성)`, 소속 `(없음)` 역할 라디오, 06-5 진행 중 버튼에는 이유 줄을 만들지 않는다. 단위 `[ADR-35] 지정 지점만 이유 줄, 나머지 비활성은 이유 줄 없음`
 - Depends on: T-016, T-017
 
 ## T-020 열기 도우미 (Node) · 설치 스크립트 · plist
@@ -512,6 +532,7 @@
   - FR-001-AC5 — 단위 `[FR-001-AC5] 경로 읽기 전용 텍스트, input 요소 없음`
   - FR-001-E1 — 단위 `[FR-001-E1] agentsDirMissing → 프로젝트 폴더 카드에 AgentsDirMissing` + E2E-06
   - FR-001-E2 — 단위 `[FR-001-E2] writable false → '쓰기 권한 없음'(danger)`
+  - ADR-33 예외 — `팀장으로 열기` 행은 `settings.leadSessionCommandTemplate` 값을 가공 없이 표시한다. 값에 들어 있는 `<팀장 name>`(FR-013-AC2 확정 문구)을 프론트가 지우거나 치환하지 않는다. 단위 `[FR-013-AC5][ADR-33] 템플릿 값 그대로 표시`
 - Depends on: T-013, T-012
 
 ## T-023 이벤트 재생 도구 · fixture 세트

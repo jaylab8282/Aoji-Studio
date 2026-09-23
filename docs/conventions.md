@@ -24,14 +24,15 @@
 | CSS 토큰 | `design-tokens.md` 이름을 `--color-<group>-<name>` 등으로 매핑(ui-spec §공통) | `--color-state-running` |
 | 테스트 | Java `<Class>Test`, TS `<file>.test.ts(x)`, 도우미 `<file>.test.mjs`, E2E `<시나리오>.spec.ts` | `SessionStateMachineTest` |
 | 상태 enum | 서버·프론트 모두 `running` / `waiting` / `idle` 문자열 | - |
-| 화면 문구 | final 문서·ui-spec의 문구를 글자 그대로 | `팀장이 없습니다 · 팀장을 만들거나 가져오세요` |
+| 화면 문구 | final 문서·ui-spec의 문구를 글자 그대로. 단 `[...]`·`<...>` 표기는 아래 MUST(ADR-33)를 적용한 뒤의 형태가 "그대로"의 기준이다 | `팀장이 없습니다 · 팀장을 만들거나 가져오세요` |
 
 - MUST 화면 문구는 `frontend/src/lib/text.ts` 한 파일에 상수로 모으고 컴포넌트는 그 상수를 쓴다. 이유: E2E·리뷰가 문구를 대조하고, 문구 변경이 한 곳에서 끝난다.
+- MUST 화면 문구 상수·JSX 문자열에 `[`·`]`로 감싼 자리표시 표기를 남기지 않는다. ui-spec·와이어프레임 문구의 `[...]`·`<...>`는 문서 표기이며, 렌더 형태는 ui-spec §공통 "화면 문구의 `[...]`·`<...>` 표기"(ADR-33)의 세 갈래 — **(a) 데이터 출처 값으로 치환 / (b) 입력 요소 placeholder면 괄호 벗긴 설명 문구 / (c) 정적이면 괄호만 벗긴 텍스트** — 로만 정한다. 판정 순서는 (a)→(b)→(c)이고, 괄호 안 낱말을 바꾸거나 문장을 다시 쓰지 않는다. 유일한 예외는 서버가 준 값 자체에 괄호가 들어 있는 경우(`settings.leadSessionCommandTemplate`의 `<팀장 name>`, FR-013-AC2)이며 이는 (a)의 결과다. 이유: 같은 표기를 구현자마다 다르게 읽어 화면 문구가 갈리는 일을 없앤다(T-017 Minor 1), §2 "문구 그대로"와 §3 "placeholder 문구 금지"의 충돌 제거.
 
 ## 3. 코딩 규칙
 
 ### 공통
-- MUST 미완성 코드 금지: `TODO`, `FIXME`, `XXX`, placeholder 값·문구(`lorem`, `TBD`, `[N]`, `[워크플로우 1]`, `example.com`), 미구현 stub(`throw new UnsupportedOperationException`, `return null // later`), 운영 코드 경로의 Mock·가짜 데이터. 이유: 태스크 완료 = 동작하는 코드.
+- MUST 미완성 코드 금지: `TODO`, `FIXME`, `XXX`, placeholder 값·문구(`lorem`, `TBD`, `[N]`, `[이름]`, `[한 줄 설명]`, `[워크플로우 1]`, `example.com` — 화면에 렌더되는 문자열의 대괄호 자리표시는 정적 설명줄이어도 여기에 포함된다, ADR-33. 서버가 준 값에 들어 있는 괄호는 제외), 미구현 stub(`throw new UnsupportedOperationException`, `return null // later`), 운영 코드 경로의 Mock·가짜 데이터. 이유: 태스크 완료 = 동작하는 코드.
 - MUST 운영 코드에서 `System.out`, `console.log`로 hook 본문·`tool_input`·토큰·요약 원문을 출력하지 않는다. 이유: NFR-08.
 - MUST 시각은 서버가 ISO-8601 offset 문자열로 주고, 프론트가 `lib/format/time.ts`로만 변환한다. 이유: 표기 일관성(`hh:mm:ss`, `yyyy-mm-dd hh:mm`).
 - SHOULD 함수는 한 가지 일만 하고 40줄을 넘기지 않는다. 이유: 리뷰 가능성.
@@ -58,6 +59,7 @@
 - MUST 파생 계산(정렬·집계·검색·라벨)은 `lib/derive/*.ts` 순수 함수로 두고 Vitest 테스트를 붙인다. 컴포넌트 안에서 정렬·집계 로직을 쓰지 않는다. 이유: ADR-15, AC 검증.
 - MUST 상태 표시는 항상 `StatusDot` + 상태 글자(`작업 중`/`권한·입력 대기`/`대기`) 조합인 `StatusLabel` 컴포넌트를 쓴다. 색만 있는 상태 표시 금지. 이유: ui-rules 1, NFR-12.
 - MUST 버튼은 `components/ui/Button`의 `variant`(`primary`|`terminal`|`secondary`|`add`|`danger`)와 `disabledReason` prop으로만 만든다. `disabledReason`이 있으면 옆에 이유 한 줄을 렌더링한다. 누르면 아무 일도 없는 활성 버튼 금지. 이유: ui-rules 2.
+- MUST `disabledReason`에는 **ui-spec §공통 "비활성 버튼의 이유 줄" 목록이 그 지점에 지정한 문구만** 넣는다. 목록에 이유가 없는 비활성(입력 미완, 이름 불일치, 요청 진행 중 등)은 이유 줄 없이 비활성 모양(ADR-29)만 쓰고, 문구를 새로 지어내지 않는다. 목록에 없는 새 비활성 지점이 필요하면 구현에서 문구를 만들지 말고 architect에 확정을 요청한다. 이유: ui-rules 2의 "옆에 이유 한 줄"은 이유가 필요한 경우의 표현을 적은 것이고, 문구 신설은 §2 MUST(문구 그대로) 위반이다(ADR-35).
 - MUST 픽셀 캐릭터는 인라인 SVG(`shape-rendering: crispEdges`)로 `pixel-sprites.md` 좌표를 그대로 쓴다. 이미지 파일·CSS 애니메이션 금지. 상태 색 전환은 `transition: fill 200ms`만. 이유: UI 기준.
 - SHOULD 컴포넌트 파일은 200줄을 넘기지 않는다.
 
@@ -104,12 +106,13 @@
 - MUST 상태 글자 문구: `작업 중`, `권한·입력 대기`(캐릭터·책상 아래 짧은 표기는 `권한 대기`, **02 로비 항목의 짧은 표기는 `입력 대기`** — ui-spec SCR-02 로비 행·02 기준 PNG, ADR-26), `대기`. 워크플로우 칩: `실행 중 N명` / `권한 대기 N명` / `모두 대기`. 이 네 표기 밖의 상태 문구를 새로 만들지 않는다. 이유: ui-rules 1.
 - MUST 화면 아래에 "고정"하는 보조 컨트롤(02 줌 버튼·미니맵)은 스크롤 영역 밖 전용 영역에 두고 콘텐츠 위에 겹치지 않게 한다. 스크롤되는 콘텐츠 위에 `position: fixed`·`sticky`로 덮는 배치 금지. 이유: FR-006-AC10, `docs/ui/README.md`(요소 가림은 결함), ui-spec SCR-02 레이아웃 항(ADR-23).
 - MUST 워크플로우 카드·층 카드 테두리 색은 `lib/derive/workflowCardBorder.ts` 하나로 정한다(01·02 공용). 컴포넌트에서 칩 variant로 테두리를 정하지 않는다. 이유: ADR-24, 화면 간 표현 불일치 방지.
-- MUST 비활성 버튼은 variant의 채움 배경과 강조 테두리 색을 지우고 점선 테두리(`border/dashed`) + `text/faint` 글자 + 옆 이유 한 줄만 남긴다. variant 배경 위에 점선·faint만 덧칠하지 않는다. 이유: ui-rules 2 표의 `비활성`은 variant를 대체하는 표현이고, 배경을 남기면 비활성 버튼이 활성처럼 보여 "눌러도 아무 일이 없는 활성 버튼 금지"(ui-rules 2) 의도가 깨진다(ADR-29).
+- MUST 비활성 버튼은 variant의 채움 배경과 강조 테두리 색을 지우고 점선 테두리(`border/dashed`) + `text/faint` 글자만 남긴다(이유 줄은 ADR-35가 지정한 지점에만 옆에 붙는다). variant 배경 위에 점선·faint만 덧칠하지 않는다. 이유: ui-rules 2 표의 `비활성`은 variant를 대체하는 표현이고, 배경을 남기면 비활성 버튼이 활성처럼 보여 "눌러도 아무 일이 없는 활성 버튼 금지"(ui-rules 2) 의도가 깨진다(ADR-29).
 - MUST 프로젝트 칩(`● 프로젝트 · <hostPath>`)은 01·02에서만 그린다. `TopBar`는 라우트를 직접 읽지 않고 화면이 넘긴 설정으로 칩 표시 여부를 정한다. 이유: ui-spec §공통 `TopBar`·SCR-03 요소 표·기준 PNG 03(ADR-30), 공통 컴포넌트가 라우트를 알면 화면 규칙이 셸로 샌다.
 - MUST 첫 스냅샷 전 로딩은 `AppShell` 공통 스켈레톤 하나로 처리하고 화면마다 별도 스켈레톤을 만들지 않는다. 예외는 ui-spec §공통 상태 표현 `로딩` 행의 자체 스켈레톤 목록(`TopBar` 칩, `CollectorStatus`, 자체 API 호출 요소)뿐이다. 이유: 01·02·03이 같은 로딩 화면을 갖고 중복 구현을 없앤다(ADR-32).
 - MUST 04-4(수집 중단) 표시 고정(`displayStatus`)은 ui-spec SCR-04-4의 "고정 대상" 목록에만 적용하고, 버튼 비활성·사용 가능 판정과 헤더 칩에는 실제 `live.agents[name].status`를 쓴다. 이유: 표시 규칙(FR-007-E1)과 동작 가드(FR-011-AC5·FR-012-AC6)를 섞으면 서버가 409 `AGENT_BUSY`로 거부할 팝업이 열린다(ADR-27).
 - MUST 아이콘만 있는 버튼(`+`, `−`, `‹`, 검색)은 `aria-label`. 클릭 영역 최소 34px. 이유: NFR-12.
 - MUST 애니메이션 금지. 상태 색 전환 `transition` 200ms 이하만. 이유: UI 기준.
+- MUST 표시 지속 시간·자동 닫힘 지연 값은 ui-spec이 명시한 값만 쓰고, design token이 아니라 해당 컴포넌트의 이름 있는 코드 상수로 둔다(예: 05-3 FR-017-E1 안내 `NOT_EMPTY_NOTICE_MS = 3000`, `CopyButton` 복사됨 1.5초, 02 저장 후 안내 줄 8초). ui-spec에 값이 없는 새 지연을 구현이 정하지 않는다. 이유: 사용자가 읽어야 하는 문구의 노출 시간이 리뷰 가능한 문서 값이어야 한다(ADR-34).
 - MUST 12자 초과 name은 `ellipsis.ts`로 말줄임하고 `title` 속성으로 전체 name을 준다. 이유: FR-006-AC4.
 - SHOULD 글꼴은 `IBM Plex Sans KR`·`IBM Plex Mono`를 `frontend/public/fonts/`에 self-host(오픈 폰트 라이선스, 외부 요청 없음). 이유: 외부 접속 없이 동작.
 
