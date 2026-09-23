@@ -14,6 +14,8 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "cla
   variant: ButtonVariant;
   size?: ButtonSize;
   disabledReason?: string;
+  /** 버튼을 가로로 늘린다(ui-spec.md SCR-03 패널 `정의 수정` "primary, 넓게"). */
+  fullWidth?: boolean;
   children: ReactNode;
 }
 
@@ -35,6 +37,7 @@ export function Button({
   variant,
   size = "md",
   disabledReason,
+  fullWidth = false,
   disabled,
   children,
   ...rest
@@ -42,12 +45,12 @@ export function Button({
   const isDisabled = Boolean(disabled) || Boolean(disabledReason);
 
   return (
-    <span className="inline-flex items-center gap-2">
+    <span className={`items-center gap-2 ${fullWidth ? "flex w-full" : "inline-flex"}`}>
       <button
         type="button"
         disabled={isDisabled}
         aria-disabled={isDisabled}
-        className={`inline-flex items-center justify-center whitespace-nowrap rounded-control text-body font-medium transition-colors duration-200 disabled:border-dashed disabled:text-text-faint disabled:opacity-100 ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]}`}
+        className={`inline-flex items-center justify-center whitespace-nowrap rounded-control text-body font-medium transition-colors duration-200 disabled:border-dashed disabled:text-text-faint disabled:opacity-100 ${fullWidth ? "flex-1" : ""} ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]}`}
         {...rest}
       >
         {children}

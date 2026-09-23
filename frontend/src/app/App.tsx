@@ -3,7 +3,8 @@ import { Outlet, useMatches, useParams } from "react-router-dom";
 import { AppShell } from "../components/common/AppShell";
 
 type RouteHandle = {
-  breadcrumb?: string | ((params: Readonly<Record<string, string | undefined>>) => string);
+  /** 03은 `홈 / 에이전트 워크플로우 / [이름]` 링크 브레드크럼이라 ReactNode도 받는다(ui-spec.md SCR-03). */
+  breadcrumb?: ReactNode | ((params: Readonly<Record<string, string | undefined>>) => ReactNode);
   /** TopBar 오른쪽 추가 버튼(예: 02 "Claude 열기 · 기본 세션", ui-spec.md §공통 TopBar). */
   rightExtra?: () => ReactNode;
 };

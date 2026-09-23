@@ -4,6 +4,7 @@
  * 컴포넌트는 이 파일을 직접 다루지 않고 `state/connectionStore.ts`·`state/snapshotStore.ts`만 구독한다.
  */
 import { apiGet, getBrowserToken } from "./client";
+import { agentEventsStore } from "../state/agentEventsStore";
 import { connectionStore } from "../state/connectionStore";
 import { snapshotStore } from "../state/snapshotStore";
 import type { EventRow, Live, Registry, Snapshot } from "./types";
@@ -134,6 +135,8 @@ export function createStreamClient(): StreamClient {
       case "event": {
         const data = JSON.parse(raw) as EventRow;
         snapshotStore.prependEvent(data);
+        // 03 선택 패널의 최근 이벤트 목록(realtime-spec.md §5, FR-007-AC6).
+        agentEventsStore.prependIfMatches(data);
         connectionStore.touch(receivedAt);
         break;
       }

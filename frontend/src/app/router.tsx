@@ -4,6 +4,7 @@ import { HomeScreen } from "../screens/home/HomeScreen";
 import { WorkflowsScreen } from "../screens/workflows/WorkflowsScreen";
 import { WorkflowsHeader } from "../screens/workflows/WorkflowsHeader";
 import { WorkflowDetailScreen } from "../screens/workflow-detail/WorkflowDetailScreen";
+import { WorkflowBreadcrumb } from "../screens/workflow-detail/Breadcrumb";
 import { SettingsScreen } from "../screens/settings/SettingsScreen";
 import { SIDEBAR_TAB_HOME, SIDEBAR_TAB_SETTINGS, SIDEBAR_TAB_WORKFLOWS } from "../lib/text";
 
@@ -23,7 +24,11 @@ export const router = createBrowserRouter([
       {
         path: "/workflows/:name",
         element: <WorkflowDetailScreen />,
-        handle: { breadcrumb: (params: Readonly<Record<string, string | undefined>>) => params.name ?? "" },
+        handle: {
+          breadcrumb: (params: Readonly<Record<string, string | undefined>>) => (
+            <WorkflowBreadcrumb name={params.name ?? ""} />
+          ),
+        },
       },
       { path: "/settings", element: <SettingsScreen />, handle: { breadcrumb: SIDEBAR_TAB_SETTINGS } },
       { path: "*", element: <Navigate to="/" replace /> },

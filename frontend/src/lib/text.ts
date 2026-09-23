@@ -28,6 +28,7 @@ export const SIDEBAR_TAB_WORKFLOWS = "에이전트 워크플로우";
 export const SIDEBAR_TAB_SETTINGS = "설정";
 
 // TopBar (ui-spec §공통 TopBar)
+export const BREADCRUMB_SEPARATOR = "/";
 export const LOCAL_ONLY_TEXT = "127.0.0.1 전용";
 export const PROJECT_CHIP_PREFIX = "프로젝트 · ";
 
@@ -213,4 +214,64 @@ export const ZOOM_FIT_LABEL = "맞춤";
 export function agentStatusWithParent(status: Status, parentLabel: string | null): string {
   const base = STATUS_LABEL_TEXT_SHORT[status];
   return parentLabel ? `${base} · 부모 ${parentLabel}` : base;
+}
+
+// SCR-03 워크플로우 상세 · 픽셀 오피스
+export const BACK_TO_WORKFLOWS_LABEL = "에이전트 워크플로우로";
+export const LEAD_TERMINAL_BUTTON_LABEL = "팀장 호출 · 터미널 열기";
+export const WORKFLOW_NOT_FOUND_TEXT = "워크플로우를 찾을 수 없습니다";
+
+export const OFFICE_TITLE = "오피스";
+export const OFFICE_SUBTITLE = "에이전트 1명 = 캐릭터 1개 · 팀장 첫 자리, 나머지 이름순";
+export const EMPTY_SEAT_TEXT = "빈 자리";
+
+export const OFFICE_LEGEND_TITLE = "동작 매핑";
+export const OFFICE_LEGEND_TYPING = "타이핑 = Edit·Write";
+export const OFFICE_LEGEND_READING = "읽기 = Read·Grep·Glob";
+export const OFFICE_LEGEND_WAITING = "주황 말풍선 = 권한 요청";
+export const OFFICE_LEGEND_IDLE = "회색 = 대기";
+export const OFFICE_LEGEND_SUBAGENT = "작은 캐릭터 = 서브에이전트";
+
+/** 말풍선 문구(FR-007-AC2). 조립은 `lib/derive/actionLabel.ts`가 한다. */
+export const ACTION_LABEL_PERMISSION = "권한 요청";
+export function typingActionLabel(tool: string): string {
+  return `타이핑 · ${tool}`;
+}
+export function readingActionLabel(tool: string): string {
+  return `읽기 · ${tool}`;
+}
+
+// 04-4 수집 중단 배너 (SCR-04-4, FR-007-E1)
+export function collectorDownBannerMessage(lastReceivedDateHm: string | null): string {
+  return `hook 이벤트 수신 없음 · ${lastReceivedLabel(lastReceivedDateHm)}`;
+}
+export const COLLECTOR_DOWN_FOOTNOTE = "Claude Code 미실행 또는 컨테이너 재시작 · 캐릭터는 모두 회색 대기";
+
+// 선택 패널 (SCR-03 오른쪽 360px)
+export const PANEL_TITLE = "선택한 에이전트";
+export const PANEL_SUBTITLE = "기본 선택 = 팀장";
+export const PANEL_NO_AGENT_TEXT = "선택할 에이전트가 없습니다";
+export const PANEL_ROW_STATUS = "상태";
+export const PANEL_ROW_CURRENT_TOOL = "현재 도구";
+export const PANEL_ROW_SESSION_STARTED = "세션 시작";
+export const PANEL_ROW_CHILD_COUNT = "서브에이전트";
+export const PANEL_ROW_CWD = "작업 폴더";
+/** 패널 `현재 도구`: `<도구> · <대상 요약>`, 없으면 `-` (FR-007-AC5). */
+export function currentToolLabel(toolName: string | null, target: string | null): string {
+  return toolName === null ? EMPTY_VALUE_TEXT : `${toolName} · ${target ?? ""}`.trimEnd();
+}
+export const PANEL_RECENT_EVENTS_TITLE = "최근 이벤트";
+export const PANEL_RECENT_EVENTS_EMPTY = "최근 이벤트 없음";
+export const PANEL_RECENT_EVENTS_ERROR = "최근 이벤트를 불러오지 못했습니다";
+export const RETRY_BUTTON_LABEL = "다시 시도";
+export const EDIT_AGENT_BUTTON_LABEL = "정의 수정";
+export const REMOVE_AGENT_BUTTON_LABEL = "제거";
+export const EDIT_AGENT_BUSY_REASON = "작업 중에는 수정할 수 없습니다";
+export const REMOVE_AGENT_BUSY_REASON = "작업 중에는 제거할 수 없습니다";
+export const PANEL_FOOTNOTE_TRASH = "제거 = 휴지통(.jaystudio/trash/)으로 이동 · 원문 로그 보기 없음";
+export const PANEL_FOOTNOTE_TERMINAL_PREFIX = "작업 지시는 상단 ";
+export const PANEL_FOOTNOTE_TERMINAL_EMPHASIS = "팀장 호출";
+export const PANEL_FOOTNOTE_TERMINAL_SUFFIX = "로 연 터미널에서 직접 한다 · ";
+export function leadAgentCommand(lead: string): string {
+  return `claude --agent ${lead}`;
 }

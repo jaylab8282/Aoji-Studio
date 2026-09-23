@@ -2,11 +2,7 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **보류 중(사용자 지시)**. T-015 fix round 3(max 3 전부 사용) 완료, **팀장 검증까지 마침 / reviewer Round 4 미실시**(사용자 지시로 다음 세션). 변경 46개 미커밋 보관.
-  - **재개 시 첫 작업**: `git status`로 T-015 변경 확인 → `cd frontend && npm test && npm run lint && npm run typecheck && npm run build` → `reviewer` scope task **Round 4** → PASS면 `feat(T-015)` 커밋·done → T-016(03 상세·픽셀 오피스, Depends T-013·T-015)
-  - **Round 4에서 볼 것**: M1(책상 열 수) 해소 여부 + 그리드 전환 회귀. 팀장 사전 확인으로는 A 9+3, B·C·D 4열로 기준과 같은 배치
-  - **max_fix_rounds 3회를 전부 사용했다.** Round 4에서 Major가 또 나오면 임의로 라운드를 늘리지 말고 T-015를 `blocked` 처리 후 에스컬레이션할 것
-  - **후속 Minor(Round 3 분류, T-015 완료를 막지 않음)**: ① 책상 줄 세로 pitch가 기준보다 17px 큼(기준 92 / 구현 109) ② 미니맵 테두리가 줌 변경에 반응 안 함(`Minimap.tsx:57` deps에 zoom 없음, 검증은 E2E-12/T-024) ③ span-1 카드 열 폭 74.8px라 12자에 가까운 긴 이름이 이웃 열로 번질 수 있음(현 픽스처 최장 10자에선 겹침 없음, ui-spec 근거 없어 미수정) ④ `Claude 열기` onClick은 T-021에서 해소 확인
+- Current: T-016 (03 워크플로우 상세 · 픽셀 오피스) 진행 중. T-015 done.
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -59,6 +55,9 @@
 
 - 2026-09-23 T-015 fix round 2(ADR-23~26 반영) 완료. 팀장 검증 28 files/108 tests·lint·typecheck·build 통과. reviewer Round 3: R1~R4 **해소**(줌 오버레이 가림 해결·미니맵 기준 교체·테두리 공용 함수·줌 버튼 패널 제거), R5 **부분 해소** → [Major] M1 span-1 카드 책상 열 수(기준 4열 vs 구현 B 2열·C 3열). 리뷰어 PIL 실측으로 기준 규칙 확정: 책상 열은 카드 폭을 균등 분할(span-3 9열, span-1 4열), pitch는 파생값. 개발자의 '고정 gap으로 재현 불가'는 맞지만 '그래서 ui-spec 규칙이 필요하다'는 불성립 — 원인은 `flex` 항목 폭이 이름 글자 길이를 따라간 것(architect 불필요). T-014 회귀 없음 확인
 - 2026-09-23 T-015 fix round 3(마지막) 완료: 책상 컨테이너를 등폭 CSS 그리드로 교체·열 수를 span에서 파생(grid-cols-9 / grid-cols-4)·`gap-x-16` 제거·`justify-items-center`. 팀장 검증 28 files/**109 tests**·lint·typecheck·build 통과, 1440×1020 재캐처. 팀장 육안 확인으로 A 9+3, B·C·D 4열 = 기준 배치. **reviewer Round 4 미실시 — 사용자 지시로 보류.** 리뷰 없이 PASS 판정할 수 없어 T-015는 in_progress 유지·미커밋 보관
+
+- 2026-09-23 T-015 **PASS (Round 4, fix 3회)** → 커밋 `feat(T-015)` fc18749. 리뷰: docs/reviews/T-015.md(Round 1~4). M1 해소를 리뷰어 PIL 실측으로 확인(span-3 9열·span-1 4열, pitch 균일·이름 길이 의존 소멸, A 9+3 기준 일치). `justify-items-center`도 기준 PNG가 열 중앙 정렬(여백 대칭)임을 실측해 타당 판정. 그리드 전환 회귀 없음(인원 0·검색 필터·span 경계 7명·D 2명·T-014). 테스트 109개. **남은 Minor는 전부 후속 태스크로**: m5 가로 pitch(75 vs 86, 원인 `--spacing-card` 16px vs 기준 10px — 01·03 공유 토큰이라 값 변경은 architect 판단)·m1 세로 pitch·m6 13자 이름 열 번짐 → T-024 E2E-13 / m2 미니맵 줌 반응 → T-024 E2E-12 / m4 `Claude 열기` onClick → T-021
+- 2026-09-23 T-016 시작(Depends T-013·T-015 모두 done). Frontend 단독 범위.
 
 ## Decisions
 - D-028 기준 PNG D 카드 테두리 `#4A2C2C` vs 구현 `#5A3A3A` — `design-tokens.md:45`가 `danger-border=#5A3A3A`이므로 **구현이 옳다**. 기준 PNG가 토큰 밖 색을 쓴 목업 오차로 보고 결함으로 다루지 않음(ADR-24와 같은 판단 방식) / T-015

@@ -54,6 +54,25 @@ describe("router", () => {
   });
 
   it("[T-001] /workflows/:name 경로 → 워크플로우 이름 렌더", () => {
+    // T-016부터 03은 registry에 있는 워크플로우만 헤더를 그린다(없으면 FR-007-E2 안내).
+    const fixture = buildSnapshotFixture();
+    snapshotStore.replace({
+      ...fixture,
+      registry: {
+        ...fixture.registry,
+        workflows: [
+          {
+            name: "개발부서",
+            description: "",
+            filePath: ".jaystudio/teams/dev.json",
+            lead: null,
+            members: [],
+            brokenRefs: [],
+            rawMemberCount: 0,
+          },
+        ],
+      },
+    });
     render(<RouterProvider router={buildRouter("/workflows/개발부서")} />);
     expect(screen.getByRole("heading", { name: "개발부서" })).toBeInTheDocument();
   });
