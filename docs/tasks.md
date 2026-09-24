@@ -524,6 +524,23 @@
   - dry-run — 단위 `--dry-run → stdout 'DRY-RUN <command>' 1줄, 204, openTerminal 미호출`
 - Depends on: -
 
+## A-15 (architect 확정 요청 — **재개 시 첫 작업**) 허용 Origin 목록에 `http://localhost:<port>` 포함 여부
+- Status: todo
+- Scope: architect 판단 → 확정되면 Backend 수정 태스크로 분리
+- FR: FR-008(증상 발생 지점), NFR-04(127.0.0.1 바인딩), architecture §5 Origin 규칙
+- 배경(사용자 보고 + 팀장 읽기 전용 재현, 2026-09-24):
+  - 증상: 워크플로우 생성 시 403 `FORBIDDEN_ORIGIN` / `허용되지 않은 출처입니다`
+  - 원인: `http://localhost:4180`으로 접속. `OriginFilter`는 허용 목록과 **문자열 정확 비교**를 하고 기본 허용 목록은 `http://127.0.0.1:<public-port>` 하나뿐이다(`OriginFilter.resolveAllowedOrigins`, `application.yaml:36`)
+  - 재현(GET만, 생성 요청 미발송): `Origin: http://127.0.0.1:4180` → 200 / `Origin: http://localhost:4180` → 403 / Origin 없음 + `Sec-Fetch-Site: same-origin` → 200
+  - **함정 구조**: 같은 출처 GET은 Origin 헤더를 보내지 않아 `Sec-Fetch-Site`로 통과하지만, POST는 Origin을 보내 거부된다 → `localhost`로 접속하면 **조회는 정상인데 쓰기만 실패**해 원인을 알아채기 어렵다
+  - 부작용 없음 확인: 필터가 `chain.doFilter` 전에 반환하므로 서비스 계층에 도달하지 않는다. `.jaystudio/teams/` 폴더 자체가 없어 잔여 파일 0
+- 검토할 것:
+  1. 허용 목록 기본값에 `http://localhost:<public-port>`를 **함께 넣을지** (사용자 제안). 넣는다면 NFR-04(127.0.0.1 전용 노출)·architecture §5 "다른 Origin 차단" DoD와 충돌하지 않는지, `localhost`가 IPv6 `::1`로 해석되는 경우까지 고려할지
+  2. 대안: 진입 시 `publicOrigin`(`/api/state`의 `config.publicOrigin`)과 실제 접속 Origin이 다르면 화면에서 안내·리다이렉트할지
+  3. 오류 문구: 팝업에 서버 message(`허용되지 않은 출처입니다`)만 떠 **해결 방법을 알 수 없다**. FR-008 오류 매핑에 403이 없어 생긴 공백 — 안내 문구를 확정할지
+- 주의: 요구사항(NFR-04·보안 기준)의 **의미**를 바꿔야 한다면 architect가 진행하지 말고 `CONTRACT CHANGE`/에스컬레이션으로 보고할 것 → 팀장이 `/planner` 안내 여부를 판단한다
+- Depends on: -
+
 ## T-FIX-04 T-020 리뷰 Minor 묶음 (도우미 견고성 · 설치 스크립트 안전장치)
 - Status: todo
 - Scope: Helper
