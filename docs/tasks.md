@@ -440,6 +440,25 @@
   - ADR-33·ADR-35 정합 — 05-R 문구에 대괄호 자리표시를 남기지 않는다(`선택한 N명 가져오기`는 (a) 치환). `가져오기`·`선택한 0명 가져오기` 비활성에는 이유 줄을 붙이지 않고, `writable=false`·`+ 새로 만들기`만 `쓰기 권한 없음`을 붙인다. 단위 `[FR-009-AC5][ADR-35] 0명 비활성에 이유 줄 없음, writable=false는 '쓰기 권한 없음'`
 - Depends on: T-017
 
+## T-FIX-03 ADR-36~ADR-39 05-R 가져오기 팝업 정합 (거부 사유 문구 · 가려진 선택 안내 · 제목 대상 · 조사 표기)
+- Status: todo
+- Scope: Frontend
+- FR: FR-009(문서 정합 수정 — ADR-36, ADR-37, ADR-38, ADR-39)
+- AC: 없음(기존 AC 유지. FR-009-AC5의 버튼 라벨·활성 조건은 바뀌지 않는다)
+- Errors: FR-009-E2
+- Screens: SCR-05-R
+- Backend: 없음
+- Frontend: `frontend/src/lib/text.ts`(`IMPORT_REJECTED_REASON_TEXT`, `importTitleFor`, 새 안내 줄 문구), `frontend/src/dialogs/import-agents/ImportDialog.tsx`(제목 입력, 안내 줄), `frontend/src/lib/derive/importCandidates.ts`(가려진 선택 수 순수 함수), 각 단위 테스트
+- 배경: T-018 리뷰 Minor m2~m5(VERDICT PASS, 구현은 이미 커밋 `054c3ac`) → architect ADR-36~ADR-39 확정. 이미 done인 T-018 산출물이라 별도 수정 태스크로 분리(T-FIX-01·T-FIX-02 선례). 계약 변경 없음
+- Done when:
+  - ADR-36 / FR-009-E2 — `IMPORT_REJECTED_REASON_TEXT`가 세 값 모두 문구를 갖는다: `ALREADY_ASSIGNED` = `가져오는 사이 다른 워크플로우에 소속되었습니다`, `NOT_FOUND` = `정의 파일이 없습니다 · 목록을 확인하세요`, `FORMAT_ERROR` = `읽지 못한 정의 파일입니다 · 목록을 확인하세요`. 단위 `ImportDialog.test [FR-009-E2][ADR-36] rejected 세 사유가 각각 '<name>: <사유>'로 표시된다`, `[ADR-36] enum 밖 reason → 이름만 표시`. 기존 `[FR-009-E2] rejected ALREADY_ASSIGNED …` 테스트는 삭제·약화하지 않는다
+  - ADR-37 — 검색으로 가려진 선택이 1명 이상이면 검색 입력 아래에 `검색으로 가려진 선택 [N]명`을 그리고, 0명이면 그리지 않는다. 검색어 변경이 체크 상태·행별 `역할` 값을 바꾸지 않는다. 계산은 `lib/derive/*` 순수 함수. 단위 `importCandidates.test [ADR-37] 선택 - 검색결과 = 가려진 수`, `ImportDialog.test [ADR-37] 2명 선택 후 결과 0 검색 → '검색으로 가려진 선택 2명' 표시, 체크 유지, '선택한 2명 가져오기' 활성`, `[ADR-37] 검색어 없음 → 안내 줄 없음`
+  - ADR-38 — 제목이 `?workflow`가 아니라 현재 대상(= `?workflow` ?? 드롭다운 선택값)을 따른다. 단위 `ImportDialog.test [FR-009-AC7][ADR-38] ?workflow 없음 + 드롭다운 기본 선택 → 제목에 첫 워크플로우 이름`, `[ADR-38] 드롭다운을 바꾸면 제목도 바뀐다`, `[ADR-38] 워크플로우 0개 → 제목 '기존 에이전트 가져오기'`
+  - ADR-39 — `importTitleFor`가 `<워크플로우>(으)로 기존 에이전트 가져오기`를 만든다(`로` 단독 금지). 단위 `text.test [ADR-39] 받침 있는 이름·없는 이름 모두 '(으)로'`. 정적 검사: `frontend/src`에 조사 보정(받침 판정) 함수가 없다
+  - 회귀 — `cd frontend && npm test` 통과 수가 줄지 않는다. `npm run lint`·`npm run typecheck` 통과. `Dialog` `size` 기본값은 `md`(`max-w-md`) 그대로여서 05-L·05-3에 회귀가 없다(ADR-40, 코드 변경 없음)
+  - 캡처 재대조 — 05-R을 `?workflow` 없이(드롭다운) · 검색 결과 0 + 2명 선택 상태로 재캡처해 `docs/reviews/screens/T-FIX-03/`에 두고 제목·안내 줄을 확인한다
+- Depends on: T-018
+
 ## T-019 06 에이전트 만들기 · 수정 · 06-5 충돌 · 06-6 제거 UI
 - Status: todo
 - Scope: Frontend
@@ -458,7 +477,7 @@
   - FR-011-AC4 — 단위 `SaveConflictDialog.test [FR-011-AC4] 409 REVISION_CONFLICT → 06-5, 다시 불러오기 → GET 재호출 폼 재채움, 덮어쓰기 → force true` + E2E-03
   - FR-012-AC1 — 단위 `RemoveAgentDialog.test [FR-012-AC1] name 일치 시만 활성` + E2E-03
   - FR-012-AC3 — 단위 `[FR-012-AC3] 팀장이면 '팀장 없음이 표시됩니다' 안내` + E2E-03(제거 후 층 경고)
-  - FR-012-AC5 — 단위 `[FR-012-AC5] 워크플로우 밖 에이전트 06에서 제거 버튼 활성, 제목 '<name>를 제거할까요?'`
+  - FR-012-AC5 — 단위 `[FR-012-AC5] 워크플로우 밖 에이전트 06에서 제거 버튼 활성, 제목 '<name>을(를) 제거할까요?'`(조사 병기 — ADR-39)
   - FR-002-AC3 — 단위 `[FR-002-AC3][FR-011-E3] GET 409 UNEDITABLE → 팝업 열지 않고 04-6로 스크롤` + E2E-06
   - FR-010-E1 — 단위 `[FR-010-E1] 400 fields → 필드별 사유`
   - FR-010-E2 — 단위 `[FR-010-E2] writable false → 저장 비활성 '쓰기 권한 없음'`
@@ -473,6 +492,8 @@
   - `ConfirmByNameDialog`(T-017 산출물) 재사용 — 06-6 전용 확인 팝업을 새로 만들지 않는다. `notes[]`에 휴지통 안내 + 팀장 안내 2줄을 넘긴다
   - ADR-33 정합 — 06 `설명 (description)` placeholder는 대괄호 없이 `언제 이 에이전트에게 일을 맡기는지`, 도구 기타 입력 라벨은 `기타`다. 단위 `[ADR-33] 06 폼 placeholder·라벨에 대괄호 없음`
   - ADR-35 정합 — 이유 줄을 붙이는 곳은 `이미 팀장이 있습니다 (<lead>)`(FR-010-AC4), `도구 방식을 고르세요`(FR-010-AC2), `작업 중에는 제거할 수 없습니다`(FR-012-AC6), `쓰기 권한 없음`(FR-010-E2)뿐이다. 필수값 미입력 `저장`, 이름 불일치 `제거 (이름 일치 시 활성)`, 소속 `(없음)` 역할 라디오, 06-5 진행 중 버튼에는 이유 줄을 만들지 않는다. 단위 `[ADR-35] 지정 지점만 이유 줄, 나머지 비활성은 이유 줄 없음`
+  - ADR-39 정합 — 06-6 제목은 `<name>을(를) <워크플로우>에서 제거할까요?` / `<name>을(를) 제거할까요?` 병기 표기다. 06-5 본문 `<name>.md이 이 창을 연 뒤 [hh:mm:ss]에 변경되었습니다.`는 ui-spec 문구 그대로 두고 조사를 고치지 않는다(치환값 뒤가 아니라 고정 접미 `.md` 뒤이므로 대상이 아니다). 조사 보정 함수를 만들지 않는다. 단위 `[ADR-39] 06-6 제목 조사 병기`
+  - ADR-40 정합 — `Dialog` `size`는 06 폼 `lg`, 06-5·06-6 `md`(기본값이라 생략 가능)다. 팝업 컴포넌트에서 `max-w-*`를 직접 지정하지 않는다. 단위 `[ADR-40] 06 폼은 size lg, 06-5·06-6은 md`
 - Depends on: T-016, T-017
 
 ## T-020 열기 도우미 (Node) · 설치 스크립트 · plist
