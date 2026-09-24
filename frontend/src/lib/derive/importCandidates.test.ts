@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   descriptionFirstLine,
+  hiddenSelectedCount,
   isLeadOptionDisabled,
   leadSelectedBy,
   outsideAgents,
@@ -72,5 +73,20 @@ describe("toImportMembers", () => {
       { name: "a", role: "member" },
       { name: "b", role: "lead" },
     ]);
+  });
+});
+
+describe("hiddenSelectedCount", () => {
+  it("[ADR-37] 선택 - 검색결과 = 가려진 수", () => {
+    const visible = [buildAgent({ name: "dev-02" }), buildAgent({ name: "qa-01" })];
+
+    // 검색 결과에 남은 선택은 세지 않는다.
+    expect(hiddenSelectedCount(["dev-02", "qa-01"], visible)).toBe(0);
+    // 결과에서 빠진 선택만 센다.
+    expect(hiddenSelectedCount(["dev-02", "zeta"], visible)).toBe(1);
+    // 검색 결과가 0행이면 선택 전부가 가려진다.
+    expect(hiddenSelectedCount(["dev-02", "qa-01"], [])).toBe(2);
+    // 선택이 없으면 0이다(안내 줄을 그리지 않는 조건).
+    expect(hiddenSelectedCount([], visible)).toBe(0);
   });
 });

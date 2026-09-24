@@ -244,13 +244,14 @@ describe("ImportDialog", () => {
       "개발부서",
       "마케팅부서",
     ]);
-    expect(screen.getByRole("heading", { name: "기존 에이전트 가져오기" })).toBeInTheDocument();
+    // ADR-38: `?workflow`가 없어도 제목은 드롭다운 현재 선택값(첫 워크플로우)을 따른다.
+    expect(screen.getByRole("heading", { name: "개발부서(으)로 기존 에이전트 가져오기" })).toBeInTheDocument();
     unmount();
 
     renderDialog("개발부서");
     expect(screen.queryByRole("combobox", { name: "대상 워크플로우" })).not.toBeInTheDocument();
     expect(screen.getByText("개발부서", { selector: "span" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "개발부서로 기존 에이전트 가져오기" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "개발부서(으)로 기존 에이전트 가져오기" })).toBeInTheDocument();
   });
 
   it("[FR-009-AC7] 워크플로우 0개 → `먼저 워크플로우를 추가하세요` + 가져오기 비활성", () => {
@@ -266,6 +267,81 @@ describe("ImportDialog", () => {
     expect(screen.getByRole("button", { name: "선택한 1명 가져오기" })).toBeDisabled();
     // ADR-35: 이 비활성 지점에는 이유 줄이 없다.
     expect(screen.queryByText("쓰기 권한 없음")).not.toBeInTheDocument();
+  });
+
+  it("[FR-009-AC7][ADR-38] ?workflow 없음 + 드롭다운 기본 선택 → 제목에 첫 워크플로우 이름", () => {
+    setRegistry([buildAgent({ name: "agent-02" })], [buildWorkflow(), buildWorkflow({ name: "마케팅부서" })]);
+    renderDialog(null);
+
+    // 기본 선택은 `registry.workflows`의 첫 항목이고 제목이 그 대상을 말한다(ADR-38).
+    expect(screen.getByLabelText("대상 워크플로우")).toHaveValue("개발부서");
+    expect(screen.getByRole("heading", { name: "개발부서(으)로 기존 에이전트 가져오기" })).toBeInTheDocument();
+  });
+
+  it("[ADR-38] 드롭다운을 바꾸면 제목도 바뀐다", () => {
+    setRegistry([buildAgent({ name: "agent-02" })], [buildWorkflow(), buildWorkflow({ name: "마케팅부서" })]);
+    renderDialog(null);
+
+    fireEvent.change(screen.getByLabelText("대상 워크플로우"), { target: { value: "마케팅부서" } });
+
+    expect(screen.getByRole("heading", { name: "마케팅부서(으)로 기존 에이전트 가져오기" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "개발부서(으)로 기존 에이전트 가져오기" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("[ADR-38] 워크플로우 0개 → 제목 '기존 에이전트 가져오기'", () => {
+    setRegistry([buildAgent({ name: "agent-02" })], []);
+    renderDialog(null);
+
+    // 대상이 하나도 없을 때만 대상 미정 문구를 쓴다(ADR-38).
+    expect(screen.getByRole("heading", { name: "기존 에이전트 가져오기" })).toBeInTheDocument();
+    expect(screen.getByText("먼저 워크플로우를 추가하세요")).toBeInTheDocument();
+  });
+
+  it("[ADR-37] 2명 선택 후 결과 0 검색 → '검색으로 가려진 선택 2명' 표시, 체크 유지, '선택한 2명 가져오기' 활성", () => {
+    setRegistry(
+      [buildAgent({ name: "agent-02" }), buildAgent({ name: "agent-03" })],
+      [buildWorkflow({ lead: null })],
+    );
+    renderDialog();
+
+    check("agent-02");
+    check("agent-03");
+    fireEvent.change(screen.getByLabelText("agent-03 역할"), { target: { value: "lead" } });
+    fireEvent.change(screen.getByPlaceholderText("이름·설명 검색"), { target: { value: "zzz" } });
+
+    const notice = screen.getByText("검색으로 가려진 선택 2명");
+    const noResults = screen.getByText("일치하는 에이전트가 없습니다");
+    expect(notice).toBeInTheDocument();
+    // 안내 줄은 검색 입력 아래, 결과 0 안내 위에 온다(ui-spec.md SCR-05-R 요소 표 순서).
+    expect(notice.compareDocumentPosition(noResults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("button", { name: "선택한 2명 가져오기" })).toBeEnabled();
+
+    // 검색은 표시 필터일 뿐이라 체크 상태·행별 역할 값을 바꾸지 않는다(ADR-37).
+    fireEvent.change(screen.getByPlaceholderText("이름·설명 검색"), { target: { value: "" } });
+    expect(screen.getByRole("checkbox", { name: "agent-02" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "agent-03" })).toBeChecked();
+    expect(screen.getByLabelText("agent-03 역할")).toHaveValue("lead");
+    expect(screen.queryByText(/검색으로 가려진 선택/)).not.toBeInTheDocument();
+  });
+
+  it("[ADR-37] 검색어 없음 → 안내 줄 없음", () => {
+    setRegistry(
+      [buildAgent({ name: "agent-02" }), buildAgent({ name: "agent-03" })],
+      [buildWorkflow({ lead: null })],
+    );
+    renderDialog();
+
+    check("agent-02");
+    expect(screen.queryByText(/검색으로 가려진 선택/)).not.toBeInTheDocument();
+
+    // 선택 행이 검색 결과에 남아 있으면 가려진 선택이 0명이라 줄을 그리지 않는다.
+    fireEvent.change(screen.getByPlaceholderText("이름·설명 검색"), { target: { value: "agent-02" } });
+    expect(screen.queryByText(/검색으로 가려진 선택/)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText("이름·설명 검색"), { target: { value: "agent-03" } });
+    expect(screen.getByText("검색으로 가려진 선택 1명")).toBeInTheDocument();
   });
 
   it("[FR-009-E1] 400 fields.members → 표시", async () => {
@@ -312,7 +388,7 @@ describe("ImportDialog", () => {
       await screen.findByText("agent-03: 가져오는 사이 다른 워크플로우에 소속되었습니다"),
     ).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
-    expect(screen.getByRole("heading", { name: "개발부서로 기존 에이전트 가져오기" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "개발부서(으)로 기존 에이전트 가져오기" })).toBeInTheDocument();
 
     // 목록 갱신은 SSE `registry`가 한다(realtime-spec §5): 두 에이전트 모두 소속이 생기면 목록에서 빠진다.
     snapshotStore.setRegistry({
@@ -329,6 +405,60 @@ describe("ImportDialog", () => {
     expect(
       screen.getByText("agent-03: 가져오는 사이 다른 워크플로우에 소속되었습니다"),
     ).toBeInTheDocument();
+  });
+
+  it("[FR-009-E2][ADR-36] rejected 세 사유가 각각 '<name>: <사유>'로 표시된다", async () => {
+    stubFetch(() =>
+      jsonResponse({
+        added: [],
+        rejected: [
+          { name: "agent-02", reason: "ALREADY_ASSIGNED" },
+          { name: "agent-03", reason: "NOT_FOUND" },
+          { name: "agent-04", reason: "FORMAT_ERROR" },
+        ],
+        workflow: buildWorkflow(),
+      }),
+    );
+    setRegistry(
+      [
+        buildAgent({ name: "agent-02" }),
+        buildAgent({ name: "agent-03" }),
+        buildAgent({ name: "agent-04" }),
+      ],
+      [buildWorkflow({ lead: null })],
+    );
+    const onClose = renderDialog();
+
+    check("agent-02");
+    check("agent-03");
+    check("agent-04");
+    fireEvent.click(submitButton());
+
+    expect(
+      await screen.findByText("agent-02: 가져오는 사이 다른 워크플로우에 소속되었습니다"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("agent-03: 정의 파일이 없습니다 · 목록을 확인하세요")).toBeInTheDocument();
+    expect(screen.getByText("agent-04: 읽지 못한 정의 파일입니다 · 목록을 확인하세요")).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("[ADR-36] enum 밖 reason → 이름만 표시", async () => {
+    // 계약(api-spec.yaml enum) 밖 값이 오면 문장을 지어내지 않고 이름만 보여준다.
+    stubFetch(() =>
+      jsonResponse({
+        added: [],
+        rejected: [{ name: "agent-02", reason: "SOMETHING_ELSE" }],
+        workflow: buildWorkflow(),
+      }),
+    );
+    setRegistry([buildAgent({ name: "agent-02" })], [buildWorkflow({ lead: null })]);
+    renderDialog();
+
+    check("agent-02");
+    fireEvent.click(submitButton());
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe("agent-02");
   });
 
   it("[FR-009-E3] 500 → message", async () => {

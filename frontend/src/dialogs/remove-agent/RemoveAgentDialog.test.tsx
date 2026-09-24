@@ -131,7 +131,10 @@ describe("RemoveAgentDialog", () => {
     render(<RouterProvider router={router} />);
 
     // 06 수정 폼에서 워크플로우 밖 에이전트도 제거할 수 있다(휴지통 이동만).
-    const openRemove = await screen.findByRole("button", { name: "워크플로우에서 제거" });
+    // 06 폼은 정의 파일을 읽는 동안에도 버튼을 그린 채 비활성으로 둔다(T-019 리뷰 Minor 1).
+    // `findBy*`는 요소의 **존재**만 기다리므로, 상태 단언은 파일 읽기가 끝난 뒤(필드 렌더)에 한다.
+    await screen.findByLabelText("이름 (name)");
+    const openRemove = screen.getByRole("button", { name: "워크플로우에서 제거" });
     expect(openRemove).toBeEnabled();
     fireEvent.click(openRemove);
 
@@ -141,8 +144,9 @@ describe("RemoveAgentDialog", () => {
     typeConfirmName("qa-01");
     fireEvent.click(removeButton());
     // 06에서 열었으면 성공 후 02로 간다(ui-spec.md SCR-06-6 이동 열).
-    await waitFor(() => expect(router.state.location.pathname).toBe("/workflows"));
-    expect(screen.queryByTestId("confirm-by-name-dialog")).not.toBeInTheDocument();
+    // 팝업 unmount는 라우터 state 변경 **뒤**의 리렌더에서 일어나므로 DOM을 먼저 기다린다(간헐 실패 방지).
+    await waitFor(() => expect(screen.queryByTestId("confirm-by-name-dialog")).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe("/workflows");
   });
 
   it("[FR-012-E1] 500 → message, 팝업 유지", async () => {

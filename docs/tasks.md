@@ -441,7 +441,7 @@
 - Depends on: T-017
 
 ## T-FIX-03 ADR-36~ADR-39 05-R 가져오기 팝업 정합 + ADR-39 위반 제거 (거부 사유 문구 · 가려진 선택 안내 · 제목 대상 · 조사 표기)
-- Status: in_progress
+- Status: done
 - Scope: Frontend
 - FR: FR-009(문서 정합 수정 — ADR-36, ADR-37, ADR-38, ADR-39)
 - AC: 없음(기존 AC 유지. FR-009-AC5의 버튼 라벨·활성 조건은 바뀌지 않는다)

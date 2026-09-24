@@ -159,12 +159,12 @@ describe("Floor", () => {
     const registryAgents = [leadAgent, dupAgent];
 
     const first = renderFloor({ workflow: workflowA, registryAgents });
-    expect(screen.getByText("dup-agent이 여러 워크플로우에 있습니다 · 구성 파일을 확인하세요")).toBeInTheDocument();
+    expect(screen.getByText("dup-agent이(가) 여러 워크플로우에 있습니다 · 구성 파일을 확인하세요")).toBeInTheDocument();
     expect(screen.getByText("dup-agent")).toBeInTheDocument();
     first.unmount();
 
     renderFloor({ workflow: workflowB, registryAgents });
-    expect(screen.getByText("dup-agent이 여러 워크플로우에 있습니다 · 구성 파일을 확인하세요")).toBeInTheDocument();
+    expect(screen.getByText("dup-agent이(가) 여러 워크플로우에 있습니다 · 구성 파일을 확인하세요")).toBeInTheDocument();
     expect(screen.queryByText("dup-agent")).not.toBeInTheDocument();
   });
 

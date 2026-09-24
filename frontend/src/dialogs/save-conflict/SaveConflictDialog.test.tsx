@@ -136,7 +136,9 @@ describe("SaveConflictDialog", () => {
     const router = createMemoryRouter(routes, { initialEntries: ["/workflows?dialog=agent-edit&agent=dev-lead"] });
     render(<RouterProvider router={router} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "저장" }));
+    // 파일을 읽는 동안 `저장`은 그려져 있지만 비활성이다(T-019 리뷰 Minor 1) — 읽기 완료를 기다린 뒤 누른다.
+    await screen.findByLabelText("이름 (name)");
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
     expect(await screen.findByTestId("save-conflict-dialog")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "덮어쓰기" }));
@@ -156,7 +158,9 @@ describe("SaveConflictDialog", () => {
     const router = createMemoryRouter(routes, { initialEntries: ["/workflows?dialog=agent-edit&agent=dev-lead"] });
     render(<RouterProvider router={router} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "저장" }));
+    // 위와 같은 이유로 읽기 완료를 기다린 뒤 누른다.
+    await screen.findByLabelText("이름 (name)");
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
     expect(await screen.findByTestId("save-conflict-dialog")).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "Escape" });

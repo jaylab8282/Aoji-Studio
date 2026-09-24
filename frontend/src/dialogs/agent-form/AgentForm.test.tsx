@@ -173,9 +173,10 @@ describe("AgentForm", () => {
     fireEvent.click(saveButton());
 
     // FR-010-AC5: 저장 후 팝업이 닫히고 02로 돌아간다.
-    await waitFor(() => expect(router.state.location.pathname).toBe("/workflows"));
+    // 팝업 unmount는 라우터 state 변경 **뒤**의 리렌더에서 일어나므로 DOM을 먼저 기다린다(간헐 실패 방지).
+    await waitFor(() => expect(screen.queryByTestId("agent-form-dialog")).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe("/workflows");
     expect(router.state.location.search).toBe("");
-    expect(screen.queryByTestId("agent-form-dialog")).not.toBeInTheDocument();
     // FR-010-AC6: 토스트가 아니라 02 상단 한 줄이다.
     expect(
       screen.getByText("Claude Code가 새 정의를 바로 인식하지 못하면 재시작이 필요할 수 있습니다"),
@@ -219,8 +220,9 @@ describe("AgentForm", () => {
     });
     const router = renderAt("/workflows?dialog=agent-edit&agent=broken");
 
-    await waitFor(() => expect(router.state.location.search).toBe(""));
-    expect(screen.queryByTestId("agent-form-dialog")).not.toBeInTheDocument();
+    // 409 뒤 팝업이 사라지는 것은 라우터 state 변경 **뒤**의 리렌더다 — DOM을 먼저 기다린다(간헐 실패 방지).
+    await waitFor(() => expect(screen.queryByTestId("agent-form-dialog")).not.toBeInTheDocument());
+    expect(router.state.location.search).toBe("");
     expect(screen.getByText("읽지 못한 정의 파일 1개")).toBeInTheDocument();
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
   });
@@ -286,7 +288,9 @@ describe("AgentForm", () => {
     });
     renderAt("/workflows?dialog=agent-edit&agent=dev-lead");
 
-    fireEvent.click(await screen.findByRole("button", { name: "저장" }));
+    // 파일을 읽는 동안 `저장`은 그려져 있지만 비활성이다 — 읽기 완료 뒤에 눌러야 실제로 저장된다.
+    await screen.findByLabelText("이름 (name)");
+    fireEvent.click(saveButton());
     expect(await screen.findByRole("alert")).toHaveTextContent("저장 중 파일이 사라졌습니다");
   });
 
@@ -357,7 +361,9 @@ describe("AgentForm", () => {
     stubFetch({ get: () => jsonResponse(buildAgentDetail({ status: "idle" })) });
     renderAt("/workflows?dialog=agent-edit&agent=dev-lead");
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "워크플로우에서 제거" })).toBeDisabled());
+    // 파일을 읽는 동안에도 버튼은 (이유 줄 없이) 비활성이므로, 읽기 완료 뒤에 상태와 이유 줄을 본다.
+    await screen.findByLabelText("이름 (name)");
+    expect(screen.getByRole("button", { name: "워크플로우에서 제거" })).toBeDisabled();
     expect(screen.getByText("작업 중에는 제거할 수 없습니다")).toBeInTheDocument();
   });
 
@@ -371,6 +377,43 @@ describe("AgentForm", () => {
     // `?dialog`만 지우고 03 선택 상태인 `?agent=`는 남긴다(useDialog.close).
     expect(router.state.location.search).not.toContain("dialog");
     expect(screen.queryByTestId("agent-form-dialog")).not.toBeInTheDocument();
+  });
+
+  it("[SCR-06] 수정 모드 로딩 중 취소·저장이 비활성으로 보인다", async () => {
+    stubFetch({ get: () => jsonResponse(buildAgentDetail()) });
+    renderAt("/workflows?dialog=agent-edit&agent=dev-lead");
+
+    // 스켈레톤은 필드 자리에만 있고 각주·버튼은 사라지지 않는다(ui-spec.md SCR-06 `로딩` 열).
+    expect(screen.getByTestId("agent-form-skeleton")).toBeInTheDocument();
+    expect(
+      screen.getByText("이름 변경 시 파일명도 변경 · 폼에 없는 필드(permissionMode 등)는 기존 값 보존"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "취소" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "저장" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "워크플로우에서 제거" })).toBeDisabled();
+    // ADR-35: 이 비활성 지점에는 이유 줄을 붙이지 않는다.
+    expect(screen.queryByText("쓰기 권한 없음")).not.toBeInTheDocument();
+    expect(screen.queryByText("도구 방식을 고르세요")).not.toBeInTheDocument();
+    expect(screen.queryByText("작업 중에는 제거할 수 없습니다")).not.toBeInTheDocument();
+
+    // 파일을 다 읽으면 폼이 채워지고 버튼은 그대로 남는다.
+    await screen.findByLabelText("이름 (name)");
+    expect(screen.queryByTestId("agent-form-skeleton")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "취소" })).toBeEnabled();
+  });
+
+  it("[SCR-06] 워크플로우 0개 → '먼저 워크플로우를 추가하세요' 안내", () => {
+    stubFetch({});
+    replaceSnapshot({ workflows: [] });
+    renderAt("/workflows?dialog=agent-new");
+
+    expect(screen.getByText("먼저 워크플로우를 추가하세요")).toBeInTheDocument();
+    // `<span>`은 labelable 요소가 아니므로 라벨을 연결하지 않는다(T-019 리뷰 Minor 2).
+    const label = screen.getByText("소속 워크플로우");
+    expect(label.tagName).toBe("LABEL");
+    expect(label).not.toHaveAttribute("for");
+    expect(screen.queryByLabelText("소속 워크플로우")).not.toBeInTheDocument();
+    expect(saveButton()).toBeDisabled();
   });
 
   it("[FR-017-AC5] 06 폼·06-6 어디에도 워크플로우 이름 편집 입력·버튼 없음", async () => {
@@ -479,8 +522,10 @@ describe("AgentForm", () => {
     stubFetch({ get: () => jsonResponse(buildAgentDetail() as AgentDetail) });
     renderAt("/workflows?dialog=agent-edit&agent=dev-lead");
 
+    // 각주는 읽는 중에도 그려지므로(T-019 리뷰 Minor 1) 경로 단언은 읽기 완료 뒤에 한다.
+    await screen.findByLabelText("이름 (name)");
     expect(
-      await screen.findByText("이름 변경 시 파일명도 변경 · 폼에 없는 필드(permissionMode 등)는 기존 값 보존"),
+      screen.getByText("이름 변경 시 파일명도 변경 · 폼에 없는 필드(permissionMode 등)는 기존 값 보존"),
     ).toBeInTheDocument();
     expect(screen.getByText("JayStudio/.claude/agents/dev-lead.md")).toBeInTheDocument();
   });

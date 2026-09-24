@@ -15,7 +15,12 @@ import { SearchInput } from "../../components/ui/SearchInput";
 import { Select } from "../../components/ui/Select";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { useDialogNavigate } from "../../lib/dialogNavigate";
-import { leadSelectedBy, outsideAgents, toImportMembers } from "../../lib/derive/importCandidates";
+import {
+  hiddenSelectedCount,
+  leadSelectedBy,
+  outsideAgents,
+  toImportMembers,
+} from "../../lib/derive/importCandidates";
 import { searchAgents } from "../../lib/derive/search";
 import {
   CANCEL_BUTTON_LABEL,
@@ -31,6 +36,7 @@ import {
   IMPORT_TITLE,
   UNKNOWN_ERROR_MESSAGE,
   WRITABLE_FALSE_REASON,
+  importHiddenSelectionNotice,
   importRejectedLine,
   importSubmitLabel,
   importSubtitle,
@@ -72,7 +78,11 @@ export function ImportDialog({ workflowName, onClose }: ImportDialogProps) {
     candidates.map((agent) => agent.name),
     roles,
   );
-  const title = workflowName === null ? IMPORT_TITLE : importTitleFor(workflowName);
+  // ADR-38: 제목은 `?workflow`가 아니라 현재 대상(= `?workflow` ?? 드롭다운 선택값)을 따른다.
+  // 대상이 하나도 없을 때(워크플로우 0개·스냅샷 전)만 대상 미정 문구를 쓴다.
+  const title = target === null ? IMPORT_TITLE : importTitleFor(target);
+  // ADR-37: 검색에 가려진 선택이 1명 이상일 때만 안내 줄을 그린다.
+  const hiddenSelected = hiddenSelectedCount(selectedNames, visibleAgents);
 
   function toggle(name: string) {
     setSelectedNames((previous) =>
@@ -185,6 +195,11 @@ export function ImportDialog({ workflowName, onClose }: ImportDialogProps) {
             {IMPORT_CREATE_AGENT_BUTTON_LABEL}
           </Button>
         </div>
+
+        {/* 검색 입력이 있는 상태(후보 1명 이상)에서만 그린다 — 후보 0명은 표·검색 없이 안내만 있는 화면이다. */}
+        {candidates.length === 0 || hiddenSelected === 0 ? null : (
+          <p className="text-aux text-text-secondary">{importHiddenSelectionNotice(hiddenSelected)}</p>
+        )}
 
         {registry === null ? (
           <ImportAgentTableSkeleton />

@@ -190,12 +190,12 @@ export function floorSummaryLabel(summary: FloorSummary): string {
   return parts.join(" · ");
 }
 export const FLOOR_NO_LEAD_WARNING = "팀장이 없습니다 · 팀장을 만들거나 가져오세요";
-function koreanSubjectParticle(text: string): "이" | "가" {
-  const last = text.trim().slice(-1).toLowerCase();
-  return "aeiou".includes(last) ? "가" : "이";
-}
+/**
+ * FR-006-AC11 확정 문구. 치환값 뒤 조사는 병기 표기로 쓰고 받침을 판정하지 않는다
+ * (ADR-39, conventions.md §2 MUST — 조사 보정 함수를 두지 않는다).
+ */
 export function floorDuplicateWarning(name: string): string {
-  return `${name}${koreanSubjectParticle(name)} 여러 워크플로우에 있습니다 · 구성 파일을 확인하세요`;
+  return `${name}이(가) 여러 워크플로우에 있습니다 · 구성 파일을 확인하세요`;
 }
 export const FLOOR_EMPTY_TEXT = "에이전트가 없습니다 · 만들거나 가져오세요";
 export const FLOOR_IMPORT_BUTTON_LABEL = "가져오기";
@@ -320,9 +320,12 @@ export const WORKFLOW_DELETE_CONFIRM_PENDING_LABEL = "삭제 중…";
 // SCR-05-R 기존 에이전트 가져오기 (FR-009, 와이어프레임 p.6 오른쪽)
 /** 대상 워크플로우가 정해지지 않았을 때의 제목(ui-spec.md SCR-05-R 제목 행 "워크플로우 미정이면"). */
 export const IMPORT_TITLE = "기존 에이전트 가져오기";
-/** 대상이 정해졌을 때의 제목. `?workflow` 값으로 치환한다(ADR-33 (a)). */
+/**
+ * 대상 워크플로우가 정해졌을 때의 제목. 대상은 `?workflow` ?? 드롭다운 현재 선택값이다(ADR-38).
+ * 값 뒤 조사는 병기 표기 `(으)로`를 글자 그대로 쓴다(ADR-39, conventions.md §2 MUST).
+ */
 export function importTitleFor(workflowName: string): string {
-  return `${workflowName}로 ${IMPORT_TITLE}`;
+  return `${workflowName}(으)로 ${IMPORT_TITLE}`;
 }
 /** 부제의 N = 워크플로우 밖 에이전트 수(ADR-33 (a) 치환). */
 export function importSubtitle(outsideCount: number): string {
@@ -333,6 +336,14 @@ export const IMPORT_TARGET_WORKFLOW_LABEL = "대상 워크플로우";
 export const IMPORT_NO_WORKFLOW_NOTICE = "먼저 워크플로우를 추가하세요";
 export const IMPORT_SEARCH_PLACEHOLDER = "이름·설명 검색";
 export const IMPORT_SEARCH_NO_RESULTS_TEXT = "일치하는 에이전트가 없습니다";
+/**
+ * ADR-37: 검색은 표시 필터일 뿐이라 선택을 지우지 않는다. 지금 검색 결과에 없는 선택이
+ * 1명 이상일 때만 검색 입력 아래에 이 줄을 그린다(0명이면 줄 자체를 그리지 않는다).
+ * N은 값으로 치환한다(ADR-33 (a)).
+ */
+export function importHiddenSelectionNotice(hiddenCount: number): string {
+  return `검색으로 가려진 선택 ${hiddenCount}명`;
+}
 export const IMPORT_CREATE_AGENT_BUTTON_LABEL = "+ 새로 만들기";
 export const IMPORT_TABLE_COL_NAME = "이름 (name)";
 export const IMPORT_TABLE_COL_DESCRIPTION = "설명 (description)";
@@ -358,17 +369,17 @@ export function importSubmitLabel(selectedCount: number): string {
 }
 export const IMPORT_SUBMIT_PENDING_LABEL = "가져오는 중…";
 /**
- * FR-009-E2 거부 사유. ui-spec.md SCR-05-R 에러 영역이 문구를 지정한 사유는 `ALREADY_ASSIGNED`뿐이다.
- * 나머지 사유(`NOT_FOUND`·`FORMAT_ERROR`)는 확정 문구가 없어 문장을 지어내지 않고 이름만 보여준다.
+ * FR-009-E2 거부 사유. ui-spec.md SCR-05-R 에러 영역이 `reason` 세 값의 문구를 모두 확정했다(ADR-36).
  */
-export const IMPORT_REJECTED_REASON_TEXT: Record<ImportRejectedReason, string | null> = {
+export const IMPORT_REJECTED_REASON_TEXT: Record<ImportRejectedReason, string> = {
   ALREADY_ASSIGNED: "가져오는 사이 다른 워크플로우에 소속되었습니다",
-  NOT_FOUND: null,
-  FORMAT_ERROR: null,
+  NOT_FOUND: "정의 파일이 없습니다 · 목록을 확인하세요",
+  FORMAT_ERROR: "읽지 못한 정의 파일입니다 · 목록을 확인하세요",
 };
 export function importRejectedLine(agentName: string, reason: ImportRejectedReason): string {
-  const reasonText = IMPORT_REJECTED_REASON_TEXT[reason];
-  return reasonText === null ? agentName : `${agentName}: ${reasonText}`;
+  // 계약 밖 값(enum 불일치)이 오면 문장을 지어내지 않고 이름만 보여준다(ADR-36).
+  const reasonText: string | undefined = IMPORT_REJECTED_REASON_TEXT[reason];
+  return reasonText === undefined ? agentName : `${agentName}: ${reasonText}`;
 }
 
 // ── SCR-06 에이전트 만들기 · 수정 폼 (FR-010, FR-011, 와이어프레임 p.7 왼쪽) ──────────────

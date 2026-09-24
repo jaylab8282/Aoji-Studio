@@ -308,3 +308,169 @@
 
 ## NEEDS CONFIRMATION
 - 없음. 이 태스크 범위는 Frontend 단위 테스트·정적 검사·캡처로 전부 확인 가능했고, 백엔드 기동·E2E가 필요한 항목은 범위에 없다(계약 변경 없음).
+
+
+---
+
+# Round 2 (2026-09-24) — 재리뷰
+
+- 기준: HEAD `61e749e`(Round 1 리뷰 기록 커밋) + 워킹트리 15파일 + `docs/reviews/screens/T-FIX-03/` 4장
+- 판정 대상: Round 1의 Major 2건(B-1·B-2)과 Minor 3건(m1·m2·m3) 해소 여부
+- **VERDICT: PASS** (상세는 문서 끝)
+
+## R2-1. B-1 해소 — 6곳 수정, 원래 단언 손실 0건
+
+`git diff HEAD`로 삭제된 `expect(` 15줄을 전수 대조했다(Round 1의 10줄 + 이번 5줄). 삭제된 줄은 모두
+**같은 `it` 안에서 같거나 더 강한 형태로 되살아났고**, 새로 사라진 단언은 없다.
+
+| # | 테스트 | 이번 수정 | 원래 단언 |
+|---|---|---|---|
+| 1 | `RemoveAgentDialog.test.tsx:131-137` `[FR-012-AC5]` | `findByRole(제거)` → `await findByLabelText("이름 (name)")` + `getByRole` | `expect(openRemove).toBeEnabled()` **유지** |
+| 2 | `AgentForm.test.tsx:361-366` `[FR-012-AC6][ADR-27]` | `await waitFor(() => …toBeDisabled())` → 로딩 완료 대기 + 동기 `toBeDisabled()` | `toBeDisabled()` 유지 + 이유 줄 `작업 중에는 제거할 수 없습니다` 유지 |
+| 3 | `AgentForm.test.tsx:522-530` `[FR-011-AC1][AC2]` | `findByText(각주)` → 로딩 완료 대기 + `getByText(각주)` | 각주·파일 경로 `JayStudio/.claude/agents/dev-lead.md` 둘 다 유지 |
+| 4 | `AgentForm.test.tsx:288-293` `[FR-011-E1]` | `findByRole(저장)` 클릭 → 로딩 완료 대기 + `saveButton()` 클릭 | `alert`=`저장 중 파일이 사라졌습니다` 유지 |
+| 5 | `SaveConflictDialog.test.tsx:136-142` `[SCR-06-5] 진행 중…` | 같은 방식 | 이후 단언 전부 유지 |
+| 6 | `SaveConflictDialog.test.tsx:158-164` `[SCR-06-5] 취소(ESC)…` | 같은 방식 | 이후 단언 전부 유지 |
+
+- 파일별 `expect(` 수 (HEAD → 워킹트리): DialogHost 21→21, AgentForm 83→**98**, ImportDialog 56→**77**,
+  RemoveAgent 28→28, SaveConflict 23→23, importCandidates 12→16, text 11→27, Floor 33→33. **줄어든 파일 0.**
+  `it(`/`describe(` 수도 감소 없음. `.skip(`·`.only(`·`xit(` 0건.
+- 수정 방식의 결정성: `AgentForm.tsx:95-132`가 필드(`form.loading ? 스켈레톤 : 본문`)와 `AgentFormFooter`의
+  `loading` prop을 **같은 렌더에서 같은 `form.loading`으로** 그린다. 따라서 `이름 (name)` 필드가 보이는 시점에는
+  footer가 이미 활성 상태로 커밋돼 있다 — `findByLabelText` 뒤의 동기 상태 단언은 racy하지 않다.
+
+## R2-2. "6곳이 전부"의 독립 검증 — 누락 없음 확인
+
+### (a) 대상 파일 3개라는 주장
+`frontend/src`에서 `dialog=agent-edit`를 쓰는 테스트는 `AgentForm.test.tsx`, `RemoveAgentDialog.test.tsx`,
+`SaveConflictDialog.test.tsx`, `Panel.test.tsx` 4개다. 이 중 `Panel.test.tsx:185-197`는 **팝업을 마운트하지 않고**
+`router.state.location.search` 문자열만 단언한다(`renderPanel`이 `Panel`만 렌더). → 06 수정 모드 GET을 태우는 파일은 **3개가 맞다.**
+
+### (b) 리뷰어 독립 재현 — 대조 실험
+스크래치 사본 2벌(`ctl` = 3개 테스트 파일만 `git show HEAD:` 버전 + 현재 소스 / `wt` = 현재 워킹트리)에
+각 파일 fetch 대역의 `const method = …` 직후 `if (method === "GET") await new Promise(r => setTimeout(r, 50));`를 주입:
+
+| 트리 | 결과 |
+|---|---|
+| `ctl`(수정 전 테스트) | **7 failed / 31** — `[FR-002-AC3][FR-011-E3]`, `[FR-011-E1]`, `[FR-012-AC6][ADR-27]`, `[FR-011-AC1][AC2]`, `[FR-012-AC5]`, `[SCR-06-5] 진행 중…`, `[SCR-06-5] 취소(ESC)…` |
+| `wt`(현재) | **33 passed / 33**, 3회 연속 |
+
+→ 팀장의 대조 실험과 실패 목록·건수가 정확히 일치한다. **검증 조건에 검출력이 있고(7건 검출), 수정본이 통과한다.**
+
+### (c) 7번째(`[FR-002-AC3][FR-011-E3]`)의 의미
+대조군은 **T-FIX-03 이전** 테스트이므로 Round 1에서 고친 순서 교정(`waitFor(search)` → `waitFor(DOM 부재)`)도 되돌아가 있다.
+그래서 이 1건이 더 나온 것이고, 현재 트리에서는 통과한다(위 33/33). **Round 1 수정이 실효였음을 사후 확인해 준 셈**이며 새 결함이 아니다.
+
+### (d) 개발자가 밝힌 한계(POST/PUT 미주입)를 리뷰어가 메움
+`ctl`/`wt`와 별개로 `wt2` 사본에서 **앱 쪽 유일 진입점 `src/api/client.ts`의 모든 응답**(GET·POST·PUT·DELETE +
+브라우저 토큰)에 지연을 주입하고 **전체 suite**를 돌렸다.
+
+| 주입 방식 | 결과 |
+|---|---|
+| `setTimeout(50)` 매크로태스크 | 52파일 중 50파일 통과, 실패 2파일(`stream.test.ts`·`WorkflowDeleteDialog.test.tsx`) — 두 파일 모두 `vi.useFakeTimers()`를 쓰므로 주입한 real timer가 진행되지 않는 **주입 방식의 인공물** |
+| 마이크로태스크 30틱(가짜 타이머와 호환) | **52 files / 296 tests 전부 통과** |
+
+→ 모든 메서드·모든 테스트 파일에 응답 지연을 걸어도 **추가 racy 지점이 나오지 않는다.** "6곳이 전부"는 독립적으로 뒷받침된다.
+
+## R2-5. 회귀 — 이번 라운드는 테스트·캡처만 바꿨다
+
+- `git diff HEAD --stat`: 15파일(운영 소스 8 + 테스트 7)이지만 이는 **Round 1 변경분을 포함한 누적치**다.
+  Round 1 기록 커밋 시각은 `2026-09-24 22:39:45`이고, 파일 mtime은
+  운영 소스 전부 **14:33~14:39**(Round 1 이전), 이번 라운드 이후 수정된 파일은
+  `AgentForm.test.tsx`·`RemoveAgentDialog.test.tsx`·`SaveConflictDialog.test.tsx`(22:49), `text.test.ts`(22:50),
+  캡처 4장(22:51)뿐이다. → **운영 소스 변경 0건 보고는 사실.**
+- Round 1이 통과 판정한 소스 근거를 현재 트리에서 재확인(모두 그대로):
+  `floorDuplicateWarning` = `${name}이(가) 여러 워크플로우에 있습니다 · 구성 파일을 확인하세요`(FR-006-AC11 원문 포함 확인),
+  `importTitleFor` = `${workflowName}(으)로 …`, `importHiddenSelectionNotice` = `검색으로 가려진 선택 ${hiddenCount}명`,
+  `IMPORT_REJECTED_REASON_TEXT` 3문구 ui-spec 일치, `koreanSubjectParticle` 부재,
+  `AgentForm.tsx`의 footer 상시 렌더 + `loading` 전달, `ImportDialog.tsx:200-201` 안내 줄 위치·토큰.
+- 품질 게이트(실 트리): `npm test` **52 files / 296 passed**, `npm run lint` 통과, `npm run typecheck` 통과,
+  `npm run build` 통과. 지연 주입 잔재·`__probe__` 0건, `tools/e2e/tests`=`health.spec.ts` 1개,
+  `docs/`는 `docs/reviews/screens/T-FIX-03/`(untracked 캡처)만, `package.json` 미변경,
+  변경 파일의 `TODO|FIXME|XXX|not implemented|lorem` 검출은 정적 검사기 어휘 2건뿐.
+
+## R2-3. m1 해소 — 새 정적 검사를 probe로 재검증
+
+`JONGSEONG_MATH`에 `normalize\s*\(`, 한글 자모 블록 문자(`U+1100–11FF`·`U+3130–318F`·`U+A960–A97F`·`U+D7B0–D7FF`),
+정규식 리터럴의 `\u11xx`·`\u31xx` 이스케이프가 추가됐다. 스크래치 사본 `frontend/src/__probe__/`에 넣고 실행:
+
+| probe | 내용 | Round 1 | Round 2 |
+|---|---|---|---|
+| C | `/[ᆨ-ᇂ]$/.test(name.normalize("NFD"))` + 완성 문장 2개 분기 | PASS(미검출) | **FAIL(검출)** — offender `probeC.ts: ᆨ` |
+| D | 자모를 문자열 이스케이프로 감춰 `new RegExp(...)` + `normalize(` 호출 | — | **FAIL(검출)** — `normalize(`(+ ADR-33 검사에도 걸림) |
+| E | `normalize`를 대괄호 접근으로 숨기고 자모도 문자열 안에만 둠 | — | ADR-39 검사는 **미검출**, 다만 ADR-33 자리표시 검사가 문자열 `[…]`를 잡아 **결국 실패**한다 |
+| F | 받침 있는 이름 하드코딩 목록으로 분기 | — | **미검출**(주석이 명시한 한계 그대로) |
+
+- **Round 1이 지적한 우회 경로 C는 닫혔다.**
+- 자기검증 케이스(`[ADR-39] 조사 보정 검사기가 실제 보정 코드를 잡는다`)가 공허하지 않은지 **뮤테이션 테스트**로 확인했다:
+  사본에서 `JONGSEONG_MATH`를 Round 1 패턴으로 되돌리자 이 테스트가 **즉시 실패**했다(NFD probe 케이스에서).
+- 주석의 한계 서술 정확도: "하드코딩 목록"(=probe F)은 **정확**하다. "조사 두 벌을 통째로 문장에 담는 구현"은
+  받침 판정을 `normalize`·코드값·자모 없이 해야만 빠져나가므로 사실상 F와 같은 형태다. 서술에 과장이 없다.
+- 남는 우회는 F 한 가지이며 **코드에 조사·자모·코드포인트가 전혀 등장하지 않는 형태**라 정적 검사의 원리적 한계다.
+  실질 방어선(문구 값 고정 단언 `[ADR-39] 층 경고 …`, `[ADR-39] … 모두 '(으)로'`)이 그대로 있다. → **m1 해소**로 본다.
+- probe·뮤테이션은 전부 스크래치 사본에서만 했고 실제 트리는 건드리지 않았다(`git status` 동일).
+
+## R2-4. m3 해소 — 캡처 픽셀 실측
+
+같은 방법(정확히 `rgb(61,214,140)` 일치 / 채널별 ±12 허용)으로 8장을 측정:
+
+| 캡처 | 크기 | exact | ±12 |
+|---|---|---|---|
+| T-018 `05-R-import-selected-2.png` | 1440×1024 | 3725 | 3819 |
+| T-018 `05-R-import-search-no-results.png` | 1440×1024 | 3727 | 3819 |
+| **T-FIX-03** `05-R-import-selected-2.png` | 1280×720 | **3727** | **3819** |
+| **T-FIX-03** `05-R-import-search-no-results.png` | 1280×720 | **3705** | **3819** |
+| T-018 dropdown/empty/fixed-workflow/lead-exists/no-workflow | — | 0 | 0 |
+| T-FIX-03 `05-R-import-dropdown.png`·`-changed.png` | — | 0 | 0 |
+
+- 전환 중간색(Round 1의 `rgb(39,113,87)`·`rgb(25,44,52)`)은 **사라졌다.** primary 버튼이 완전히 활성색으로 찍혔다.
+- 개발자 측정 4065 vs 리뷰어 Round 1 측정 3912 vs 이번 3727 — **허용 오차(임계값) 차이일 뿐 실제 차이가 아니다.**
+  ±12 허용치로는 T-018과 T-FIX-03이 **3819로 완전히 동일**하다(안티에일리어싱 화소까지 같은 분포).
+- `05-R-import-dropdown*.png`만 0인 것: 두 장 모두 선택 0명이고 버튼이 `선택한 0명 가져오기`로 **점선+faint 비활성**이다
+  (이미지 육안 확인 완료). T-018에서도 선택이 없는 5장은 전부 0이다. → 설명이 맞다.
+- 육안 재확인: `selected-2`(제목 `마케팅부서(으)로 …`, 체크 2·역할 팀원·녹색 활성 버튼),
+  `search-no-results`(`검색으로 가려진 선택 2명`이 검색 입력 아래·`일치하는 에이전트가 없습니다` 위),
+  `dropdown`(제목 `개발부서(으)로 …`, 안내 줄 없음) — 요소 누락·배치 차이 없음.
+- 다만 캡처 뷰포트가 T-018의 1440×1024에서 **1280×720으로 바뀌었다.** 구성·요소·버튼 화소 수가 동일해 대조에는
+  지장이 없었으나, 이후 픽셀 단위 시각 회귀를 하려면 기준 캡처와 뷰포트를 맞추는 편이 낫다(m4, 기록만).
+
+## R2-6. m2 — 기록만
+Round 1에 적은 대로 개발자의 건수 표기(10/6/4)와 리뷰어 기준 실측(17/6/4)이 다르다. 이번 라운드에서도 결론(누락 0)은
+리뷰어 독립 검증과 일치하므로 판정에 반영하지 않는다.
+
+---
+
+# Round 2 판정
+
+## VERDICT: **PASS**
+
+| Round 1 이슈 | 상태 | 근거 |
+|---|---|---|
+| [Major] B-1 새 flaky | **해소** | 6곳 수정, 원래 단언 손실 0, 지연 주입 대조 실험에서 7건 검출 → 33/33 통과 |
+| [Major] B-2 검증 조건 검출력 없음 | **해소** | 확률(`yes` 부하) 방식을 버리고 결정론적 50ms GET 지연 주입으로 교체, 대조군 7건 실패로 검출력 실증 |
+| [Minor] m1 정적 검사 우회 | **해소** | probe C가 이제 검출됨, 자기검증 케이스 뮤테이션으로 비공허성 확인, 남은 한계(하드코딩 목록)는 주석과 일치 |
+| [Minor] m2 보고 수치 | 기록만 | 결론 동일 |
+| [Minor] m3 캡처 전이색 | **해소** | primary 화소 3727/3705(±12 기준 3819) — T-018과 동일 |
+
+Round 1에서 통과 판정한 8개 항목은 운영 소스가 변하지 않아 **그대로 유효**하며, 재확인에서도 문구·구조가 동일했다.
+
+## 남긴 Minor (판정에 미반영)
+- **m4 — 캡처 뷰포트 불일치**: T-018 기준 1440×1024 ↔ T-FIX-03 1280×720. 요소 대조에는 영향 없음.
+  다음 캡처부터 기준 캡처와 뷰포트를 맞춘다. 담당: frontend-developer.
+
+## SUGGESTIONS
+- 이번에 쓴 **응답 지연 주입**은 확률적 부하 반복보다 싸고 결정적이다. `CLAUDE.md`의 검증 절차나 테스트 유틸에
+  "로딩/대기 상태를 다루는 테스트는 지연 주입 사본에서 1회 확인"을 넣으면 같은 계열 결함을 태스크 단계에서 잡을 수 있다.
+  (역할: lead)
+- `await findByLabelText("이름 (name)")` 후 **동기** 상태 단언은 "필드와 footer가 같은 렌더에서 나온다"는 현재 구조에 의존한다.
+  구조가 갈라지면 조용히 racy해지므로, 상태 단언은 `await waitFor(() => expect(...).toBeEnabled())` 쪽이 더 견고하다(선택).
+
+## NEEDS CONFIRMATION
+- 없음.
+
+## Round 2 실험 방식 (기록)
+- 이번 라운드 검증은 **CPU 부하 프로세스를 전혀 쓰지 않았다.** 전부 결정론적 지연 주입(`setTimeout(50)` /
+  가짜 타이머 호환 마이크로태스크)과 대상 파일 단위 실행으로만 했다.
+- 실험은 모두 스크래치 사본(`ctl`·`wt`·`wt2`·`probe3`)에서 했고 종료 후 사본을 삭제했다. 실제 트리에는
+  `docs/reviews/T-FIX-03.md`(이 문서) 외 변경이 없다(`git status` 확인).
+- 확인 시점에 `yes` 부하 프로세스는 남아 있지 않다(`pgrep -x yes` → 없음, load average 1분 16.69로 감쇠 중).

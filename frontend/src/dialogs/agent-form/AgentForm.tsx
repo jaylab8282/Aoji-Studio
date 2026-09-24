@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { Dialog } from "../../components/ui/Dialog";
 import { MonoText } from "../../components/ui/MonoText";
-import { agentFilePathOf, leadTakenBy } from "../../lib/derive/agentForm";
+import { agentFilePathOf, leadTakenBy, requiredFilled } from "../../lib/derive/agentForm";
 import {
   AGENT_FORM_CREATE_TITLE,
   AGENT_FORM_EDIT_TITLE,
@@ -25,6 +25,7 @@ import { useSnapshotStore } from "../../state/snapshotStore";
 import { RemoveAgentDialog } from "../remove-agent/RemoveAgentDialog";
 import { SaveConflictDialog } from "../save-conflict/SaveConflictDialog";
 import { AgentFormBody } from "./AgentFormBody";
+import { AgentFormFooter } from "./AgentFormFooter";
 import { AgentFormSkeleton } from "./AgentFormSkeleton";
 import { useAgentFormState } from "./useAgentFormState";
 
@@ -87,34 +88,53 @@ export function AgentForm({ mode, agentName, workflowParam, onClose }: AgentForm
               </Button>
             </div>
           </div>
-        ) : form.loading ? (
-          <AgentFormSkeleton />
         ) : (
-          <AgentFormBody
-            mode={mode}
-            values={form.values}
-            workflows={workflows}
-            allowNoWorkflow={mode === "edit" && detail?.workflow === null}
-            leadTaken={leadTakenBy(selectedWorkflow?.lead ?? null, detail?.name ?? null)}
-            fieldErrors={form.fieldErrors}
-            submitError={form.submitError}
-            pending={form.pending}
-            removeDisabledReason={
-              !writable ? WRITABLE_FALSE_REASON : status === "idle" ? undefined : REMOVE_AGENT_BUSY_REASON
-            }
-            submitDisabledReason={
-              !writable
-                ? WRITABLE_FALSE_REASON
-                : form.values.toolsMode === null
-                  ? TOOLS_MODE_REQUIRED_REASON
-                  : undefined
-            }
-            ids={ids}
-            onChange={form.patchValues}
-            onRemove={() => setRemoveOpen(true)}
-            onCancel={onClose}
-            onSubmit={() => void form.submit(false)}
-          />
+          // ui-spec.md SCR-06 제목 행 `로딩` 열: 파일을 읽는 동안 필드 자리만 스켈레톤이고
+          // 각주·`취소`·`저장`은 사라지지 않은 채 비활성이다(T-019 리뷰 Minor 1, ADR-35 — 이유 줄 없음).
+          <>
+            {form.loading ? (
+              <AgentFormSkeleton />
+            ) : (
+              <AgentFormBody
+                values={form.values}
+                workflows={workflows}
+                allowNoWorkflow={mode === "edit" && detail?.workflow === null}
+                leadTaken={leadTakenBy(selectedWorkflow?.lead ?? null, detail?.name ?? null)}
+                fieldErrors={form.fieldErrors}
+                submitError={form.submitError}
+                pending={form.pending}
+                ids={ids}
+                onChange={form.patchValues}
+              />
+            )}
+            <AgentFormFooter
+              showRemove={mode === "edit"}
+              removeDisabledReason={
+                form.loading
+                  ? undefined
+                  : !writable
+                    ? WRITABLE_FALSE_REASON
+                    : status === "idle"
+                      ? undefined
+                      : REMOVE_AGENT_BUSY_REASON
+              }
+              submitDisabledReason={
+                form.loading
+                  ? undefined
+                  : !writable
+                    ? WRITABLE_FALSE_REASON
+                    : form.values.toolsMode === null
+                      ? TOOLS_MODE_REQUIRED_REASON
+                      : undefined
+              }
+              submitDisabled={form.loading || form.pending || !requiredFilled(form.values, mode)}
+              pending={form.pending}
+              loading={form.loading}
+              onRemove={() => setRemoveOpen(true)}
+              onCancel={onClose}
+              onSubmit={() => void form.submit(false)}
+            />
+          </>
         )}
       </div>
 

@@ -52,3 +52,12 @@ export function toImportMembers(
 ): ImportMemberRequestItem[] {
   return selectedNames.map((name) => ({ name, role: roles[name] ?? "member" }));
 }
+
+/**
+ * ADR-37: 검색은 표시 필터일 뿐이라 선택을 지우지 않는다. 선택한 name 중 지금 검색 결과(표시 행)에
+ * 없는 수를 센다. 0이면 안내 줄을 그리지 않는다(ui-spec.md SCR-05-R 안내 줄 행).
+ */
+export function hiddenSelectedCount(selectedNames: string[], visibleAgents: AgentDef[]): number {
+  const visible = new Set(visibleAgents.map((agent) => agent.name));
+  return selectedNames.filter((name) => !visible.has(name)).length;
+}

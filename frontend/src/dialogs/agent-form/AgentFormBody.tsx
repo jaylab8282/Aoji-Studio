@@ -1,18 +1,18 @@
 /**
- * 06 폼 본문: 상단 사유(FR-011-E4) → 입력 묶음 → 사용 도구 → 지침 → 팝업 사유 → 각주·버튼.
+ * 06 폼 본문: 상단 사유(FR-011-E4) → 입력 묶음 → 사용 도구 → 지침 → 팝업 사유.
+ * 각주·버튼 줄(`AgentFormFooter`)은 `AgentForm.tsx`가 본문 밖에서 그린다 — 파일을 읽는 동안에도
+ * 사라지지 않아야 하기 때문이다(ui-spec.md SCR-06 `로딩` 열, T-019 리뷰 Minor 1).
  * 판정은 `lib/derive/agentForm.ts`와 `AgentForm.tsx`가 넘겨준 값만 쓴다.
  */
 import type { Workflow } from "../../api/types";
 import { TextArea } from "../../components/ui/TextArea";
-import { explicitToolsEmpty, requiredFilled, type AgentFormValues } from "../../lib/derive/agentForm";
+import { explicitToolsEmpty, type AgentFormValues } from "../../lib/derive/agentForm";
 import { AGENT_BODY_LABEL, TOOLS_EXPLICIT_EMPTY_MESSAGE } from "../../lib/text";
 import type { SubmitError } from "./useAgentFormState";
 import { AgentFormFields } from "./AgentFormFields";
-import { AgentFormFooter } from "./AgentFormFooter";
 import { ToolsField } from "./ToolsField";
 
 export interface AgentFormBodyProps {
-  mode: "create" | "edit";
   values: AgentFormValues;
   workflows: Workflow[];
   allowNoWorkflow: boolean;
@@ -20,13 +20,8 @@ export interface AgentFormBodyProps {
   fieldErrors: Record<string, string>;
   submitError: SubmitError | null;
   pending: boolean;
-  removeDisabledReason?: string;
-  submitDisabledReason?: string;
   ids: Record<string, string> & { name: string; model: string; customModel: string; workflow: string; description: string; otherTools: string; body: string };
   onChange: (patch: Partial<AgentFormValues>) => void;
-  onRemove: () => void;
-  onCancel: () => void;
-  onSubmit: () => void;
 }
 
 export function AgentFormBody(props: AgentFormBodyProps) {
@@ -79,17 +74,6 @@ export function AgentFormBody(props: AgentFormBodyProps) {
           {submitError.message}
         </p>
       ) : null}
-
-      <AgentFormFooter
-        showRemove={props.mode === "edit"}
-        removeDisabledReason={props.removeDisabledReason}
-        submitDisabledReason={props.submitDisabledReason}
-        submitDisabled={pending || !requiredFilled(values, props.mode)}
-        pending={pending}
-        onRemove={props.onRemove}
-        onCancel={props.onCancel}
-        onSubmit={props.onSubmit}
-      />
     </>
   );
 }

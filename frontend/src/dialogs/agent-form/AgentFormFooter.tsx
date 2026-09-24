@@ -20,6 +20,11 @@ interface AgentFormFooterProps {
   /** 이유 줄 없이 비활성(필수값 미입력·파일 읽는 중·저장 중). */
   submitDisabled: boolean;
   pending: boolean;
+  /**
+   * 06 수정 모드에서 정의 파일을 읽는 중(ui-spec.md SCR-06 제목 행 `로딩` 열 "폼 전체 비활성").
+   * 각주·버튼은 사라지지 않고 그려진 채 모두 비활성이며 이유 줄은 붙이지 않는다(ADR-35).
+   */
+  loading?: boolean;
   onRemove: () => void;
   onCancel: () => void;
   onSubmit: () => void;
@@ -31,6 +36,7 @@ export function AgentFormFooter({
   submitDisabledReason,
   submitDisabled,
   pending,
+  loading = false,
   onRemove,
   onCancel,
   onSubmit,
@@ -40,11 +46,17 @@ export function AgentFormFooter({
       <p className="text-aux text-text-faint">{AGENT_FORM_FOOTNOTE}</p>
       <div className="flex flex-wrap items-center justify-end gap-2">
         {showRemove ? (
-          <Button variant="danger" size="sm" disabledReason={removeDisabledReason} onClick={onRemove}>
+          <Button
+            variant="danger"
+            size="sm"
+            disabled={loading}
+            disabledReason={removeDisabledReason}
+            onClick={onRemove}
+          >
             {AGENT_REMOVE_FROM_WORKFLOW_BUTTON_LABEL}
           </Button>
         ) : null}
-        <Button variant="secondary" size="sm" disabled={pending} onClick={onCancel}>
+        <Button variant="secondary" size="sm" disabled={pending || loading} onClick={onCancel}>
           {CANCEL_BUTTON_LABEL}
         </Button>
         <Button

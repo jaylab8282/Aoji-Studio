@@ -55,6 +55,8 @@ export function AgentFormFields({
   onChange,
 }: AgentFormFieldsProps) {
   const roleDisabled = disabled || values.workflow === null;
+  /** 워크플로우 0개 + `(없음)` 불가 → 드롭다운 대신 안내만 둔다(ui-spec.md SCR-06 소속 행 `빈` 열). */
+  const workflowPickerMissing = workflows.length === 0 && !allowNoWorkflow;
 
   return (
     <>
@@ -104,15 +106,15 @@ export function AgentFormFields({
       <div className="grid grid-cols-2 gap-4">
         <Field
           label={AGENT_WORKFLOW_LABEL}
-          htmlFor={ids.workflow}
+          // 빈 상태에서는 연결할 입력이 없다. `<span>`은 labelable 요소가 아니라 `htmlFor`가 무효다
+          // (T-019 리뷰 Minor 2) — 안내는 라벨과 이어 붙이지 않고 `Field` 자식 텍스트로만 둔다.
+          htmlFor={workflowPickerMissing ? undefined : ids.workflow}
           required
           hint={AGENT_WORKFLOW_HINT}
           error={fieldErrors.workflow}
         >
-          {workflows.length === 0 && !allowNoWorkflow ? (
-            <span id={ids.workflow} className="text-body text-text-secondary">
-              {IMPORT_NO_WORKFLOW_NOTICE}
-            </span>
+          {workflowPickerMissing ? (
+            <span className="text-body text-text-secondary">{IMPORT_NO_WORKFLOW_NOTICE}</span>
           ) : (
             <Select
               id={ids.workflow}
