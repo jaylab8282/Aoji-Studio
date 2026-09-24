@@ -2,7 +2,7 @@
  * 화면 문구 상수 (conventions.md §2 MUST). ui-spec.md·final 문서의 문구를 글자 그대로 쓴다.
  * 컴포넌트는 이 파일의 상수만 쓰고 문자열을 직접 적지 않는다.
  */
-import type { Status } from "../api/types";
+import type { ImportRejectedReason, Role, Status } from "../api/types";
 import type { FloorSummary } from "./derive/floorSummary";
 
 // 공통 상태 글자 (ui-rules.md 1, conventions.md §7)
@@ -315,3 +315,57 @@ export function workflowDeleteConfigNote(name: string): string {
 }
 export const WORKFLOW_DELETE_CONFIRM_LABEL = "삭제 (이름 일치 시 활성)";
 export const WORKFLOW_DELETE_CONFIRM_PENDING_LABEL = "삭제 중…";
+
+// SCR-05-R 기존 에이전트 가져오기 (FR-009, 와이어프레임 p.6 오른쪽)
+/** 대상 워크플로우가 정해지지 않았을 때의 제목(ui-spec.md SCR-05-R 제목 행 "워크플로우 미정이면"). */
+export const IMPORT_TITLE = "기존 에이전트 가져오기";
+/** 대상이 정해졌을 때의 제목. `?workflow` 값으로 치환한다(ADR-33 (a)). */
+export function importTitleFor(workflowName: string): string {
+  return `${workflowName}로 ${IMPORT_TITLE}`;
+}
+/** 부제의 N = 워크플로우 밖 에이전트 수(ADR-33 (a) 치환). */
+export function importSubtitle(outsideCount: number): string {
+  return `어느 워크플로우에도 없는 정의 파일 ${outsideCount}개 · 파일은 그대로 두고 소속만 지정`;
+}
+export const IMPORT_TARGET_WORKFLOW_LABEL = "대상 워크플로우";
+/** 워크플로우가 0개일 때 드롭다운 자리에 놓는 안내(ui-spec.md SCR-05-R 드롭다운 행 `빈`). */
+export const IMPORT_NO_WORKFLOW_NOTICE = "먼저 워크플로우를 추가하세요";
+export const IMPORT_SEARCH_PLACEHOLDER = "이름·설명 검색";
+export const IMPORT_SEARCH_NO_RESULTS_TEXT = "일치하는 에이전트가 없습니다";
+export const IMPORT_CREATE_AGENT_BUTTON_LABEL = "+ 새로 만들기";
+export const IMPORT_TABLE_COL_NAME = "이름 (name)";
+export const IMPORT_TABLE_COL_DESCRIPTION = "설명 (description)";
+export const IMPORT_TABLE_COL_ROLE = "역할";
+/** 역할 드롭다운 선택지(ui-spec.md SCR-05-R 목록 표 `역할` 열). */
+export const ROLE_OPTION_TEXT: Record<Role, string> = {
+  lead: "팀장",
+  member: "팀원",
+};
+/** 행마다 다른 역할 드롭다운을 가리키는 보조 이름(NFR-12). 보이는 문구는 옵션 글자다. */
+export function importRoleSelectLabel(agentName: string): string {
+  return `${agentName} ${IMPORT_TABLE_COL_ROLE}`;
+}
+/** FR-009-AC6: 워크플로우 밖 에이전트가 0명일 때 표 대신 놓는 안내. */
+export const IMPORT_EMPTY_TEXT = "가져올 에이전트가 없습니다 · 새로 만들어 넣으세요";
+export const IMPORT_NOTICE_LEAD =
+  "팀장은 워크플로우당 1명이고 층의 첫 자리에 배치됩니다. 이미 팀장이 있으면 팀장 선택은 비활성.";
+export const IMPORT_NOTICE_TRASH =
+  "가져온 뒤 워크플로우에서 제거하면 정의 파일이 휴지통(.jaystudio/trash/)으로 이동합니다. 다른 워크플로우 소속 에이전트는 목록에 없습니다.";
+/** FR-009-AC5: 선택 인원이 라벨에 들어간다(ADR-33 (a) 치환). 0명이면 비활성이다. */
+export function importSubmitLabel(selectedCount: number): string {
+  return `선택한 ${selectedCount}명 가져오기`;
+}
+export const IMPORT_SUBMIT_PENDING_LABEL = "가져오는 중…";
+/**
+ * FR-009-E2 거부 사유. ui-spec.md SCR-05-R 에러 영역이 문구를 지정한 사유는 `ALREADY_ASSIGNED`뿐이다.
+ * 나머지 사유(`NOT_FOUND`·`FORMAT_ERROR`)는 확정 문구가 없어 문장을 지어내지 않고 이름만 보여준다.
+ */
+export const IMPORT_REJECTED_REASON_TEXT: Record<ImportRejectedReason, string | null> = {
+  ALREADY_ASSIGNED: "가져오는 사이 다른 워크플로우에 소속되었습니다",
+  NOT_FOUND: null,
+  FORMAT_ERROR: null,
+};
+export function importRejectedLine(agentName: string, reason: ImportRejectedReason): string {
+  const reasonText = IMPORT_REJECTED_REASON_TEXT[reason];
+  return reasonText === null ? agentName : `${agentName}: ${reasonText}`;
+}

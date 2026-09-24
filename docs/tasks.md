@@ -418,7 +418,7 @@
 - Depends on: T-017
 
 ## T-018 05 기존 에이전트 가져오기 UI
-- Status: todo
+- Status: done
 - Scope: Frontend
 - FR: FR-009
 - AC: FR-009-AC1, FR-009-AC2, FR-009-AC4, FR-009-AC5, FR-009-AC6, FR-009-AC7

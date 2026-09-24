@@ -193,6 +193,33 @@ export interface AgentUpdateRequest {
   force?: boolean;
 }
 
+/**
+ * `POST /api/workflows/{workflow}/members` (05-R 기존 에이전트 가져오기, FR-009).
+ * api-spec.yaml의 인라인 스키마를 그대로 옮긴다. 정의 파일은 바꾸지 않고 소속만 기록한다(FR-009-AC3).
+ */
+export interface ImportMemberRequestItem {
+  name: string;
+  role: Role;
+}
+
+export interface ImportMembersRequest {
+  members: ImportMemberRequestItem[];
+}
+
+/** 부분 성공 시 거부 사유(FR-009-E2). `ALREADY_ASSIGNED` = 가져오는 사이 다른 워크플로우에 소속됨. */
+export type ImportRejectedReason = "ALREADY_ASSIGNED" | "NOT_FOUND" | "FORMAT_ERROR";
+
+export interface ImportRejected {
+  name: string;
+  reason: ImportRejectedReason;
+}
+
+export interface ImportMembersResponse {
+  added: string[];
+  rejected: ImportRejected[];
+  workflow: Workflow;
+}
+
 export interface Settings {
   hostPath: string;
   agentCount: number | null;

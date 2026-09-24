@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { searchWorkflows } from "./search";
+import { searchAgents, searchWorkflows } from "./search";
 import type { Workflow } from "../../api/types";
 
 function buildWorkflow(overrides: Partial<Workflow> = {}): Workflow {
@@ -40,5 +40,28 @@ describe("searchWorkflows", () => {
     const results = searchWorkflows(workflows, "");
     expect(results).toHaveLength(2);
     expect(results.every((r) => r.matchedAgentNames === null)).toBe(true);
+  });
+});
+
+describe("searchAgents", () => {
+  const agents = [
+    { name: "dev-lead", description: "개발 팀장 · 태스크를 나눈다" },
+    { name: "qa-01", description: "Review pull requests" },
+    { name: "mkt-01", description: "" },
+  ];
+
+  it("[FR-009-AC2] description 부분 일치 대소문자 무시", () => {
+    expect(searchAgents(agents, "REVIEW").map((agent) => agent.name)).toEqual(["qa-01"]);
+    expect(searchAgents(agents, "태스크").map((agent) => agent.name)).toEqual(["dev-lead"]);
+  });
+
+  it("[FR-009-AC2] name 부분 일치 대소문자 무시", () => {
+    expect(searchAgents(agents, "DEV").map((agent) => agent.name)).toEqual(["dev-lead"]);
+    expect(searchAgents(agents, "01").map((agent) => agent.name)).toEqual(["qa-01", "mkt-01"]);
+  });
+
+  it("[FR-009-AC2] 빈 검색어 → 전체, 불일치 → 0건", () => {
+    expect(searchAgents(agents, "  ")).toHaveLength(3);
+    expect(searchAgents(agents, "zzz")).toHaveLength(0);
   });
 });

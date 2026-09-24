@@ -7,6 +7,7 @@ import { Button } from "../../components/ui/Button";
 import { StatusDot } from "../../components/ui/StatusDot";
 import { countAllStatuses } from "../../lib/derive/counts";
 import { useDialogNavigate } from "../../lib/dialogNavigate";
+import { outsideAgents } from "../../lib/derive/importCandidates";
 import {
   CREATE_AGENT_BUTTON_LABEL,
   EMPTY_VALUE_TEXT,
@@ -21,7 +22,7 @@ import {
 export function SummaryBar({ registry, live }: { registry: Registry; live: Live }) {
   const openDialog = useDialogNavigate();
   const counts = countAllStatuses(registry, live.agents);
-  const outsideCount = registry.agents.filter((agent) => agent.workflow === null).length;
+  const outsideCount = outsideAgents(registry.agents).length;
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">

@@ -4,13 +4,25 @@
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 
+/**
+ * `lg`는 목록 표가 들어가는 팝업(05-R)용 폭이다. 기본값 `md`는 05-L·05-3처럼 입력 한두 개짜리 팝업.
+ * 와이어프레임 p.6도 왼쪽 입력 팝업보다 오른쪽 가져오기 팝업을 넓게 그린다.
+ */
+type DialogSize = "md" | "lg";
+
+const SIZE_CLASSES: Record<DialogSize, string> = {
+  md: "max-w-md",
+  lg: "max-w-3xl",
+};
+
 interface DialogProps {
   title: string;
+  size?: DialogSize;
   onClose: () => void;
   children: ReactNode;
 }
 
-export function Dialog({ title, onClose, children }: DialogProps) {
+export function Dialog({ title, size = "md", onClose, children }: DialogProps) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
@@ -29,7 +41,7 @@ export function Dialog({ title, onClose, children }: DialogProps) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="w-full max-w-md rounded-card bg-card p-card-lg"
+        className={`w-full ${SIZE_CLASSES[size]} rounded-card bg-card p-card-lg`}
         onClick={(event) => event.stopPropagation()}
       >
         {children}

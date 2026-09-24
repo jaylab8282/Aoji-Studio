@@ -109,6 +109,54 @@ describe("DialogHost", () => {
     expect(screen.queryByTestId("confirm-by-name-dialog")).not.toBeInTheDocument();
   });
 
+  it("[FR-009-AC7][SCR-05-R] `?dialog=import` → 05-R 열림(대상 드롭다운), `?workflow` 있으면 고정 텍스트", () => {
+    replaceSnapshot([
+      {
+        name: "개발부서",
+        description: "",
+        filePath: ".jaystudio/teams/개발부서.json",
+        lead: null,
+        members: [],
+        brokenRefs: [],
+        rawMemberCount: 0,
+      },
+    ]);
+    const router = renderAt("/workflows?dialog=import");
+
+    expect(screen.getByRole("heading", { name: "기존 에이전트 가져오기" })).toBeInTheDocument();
+    expect(screen.getByLabelText("대상 워크플로우").tagName).toBe("SELECT");
+
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    expect(router.state.location.search).toBe("");
+
+    fireEvent.click(screen.getByRole("button", { name: "가져오기" }));
+    expect(router.state.location.search).toBe("?dialog=import&workflow=%EA%B0%9C%EB%B0%9C%EB%B6%80%EC%84%9C");
+    expect(
+      screen.getByRole("heading", { name: "개발부서로 기존 에이전트 가져오기" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "대상 워크플로우" })).not.toBeInTheDocument();
+  });
+
+  it("[SCR-05-R] 05-R `+ 새로 만들기` → `?dialog=agent-new&workflow=<대상>`", () => {
+    replaceSnapshot([
+      {
+        name: "개발부서",
+        description: "",
+        filePath: ".jaystudio/teams/개발부서.json",
+        lead: null,
+        members: [],
+        brokenRefs: [],
+        rawMemberCount: 0,
+      },
+    ]);
+    const router = renderAt("/workflows?dialog=import&workflow=%EA%B0%9C%EB%B0%9C%EB%B6%80%EC%84%9C");
+
+    fireEvent.click(screen.getByRole("button", { name: "+ 새로 만들기" }));
+    expect(router.state.location.search).toBe(
+      "?dialog=agent-new&workflow=%EA%B0%9C%EB%B0%9C%EB%B6%80%EC%84%9C",
+    );
+  });
+
   it("[ADR-14] `?dialog` 없음 → 팝업 없음", () => {
     replaceSnapshot([]);
     renderAt("/workflows");
