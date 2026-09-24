@@ -504,7 +504,7 @@
 - Depends on: T-016, T-017
 
 ## T-020 열기 도우미 (Node) · 설치 스크립트 · plist
-- Status: todo
+- Status: done
 - Scope: Helper
 - FR: FR-013
 - AC: FR-013-AC7, FR-013-AC11
@@ -523,6 +523,24 @@
   - plist — 단위 `plist.test 생성 plist에 ProgramArguments(node, 스크립트, --project-dir, --allowed-origins, --port 4181, --token-file), RunAtLoad true, KeepAlive true, '--dry-run' 없음`
   - dry-run — 단위 `--dry-run → stdout 'DRY-RUN <command>' 1줄, 204, openTerminal 미호출`
 - Depends on: -
+
+## T-FIX-04 T-020 리뷰 Minor 묶음 (도우미 견고성 · 설치 스크립트 안전장치)
+- Status: todo
+- Scope: Helper
+- FR: FR-013(견고성 보완 — 새 AC 없음)
+- AC: 없음(기존 AC 유지)
+- Errors: 없음
+- Screens: -
+- Backend: 없음
+- Helper: `jaystudio-helper.mjs`, `uninstall.sh`, `install.sh`, `test/*.test.mjs`, `README.md`/`CLAUDE.md`(설치 절차)
+- 배경: T-020 **PASS**(Critical·Major 0) 리뷰의 Minor 5건. 기능 결함이 아니라 견고성·운용 안전장치라 T-020을 막지 않았다. 리뷰: `docs/reviews/T-020.md`
+- Done when:
+  - 본문 4096B 초과 시 **소켓 리셋이 아니라 400**을 돌려준다(`jaystudio-helper.mjs:230-246`). 단위 `[FR-013-E3] 본문 초과 → 400`
+  - 기존 토큰 파일을 재사용할 때 **mode가 600이 아니면 거부하거나 600으로 고친다**(`:157-164`). 단위 `기존 토큰 mode 644 → 기동 실패 또는 600 복구`
+  - `uninstall.sh --label` 값을 **검증**한다(`uninstall.sh:26,33,47`) — 현재 미검증이라 `rm -f` 경로가 조작될 수 있다. 단위 `install.test [보안] 잘못된 label → 아무것도 지우지 않고 실패`
+  - `install.sh`가 `launchctl bootstrap` 후 **기동 성공을 확인**한다(`install.sh:112-118`) — 현재는 잘못된 인자여도 조용히 재시작 루프에 빠진다
+  - **도우미 설치 절차를 `README.md`(또는 `Jay_Studio/CLAUDE.md`)에 적는다** — 현재 어디에도 없어 사람이 H-3을 수행할 수 없다
+- Depends on: T-020
 
 ## T-021 터미널 열기 프론트 연동 (02 · 03 · 07)
 - Status: todo
