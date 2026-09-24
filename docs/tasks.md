@@ -440,8 +440,8 @@
   - ADR-33·ADR-35 정합 — 05-R 문구에 대괄호 자리표시를 남기지 않는다(`선택한 N명 가져오기`는 (a) 치환). `가져오기`·`선택한 0명 가져오기` 비활성에는 이유 줄을 붙이지 않고, `writable=false`·`+ 새로 만들기`만 `쓰기 권한 없음`을 붙인다. 단위 `[FR-009-AC5][ADR-35] 0명 비활성에 이유 줄 없음, writable=false는 '쓰기 권한 없음'`
 - Depends on: T-017
 
-## T-FIX-03 ADR-36~ADR-39 05-R 가져오기 팝업 정합 (거부 사유 문구 · 가려진 선택 안내 · 제목 대상 · 조사 표기)
-- Status: todo
+## T-FIX-03 ADR-36~ADR-39 05-R 가져오기 팝업 정합 + ADR-39 위반 제거 (거부 사유 문구 · 가려진 선택 안내 · 제목 대상 · 조사 표기)
+- Status: in_progress
 - Scope: Frontend
 - FR: FR-009(문서 정합 수정 — ADR-36, ADR-37, ADR-38, ADR-39)
 - AC: 없음(기존 AC 유지. FR-009-AC5의 버튼 라벨·활성 조건은 바뀌지 않는다)
@@ -456,8 +456,15 @@
   - ADR-38 — 제목이 `?workflow`가 아니라 현재 대상(= `?workflow` ?? 드롭다운 선택값)을 따른다. 단위 `ImportDialog.test [FR-009-AC7][ADR-38] ?workflow 없음 + 드롭다운 기본 선택 → 제목에 첫 워크플로우 이름`, `[ADR-38] 드롭다운을 바꾸면 제목도 바뀐다`, `[ADR-38] 워크플로우 0개 → 제목 '기존 에이전트 가져오기'`
   - ADR-39 — `importTitleFor`가 `<워크플로우>(으)로 기존 에이전트 가져오기`를 만든다(`로` 단독 금지). 단위 `text.test [ADR-39] 받침 있는 이름·없는 이름 모두 '(으)로'`. 정적 검사: `frontend/src`에 조사 보정(받침 판정) 함수가 없다
   - 회귀 — `cd frontend && npm test` 통과 수가 줄지 않는다. `npm run lint`·`npm run typecheck` 통과. `Dialog` `size` 기본값은 `md`(`max-w-md`) 그대로여서 05-L·05-3에 회귀가 없다(ADR-40, 코드 변경 없음)
+  - **(팀장 추가, T-019 리뷰 Major) ADR-39 위반 제거 — `koreanSubjectParticle()`** : `lib/text.ts:193-199`의 조사 보정 함수가 conventions §2 MUST("받침을 판정해 조사를 고르는 보정 함수·분기를 `lib/format/*`·컴포넌트 어디에도 두지 않는다")를 어기고, **실제 화면 문구가 확정 문구와 다르다**. 리뷰어 실측: 마지막 글자가 `a/e/i/o/u`면 `가`, 아니면 `이` → `architect이 여러 워크플로우에…`로 렌더되어 FR-006-AC11 확정 문구 `<name>이(가) 여러 워크플로우에 있습니다 · 구성 파일을 확인하세요`와 글자가 다르다. 조치: 함수를 지우고 `floorDuplicateWarning`을 확정 문구 병기 표기로 되돌린 뒤 **잘못된 기대값을 고정하고 있는 `screens/workflows/Floor.test.tsx:162,167`을 확정 문구로 교정**한다(이 교정은 허용된 기대값 수정이다). 단위 `text.test [ADR-39] 층 경고는 확정 문구 병기 표기`, 정적 단언 `[ADR-39] frontend/src에 조사 보정 함수·받침 판정 분기가 없다`
+  - (팀장 추가, T-019 리뷰 Minor 1) 06 수정 모드 파일 읽는 중에 `취소`·`저장`·각주가 **사라지지 않는다** — 스켈레톤은 필드 영역에만 적용하고 버튼·각주는 그린 채 `disabled`로 둔다(이유 줄 없음). 근거: ui-spec SCR-06 제목 행 `로딩` 열 "폼 전체 비활성 + 필드 스켈레톤", ADR-35 표가 "06 수정 모드 파일 읽는 중"을 비활성 지점으로 이미 상정. 단위 `AgentForm.test [SCR-06] 수정 모드 로딩 중 취소·저장이 비활성으로 보인다`
+  - (팀장 추가, T-019 리뷰 Minor 2) 06 `소속 워크플로우` 빈 상태(`워크플로우 0`)의 안내를 `<span id=…>`에 `htmlFor`로 연결하지 않는다(`<span>`은 labelable 요소가 아니라 무효). 안내를 `Field` 자식 텍스트로 두거나 전용 요소로 분리하고, 이 분기를 덮는 단언 1개를 추가한다. 단위 `AgentForm.test [SCR-06] 워크플로우 0개 → '먼저 워크플로우를 추가하세요' 안내`
   - 캡처 재대조 — 05-R을 `?workflow` 없이(드롭다운) · 검색 결과 0 + 2명 선택 상태로 재캡처해 `docs/reviews/screens/T-FIX-03/`에 두고 제목·안내 줄을 확인한다
-- Depends on: T-018
+  - **[리뷰 Round 1 NEEDS_FIX — B-1] 이 태스크가 새로 만든 flaky를 고친다**: `dialogs/remove-agent/RemoveAgentDialog.test.tsx:135`가 `findByRole(...)` 직후 `expect(openRemove).toBeEnabled()`를 단언한다. Minor-1 수정으로 `워크플로우에서 제거` 버튼이 로딩 중에도 **비활성 상태로 존재**하게 됐고, `findBy*`는 **존재**만 기다리므로 비활성 버튼을 즉시 잡는다. pristine 트리에서는 재현 불가능한 **신규 결함**(리뷰어가 부하 42회 중 2회 재현). 조치: 상태 단언을 `waitFor`로 감싼다. 같은 패턴(`findBy*` 직후 상태 단언)이 다른 곳에 있는지 함께 확인한다
+  - **[리뷰 Round 1 — B-2, 팀장 몫] flaky 검증 조건을 실효성 있게 바꾼다**: 14코어 머신에서 `yes ×4`는 부하가 되지 않아 **수정 전 코드도 통과시킨다**(pristine 0/10 통과). 검증은 `yes ×16` 이상 + 전체 suite 반복으로 하고, 검증 조건 자체가 결함을 잡는지(수정 전 코드가 실패하는지) 먼저 확인한다
+  - (리뷰 Minor m1) 조사 보정 정적 검사 우회 경로: `/[ᆨ-ᇂ]$/.test(name.normalize("NFD"))` + 분기별 완성 문장 반환은 **검출되지 않는다**(리뷰어 probe C 실측). 검사 패턴을 넓히거나 한계를 주석으로 명시한다
+  - (리뷰 Minor m3) `docs/reviews/screens/T-FIX-03/` 캡처는 `transition-colors duration-200` 도중에 찍혀 primary 녹색 픽셀이 0이다(T-018은 3912). 회귀는 아니지만 **버튼 활성 상태의 시각 기준으로 쓸 수 없다** — 재캡처 시 전환 완료를 기다린다
+- Depends on: T-018, T-019
 
 ## T-019 06 에이전트 만들기 · 수정 · 06-5 충돌 · 06-6 제거 UI
 - Status: done
