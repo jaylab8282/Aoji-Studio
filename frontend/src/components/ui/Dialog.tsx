@@ -41,7 +41,10 @@ export function Dialog({ title, size = "md", onClose, children }: DialogProps) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`w-full ${SIZE_CLASSES[size]} rounded-card bg-card p-card-lg`}
+        // 폭은 `size` 두 단계뿐이다(ADR-40). 높이는 지정하지 않지만, 06 폼처럼 내용이 긴 팝업이
+        // 짧은 창에서 잘려 보이지 않는 일이 없도록 화면 높이를 넘으면 팝업 안에서 스크롤한다
+        // (docs/ui/README.md: 요소 가림은 결함). Tailwind 기본 스케일 클래스만 쓴다.
+        className={`w-full ${SIZE_CLASSES[size]} max-h-screen overflow-y-auto rounded-card bg-card p-card-lg`}
         onClick={(event) => event.stopPropagation()}
       >
         {children}

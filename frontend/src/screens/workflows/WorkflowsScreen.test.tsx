@@ -1,9 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { WorkflowsScreen } from "./WorkflowsScreen";
 import { snapshotStore } from "../../state/snapshotStore";
 import { buildSnapshotFixture } from "../../test/fixtures/snapshot";
+import { AGENT_CREATED_NOTICE_MS } from "./screenSignals";
+import { AGENT_CREATED_NAV_STATE } from "../../lib/workflowsNavState";
 import type { FormatError, Workflow } from "../../api/types";
 
 function buildWorkflow(overrides: Partial<Workflow> = {}): Workflow {
@@ -125,5 +127,32 @@ describe("WorkflowsScreen", () => {
 
     expect(screen.getByRole("heading", { name: "워크플로우A" })).toBeInTheDocument();
     expect(screen.queryByText("아직 워크플로우가 없습니다")).not.toBeInTheDocument();
+  });
+
+  it("[FR-010-AC6] 만들기 성공 안내 줄은 02 상단에 8초만 보인다", async () => {
+    vi.useFakeTimers();
+    try {
+      const fixture = buildSnapshotFixture();
+      snapshotStore.replace({ ...fixture, registry: { ...fixture.registry, workflows: [buildWorkflow()] } });
+      const router = createMemoryRouter([{ path: "/workflows", element: <WorkflowsScreen /> }], {
+        initialEntries: [{ pathname: "/workflows", state: AGENT_CREATED_NAV_STATE }],
+      });
+      render(<RouterProvider router={router} />);
+
+      const notice = "Claude Code가 새 정의를 바로 인식하지 못하면 재시작이 필요할 수 있습니다";
+      expect(screen.getByText(notice)).toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(AGENT_CREATED_NOTICE_MS - 100);
+      });
+      expect(screen.getByText(notice)).toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100);
+      });
+      expect(screen.queryByText(notice)).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

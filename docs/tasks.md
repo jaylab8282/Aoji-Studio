@@ -460,7 +460,7 @@
 - Depends on: T-018
 
 ## T-019 06 에이전트 만들기 · 수정 · 06-5 충돌 · 06-6 제거 UI
-- Status: todo
+- Status: done
 - Scope: Frontend
 - FR: FR-010, FR-011, FR-012, FR-002
 - AC: FR-010-AC2, FR-010-AC3, FR-010-AC4, FR-010-AC6, FR-011-AC3, FR-011-AC4, FR-012-AC1, FR-012-AC3, FR-012-AC5, FR-002-AC3

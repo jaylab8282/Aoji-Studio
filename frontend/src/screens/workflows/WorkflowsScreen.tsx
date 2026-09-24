@@ -13,14 +13,17 @@
  */
 import { useRef, useState } from "react";
 import { AgentsDirMissing } from "../../components/ui/AgentsDirMissing";
+import { Banner } from "../../components/ui/Banner";
 import { EmptyWorkflowCard } from "../../components/ui/EmptyWorkflowCard";
-import { FormatErrorList } from "../../components/ui/FormatErrorList";
+import { FORMAT_ERROR_LIST_ELEMENT_ID, FormatErrorList } from "../../components/ui/FormatErrorList";
 import { searchWorkflows } from "../../lib/derive/search";
+import { AGENT_CREATED_RESTART_NOTICE } from "../../lib/text";
 import { useSnapshotStore } from "../../state/snapshotStore";
 import { FilterBar } from "./FilterBar";
 import { FloorGrid } from "./FloorGrid";
 import { Lobby } from "./Lobby";
 import { Minimap } from "./Minimap";
+import { useAgentCreatedNotice, useFormatErrorScroll } from "./screenSignals";
 import { SummaryBar } from "./SummaryBar";
 import { ZoomControls } from "./ZoomControls";
 
@@ -40,6 +43,9 @@ export function WorkflowsScreen() {
   const [zoom, setZoom] = useState(ZOOM_DEFAULT);
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  // 06에서 넘어온 신호: 만들기 성공 안내 줄(FR-010-AC6)과 04-6 스크롤(FR-011-E3).
+  const showCreatedNotice = useAgentCreatedNotice();
+  useFormatErrorScroll(FORMAT_ERROR_LIST_ELEMENT_ID);
 
   if (config === null || registry === null || live === null) return null;
 
@@ -75,6 +81,8 @@ export function WorkflowsScreen() {
   return (
     <main className="flex h-body-viewport flex-col">
       <div className="flex flex-col gap-6 px-page-x pt-8 pb-6">
+        {/* FR-010-AC6: 만들기 성공 뒤 02 상단에 한 줄로 남는 안내(토스트가 아니다). */}
+        {showCreatedNotice ? <Banner tone="soft">{AGENT_CREATED_RESTART_NOTICE}</Banner> : null}
         <SummaryBar registry={registry} live={live} />
         <FilterBar
           workflows={registry.workflows}

@@ -51,7 +51,12 @@ export interface DialogRoute {
   name: string | null;
   /** `?workflow=` 값(팝업 대상 워크플로우). 없으면 null */
   workflow: string | null;
-  /** 팝업을 닫는다: `?dialog`·`?workflow`만 지우고 나머지 쿼리(03의 `?agent=` 등)는 보존한다. */
+  /** `?agent=` 값(06 수정·06-6 제거 대상 name). 없으면 null */
+  agent: string | null;
+  /**
+   * 팝업을 닫는다: `?dialog`·`?workflow`만 지우고 나머지 쿼리는 보존한다.
+   * `?agent=`는 03 선택 패널의 선택 상태이기도 하므로(FR-007-AC4) 지우지 않는다.
+   */
   close: () => void;
 }
 
@@ -68,6 +73,7 @@ export function useDialog(): DialogRoute {
   return {
     name: searchParams.get("dialog"),
     workflow: searchParams.get("workflow"),
+    agent: searchParams.get("agent"),
     close,
   };
 }

@@ -3,6 +3,7 @@
  * 컴포넌트는 이 파일의 상수만 쓰고 문자열을 직접 적지 않는다.
  */
 import type { ImportRejectedReason, Role, Status } from "../api/types";
+import type { ModelChoice } from "./derive/agentForm";
 import type { FloorSummary } from "./derive/floorSummary";
 
 // 공통 상태 글자 (ui-rules.md 1, conventions.md §7)
@@ -369,3 +370,96 @@ export function importRejectedLine(agentName: string, reason: ImportRejectedReas
   const reasonText = IMPORT_REJECTED_REASON_TEXT[reason];
   return reasonText === null ? agentName : `${agentName}: ${reasonText}`;
 }
+
+// ── SCR-06 에이전트 만들기 · 수정 폼 (FR-010, FR-011, 와이어프레임 p.7 왼쪽) ──────────────
+export const AGENT_FORM_CREATE_TITLE = "에이전트 만들기";
+export const AGENT_FORM_EDIT_TITLE = "에이전트 수정";
+/** 필수 입력 표시(와이어프레임 p.7: 이름·소속 워크플로우·설명에만 붙는다). */
+export const REQUIRED_MARK_TEXT = "필수";
+/**
+ * 제목 옆 경로(ui-spec.md SCR-06 제목 행 `JayStudio/.claude/agents/...`).
+ * 서버가 주는 `filePath`는 마운트 루트 기준 상대 경로이므로 앞에 프로젝트 폴더 이름을 붙인다(ADR-33 (a)).
+ */
+export function agentFilePathLabel(filePath: string): string {
+  return `${WORKFLOWS_SUMMARY_PROJECT_LABEL}/${filePath}`;
+}
+export const AGENT_NAME_LABEL = "이름 (name)";
+export const AGENT_NAME_HINT = "소문자와 하이픈만 · 중복 불가";
+/**
+ * 사전 검증 문구. api-spec.yaml `POST /api/agents` 400 `fields.name`과 ui-spec.md SCR-06 이름 행이
+ * 같은 규칙에 쓰는 확정 문구이므로 프론트 사전 검증도 같은 글자를 쓴다(conventions.md §2).
+ */
+export const AGENT_NAME_RULE_MESSAGE = "소문자·숫자·하이픈만, 1~64자";
+export const AGENT_MODEL_LABEL = "모델 (model)";
+/** ADR-13 드롭다운 선택지. `custom`은 아래 입력창에 전체 모델 ID를 적는다. */
+export const MODEL_OPTION_TEXT: Record<ModelChoice, string> = {
+  inherit: "상속 (지정 안 함)",
+  sonnet: "sonnet",
+  opus: "opus",
+  haiku: "haiku",
+  custom: "직접 입력",
+};
+export const AGENT_WORKFLOW_LABEL = "소속 워크플로우";
+export const AGENT_WORKFLOW_HINT = "한 에이전트는 한 워크플로우에만 소속";
+/** FR-011-AC3: 워크플로우 밖 에이전트를 수정할 때만 고를 수 있는 옵션. */
+export const AGENT_WORKFLOW_NONE_OPTION = "(없음)";
+export const AGENT_ROLE_LABEL = "역할";
+export const AGENT_ROLE_HINT = "팀장은 워크플로우당 1명 · 층 첫 자리 · 이미 있으면 비활성";
+/** FR-010-AC4 이유 줄(ADR-35 지정 지점). */
+export function leadExistsReason(lead: string): string {
+  return `이미 팀장이 있습니다 (${lead})`;
+}
+export const AGENT_DESCRIPTION_LABEL = "설명 (description)";
+/** 와이어프레임 p.7 `[...]`의 (b) 입력 예시 — 괄호를 벗긴 문구를 placeholder로 쓴다(ADR-33). */
+export const AGENT_DESCRIPTION_PLACEHOLDER = "언제 이 에이전트에게 일을 맡기는지";
+export const AGENT_TOOLS_LABEL = "사용 도구 (tools)";
+export const TOOLS_MODE_INHERIT_TEXT = "전체 상속";
+export const TOOLS_MODE_EXPLICIT_TEXT = "직접 선택";
+/** 와이어프레임 p.7 `[기타]`의 (c) 정적 텍스트 = 입력 라벨(ADR-33). */
+export const AGENT_TOOLS_OTHER_LABEL = "기타";
+/** FR-010-AC2 이유 줄(ADR-35 지정 지점). */
+export const TOOLS_MODE_REQUIRED_REASON = "도구 방식을 고르세요";
+/** 직접 선택 0개일 때 `사용 도구` 필드 아래 사유(api-spec.yaml `fields.tools`와 같은 문구). */
+export const TOOLS_EXPLICIT_EMPTY_MESSAGE = "직접 선택은 1개 이상";
+export const AGENT_BODY_LABEL = "지침 (본문 = 시스템 프롬프트)";
+/** FR-011-AC1·AC2 각주. */
+export const AGENT_FORM_FOOTNOTE =
+  "이름 변경 시 파일명도 변경 · 폼에 없는 필드(permissionMode 등)는 기존 값 보존";
+export const AGENT_FORM_SUBMIT_LABEL = "저장";
+export const AGENT_FORM_SUBMIT_PENDING_LABEL = "저장 중…";
+export const AGENT_REMOVE_FROM_WORKFLOW_BUTTON_LABEL = "워크플로우에서 제거";
+/** `GET /api/agents/{name}` 404(ui-spec.md SCR-06 제목 행 에러 열). */
+export const AGENT_FILE_NOT_FOUND_MESSAGE = "정의 파일이 없습니다 · 목록을 확인하세요";
+export const CLOSE_BUTTON_LABEL = "닫기";
+/** FR-010-AC6: 만들기 성공 뒤 02 상단에 8초 동안 남는 한 줄. */
+export const AGENT_CREATED_RESTART_NOTICE =
+  "Claude Code가 새 정의를 바로 인식하지 못하면 재시작이 필요할 수 있습니다";
+
+// ── SCR-06-5 저장 충돌 (FR-011-AC4, 와이어프레임 p.7 오른쪽 위) ──────────────────────────
+export const SAVE_CONFLICT_TITLE = "파일이 다른 곳에서 수정되었습니다";
+/**
+ * 조사가 붙는 대상이 치환값이 아니라 고정 접미 `.md`라 병기 표기 대상이 아니다 — ui-spec.md 문구 그대로 둔다(ADR-39).
+ */
+export function saveConflictBody(agentName: string, hhmmss: string): string {
+  return `${agentName}.md이 이 창을 연 뒤 ${hhmmss}에 변경되었습니다. 저장하면 그 변경이 사라집니다.`;
+}
+export const SAVE_CONFLICT_RELOAD_LABEL = "최신 파일 다시 불러오기";
+export const SAVE_CONFLICT_OVERWRITE_LABEL = "덮어쓰기";
+
+// ── SCR-06-6 워크플로우에서 제거 확인 (FR-012) ────────────────────────────────────────
+/** 치환값 뒤 조사는 병기 표기로 쓰고 받침 판정을 하지 않는다(ADR-39, conventions.md §2 MUST). */
+export function agentRemoveTitle(agentName: string, workflowName: string | null): string {
+  return workflowName === null
+    ? `${agentName}을(를) 제거할까요?`
+    : `${agentName}을(를) ${workflowName}에서 제거할까요?`;
+}
+export const AGENT_REMOVE_TRASH_NOTE =
+  "정의 파일이 .jaystudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).";
+/** FR-012-AC3: 팀장을 제거할 때만 붙는 두 번째 안내 줄. */
+export function agentRemoveLeadNote(workflowName: string): string {
+  return `팀장을 제거하면 ${workflowName} 층에 팀장 없음이 표시됩니다.`;
+}
+export const AGENT_REMOVE_CONFIRM_LABEL = "제거 (이름 일치 시 활성)";
+export const AGENT_REMOVE_CONFIRM_PENDING_LABEL = "제거 중…";
+/** `DELETE /api/agents/{name}` 404(ui-spec.md SCR-06-6 에러 열). */
+export const AGENT_ALREADY_REMOVED_MESSAGE = "이미 없는 에이전트입니다";
