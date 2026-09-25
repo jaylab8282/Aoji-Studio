@@ -11,6 +11,12 @@
   - **주의**: ui-spec·conventions가 "07의 04-5에 `설정 열기` 미표시"를 이미 MUST로 확정했으므로, **T-FIX-08이 누락·연기되면 그 시점부터 §7 MUST 위반**이 된다
   - **사람이 직접 확인할 항목(자동 검증 불가, 최종 보고용)**: `docs/reviews/T-020.md` §7에 명령·기대 결과가 순서대로 정리돼 있다 — **H-3** 도우미 설치 후 실제 Terminal.app이 `JayStudio` 기준 `claude` / `claude --agent develop-tech-lead`로 열림(자동화 권한 대화상자 포함) / **H-4** 다른 기기에서 4180·4181 접속 불가 / launchd 실제 등록(`launchctl bootstrap`) 경로 / **H-2** 실제 hook 설정 후 상태 전이
   - 후속 Minor: T-015 pitch·13자 이름 번짐·미니맵 줌 → **T-024** / 04-4 변형 캐처 → **T-024**(D-032) / playwright.config viewport + T-FIX-03 캡처 뷰포트(m4) → **T-024** / TopBar 긴 hostPath 2줄 접힘 → 후속 / ADR-33 정적 검사 잔여 사각·`ImportDialog` 240줄 → 후속 / 06-5 `덮어쓰기` 토큰 부재·`shell: false` 표기 불일치 → **architect 문서 정리** / 중첩 `<main>`(01·02·03)·`App.tsx` 낡은 주석 → 후속 / `WorkflowDeleteDialog.test.tsx:236` 3200ms 고정 대기 → **T-FIX-07** / 07 에러 시 카드별 잔존 요소 불일치 → architect(선택)
+  - **디스크 사용 현황(2026-09-25 조사, 정리는 사용자 지시로 보류)**: 이번 프로젝트 기인 약 **24.8GB**
+    - **Docker 빌드 캐시 22.06GB** ← 대부분. `docker compose up -d --build`를 E2E·화면 캡처마다 반복한 결과. `backend-build` 스테이지(JDK+Gradle) **937.2MB 항목이 11개**(≈10.3GB) + Gradle 의존성 66MB대 30여 개, 총 **161개 항목**. **전부 `RECLAIMABLE`**
+    - Gradle `~/.gradle` 1.1GB · npm `~/.npm` 707MB · Playwright 브라우저 557MB · `node_modules` 196MB · 프로젝트 파일 255MB
+    - 이미지·컨테이너·볼륨은 **0개** — 매 태스크의 `down -v` 정리는 제대로 됐고 남은 건 순수 빌드 캐시다
+    - **정리 방법(프로젝트 종료 후 권장)**: `docker builder prune -af`. 주의 — `Docker.raw`는 sparse(논리 926G/실제 22G)라 캐시를 지워도 **호스트 파일이 즉시 줄지 않을 수 있고**, Docker Desktop TRIM 또는 재시작이 필요할 수 있다
+    - 현재 디스크 여유 807GB로 급하지 않아 **T-024(E2E 전체)에서 캐시를 재사용**하는 편이 빌드가 빠르다. 사용자가 "지금은 그대로 두기" 선택
   - **자원 사용 규칙(사용자 지시, 모든 서브에이전트 프롬프트에 넣을 것)**: CPU 부하 프로세스(`yes` 등) 금지, **스트레스 테스트는 사용자 허락 필요**. 타이밍·flaky 확인은 **결정론적 지연 주입**으로만. 반복 실행은 해당 파일만. 실험은 스크래치 사본에서 하고 정리 확인(`pgrep`·`lsof`)
 
 ## Log
