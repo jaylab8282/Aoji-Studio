@@ -524,8 +524,8 @@
   - dry-run — 단위 `--dry-run → stdout 'DRY-RUN <command>' 1줄, 204, openTerminal 미호출`
 - Depends on: -
 
-## A-15 (architect 확정 요청 — **재개 시 첫 작업**) 허용 Origin 목록에 `http://localhost:<port>` 포함 여부
-- Status: todo
+## A-15 (architect 확정 완료 2026-09-25 → ADR-41) 허용 Origin 목록에 `http://localhost:<port>` 포함 여부
+- Status: done
 - Scope: architect 판단 → 확정되면 Backend 수정 태스크로 분리
 - FR: FR-008(증상 발생 지점), NFR-04(127.0.0.1 바인딩), architecture §5 Origin 규칙
 - 배경(사용자 보고 + 팀장 읽기 전용 재현, 2026-09-24):
@@ -534,12 +534,49 @@
   - 재현(GET만, 생성 요청 미발송): `Origin: http://127.0.0.1:4180` → 200 / `Origin: http://localhost:4180` → 403 / Origin 없음 + `Sec-Fetch-Site: same-origin` → 200
   - **함정 구조**: 같은 출처 GET은 Origin 헤더를 보내지 않아 `Sec-Fetch-Site`로 통과하지만, POST는 Origin을 보내 거부된다 → `localhost`로 접속하면 **조회는 정상인데 쓰기만 실패**해 원인을 알아채기 어렵다
   - 부작용 없음 확인: 필터가 `chain.doFilter` 전에 반환하므로 서비스 계층에 도달하지 않는다. `.jaystudio/teams/` 폴더 자체가 없어 잔여 파일 0
-- 검토할 것:
-  1. 허용 목록 기본값에 `http://localhost:<public-port>`를 **함께 넣을지** (사용자 제안). 넣는다면 NFR-04(127.0.0.1 전용 노출)·architecture §5 "다른 Origin 차단" DoD와 충돌하지 않는지, `localhost`가 IPv6 `::1`로 해석되는 경우까지 고려할지
-  2. 대안: 진입 시 `publicOrigin`(`/api/state`의 `config.publicOrigin`)과 실제 접속 Origin이 다르면 화면에서 안내·리다이렉트할지
-  3. 오류 문구: 팝업에 서버 message(`허용되지 않은 출처입니다`)만 떠 **해결 방법을 알 수 없다**. FR-008 오류 매핑에 403이 없어 생긴 공백 — 안내 문구를 확정할지
-- 주의: 요구사항(NFR-04·보안 기준)의 **의미**를 바꿔야 한다면 architect가 진행하지 말고 `CONTRACT CHANGE`/에스컬레이션으로 보고할 것 → 팀장이 `/planner` 안내 여부를 판단한다
+- 확정 결과(ADR-41, 세 검토 항목 대응):
+  1. **허용 목록에 `localhost`를 넣지 않는다(기각).** 도우미 허용 Origin 기본값은 FR-013-AC7이 값까지 확정한 AC라 함께 고치면 확정 요구사항 수정이 되고, 고치지 않으면 `Claude 열기`만 403으로 남아 함정이 절반만 사라진다. 허용 목록은 틀리면 그대로 구멍이 되는 지점이라 확정 진입 주소 하나만 둔다. `http://[::1]:<port>`도 넣지 않는다(compose가 IPv4만 공개해 연결 자체가 불가능하고, `Origin`에는 사용자가 입력한 호스트명이 그대로 실린다)
+  2. **진입 주소 정규화를 채택한다(채택, 형태 변경).** `publicOrigin` 비교·안내 줄이 아니라, 첫 렌더 전에 `location.hostname`이 `localhost`·`[::1]`이면 호스트명만 `127.0.0.1`로 바꿔 `location.replace`한다. 확정 진입 주소가 이미 `127.0.0.1:<포트>` 하나이므로(final 문서 User Scenarios 1, `docs/ui/screen-flow.md`) 요구사항을 바꾸지 않고 강제만 한다 → **T-FIX-06**
+  3. **403 안내 문구를 확정한다(채택, 서버 `message`).** `허용되지 않은 출처입니다 · <publicOrigin> 주소로 다시 접속하세요`. 확정 문서에 같은 뜻의 문장이 없어 **신설 문구**이므로 사용자 승인 후에만 구현한다 → **T-FIX-05**
+- 요구사항 의미 변경 여부: **없음.** NFR-04(바인딩)·architecture §5 허용 목록·DoD "다른 Origin 차단"·FR-013-AC7을 하나도 바꾸지 않는다. `ApiError.code` enum·엔드포인트·필드도 그대로이고 403 `FORBIDDEN_ORIGIN`의 `message` 문구만 바뀐다
 - Depends on: -
+
+## T-FIX-05 403 `FORBIDDEN_ORIGIN` 안내 문구 (ADR-41 (d))
+- Status: todo — 신설 문구 **사용자 승인 완료(2026-09-25, E-006)**
+- Scope: Backend
+- FR: FR-008(오류 매핑에 403이 없어 생긴 공백 보완 — 새 AC 없음), architecture §5
+- AC: 없음(기존 AC 유지)
+- Errors: 403 `FORBIDDEN_ORIGIN`(새 code 아님, `message` 문구만)
+- Screens: - (표시는 ui-spec §공통 상태 표 `허용되지 않은 출처` 행 = 기존 에러 표현 재사용)
+- Backend: `OriginFilter`(403 본문 생성 지점에 `config.publicOrigin` 주입), `OriginFilterTest`
+- Frontend: 없음(403 전용 분기를 만들지 않는다 — conventions §4 MUST)
+- 배경: A-15 / ADR-41. 사용자가 `localhost`로 접속해 받은 403 팝업에 `허용되지 않은 출처입니다`만 떠 해결 방법을 알 수 없었다. T-FIX-06 정규화가 덮지 못하는 접속 경로의 마지막 안내다
+- Done when:
+  - 403 본문이 `{ code: "FORBIDDEN_ORIGIN", message: "허용되지 않은 출처입니다 · <publicOrigin> 주소로 다시 접속하세요" }`이고 `<publicOrigin>`이 실제 값으로 치환된 완성 문장이다(`<`·`>` 기호가 남으면 실패, ADR-33 (a)). 통합 `OriginFilterTest [ADR-41] 허용되지 않은 Origin → 403 message가 publicOrigin이 치환된 완성 문장`
+  - 허용 목록은 바뀌지 않는다 — 정적 단언 `OriginFilterTest [ADR-41] 허용 목록 기본값·application.yaml에 'localhost'·'::1' 문자열이 없다`. 기존 `[DoD 다른 Origin 차단] http://127.0.0.1:9999 Origin → 403`, `Sec-Fetch-Site same-origin + Origin 없음 → 통과`, `dev 프로필 5173 허용`, `운영 프로필 5173 거부`(T-002) 테스트는 삭제·약화하지 않는다
+  - 도우미 403 문구(`도우미 인증 실패 · 도우미를 다시 설치하세요`, FR-013-E2 확정 문구)와 `ApiError.code` enum은 바꾸지 않는다
+- Depends on: T-002 (문구 승인 완료)
+
+## T-FIX-06 진입 주소 정규화 — `localhost`·`[::1]` → `127.0.0.1` (ADR-41 (b))
+- Status: todo
+- Scope: Frontend
+- FR: FR-008(증상 발생 지점), FR-013(같은 원인의 도우미 403 함정 제거) — 새 AC 없음
+- AC: 없음(기존 AC 유지)
+- Errors: 없음
+- Screens: 전 화면 공통(요소·문구 변화 없음 — ui-spec §공통 "진입 주소 정규화")
+- Backend: 없음
+- Frontend: `src/lib/origin.ts`(`canonicalHref`), `src/app/main.tsx`(첫 렌더 전 가드), 단위 테스트
+- 배경: A-15 / ADR-41. `http://localhost:4180`으로 접속하면 정적 파일·같은 출처 GET은 통과하고 POST·도우미 호출만 403이 되어, 조회는 되는데 쓰기만 실패한다
+- Done when:
+  - 단위 `origin.test [ADR-41] localhost·[::1] → 호스트명만 127.0.0.1로 바뀐 href, 포트·경로·쿼리·해시 유지`, `[ADR-41] 127.0.0.1·그 밖의 호스트명 → null(이동 없음)`, `[ADR-41] https·다른 스킴 → null`
+  - 단위 `origin.test [ADR-41] redirectToCanonical(가짜 location) — localhost면 replace 1회 호출 후 true 반환, 127.0.0.1이면 호출 없이 false 반환`(부작용 함수도 `lib/origin.ts`에 두고 `location`을 인자로 받아 테스트 가능하게 만든다)
+  - 정적 단언 `[ADR-41] main.tsx가 createRoot·render보다 먼저 redirectToCanonical을 호출하고, true면 렌더하지 않는다`
+  - 정적 단언 `[ADR-41] frontend/src에서 location.replace·location.href 대입으로 출처를 바꾸는 코드는 main.tsx 한 곳뿐이고, publicOrigin으로 리다이렉트하는 코드가 없다`(conventions §3 Frontend MUST)
+  - 정적 단언 `[conventions §6] frontend/src에 '0.0.0.0' 문자열이 없다`(정규화 대상에 넣지 않는다)
+  - 회귀 — `cd frontend && npm test` 통과 수가 줄지 않고 `npm run lint`·`npm run typecheck` 통과. 화면 요소·문구가 바뀌지 않으므로 `docs/ui/screens/*.png` 대조 결과가 T-FIX-03과 같다
+  - E2E-15는 T-024에서 검증한다(여기서는 단위까지)
+- Depends on: T-013
+- 관련: T-021·T-022(도우미 호출 화면 — 정규화 후 `Origin`이 `http://127.0.0.1:<포트>`로 통일되어 FR-013-E2 오인 표시가 사라진다. 코드 의존은 없다), T-024(E2E-15), T-FIX-04와 무관(도우미 코드·인자 변경 없음)
 
 ## T-FIX-04 T-020 리뷰 Minor 묶음 (도우미 견고성 · 설치 스크립트 안전장치)
 - Status: todo
@@ -621,10 +658,11 @@
 - AC: FR-001-AC3, FR-004-AC2, FR-004-AC6, FR-016-AC1, FR-016-AC4, FR-003-AC1, FR-003-AC2
 - Errors: -
 - Screens: SCR-01 ~ SCR-07 전체
-- Tools: `tools/e2e/playwright.config.ts`(webServer 없음, globalSetup이 fixture 복사 → compose e2e up → dry-run 도우미 기동 → 대기), `compose.e2e.yaml`, `tests/e2e-01…e2e-13.spec.ts`(architecture §8.2), `scripts/check-port.sh`(E2E-14), 1440 폭 스크린샷 저장, 다른 Origin용 정적 페이지 서버(4192)
+- Tools: `tools/e2e/playwright.config.ts`(webServer 없음, globalSetup이 fixture 복사 → compose e2e up → dry-run 도우미 기동 → 대기), `compose.e2e.yaml`, `tests/e2e-01…e2e-13.spec.ts` + `e2e-15.spec.ts`(architecture §8.2), `scripts/check-port.sh`(E2E-14), 1440 폭 스크린샷 저장, 다른 Origin용 정적 페이지 서버(4192)
 - Done when:
   - E2E-01 ~ E2E-13 — 각 spec 통과(테스트 제목에 §8.2의 검증 ID 나열)
   - E2E-14 — `check-port.sh` 출력 `127.0.0.1:4190/tcp` 확인
+  - E2E-15 (ADR-41) — `http://localhost:4190/workflows?x=1`로 진입 → 주소가 `http://127.0.0.1:4190/workflows?x=1`로 바뀌고, 이어지는 워크플로우 추가(POST)가 403 없이 성공한다. `page.on('request')`로 API 요청의 `Origin`이 `http://127.0.0.1:4190` 하나뿐임을 확인. **선행 T-FIX-06**
   - FR-001-AC3 — E2E-07 `파일 변경 → 02 반영 2초 이내(6가지 변경)`
   - FR-004-AC2·AC6 — E2E-04 `states.jsonl 재생 → 02·03 상태가 표대로, 각 단계 2초 이내`
   - FR-007-E1 — E2E-01 `이벤트 0건으로 03 진입 → 04-4 배너 + 캐릭터 모두 대기색` / E2E-04 후반 `running 상태에서 fixture settings.json의 hook 제거 → 03 배너 + 캐릭터·패널 모두 '대기', 02 책상은 '작업 중' 유지 → hook 복구 → 03 실제 상태 복귀`
@@ -633,7 +671,7 @@
   - DoD "다른 Origin 차단" — E2E-08 `4192 페이지에서 POST → 실패(403), EventSource → error, curl Origin 없음 → 403`
   - DoD "화면 대조" — E2E-13 산출물 3장이 `tools/e2e/screenshots/`에 있고 리뷰어가 `docs/ui/screens/*.png`와 대조해 요소 누락·배치 차이 없음
   - 격리 — `globalSetup`이 실제 `JayStudio/.claude`·`.jaystudio` 경로를 참조하지 않음(경로 문자열 검사 테스트)
-- Depends on: T-014, T-015, T-016, T-017, T-018, T-019, T-021, T-022, T-023
+- Depends on: T-014, T-015, T-016, T-017, T-018, T-019, T-021, T-022, T-023, T-FIX-06
 
 ---
 

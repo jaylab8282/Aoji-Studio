@@ -57,6 +57,7 @@
 - MUST `tsconfig` `strict: true`, `noUncheckedIndexedAccess: true`. `any` 금지(`unknown` 후 좁히기). 이유: 계약 불일치를 타입체크로 잡는다.
 - MUST API 호출은 `api/client.ts`의 `apiGet/apiPost/apiPut/apiDelete`만 쓴다(토큰·Origin·에러 변환 포함). 컴포넌트에서 `fetch` 직접 호출 금지. 도우미 호출은 `api/helper.ts`만. 이유: 인증 규칙 한 곳.
 - MUST SSE는 `api/stream.ts` 하나만 열고(`connectionStore`), 컴포넌트는 스토어만 구독한다. 이유: realtime-spec §5.
+- MUST 진입 주소 정규화(ADR-41)는 `lib/origin.ts`의 `canonicalHref(href)`·`redirectToCanonical(loc)` + `main.tsx`의 첫 렌더 전 호출 한 곳에서만 한다. 판정 대상은 `location.hostname`이 `localhost`·`[::1]`인 경우뿐이고 스킴·포트·경로·쿼리·해시는 바꾸지 않는다. 컴포넌트·라우터·`api/client.ts`에서 주소를 다시 판정하거나 `publicOrigin`과 비교해 이동시키지 않는다. 이유: 확정 진입 주소(`127.0.0.1:<포트>`) 강제를 한 지점에 두고 리다이렉트 루프·잘못된 포트 이동을 막는다.
 - MUST 파생 계산(정렬·집계·검색·라벨)은 `lib/derive/*.ts` 순수 함수로 두고 Vitest 테스트를 붙인다. 컴포넌트 안에서 정렬·집계 로직을 쓰지 않는다. 이유: ADR-15, AC 검증.
 - MUST 상태 표시는 항상 `StatusDot` + 상태 글자(`작업 중`/`권한·입력 대기`/`대기`) 조합인 `StatusLabel` 컴포넌트를 쓴다. 색만 있는 상태 표시 금지. 이유: ui-rules 1, NFR-12.
 - MUST 버튼은 `components/ui/Button`의 `variant`(`primary`|`terminal`|`secondary`|`add`|`danger`)와 `disabledReason` prop으로만 만든다. `disabledReason`이 있으면 옆에 이유 한 줄을 렌더링한다. 누르면 아무 일도 없는 활성 버튼 금지. 이유: ui-rules 2.
@@ -75,6 +76,7 @@
 - MUST 서버 에러 본문은 `ApiError { code, message, fields?, details? }`. `code`는 api-spec enum만. `message`는 사용자에게 그대로 보여줄 한국어 문장. 이유: 프론트가 message를 가공 없이 표시.
 - MUST 프론트는 `ApiError.fields`가 있으면 해당 폼 필드 아래에, 없으면 팝업·카드의 에러 영역에 `message`를 표시한다. 알 수 없는 오류(네트워크 등)는 `서버에 연결할 수 없습니다 · 다시 시도하세요`. 이유: 화면별 상태 표의 "필드별 사유", "팝업 안에 사유".
 - MUST 403 `UNAUTHORIZED_TOKEN`은 `client.ts`가 토큰 재발급 후 1회만 자동 재시도한다. 그 밖의 자동 재시도 금지. 이유: 중복 쓰기 방지.
+- MUST 403 `FORBIDDEN_ORIGIN`의 `message`는 서버가 `허용되지 않은 출처입니다 · <publicOrigin> 주소로 다시 접속하세요`로 만든다(`<publicOrigin>`은 서버가 치환한 완성 문장). 프론트는 다른 에러와 똑같이 `message`를 그대로 표시하고 403 전용 분기·재시도·문구를 만들지 않는다. 이 문구는 확정 문서에 없던 신설 문구이며 **2026-09-25 사용자 승인**을 받았다(E-006, ADR-41, T-FIX-05). 이유: 안내는 `message` 한 곳에만 두고(§4 MUST "가공 없이 표시"), FR-008 오류 매핑에 403이 없어 생긴 공백을 메운다.
 - MUST hook 수집의 거부(FR-003-E1)는 2xx로 응답하고 서버 로그에 `hook rejected: reason=<코드> event=<hook_event_name|->`만 남긴다. 이유: NFR-03, NFR-08.
 - MUST 파일 작업 실패는 `IO_FAILED`로 통일하고 `message`에 무엇을 하다 실패했고 원복했는지 적는다(예: `정의 파일 쓰기 실패 · 구성 파일은 변경하지 않았습니다`). 이유: FR-008-E3, FR-010-E3, FR-012-E1.
 
@@ -92,7 +94,7 @@
 - MUST `collect-token`을 읽거나 만들 수 없으면 기동 실패. 토큰이 비어 있으면(0바이트) 기동 실패. 이유: NFR-05 "인증 없이 동작하는 기본값 없음".
 - MUST 바인딩·노출: compose `ports`는 `127.0.0.1:` 접두 필수. dev Spring `server.address=127.0.0.1`, Vite `server.host='127.0.0.1'`, 도우미 `listen(port,'127.0.0.1')`. `0.0.0.0` 문자열이 설정 파일·코드에 나오면 FAIL. 이유: NFR-04(컨테이너 안 바인딩은 ADR-05).
 - MUST 컨테이너는 `USER 1000`, `docker.sock`·`JayStudio` 밖 경로 마운트 금지, `privileged` 금지. 이유: NFR-06.
-- MUST Origin 규칙(architecture §5)은 `/api/**`·`/api/stream`에 필터로 적용하고 컨트롤러별로 예외를 두지 않는다. 허용 Origin 기본값은 `http://127.0.0.1:<PUBLIC_PORT>` 하나. `localhost`는 허용하지 않는다. 이유: 요청 출처 검사.
+- MUST Origin 규칙(architecture §5)은 `/api/**`·`/api/stream`에 필터로 적용하고 컨트롤러별로 예외를 두지 않는다. 허용 Origin 기본값은 `http://127.0.0.1:<PUBLIC_PORT>` 하나(dev 프로필만 `http://127.0.0.1:5173` 추가). `localhost`·`[::1]` 표기는 허용 목록에 넣지 않고, 대신 프론트가 진입 주소를 `127.0.0.1`로 정규화한다(ADR-41, §3 Frontend MUST). 도우미 `--allowed-origins`도 같다(기본값 `http://127.0.0.1:4180`, FR-013-AC7). 이유: 허용 목록은 틀리면 그대로 보안 구멍이 되므로 확정 진입 주소 하나만 둔다.
 - MUST 디버그 모드 기본 꺼짐: Spring `debug=false`, DevTools 없음, Vite dev 서버는 컨테이너에 포함하지 않음, 도우미 `--dry-run` 기본 꺼짐. 이유: NFR-05.
 - MUST 브라우저 토큰은 메모리에만 둔다(localStorage·sessionStorage·cookie·URL 히스토리 금지. SSE 쿼리는 예외이며 `history.replaceState`로 URL에 남기지 않는다). 이유: ADR-01.
 - MUST 마스킹은 `Masker.mask()` 하나로 저장 직전에 하고, 마스킹 전 문자열을 필드·로그·응답에 담지 않는다. `tool_input` 전체를 저장·로깅하지 않는다. 이유: FR-015.

@@ -2,7 +2,9 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **보류 중(사용자 지시)**. T-020까지 done·커밋 완료, working tree 깨끗
+- Current: **A-15 done(ADR-41 확정·E-006 승인)** → 다음: T-FIX-06·T-FIX-05 → T-022. 이번 세션 정지 지점(사용자 지시): **A-15 확정 → T-022 구현·리뷰·커밋까지 하고 멈춤**. T-021은 다음 세션
+  - **순서 정정(D-038)**: progress.md의 기존 남은 태스크 순서 `T-021 → T-022`는 tasks.md 의존성과 **반대**였다. `T-021`은 `Depends on: T-015, T-016, T-020, **T-022**`이고, 실제로 T-021이 연결하는 버튼이 T-022가 만드는 `screens/settings/*`에 있다. 올바른 순서는 **T-022 → T-021**
+  - 남은 태스크(재정정, E-006 지시): **T-FIX-06 + T-FIX-05** → **T-022** → T-021 → T-023 → T-024(E2E 전체) → T-FIX-04 → Integration → Final Report
   - **재개 시 첫 작업(사용자 지시)**: **A-15 — 허용 Origin 목록에 `http://localhost:<port>` 포함 여부를 architect가 판단**한다. tasks.md의 `## A-15` 항목에 증상·원인·재현 결과·검토 항목이 정리돼 있다. 그다음 T-021
   - 남은 태스크: **A-15** → T-021 → T-022 → T-023 → T-024(E2E 전체) → **T-FIX-04** → Integration → Final Report
   - **자원 사용 규칙(사용자 지시, 모든 서브에이전트 프롬프트에 넣을 것)**: CPU 부하 프로세스(`yes` 등) 금지, **스트레스 테스트는 사용자 허락 필요**. 타이밍·flaky 확인은 **결정론적 지연 주입**으로만. 반복 실행은 해당 파일만. 실험은 스크래치 사본에서 하고 정리 확인(`pgrep`·`lsof`)
@@ -106,6 +108,8 @@
 - D-016 `--agent <미정의 name>` 메인 세션(agent_type이 정의 파일에 없음)은 Live(agents/lobby/undefinedSubagents)에 표시하지 않고 이벤트 목록에만(agentLabel=agent_type, workflow=null) — FR-003-AC5 로비 정의(agent_type 없는 세션)·FR-004-AC7(정의된 에이전트)·api-spec EventRow 문구 그대로. ADR-10에 명시 완료 / T-006
 - D-015 architecture §9 SQLite 손상 자동 복구는 설계 문서 범위 안이므로 축소하지 않고 T-005에서 구현: 자체 `DataSource` 빈 생성 전에 quick_check → 실패 시 `events.db(-wal/-shm)`를 `events.db.corrupt-<시각>`으로 이동 후 새로 생성. 통합 테스트 1개 추가 / T-005
 - D-014 `.jaystudio/teams/*.json` 심볼릭 링크도 PathGuard로 거부(읽지 않고 형식 오류) — NFR-07 "심볼릭 링크는 따라가지 않는다"는 일반 원칙 / T-003
+- D-039 A-15 확정(ADR-41) 수용 — 팀장이 기각 근거를 원문으로 검증: `FR-013-AC7`이 도우미 허용 Origin 기본값을 `http://127.0.0.1:4180`으로 값까지 확정하므로 서버 목록만 넓히면 도우미는 계속 403이고 화면엔 FR-013-E2 확정 문구가 떠 원인을 더 감춘다 / `final_requirements_architecture.md:117`도 서버 기본값을 127.0.0.1로 확정 / NFR-04는 **바인딩** 규칙이라 정규화로 의미가 바뀌지 않음 → 에스컬레이션·`/planner` 불필요, CONTRACT CHANGE 없음 확인. ADR 헤딩 중복 0, 금지 문서(requirements_*·final_*·docs/ui) 미수정 확인 / A-15, T-FIX-05, T-FIX-06
+- D-038 태스크 순서 정정: 남은 순서를 `T-021 → T-022`에서 **`T-022 → T-021`**로 바로잡음 — tasks.md `T-021 Depends on`에 T-022가 있고, T-021이 연결할 07 설정 화면 요소를 T-022가 만든다(팀장 권한: 태스크 순서 조정) / T-021, T-022
 - D-012 라이브러리 승인: `spring-boot-starter-webmvc-test`(test scope) — Spring Boot 4.1이 MockMvc 테스트 지원을 분리한 공식 스타터, Apache-2.0, 확정 스택 안 / T-002
 - D-013 이후 backend 태스크 프롬프트에 공통 주의 전달: Spring Boot 4.1 = Jackson 3(`tools.jackson.databind`), MockMvc는 `org.springframework.boot.webmvc.test.autoconfigure`, autoconfigure 패키지 재구성 / T-003~T-012
 - D-009 Dockerfile backend-build 스테이지는 `eclipse-temurin:21-jdk`(Gradle 8.14가 JDK 25를 실행 JVM으로 지원하지 않음) + toolchain으로 JDK 25 컴파일, 런타임은 `eclipse-temurin:25-jre` — 확정 스택(Java 25 실행) 유지, 로컬(JDK 21+toolchain)과 동일 구조 / T-001
@@ -121,6 +125,7 @@
 - D-007 ADR-11 승인: 도우미는 osascript를 argv로 spawn(shell:false), 문자열 삽입 값은 고정 경로와 정규식 검증 name뿐 — FR-013-AC11 취지(셸 조합 없음) 충족 / T-020
 
 ## Escalations
+- E-006 [resolved] A-15 신설 문구 `허용되지 않은 출처입니다 · <publicOrigin> 주소로 다시 접속하세요`(403 FORBIDDEN_ORIGIN) — 확정 문서·docs/ui 전수 확인 결과 같은 뜻의 문장 없음(팀장 재확인) — 사용자: **승인**. 아울러 T-FIX-05·T-FIX-06을 **T-022보다 먼저** 구현하도록 지시
 - E-005 [resolved] 가져오기 거부 사유 `FORMAT_ERROR` 화면 문구 신설 가부(확정 문서에 해당 완성 문장 없음) — 사용자: **신규 문장 승인**(`읽지 못한 정의 파일입니다 · 목록을 확인하세요`)
 - E-004 [resolved] 05-R 검색으로 가려진 선택 처리(와이어프레임에 없는 요소 신설) — 사용자: **안내 줄 추가**(architect 안 ②, `검색으로 가려진 선택 [N]명`)
 - E-003 [resolved] Settings.mountPath 제거 여부(architect 제안) — 사용자: 제거
@@ -151,3 +156,6 @@
   - Minor 5건 → **T-FIX-04** 신설(본문 초과 시 소켓 리셋·기존 토큰 mode 미확인·`uninstall.sh --label` 미검증·`install.sh` 기동 성공 미확인·**설치 절차 문서 부재**). `shell: false` 표기 불일치는 architect 문서 정리
 - 2026-09-24 사용자 지시로 보류. T-021은 시작하지 않음
 - 2026-09-24 **사용자 현장 보고 검토(코드 수정 없음)**: 워크플로우 생성 시 403 `FORBIDDEN_ORIGIN`. 팀장이 읽기 전용 GET으로만 재현해 원인 확정 — `http://localhost:4180` 접속 때문이며 `OriginFilter`가 허용 목록(`http://127.0.0.1:<port>` 하나)과 **문자열 정확 비교**를 한다. 같은 출처 GET은 Origin 헤더가 없어 `Sec-Fetch-Site`로 통과하고 POST만 거부되므로 **조회는 되는데 쓰기만 실패**하는 함정이 된다. 빈 워크플로우가 안 생긴 것은 필터가 `chain.doFilter` 전에 반환해 서비스에 도달하지 않는 **fail-closed 정상 동작**(`.jaystudio/teams/` 폴더 자체 없음으로 확인). 당장은 `http://127.0.0.1:4180`으로 접속하면 정상. 사용자 지시로 **A-15**에 기록하고 다음 작업 시작 때 architect 판단부터 받기로 함
+
+- 2026-09-25 재개(7차). **A-15 → ADR-41로 확정**(architect, `CONTRACT CHANGE: no`). 허용 목록에 `localhost` 추가는 **기각**하고 프론트 진입 주소 정규화 + 403 안내 문구로 해결. 팀장 검증: 기각 근거 3건 원문 대조(FR-013-AC7·final arch:117·NFR-04), ADR 헤딩 중복 0, 금지 문서 미수정, 신설 문구 부재 재확인. 신설 태스크 **T-FIX-05**(Backend, 문구) · **T-FIX-06**(Frontend, 정규화), T-024에 **E2E-15** 추가. 사용자 승인(E-006)으로 T-FIX-05 unblock, 두 태스크를 T-022보다 먼저 진행
+- 2026-09-25 프론트 기준선 측정(T-022 비교용): 52 files / **296 tests** 통과, 실패·skip 0, lint·typecheck 통과

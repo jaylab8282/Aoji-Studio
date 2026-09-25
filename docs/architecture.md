@@ -62,6 +62,7 @@ Jay_Studio/
 │     ├─ state/         snapshotStore.ts(useSyncExternalStore), connectionStore.ts
 │     ├─ lib/derive/    agentOrder.ts, featuredWorkflows.ts, counts.ts, search.ts, actionLabel.ts, workflowChip.ts
 │     ├─ lib/format/    time.ts, ellipsis.ts
+│     ├─ lib/origin.ts  canonicalHref(href)·redirectToCanonical(loc) — 진입 주소 정규화(ADR-41). main.tsx가 첫 렌더 전에 호출
 │     ├─ styles/        theme.css(@theme 토큰), base.css
 │     ├─ components/ui/ Button, Chip, StatusDot, Skeleton, Banner, Dialog, Field, Select, SearchInput, Tooltip, MonoText
 │     ├─ components/pixel/ DeskSprite(A), OfficeSprite(B), SmallOfficeSprite(서브)
@@ -121,7 +122,7 @@ Jay_Studio/
 | `JAYSTUDIO_MOUNT_PATH` | 선택 | `/workspace` | 컨테이너 안 마운트 경로 |
 | `JAYSTUDIO_DATA_PATH` | 선택 | `/data` | SQLite 위치 |
 | `JAYSTUDIO_HELPER_URL` | 선택 | `http://127.0.0.1:4181` | 브라우저가 호출할 도우미 주소(E2E에서 dry-run 도우미 포트로 바꿈, ADR-12) |
-| `JAYSTUDIO_ALLOWED_ORIGINS` | 선택 | `http://127.0.0.1:${JAYSTUDIO_PUBLIC_PORT}` | 허용 Origin. dev 프로필은 `http://127.0.0.1:5173`을 추가 |
+| `JAYSTUDIO_ALLOWED_ORIGINS` | 선택 | `http://127.0.0.1:${JAYSTUDIO_PUBLIC_PORT}` | 허용 Origin. dev 프로필은 `http://127.0.0.1:5173`을 추가. `localhost`·`[::1]` 표기는 넣지 않는다(ADR-41) |
 | `SPRING_PROFILES_ACTIVE` | 선택 | 없음(운영) / `dev` | dev만 Vite Origin 허용. 디버그 로깅 기본 꺼짐 |
 
 `.env.example`에는 `JAYSTUDIO_HOST_PATH=`, `JAYSTUDIO_PORT=4180`만 두고 값은 비운다. compose는 `${JAYSTUDIO_HOST_PATH:?...}` 문법으로 누락 시 실패한다.
@@ -154,7 +155,13 @@ Jay_Studio/
 | `/api/stream` (SSE) | Origin 규칙 + `?token=` | 403 |
 | 정적 파일 `/`, `/assets/**`, SPA 경로 | 없음 | - |
 
-**Origin 규칙** (`OriginFilter`): `Origin` 헤더가 있으면 허용 목록(`JAYSTUDIO_ALLOWED_ORIGINS`)에 있어야 한다. `Origin`이 없으면 `Sec-Fetch-Site`가 `same-origin`이어야 한다. 둘 다 없으면(curl 등) 403. 이 규칙으로 다른 로컬 웹페이지(다른 Origin)와 브라우저 밖 클라이언트가 API·SSE를 쓸 수 없다(DoD "다른 Origin 차단").
+**Origin 규칙** (`OriginFilter`): `Origin` 헤더가 있으면 허용 목록(`JAYSTUDIO_ALLOWED_ORIGINS`)에 **문자열 정확 비교**로 있어야 한다. `Origin`이 없으면 `Sec-Fetch-Site`가 `same-origin`이어야 한다. 둘 다 없으면(curl 등) 403. 이 규칙으로 다른 로컬 웹페이지(다른 Origin)와 브라우저 밖 클라이언트가 API·SSE를 쓸 수 없다(DoD "다른 Origin 차단").
+
+**허용 목록 범위 (ADR-41)**: 허용 목록은 운영 프로필에서 `http://127.0.0.1:${JAYSTUDIO_PUBLIC_PORT}` 하나, dev 프로필에서 `http://127.0.0.1:5173`을 더한 둘뿐이다. `http://localhost:<포트>`·`http://[::1]:<포트>`는 **넣지 않는다**. 같은 포트의 다른 루프백 호스트명 문제는 허용 목록을 넓히지 않고 진입 주소 정규화로 푼다.
+
+**진입 주소 정규화 (ADR-41)**: 정적 파일(`/`, `/assets/**`)에는 Origin 검사가 없어 `http://localhost:<포트>`로도 앱이 열리고, 같은 출처 GET은 `Origin` 헤더가 없어 `Sec-Fetch-Site`로 통과해 조회까지 성공한다. 그러나 POST·PUT·DELETE는 `Origin: http://localhost:<포트>`를 보내 403 `FORBIDDEN_ORIGIN`이 되고, 도우미(`--allowed-origins http://127.0.0.1:4180`, FR-013-AC7)도 같은 이유로 403이 된다 — "조회는 되는데 쓰기만 안 되는" 함정이다. 이를 없애기 위해 프론트는 **첫 렌더·첫 API 호출 전에** `location.hostname`이 `localhost` 또는 `[::1]`이면 호스트명만 `127.0.0.1`로 바꿔 `location.replace`한다(스킴·포트·경로·쿼리·해시는 그대로). 확정 진입 주소가 `127.0.0.1:<포트>`이므로(final 문서 User Scenarios 1, `docs/ui/screen-flow.md` `앱 접속 127.0.0.1:<포트>`) 이 정규화는 확정 진입 주소를 강제하는 것이고, 허용 목록·바인딩·토큰 규칙은 그대로다.
+
+**403 `FORBIDDEN_ORIGIN` 응답 문구**: `message` = `허용되지 않은 출처입니다 · <publicOrigin> 주소로 다시 접속하세요`. `<publicOrigin>`은 서버가 `config.publicOrigin` 값으로 치환해 완성 문장으로 보낸다(예: `허용되지 않은 출처입니다 · http://127.0.0.1:4180 주소로 다시 접속하세요`). 프론트는 conventions §4대로 `message`를 가공 없이 표시한다. 정규화(위)가 덮지 못하는 접속 경로(예: 호스트명을 직접 바꾼 접속)에서 사람이 복구 방법을 알 수 있게 하는 마지막 안내다. **이 문구는 확정 문서에 없는 신설 문구이며 사용자 승인 전에는 구현하지 않는다(T-FIX-05).**
 
 **브라우저 토큰** (ADR-01): 서버 기동 시 메모리에 32바이트 난수(hex 64자)를 만든다. 프론트는 첫 로딩에 `GET /api/auth/browser-token`으로 받아 메모리(모듈 변수)에만 둔다. localStorage·cookie에 저장하지 않는다. 서버가 재시작되면 토큰이 바뀌고 모든 변경 요청이 403 `UNAUTHORIZED_TOKEN`으로 실패하므로, 프론트는 403 `UNAUTHORIZED_TOKEN`을 받으면 토큰을 1회 재발급받아 재시도한다.
 
@@ -341,6 +348,7 @@ LiveState {
 | E2E-12 | 02 줌·미니맵·검색·드롭다운·30개 워크플로우 상단 바 | FR-006-AC6~AC8 |
 | E2E-13 | 스크린샷: `project-showcase` fixture + `showcase.jsonl` 재생 후 01·02·03을 1440 폭으로 캡처해 `tools/e2e/screenshots/`에 저장 | DoD 화면 대조(리뷰어) |
 | E2E-14 | `scripts/check-port.sh`: `docker compose port`가 `127.0.0.1:` 접두 | NFR-04, DoD |
+| E2E-15 | 진입 주소 정규화(ADR-41): `http://localhost:4190/workflows?x=1`로 열면 주소가 `http://127.0.0.1:4190/workflows?x=1`로 바뀌고, 이어서 워크플로우 추가(POST)가 403 없이 성공한다. 정규화 후 요청에 실리는 `Origin` 값은 `http://127.0.0.1:4190` 하나뿐이다. 접속 자체가 되지 않으면(브라우저가 `localhost`를 `::1`로만 해석) 테스트를 `skip`하지 말고 원인을 기록해 architect에 확인을 요청한다 | ADR-41, FR-008-AC4, 인증 규칙 |
 
 ### 8.3 사람 확인 항목 (final 문서 Definition of Done과 동일)
 
@@ -363,6 +371,7 @@ LiveState {
 - **SSE 연결 누수**: `SseEmitter` timeout 0, `onCompletion`/`onTimeout`/`onError`에서 목록 제거, heartbeat 전송 실패 시 제거.
 - **로그**: hook 본문 원문·토큰·`tool_input`을 로그에 남기지 않는다. FR-003-E1 거부 로그는 `hook_event_name`(있으면)과 사유 코드만.
 - **디버그 모드**: `logging.level.root=INFO` 기본, Spring DevTools 미포함, actuator 미포함.
+- **루프백 호스트명 별칭(ADR-41)**: `127.0.0.1`과 `localhost`는 같은 포트에 닿지만 `Origin` 문자열이 달라, 허용 목록을 넓히지 않으면 조회만 되고 쓰기가 403이 된다. 허용 목록은 그대로 두고 프론트 진입 정규화(§5)로 막으며, 정규화가 덮지 못하는 경우는 403 `FORBIDDEN_ORIGIN` 안내 문구로 복구 방법을 알린다. 허용 목록을 넓히지 않는 이유: 허용 목록은 잘못되면 그대로 보안 구멍이 되는 지점이라 항목 수를 최소로 유지한다.
 
 ## 10. ADR
 
@@ -652,3 +661,21 @@ LiveState {
   - SCR-06-6을 `md`로 정하는 근거: ui-spec이 "05-3은 06-6과 같은 구성"이라고 적었고 05-3이 `md`다. 두 화면은 같은 `ConfirmByNameDialog`를 쓴다(T-019 Done when).
   - `size` 밖의 새 단계가 필요하면 구현이 정하지 말고 architect에 확정을 요청한다(conventions §7 MUST).
 - 영향: ui-spec §공통 `Dialog` 행, conventions §7 MUST 1건, tasks.md T-019 Done when 1줄. **코드 변경 없음**(T-018 구현이 이미 이 결정과 같다. T-019는 06 폼에 `size="lg"`를 넘긴다). 계약 변경 없음.
+
+### ADR-41 `localhost` 접속은 허용 목록이 아니라 진입 주소 정규화로 푼다 (A-15, 2026-09-25)
+
+- 배경(팀장 재현, 2026-09-24): 사용자가 `http://localhost:4180`으로 접속해 워크플로우를 만들자 403 `FORBIDDEN_ORIGIN`. `OriginFilter`는 허용 목록(`http://127.0.0.1:<public-port>` 하나)과 문자열 정확 비교를 한다. 같은 출처 GET은 `Origin` 헤더가 없어 `Sec-Fetch-Site: same-origin`으로 통과하지만 POST는 `Origin: http://localhost:4180`을 보내 거부된다 → **조회는 되는데 쓰기만 실패**하는 함정. 필터가 `chain.doFilter` 전에 반환하므로 파일 부작용은 없다(fail-closed 정상).
+- 같은 함정이 도우미에도 있다: 도우미 허용 Origin 기본값은 FR-013-AC7이 `http://127.0.0.1:4180`으로 확정했으므로, `localhost`로 접속한 화면의 `Claude 열기`는 403이 되고 화면에는 FR-013-E2 확정 문구(`도우미 인증 실패 · 도우미를 다시 설치하세요`)가 떠 원인을 더 감춘다.
+- 선택지
+  - (a) 허용 목록 기본값에 `http://localhost:<public-port>`를 함께 넣는다(사용자 제안).
+  - (b) **진입 시 루프백 호스트명(`localhost`·`[::1]`)을 `127.0.0.1`로 정규화한다.**
+  - (c) 진입 주소가 `config.publicOrigin`과 다르면 화면에 안내 줄을 띄운다.
+  - (d) 403 `FORBIDDEN_ORIGIN`의 `message`에 복구 방법을 넣는다.
+- 결정: **(b) + (d) 채택, (a)·(c) 기각.**
+  - (b) 채택 이유: ① 확정 진입 주소가 이미 `127.0.0.1:<포트>` 하나다(final 문서 User Scenarios 1 "`127.0.0.1:<포트>`에 접속한다", `docs/ui/screen-flow.md` `앱 접속 127.0.0.1:<포트>`) — 정규화는 요구사항을 바꾸는 것이 아니라 확정 진입 주소를 강제한다. ② 서버·도우미·수집 주소·07 표시값이 모두 `127.0.0.1` 하나를 전제로 하므로, 화면이 어느 주소로 열려도 뒤따르는 모든 요청이 한 Origin으로 통일된다(도우미 403 함정까지 같이 사라진다). ③ 허용 목록·바인딩·토큰 규칙을 하나도 건드리지 않아 NFR-04·DoD "다른 Origin 차단"과 무관하다. ④ 루프가 없다: 정규화 후 `hostname === '127.0.0.1'`이면 조건이 거짓이다. 포트·스킴·경로를 바꾸지 않으므로, 이미 연결에 성공한 소켓과 같은 곳으로 간다(`localhost`가 IPv4로 해석됐기 때문에 접속이 됐다는 사실 자체가 `127.0.0.1:<포트>`의 도달 가능성을 보장한다).
+  - (a) 기각 이유: ① 도우미를 고치지 않으면 함정의 절반만 사라지는데, 도우미 기본값은 FR-013-AC7이 값까지 확정한 AC라 바꾸면 **확정 요구사항 수정**이 된다. ② `http://localhost:<포트>`는 보안상 우리 앱 자신과 같은 주체이지만(그 포트를 점유한 프로세스는 우리뿐이다), 허용 목록은 틀리면 바로 구멍이 되는 지점이라 "확정 진입 주소 하나"라는 최소 상태를 유지하는 편이 낫다. ③ 확정 진입 주소가 둘이 되면 북마크·문서·07 표시값·사람 확인 절차(H-1·H-4)가 두 주소로 갈린다. ④ `http://[::1]:<포트>`는 어차피 넣을 이유가 없다: compose가 `127.0.0.1:`(IPv4)만 공개하므로 `[::1]`로는 연결 자체가 안 되고, 브라우저는 `localhost`를 `::1`로 해석해 접속하더라도 `Origin`에 사용자가 입력한 호스트명(`localhost`)을 그대로 쓴다. 넣으면 절대 오지 않을 값이 허용 목록에 남는다.
+  - (c) 기각 이유: 안내 줄은 확정 문서에 없는 화면 요소·문구를 새로 만들어야 하고(ui-spec 공통 영역 신설), 사용자는 안내를 읽고 주소를 직접 고쳐야 한다. (b)가 같은 상황을 사람 개입 없이 끝낸다. `publicOrigin` 비교 기반 리다이렉트도 기각한다: 포트가 다른 배치(E2E `4190`)에서 잘못된 주소로 튕길 수 있어 (b)의 "호스트명만 바꾼다"보다 위험하다.
+  - (d) 채택 이유: (b)가 덮는 것은 `localhost`·`[::1]` 두 별칭뿐이다. 그 밖의 경로(호스트명을 직접 바꾼 접속 등)에서 403이 뜨면 화면에는 서버 `message`만 남으므로(conventions §4 MUST "message를 가공 없이 표시"), 복구 방법은 `message` 안에 있어야 한다. FR-008 오류 매핑에 403이 없어 생긴 공백을 서버 문구 한 줄로 메운다. 프론트에 403 전용 분기를 만들지 않는다.
+- 확정 문구(신설): `허용되지 않은 출처입니다 · <publicOrigin> 주소로 다시 접속하세요` — `<publicOrigin>`은 서버가 치환해 완성 문장으로 보낸다(ADR-33 (a) 치환). **확정 문서(`final_requirements_function.md`, `docs/ui/`)에 같은 뜻의 문장이 없어 신설이며, 사용자 승인 전에는 구현하지 않는다**(T-FIX-05, E-004·E-005 선례).
+- 정규화 규칙(구현 기준): `lib/origin.ts`에 순수 함수 `canonicalHref(href: string): string | null`(스킴이 `http:`이고 `hostname`이 `localhost` 또는 `[::1]`이면 호스트명만 `127.0.0.1`로 바꾼 href, 그 밖이면 `null`)과 `redirectToCanonical(loc: Location): boolean`(`canonicalHref`가 값을 주면 `loc.replace(...)` 후 `true`)을 둔다. `main.tsx`는 `createRoot`·렌더·첫 API 호출보다 먼저 `redirectToCanonical(window.location)`을 호출하고 `true`면 렌더하지 않는다. `location`을 인자로 받으므로 단위 테스트가 가짜 객체로 검증한다. `0.0.0.0`은 정규화 대상에 넣지 않는다(conventions §6 MUST가 코드에 `0.0.0.0` 문자열을 금지한다 — 이 경우는 (d)의 안내 문구가 담당).
+- 영향: architecture §4.2·§5·§8.2(E2E-15)·§9, conventions §3 Frontend·§4·§6, api-spec `ForbiddenOrigin` 응답 설명, ui-spec §공통(진입 주소 정규화·403 표시). **Backend 수정 T-FIX-05(문구 승인 후), Frontend 수정 T-FIX-06, E2E 추가 T-024.** 허용 목록·바인딩·토큰·엔드포인트·필드는 그대로이며 `ApiError.code` enum도 그대로다. 계약 변경 없음(응답 `message` 문구만 바뀐다).

@@ -501,10 +501,17 @@ components:
 
   responses:
     ForbiddenOrigin:
-      description: "`FORBIDDEN_ORIGIN` — Origin 규칙 실패"
+      description: >-
+        `FORBIDDEN_ORIGIN` — Origin 규칙 실패.
+        `message`는 서버가 `허용되지 않은 출처입니다 · <publicOrigin> 주소로 다시 접속하세요`로 완성해 보낸다(ADR-41,
+        `<publicOrigin>` = `Config.publicOrigin` 값). 프론트는 `message`를 가공 없이 표시한다.
+        신설 문구이므로 사용자 승인 전에는 구현하지 않는다(T-FIX-05).
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ApiError" }
+          example:
+            code: FORBIDDEN_ORIGIN
+            message: "허용되지 않은 출처입니다 · http://127.0.0.1:4180 주소로 다시 접속하세요"
 
   schemas:
     ApiError:
@@ -565,7 +572,7 @@ components:
       required: [hostPath, publicOrigin, collectUrl, helperUrl, defaultSessionCommand]
       properties:
         hostPath: { type: string, example: "/Users/jaybee/Desktop/JayStudio", description: 맥북 경로(FR-014-AC4) }
-        publicOrigin: { type: string, example: "http://127.0.0.1:4180" }
+        publicOrigin: { type: string, example: "http://127.0.0.1:4180", description: "확정 진입 주소. 프론트는 이 값으로 리다이렉트하지 않는다(ADR-41: 정규화는 호스트명만 본다)" }
         collectUrl: { type: string, example: "http://127.0.0.1:4180/hooks/events" }
         helperUrl: { type: string, example: "http://127.0.0.1:4181", description: ADR-12 }
         defaultSessionCommand: { type: string, example: "cd \"/Users/jaybee/Desktop/JayStudio\" && claude", description: FR-013-AC1 }
