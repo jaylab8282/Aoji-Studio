@@ -1,7 +1,8 @@
 /**
  * ui-spec.md SCR-07 카드 1 `프로젝트 폴더`(읽기 전용).
  * FR-001-AC4(다시 읽기) · FR-001-AC5(경로는 읽기 전용 텍스트, 입력 요소 없음) ·
- * FR-001-E1(agentsDirMissing → 본문을 04-5로 대체) · FR-001-E2(쓰기 권한 없음) · FR-014-AC4(맥북 경로).
+ * FR-001-E1(agentsDirMissing → 본문을 04-5로 대체, 07에서는 `설정 열기` 미표시 — ADR-42) ·
+ * FR-001-E2(쓰기 권한 없음) · FR-014-AC4(맥북 경로).
  */
 import { useState } from "react";
 import { ApiError, apiPost } from "../../api/client";
@@ -68,7 +69,8 @@ export function ProjectFolderCard({ values, loadErrorMessage }: ProjectFolderCar
       {loadErrorMessage === null ? null : <p className="text-body text-danger">{loadErrorMessage}</p>}
 
       {values !== null && values.agentsDirMissing ? (
-        <AgentsDirMissing hostPath={values.hostPath} />
+        // ADR-42: 07이 `설정 열기`의 도착지 자신이라 이 화면에서는 그리지 않는다(`다시 읽기`만 남는다).
+        <AgentsDirMissing hostPath={values.hostPath} showOpenSettings={false} />
       ) : (
         <>
           {loadErrorMessage === null ? (

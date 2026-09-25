@@ -239,6 +239,23 @@ describe("SettingsScreen (SCR-07)", () => {
     expect(screen.queryByTestId("settings-row-mount-path")).not.toBeInTheDocument();
   });
 
+  it("[FR-001-E1][ADR-42] agentsDirMissing → 04-5 표시, '설정 열기' 없음, '다시 읽기' 1개", async () => {
+    putRegistryInStore({ agentsDirMissing: true, agentCount: null });
+    stubFetch({
+      settings: () =>
+        jsonResponse(buildSettingsFixture({ agentsDirMissing: true, agentCount: null })),
+    });
+    renderScreen();
+
+    // 04-5 블록은 그대로 뜬다(제목·경로).
+    expect(await screen.findByText("에이전트 폴더를 찾을 수 없습니다")).toBeInTheDocument();
+    // 07은 `설정 열기`의 도착지 자신이라 이 버튼을 그리지 않는다(ADR-42).
+    expect(screen.queryByRole("button", { name: "설정 열기" })).not.toBeInTheDocument();
+    expect(screen.queryByText("설정 열기")).not.toBeInTheDocument();
+    // `다시 읽기`는 04-5 안의 하나만 남는다(카드 하단 행은 04-5로 대체되어 사라진다).
+    expect(screen.getAllByRole("button", { name: "다시 읽기" })).toHaveLength(1);
+  });
+
   it("[FR-001-E2] writable false → '쓰기 권한 없음'(danger)", async () => {
     putRegistryInStore({ writable: false });
     stubFetch({ settings: () => jsonResponse(buildSettingsFixture({ writable: false })) });

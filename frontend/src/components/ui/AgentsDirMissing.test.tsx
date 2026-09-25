@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentsDirMissing } from "./AgentsDirMissing";
+// ADR-42 정적 단언용: 컴포넌트 소스를 문자열로 읽는다(conventions.md §7 MUST).
+import agentsDirMissingSource from "./AgentsDirMissing.tsx?raw";
 import { snapshotStore } from "../../state/snapshotStore";
 import { buildSnapshotFixture } from "../../test/fixtures/snapshot";
 
@@ -112,5 +114,54 @@ describe("AgentsDirMissing", () => {
       "다시 읽지 못했습니다 · 서버에 연결할 수 없습니다 · 다시 시도하세요",
     );
     expect(message.textContent).not.toMatch(/TypeError|Failed to fetch/);
+  });
+
+  it("[ADR-42] 기본값 → '설정 열기' 표시, 누르면 /settings로 이동", () => {
+    // 01·02는 prop을 넘기지 않는다(기본값 = 표시). 이 테스트가 01·02 동작 회귀를 막는다.
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route path="/" element={<AgentsDirMissing hostPath="/Users/jaybee/Desktop/JayStudio" />} />
+          <Route path="/settings" element={<p>설정 화면 도착</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const openSettings = screen.getByRole("button", { name: "설정 열기" });
+    fireEvent.click(openSettings);
+
+    expect(screen.getByText("설정 화면 도착")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "설정 열기" })).not.toBeInTheDocument();
+  });
+
+  it("[ADR-42] 숨김 prop → '설정 열기'가 문서에 없고 '다시 읽기'는 남는다", () => {
+    render(
+      <MemoryRouter>
+        <AgentsDirMissing hostPath="/Users/jaybee/Desktop/JayStudio" showOpenSettings={false} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole("button", { name: "설정 열기" })).not.toBeInTheDocument();
+    expect(screen.queryByText("설정 열기")).not.toBeInTheDocument();
+    // 07에서도 뜻이 있는 복구 버튼은 남는다(ADR-42). 버튼은 `다시 읽기` 하나뿐이다.
+    expect(screen.getByRole("button", { name: "다시 읽기" })).toBeEnabled();
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    // 나머지 요소(제목·경로·본문)는 01·02와 같다(ui-spec SCR-04-5).
+    expect(screen.getByText("에이전트 폴더를 찾을 수 없습니다")).toBeInTheDocument();
+    expect(screen.getByText("/Users/jaybee/Desktop/JayStudio/.claude/agents")).toBeInTheDocument();
+  });
+
+  it("[ADR-42][conventions §7] 정적 단언 — AgentsDirMissing.tsx가 라우트를 스스로 읽지 않는다", () => {
+    // 표시 여부는 화면이 prop으로 알려준다. 공용 컴포넌트가 현재 경로를 판정하면 안 된다.
+    expect(agentsDirMissingSource).not.toMatch(/useLocation/);
+    expect(agentsDirMissingSource).not.toMatch(/useMatch/);
+    expect(agentsDirMissingSource).not.toMatch(/useResolvedPath|useSearchParams|useParams/);
+    // 주석에도 `window.location`이 없도록 이 단언은 소스 전체를 본다.
+    expect(agentsDirMissingSource).not.toMatch(/window\.location|document\.location/);
+    // 라우트 경로 문자열과의 비교(`=== "/settings"` 등)가 없다.
+    expect(agentsDirMissingSource).not.toMatch(/[=!]==?\s*["'`]\//);
+    expect(agentsDirMissingSource).not.toMatch(/(startsWith|includes|match)\s*\(\s*["'`]\//);
+    // prop 방식이라는 근거: 시그니처에 기본값 true인 showOpenSettings가 있다.
+    expect(agentsDirMissingSource).toMatch(/showOpenSettings\s*=\s*true/);
   });
 });

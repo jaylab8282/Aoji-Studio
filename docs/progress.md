@@ -110,6 +110,7 @@
 - D-016 `--agent <미정의 name>` 메인 세션(agent_type이 정의 파일에 없음)은 Live(agents/lobby/undefinedSubagents)에 표시하지 않고 이벤트 목록에만(agentLabel=agent_type, workflow=null) — FR-003-AC5 로비 정의(agent_type 없는 세션)·FR-004-AC7(정의된 에이전트)·api-spec EventRow 문구 그대로. ADR-10에 명시 완료 / T-006
 - D-015 architecture §9 SQLite 손상 자동 복구는 설계 문서 범위 안이므로 축소하지 않고 T-005에서 구현: 자체 `DataSource` 빈 생성 전에 quick_check → 실패 시 `events.db(-wal/-shm)`를 `events.db.corrupt-<시각>`으로 이동 후 새로 생성. 통합 테스트 1개 추가 / T-005
 - D-014 `.jaystudio/teams/*.json` 심볼릭 링크도 PathGuard로 거부(읽지 않고 형식 오류) — NFR-07 "심볼릭 링크는 따라가지 않는다"는 일반 원칙 / T-003
+- D-044 T-FIX-08은 **팀장 검증으로 커밋하고 리뷰는 T-021과 묶어** 받는다 — 변경이 운영 코드 2파일(조건부 렌더 + prop 전달)뿐이고, 01·02 화면 파일은 **diff 0**이라 회귀 경로가 구조적으로 없으며, 개발자가 정적 단언을 **뮤테이션으로 검증**(`useLocation` 임시 주입 → 단언 실패 → 원복)했고 팀장이 07·01 캡처로 양쪽 상태를 직접 확인했다. T-021이 같은 `SettingsScreen.test.tsx`를 건드리므로 미커밋으로 두면 diff가 섞인다 / T-FIX-08, T-021
 - D-043 A-17·A-18 확정 수용(ADR-42·ADR-43, `CONTRACT CHANGE: no`) — 팀장이 기각 근거 검증: (b)비활성+이유 줄은 확정 문서에 이유 문구가 없어 **신설이 필요**하고 ADR-35 지정 기준(원인이 버튼 밖)에도 안 맞으며 07에 영원히 활성화 안 되는 죽은 컨트롤이 남는다 → 타당. A-18은 `819px`이 토큰도 Tailwind 스케일도 아니고 `docs/ui/` 개정은 architect 권한 밖이라 `max-w-3xl` 현행 확정 + ui-spec에 '와이어프레임 p.4와의 확정된 차이' 목록 신설로 절차 충족 / T-022, T-FIX-08
 - D-042 `CopyButton`은 tasks.md상 T-021 범위지만 **T-022에서 만든다** — T-022의 FR-014-AC2(설정 예시 복사)·명령 복사가 복사 기능을 먼저 요구하고, 순서 정정(D-038)으로 T-022가 앞서기 때문. 재사용 가능한 공용 컴포넌트로 두어 T-021이 `HelperMissingDialog`에서 그대로 쓴다(팀장 권한: 태스크 분할 조정) / T-021, T-022
 - D-041 리뷰어가 찾은 [Major] dev 프로필 허용 Origin 문서·구현 불일치를 **이번 세션에서 고치지 않고 A-16으로 분리** — scaffold부터 있던 선행 결함이고 fail-closed(더 좁음) 방향이라 보안 위험이 없으며, 운영 이미지는 dev 프로필을 쓰지 않아 사용자 영향이 없다. 문서와 구현 중 무엇이 맞는지는 설계 판단이라 architect 몫 / A-16
@@ -202,3 +203,8 @@
   - 공용 파일 회귀 0: `git grep CopyButton HEAD`로 **변경 전 컴포넌트 사용처가 0건**임을 확인 → 시그니처 변경·상수 제거의 영향 범위가 애초에 없었다
   - 리뷰어가 **팀장 기록 실수 1건 지적**: progress.md Current 블록에 이전 문장 꼬리가 섞여 있었다 → 팀장이 즉시 재작성·중복 줄 제거
   - 남은 Minor: 로딩 중 버튼 38px 이동(금지 규칙 없음, `w-64`가 5개 행 공유라 **건드리지 않는 쪽 권장**) / 에러 시 카드별 잔존 요소 불일치(ui-spec 에러 열 미지정 → architect 선택) / `WorkflowDeleteDialog.test.tsx:236` 3200ms 고정 대기 → T-FIX-07
+
+- 2026-09-25 **T-FIX-08 done**(E-007 승인분) → 커밋. 팀장 검증: `npm test` 57 files/**330 tests**(326→330, +4, 삭제·skip 0)·lint·typecheck·build 통과. 변경은 운영 코드 **2파일**뿐이고 **01·02 화면 파일 diff 0**(기본값 `true`라 미전달 = 기존 동작) → 회귀 경로가 구조적으로 없다
+  - 개발자가 정적 단언을 **뮤테이션으로 검증**: `useLocation().pathname === "/settings"`를 임시 주입 → 정적 단언 1 failed → 원복 → 7 passed. 단언이 실제로 규칙 위반을 잡는다
+  - 팀장이 캡처 양쪽 직접 확인: **07은 `다시 읽기` 1개만 남고 `설정 열기` 사라짐** / **01은 `설정 열기` primary 그대로 유지**
+  - 자원: bootRun·Spring JVM·vite PID 3개 전부 종료 확인(`pgrep` 0건, 8080·5173 리슨 0건), 임시 캡처 스크립트 삭제
