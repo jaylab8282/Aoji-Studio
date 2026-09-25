@@ -596,6 +596,46 @@
 - 주의: 허용 목록을 넓히는 방향이므로 NFR-04·architecture §5 DoD("다른 Origin 차단")와 충돌하지 않는지 확인할 것. 요구사항 의미를 바꿔야 하면 `CONTRACT CHANGE`/에스컬레이션으로 보고
 - Depends on: -
 
+## A-17 (architect 확정 완료 2026-09-25 → ADR-42) 07 안의 04-5 `설정 열기`가 눌러도 아무 일이 없다
+- Status: done (확정 완료) — 구현은 **T-FIX-08**, 착수 전 팀장이 사용자 승인 여부를 판단한다
+- Scope: architect 판단 → Frontend 수정 태스크로 분리
+- FR: FR-001-E1, `docs/ui/ui-rules.md` 2·5, `docs/ui/screen-flow.md` 이동표, ui-spec SCR-04-5·SCR-07
+- 출처: `docs/reviews/T-022.md` [Major] (팀장 캡처 재확인 K4, 증거 `docs/reviews/screens/T-022/07-settings-agents-dir-missing.png`)
+- 증상: `agentsDirMissing`이면 07 프로젝트 폴더 카드 본문이 04-5로 바뀌고, 그 안의 `설정 열기`(primary 활성)가 `/settings`로 이동한다. 07이 이미 `/settings`라 **화면 변화가 0**이다 (`components/ui/AgentsDirMissing.tsx:57`)
+- 확정 결과(ADR-42): **(a) 07에서만 `설정 열기`를 그리지 않는다.** 표시 여부는 화면이 prop으로 넘기고(01·02 기본값, 07만 숨김) 공용 컴포넌트가 라우트를 읽지 않는다(ADR-30과 같은 방식). (b) 비활성 + 이유 줄은 **기각** — 이유 문구가 확정 문서에 없어 신설이 되고, ADR-35 지정 기준에도 맞지 않으며, 07에서는 영원히 활성화되지 않는 컨트롤이 남는다. (c) 현행 유지도 **기각** — 명문 MUST 위반을 문서로 승인하는 셈
+- 요구사항 의미 변경 여부: **없음.** FR-001-E1의 세 요소(04-5 표시 / `다시 읽기` 복구 / 설정 화면 도달 경로)가 모두 유지된다 — `docs/ui/screen-flow.md` 표는 `04-5 설정 열기`를 **07로 들어오는 이동**으로 확정했고 07에서 나가는 자기 이동은 확정 문서에 없다. `docs/ui/ui-rules.md` 5의 복구 버튼 중 07에서 뜻이 있는 `다시 읽기`는 남는다. 계약 변경 없음
+- 사용자에게 보이는 변화: **있음** — 07 + `agentsDirMissing` 상태에서만 primary 버튼 1개가 사라진다. 신설 문구 0건, 신설 요소 0건, 01·02 변화 0건. 확정 문서가 열거한 버튼을 한 화면에서 빼는 결정이라 **팀장이 사용자 승인 대상인지 판단하고, 승인 전에는 구현하지 않는다**(E-004·E-005·E-006 선례)
+- Depends on: -
+
+## A-18 (architect 확정 완료 2026-09-25 → ADR-43) 07 카드 열 폭 사후 확정
+- Status: done (확정 완료) — **코드 변경 없음**
+- Scope: architect 판단
+- FR: ui-spec SCR-07, conventions §7 MUST(임의값 금지·와이어프레임 구성)
+- 출처: `docs/reviews/T-022.md` [Minor] (와이어프레임 p.4 PDF 콘텐츠 스트림 복원 실측)
+- 증상: 와이어프레임 07 카드 열 = 819px, 구현 `max-w-3xl` = 768px(−6.2%). 819px은 토큰도 Tailwind 스케일도 아니라 임의값을 쓸 수 없다. 구현 판단 자체는 합리적이나 §7 MUST가 "새 차이는 architect 확정"을 요구
+- 확정 결과(ADR-43): **`max-w-3xl`(768px) 유지 확정.** 새 폭 토큰을 만들지 않는다(`docs/ui/design-tokens.md` 개정은 architect 권한 밖 — ADR-31과 같은 이유). 함께 검토한 미세 차이(카드 안 여백 18px vs ≈23px, 라벨 열 128px vs ≈140px, 페이지 좌여백 32px vs 40px)도 **현행 토큰 유지** — 앞의 둘은 design-tokens.md 확정 토큰이고 전 화면이 공유하므로 바꾸면 기준 PNG 01·02·03 대조가 깨진다
+- 사용자에게 보이는 변화: **없음**(현행 구현 확정). 계약 변경 없음
+- Depends on: -
+
+## T-FIX-08 07의 04-5에서 `설정 열기` 미표시 (ADR-42)
+- Status: todo — **사용자 승인 완료(2026-09-25, E-007: 07에서만 숨김)**. 남은 착수 조건은 T-022 커밋 완료뿐(같은 폴더 동시 수정 방지)
+- Scope: Frontend
+- FR: FR-001-E1(의미 변경 없음 — 새 AC 없음), ui-rules 2
+- AC: 없음(기존 AC 유지)
+- Errors: FR-001-E1(표시 범위만 정정)
+- Screens: SCR-04-5, SCR-07
+- Backend: 없음
+- Frontend: `components/ui/AgentsDirMissing.tsx`(표시 여부 prop 추가, 기본값 = 표시), `screens/settings/ProjectFolderCard.tsx`(07만 숨김 값 전달), `components/ui/AgentsDirMissing.test.tsx`, `screens/settings/SettingsScreen.test.tsx`
+- 배경: A-17 / ADR-42. 07이 `설정 열기`의 도착지 자신이라 활성 버튼이 아무 일도 하지 않았다
+- Done when:
+  - 단위 `AgentsDirMissing.test [ADR-42] 기본값 → '설정 열기' 표시, 누르면 /settings로 이동`(01·02 동작 회귀 방지)
+  - 단위 `AgentsDirMissing.test [ADR-42] 숨김 prop → '설정 열기'가 문서에 없고 '다시 읽기'는 남는다`
+  - 단위 `SettingsScreen.test [FR-001-E1][ADR-42] agentsDirMissing → 04-5 표시, '설정 열기' 없음, '다시 읽기' 1개`
+  - 단위 `HomeScreen.test`·`WorkflowsScreen.test`의 기존 `[FR-001-E1]`·`[FR-006-E1]` 테스트가 **그대로 통과**한다(01·02는 버튼 표시 변화 없음). 기존 테스트 삭제·skip·약화 0
+  - 정적 단언 또는 리뷰 확인 — `components/ui/AgentsDirMissing.tsx`에 `useLocation`·`useMatch`·`window.location`·라우트 경로 비교가 없다(conventions §7 MUST)
+  - `cd frontend && npm test` 통과 수가 줄지 않고 `npm run lint`·`npm run typecheck` 통과
+- Depends on: T-022 (fix round 1 완료 후)
+
 ## T-FIX-07 T-FIX-05·T-FIX-06 리뷰 Minor 묶음
 - Status: todo
 - Scope: Backend + Frontend
@@ -651,7 +691,7 @@
 - Depends on: T-015, T-016, T-020, T-022
 
 ## T-022 07 설정 화면
-- Status: todo
+- Status: done — Round 2 PASS(`docs/reviews/T-022.md`)
 - Scope: Frontend
 - FR: FR-014, FR-001
 - AC: FR-014-AC1, FR-014-AC2, FR-014-AC3, FR-014-AC4, FR-001-AC4, FR-001-AC5
@@ -669,7 +709,9 @@
   - FR-001-E1 — 단위 `[FR-001-E1] agentsDirMissing → 프로젝트 폴더 카드에 AgentsDirMissing` + E2E-06
   - FR-001-E2 — 단위 `[FR-001-E2] writable false → '쓰기 권한 없음'(danger)`
   - ADR-33 예외 — `팀장으로 열기` 행은 `settings.leadSessionCommandTemplate` 값을 가공 없이 표시한다. 값에 들어 있는 `<팀장 name>`(FR-013-AC2 확정 문구)을 프론트가 지우거나 치환하지 않는다. 단위 `[FR-013-AC5][ADR-33] 템플릿 값 그대로 표시`
+  - ADR-43(A-18) — 카드 열 폭 `max-w-3xl`(768px), 카드 안 여백 `--spacing-card-lg`, 페이지 좌여백 `--spacing-page-x`, 라벨 열 `w-32`는 **확정된 차이**다(ui-spec SCR-07 "와이어프레임 p.4와의 확정된 차이"). 현행 구현 그대로이며 **이 태스크에서 코드 변경 없음**
 - Depends on: T-013, T-012
+- 관련: A-17/ADR-42(07의 04-5 `설정 열기` 미표시)는 **T-FIX-08로 분리**한다 — fix round 1이 `screens/settings/CollectCard.tsx`·`SettingsScreen.test.tsx`를 동시에 고치는 중이라 같은 파일을 두 작업이 건드리지 않게 하고, 사용자 승인 판단(A-17)이 T-022 완료를 막지 않게 한다. A-18/ADR-43은 확정만이라 이 태스크 안에서 끝난다
 
 ## T-023 이벤트 재생 도구 · fixture 세트
 - Status: todo
@@ -723,7 +765,7 @@
 
 | FR | AC/E → 태스크 |
 |---|---|
-| FR-001 | AC1 T-003(+H-1) · AC2 T-003(+H-1) · AC3 T-004, T-024 · AC4 T-004, T-022 · AC5 T-022 · AC6 T-008 · E1 T-003, T-014, T-015, T-022 · E2 T-003, T-008, T-015, T-022 · E3 T-003 |
+| FR-001 | AC1 T-003(+H-1) · AC2 T-003(+H-1) · AC3 T-004, T-024 · AC4 T-004, T-022 · AC5 T-022 · AC6 T-008 · E1 T-003, T-014, T-015, T-022, T-FIX-08 · E2 T-003, T-008, T-015, T-022 · E3 T-003 |
 | FR-002 | AC1 T-003 · AC2 T-003, T-015 · AC3 T-010, T-019 · AC4 T-003 · AC5 T-003 · AC6 T-003 |
 | FR-003 | AC1 T-002, T-024(+H-4) · AC2 T-002, T-024 · AC3 T-005 · AC4 T-006 · AC5 T-006, T-015 · AC6 T-006, T-013 · AC7 T-005 · AC8 T-012(+H-2, H-5) · AC9 T-005, T-012, T-023 · AC10 T-005 · E1 T-005 · E2 T-005 |
 | FR-004 | AC1 T-006 · AC2 T-006, T-024(+H-2) · AC3 T-006 · AC4 T-006 · AC5 T-006 · AC6 T-007, T-024 · AC7 T-006, T-015 · E1 T-006 |

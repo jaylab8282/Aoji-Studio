@@ -60,8 +60,8 @@ export const WORKFLOW_CHIP_ALL_IDLE_TEXT = "모두 대기";
 // 서버가 사용자용 `message`를 주지 못한 모든 경우에 이 문구 하나만 쓴다(api/client.ts가 정규화).
 export const UNKNOWN_ERROR_MESSAGE = "서버에 연결할 수 없습니다 · 다시 시도하세요";
 
-// CopyButton (ui-spec §공통)
-export const COPY_BUTTON_DEFAULT_LABEL = "복사";
+// CopyButton (ui-spec §공통). 라벨은 쓰는 화면이 정하고(`명령 복사`·`설정 예시 복사`),
+// 복사 성공 표시 문구만 공용이다.
 export const COPY_BUTTON_COPIED_LABEL = "복사됨";
 
 // AgentsDirMissing (SCR-04-5, 01·02·07 공통)
@@ -474,3 +474,73 @@ export const AGENT_REMOVE_CONFIRM_LABEL = "제거 (이름 일치 시 활성)";
 export const AGENT_REMOVE_CONFIRM_PENDING_LABEL = "제거 중…";
 /** `DELETE /api/agents/{name}` 404(ui-spec.md SCR-06-6 에러 열). */
 export const AGENT_ALREADY_REMOVED_MESSAGE = "이미 없는 에이전트입니다";
+
+// ── SCR-07 설정 (FR-014, FR-001-AC4·AC5·E1·E2, FR-013-AC5, 와이어프레임 p.4) ──────────────
+export const SETTINGS_TITLE = "설정";
+/** 값 사이 구분점. ui-spec.md SCR-07 값 문구가 `A · B` 형태로 적은 자리에만 쓴다. */
+export const MIDDLE_DOT_SEPARATOR = " · ";
+
+// 카드 1 프로젝트 폴더
+export const SETTINGS_PROJECT_CARD_TITLE = "프로젝트 폴더";
+export const SETTINGS_READ_ONLY_BADGE = "읽기 전용";
+export const SETTINGS_ROW_MOUNT_PATH = "마운트 폴더";
+export const SETTINGS_ROW_AGENTS = "에이전트";
+export const SETTINGS_ROW_SKILLS = "스킬";
+export const SETTINGS_ROW_WRITABLE = "쓰기 권한";
+export const SETTINGS_ROW_FORMAT_ERRORS = "형식 오류";
+/** 경로(mono)와 뒤 설명은 화면에서 따로 그리고, 값 전체는 `<경로> · <설명>` 한 줄이다. */
+export const SETTINGS_AGENTS_PATH = ".claude/agents/";
+export const SETTINGS_SKILLS_PATH = ".claude/skills/";
+export function settingsAgentsNote(agentCount: number): string {
+  return `정의 ${agentCount}개`;
+}
+export function settingsSkillsNote(skillCount: number): string {
+  return `${skillCount}개`;
+}
+export const SETTINGS_WRITABLE_TRUE_TEXT = "✓ agents 추가·수정·삭제 가능";
+/** FR-001-E2. `쓰기 권한 없음`은 비활성 이유 줄(`WRITABLE_FALSE_REASON`)과 같은 글자다. */
+export const SETTINGS_WRITABLE_FALSE_TEXT = `✗ ${WRITABLE_FALSE_REASON}`;
+export function settingsFormatErrorsValue(count: number): string {
+  return `! 읽지 못한 정의 파일 ${count} 개`;
+}
+export const SETTINGS_FORMAT_ERRORS_NONE_TEXT = "없음";
+export const SETTINGS_PROJECT_FOOTNOTE = "폴더는 컨테이너 실행 시 마운트로 고정 · 웹에서 변경 불가";
+
+// 카드 2 Claude 열기 (설명문은 D-F4 확정 문구)
+export const SETTINGS_CLAUDE_CARD_TITLE = "Claude 열기";
+export const SETTINGS_CLAUDE_CARD_DESCRIPTION =
+  "02의 Claude 열기 · 기본 세션과 03의 팀장 호출 · 터미널 열기를 누르면 맥북 터미널이 열리고 프로젝트 폴더에서 claude가 실행됩니다.";
+export const SETTINGS_ROW_TERMINAL_APP = "터미널 앱";
+export const SETTINGS_ROW_DEFAULT_SESSION = "기본 세션";
+export const SETTINGS_ROW_LEAD_SESSION = "팀장으로 열기";
+export const SETTINGS_LEAD_SESSION_HINT =
+  "도우미가 받는 값은 팀장 name 하나 · 소문자·숫자·하이픈만 허용";
+export const SETTINGS_ROW_HELPER = "열기 도우미";
+export const SETTINGS_HELPER_CHECKING_TEXT = "확인 중…";
+export function settingsHelperInstalledText(hhmmss: string): string {
+  return `설치됨 · 응답 확인 ${hhmmss}`;
+}
+export const SETTINGS_HELPER_MISSING_TEXT = "미설치 · helper/install.sh로 설치";
+/** `GET /api/helper/token`이 null일 때(ui-spec.md SCR-07 `열기 도우미` 행). */
+export const SETTINGS_HELPER_NO_TOKEN_TEXT = "미설치 · 토큰 파일 없음";
+export const SETTINGS_TEST_OPEN_BUTTON_LABEL = "테스트로 열기 (도우미 설치 후)";
+/** FR-013-AC10 이유 줄(ADR-35 지정 지점). */
+export const HELPER_MISSING_REASON = "도우미 미설치";
+export const SETTINGS_COPY_COMMAND_LABEL = "명령 복사";
+
+// 카드 3 수집
+export const SETTINGS_COLLECT_CARD_TITLE = "수집";
+export const SETTINGS_ROW_COLLECT_URL = "수집 주소";
+export const SETTINGS_ROW_HOOK = "hook 설정";
+export const SETTINGS_HOOK_SETTINGS_PATH = ".claude/settings.json";
+export const SETTINGS_HOOK_CONFIGURED_TEXT = "설정됨";
+export const SETTINGS_HOOK_MISSING_TEXT = "없음";
+export const SETTINGS_COPY_HOOK_EXAMPLE_LABEL = "설정 예시 복사";
+export const SETTINGS_ROW_TEAMS = "워크플로우 구성";
+export const SETTINGS_ROW_TRASH = "휴지통";
+export const SETTINGS_ROW_RETENTION = "이벤트 보존";
+export const SETTINGS_TEAMS_NOTE = "팀장·팀원 목록";
+export const SETTINGS_TRASH_NOTE = "제거한 에이전트 보관";
+export function settingsRetentionValue(retentionDays: number): string {
+  return `${retentionDays}일`;
+}

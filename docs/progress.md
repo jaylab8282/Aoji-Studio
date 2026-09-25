@@ -2,14 +2,16 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **T-FIX-05·T-FIX-06 done·커밋 완료** → **T-022 시작**(이번 세션 정지 지점) 이번 세션 정지 지점(사용자 지시): **A-15 확정 → T-022 구현·리뷰·커밋까지 하고 멈춤**. T-021은 다음 세션
-  - **순서 정정(D-038)**: progress.md의 기존 남은 태스크 순서 `T-021 → T-022`는 tasks.md 의존성과 **반대**였다. `T-021`은 `Depends on: T-015, T-016, T-020, **T-022**`이고, 실제로 T-021이 연결하는 버튼이 T-022가 만드는 `screens/settings/*`에 있다. 올바른 순서는 **T-022 → T-021**
-  - 남은 태스크: **T-022**(진행) → T-021 → T-023 → T-024(E2E 전체) → T-FIX-04 → **A-16**(architect) → **T-FIX-07** → Integration → Final Report → T-023 → T-024(E2E 전체) → T-FIX-04 → Integration → Final Report
-  - **재개 시 첫 작업(사용자 지시)**: **A-15 — 허용 Origin 목록에 `http://localhost:<port>` 포함 여부를 architect가 판단**한다. tasks.md의 `## A-15` 항목에 증상·원인·재현 결과·검토 항목이 정리돼 있다. 그다음 T-021
-  - 남은 태스크: **A-15** → T-021 → T-022 → T-023 → T-024(E2E 전체) → **T-FIX-04** → Integration → Final Report
-  - **자원 사용 규칙(사용자 지시, 모든 서브에이전트 프롬프트에 넣을 것)**: CPU 부하 프로세스(`yes` 등) 금지, **스트레스 테스트는 사용자 허락 필요**. 타이밍·flaky 확인은 **결정론적 지연 주입**으로만. 반복 실행은 해당 파일만. 실험은 스크래치 사본에서 하고 정리 확인(`pgrep`·`lsof`)
+- Current: **T-022 done(Round 2 PASS)** → 다음 **T-FIX-08** → **T-021**
+  - 이번 세션 정지 지점(사용자 지시): **T-021 구현·리뷰·커밋까지**
+  - 순서: T-022 커밋 → **T-FIX-08**(E-007 승인분, 4파일) → **T-021** → 정지
+    - T-FIX-08을 T-021보다 먼저 두는 이유: 작은 작업이고 T-021이 같은 `screens/settings/`·`SettingsScreen.test.tsx`를 건드려 뒤에 하면 충돌한다
+  - 남은 태스크: **T-FIX-08** → **T-021** → T-023 → T-024(E2E 전체) → T-FIX-04 → **A-16**(architect) → **T-FIX-07** → Integration → Final Report
+  - **주의(리뷰어 지적)**: `helperStatus`가 `checking` 고정이라 **T-021 전까지 07의 `열기 도우미`는 `확인 중…` 고정**이다. 07을 "완료된 화면"으로 사용자에게 보고하지 말 것
+  - **주의**: ui-spec·conventions가 "07의 04-5에 `설정 열기` 미표시"를 이미 MUST로 확정했으므로, **T-FIX-08이 누락·연기되면 그 시점부터 §7 MUST 위반**이 된다
   - **사람이 직접 확인할 항목(자동 검증 불가, 최종 보고용)**: `docs/reviews/T-020.md` §7에 명령·기대 결과가 순서대로 정리돼 있다 — **H-3** 도우미 설치 후 실제 Terminal.app이 `JayStudio` 기준 `claude` / `claude --agent develop-tech-lead`로 열림(자동화 권한 대화상자 포함) / **H-4** 다른 기기에서 4180·4181 접속 불가 / launchd 실제 등록(`launchctl bootstrap`) 경로 / **H-2** 실제 hook 설정 후 상태 전이
-  - 후속 Minor: T-015 pitch·13자 이름 번짐·미니맵 줌 → **T-024** / `Claude 열기`·`팀장 호출` onClick → **T-021** / 04-4 변형 캐처 → **T-024**(D-032) / playwright.config viewport + T-FIX-03 캡처 뷰포트(m4) → **T-024** / TopBar 긴 hostPath 2줄 접힘 → 후속 / ADR-33 정적 검사 잔여 사각·`ImportDialog` 240줄 → 후속 / 06-5 `덮어쓰기` 토큰 부재·`shell: false` 표기 불일치 → **architect 문서 정리**
+  - 후속 Minor: T-015 pitch·13자 이름 번짐·미니맵 줌 → **T-024** / 04-4 변형 캐처 → **T-024**(D-032) / playwright.config viewport + T-FIX-03 캡처 뷰포트(m4) → **T-024** / TopBar 긴 hostPath 2줄 접힘 → 후속 / ADR-33 정적 검사 잔여 사각·`ImportDialog` 240줄 → 후속 / 06-5 `덮어쓰기` 토큰 부재·`shell: false` 표기 불일치 → **architect 문서 정리** / 중첩 `<main>`(01·02·03)·`App.tsx` 낡은 주석 → 후속 / `WorkflowDeleteDialog.test.tsx:236` 3200ms 고정 대기 → **T-FIX-07** / 07 에러 시 카드별 잔존 요소 불일치 → architect(선택)
+  - **자원 사용 규칙(사용자 지시, 모든 서브에이전트 프롬프트에 넣을 것)**: CPU 부하 프로세스(`yes` 등) 금지, **스트레스 테스트는 사용자 허락 필요**. 타이밍·flaky 확인은 **결정론적 지연 주입**으로만. 반복 실행은 해당 파일만. 실험은 스크래치 사본에서 하고 정리 확인(`pgrep`·`lsof`)
 
 ## Log
 - 2026-09-20 architect 완료: 설계 문서 6개(architecture, conventions, api-spec.yaml, realtime-spec, ui-spec, tasks) · 태스크 24개. 팀장 검증: final의 AC/E 152개 전부 tasks.md에 연결 확인(누락 0, 초과 0), ui-spec 화면 01~07·04-1~7 전부, architecture §8 통합 검증 전략 있음, 스택·인프라 final 그대로.
@@ -108,6 +110,8 @@
 - D-016 `--agent <미정의 name>` 메인 세션(agent_type이 정의 파일에 없음)은 Live(agents/lobby/undefinedSubagents)에 표시하지 않고 이벤트 목록에만(agentLabel=agent_type, workflow=null) — FR-003-AC5 로비 정의(agent_type 없는 세션)·FR-004-AC7(정의된 에이전트)·api-spec EventRow 문구 그대로. ADR-10에 명시 완료 / T-006
 - D-015 architecture §9 SQLite 손상 자동 복구는 설계 문서 범위 안이므로 축소하지 않고 T-005에서 구현: 자체 `DataSource` 빈 생성 전에 quick_check → 실패 시 `events.db(-wal/-shm)`를 `events.db.corrupt-<시각>`으로 이동 후 새로 생성. 통합 테스트 1개 추가 / T-005
 - D-014 `.jaystudio/teams/*.json` 심볼릭 링크도 PathGuard로 거부(읽지 않고 형식 오류) — NFR-07 "심볼릭 링크는 따라가지 않는다"는 일반 원칙 / T-003
+- D-043 A-17·A-18 확정 수용(ADR-42·ADR-43, `CONTRACT CHANGE: no`) — 팀장이 기각 근거 검증: (b)비활성+이유 줄은 확정 문서에 이유 문구가 없어 **신설이 필요**하고 ADR-35 지정 기준(원인이 버튼 밖)에도 안 맞으며 07에 영원히 활성화 안 되는 죽은 컨트롤이 남는다 → 타당. A-18은 `819px`이 토큰도 Tailwind 스케일도 아니고 `docs/ui/` 개정은 architect 권한 밖이라 `max-w-3xl` 현행 확정 + ui-spec에 '와이어프레임 p.4와의 확정된 차이' 목록 신설로 절차 충족 / T-022, T-FIX-08
+- D-042 `CopyButton`은 tasks.md상 T-021 범위지만 **T-022에서 만든다** — T-022의 FR-014-AC2(설정 예시 복사)·명령 복사가 복사 기능을 먼저 요구하고, 순서 정정(D-038)으로 T-022가 앞서기 때문. 재사용 가능한 공용 컴포넌트로 두어 T-021이 `HelperMissingDialog`에서 그대로 쓴다(팀장 권한: 태스크 분할 조정) / T-021, T-022
 - D-041 리뷰어가 찾은 [Major] dev 프로필 허용 Origin 문서·구현 불일치를 **이번 세션에서 고치지 않고 A-16으로 분리** — scaffold부터 있던 선행 결함이고 fail-closed(더 좁음) 방향이라 보안 위험이 없으며, 운영 이미지는 dev 프로필을 쓰지 않아 사용자 영향이 없다. 문서와 구현 중 무엇이 맞는지는 설계 판단이라 architect 몫 / A-16
 - D-040 T-FIX-05·T-FIX-06을 **병렬 실행** — 통상 "한 번에 한 태스크" 규칙의 예외로 두되, 두 태스크는 `backend/`와 `frontend/`로 **파일 트리가 완전히 분리**되고 하나의 ADR-41 수정이라 Backend/Frontend 병렬 패턴과 동일하다. 리뷰는 각 태스크별로 받는다 / T-FIX-05, T-FIX-06
 - D-039 A-15 확정(ADR-41) 수용 — 팀장이 기각 근거를 원문으로 검증: `FR-013-AC7`이 도우미 허용 Origin 기본값을 `http://127.0.0.1:4180`으로 값까지 확정하므로 서버 목록만 넓히면 도우미는 계속 403이고 화면엔 FR-013-E2 확정 문구가 떠 원인을 더 감춘다 / `final_requirements_architecture.md:117`도 서버 기본값을 127.0.0.1로 확정 / NFR-04는 **바인딩** 규칙이라 정규화로 의미가 바뀌지 않음 → 에스컬레이션·`/planner` 불필요, CONTRACT CHANGE 없음 확인. ADR 헤딩 중복 0, 금지 문서(requirements_*·final_*·docs/ui) 미수정 확인 / A-15, T-FIX-05, T-FIX-06
@@ -127,6 +131,7 @@
 - D-007 ADR-11 승인: 도우미는 osascript를 argv로 spawn(shell:false), 문자열 삽입 값은 고정 경로와 정규식 검증 name뿐 — FR-013-AC11 취지(셸 조합 없음) 충족 / T-020
 
 ## Escalations
+- E-007 [resolved] A-17 — 07에서 04-5 `설정 열기` 버튼을 빼는 것이 확정 문서(FR-001-E1·ui-rules 5)가 열거한 버튼을 한 화면에서 제거하는 일이라 승인 요청. 팀장이 근거 원문 확인(`docs/ui/screen-flow.md:27` = 이 버튼의 **도착지가 07 자신**, 07에서의 자기 이동은 확정 흐름표에 없음) — 사용자: **07에서만 숨김 승인**(ADR-42). 01·02는 변화 없음
 - E-006 [resolved] A-15 신설 문구 `허용되지 않은 출처입니다 · <publicOrigin> 주소로 다시 접속하세요`(403 FORBIDDEN_ORIGIN) — 확정 문서·docs/ui 전수 확인 결과 같은 뜻의 문장 없음(팀장 재확인) — 사용자: **승인**. 아울러 T-FIX-05·T-FIX-06을 **T-022보다 먼저** 구현하도록 지시
 - E-005 [resolved] 가져오기 거부 사유 `FORMAT_ERROR` 화면 문구 신설 가부(확정 문서에 해당 완성 문장 없음) — 사용자: **신규 문장 승인**(`읽지 못한 정의 파일입니다 · 목록을 확인하세요`)
 - E-004 [resolved] 05-R 검색으로 가려진 선택 처리(와이어프레임에 없는 요소 신설) — 사용자: **안내 줄 추가**(architect 안 ②, `검색으로 가려진 선택 [N]명`)
@@ -172,3 +177,28 @@
   - 계약값 무변경 확인: `AppProperties.publicOrigin()` 식이 이전과 문자 단위 동일, `/api/state`·`/api/settings` 값 동일
   - 신규 이슈: **[Major] dev 프로필 허용 Origin 문서·구현 불일치 → A-16 분리**(D-041) · [Minor] 3건 → **T-FIX-07** 신설
   - 자원: 리뷰어가 띄운 bootRun·JVM·Gradle 데몬 전부 정리 확인(`pgrep` 0건, `lsof -ti :8080 :4180 :4199` 0건), probe 파일 5개 삭제·원복 확인
+
+- 2026-09-25 T-022(Frontend) 개발 DONE. 팀장 검증: `npm test` 57 files/**326 tests**(303→326, +23, 삭제·skip·`.only` 0)·lint·typecheck·build 통과. AC·E **8개 + ADR-33 전부** 테스트 제목 연결 확인. **도우미 네트워크 호출 실행 코드 0건**(매치는 주석·타입·픽스처뿐) → T-021 경계 준수. `screens/settings/`에 `input`·`textarea`·`select` 0건(FR-014-AC1·FR-001-AC5). 컨테이너·포트 정리 확인(e2e 컨테이너 0·4190 리슨 0), `tools/e2e/tests/`는 `health.spec.ts`만, 설계 문서 미수정
+  - 팀장이 캡처 직접 확인: `팀장으로 열기`가 `claude --agent <팀장 name>`으로 **괄호 유지**(ADR-33 예외 의도대로), 도우미 자리는 `확인 중…`으로 비어 있음
+  - 개발자 자기보고 8건 중 팀장이 캡처로 재확인한 것: **(K4) 07 안의 `설정 열기`를 누르면 현재 화면으로 가 아무 일도 없다** — conventions "누르면 아무 일도 없는 활성 버튼 금지"와 충돌 소지. ui-spec 요소 표에 있는 버튼이라 개발자가 임의로 감추지 않고 보고한 판단은 옳음. 리뷰어 판정 → 필요 시 architect
+  - (K1) 와이어프레임 p.4의 07 카드 폭 819px이 토큰이 아니라 `max-w-3xl`(768px)로 대체, 기준 대비 **−51px** → 리뷰어 판정 대상
+
+- 2026-09-25 T-022 리뷰 **Round 1 NEEDS_FIX**. 리뷰: `docs/reviews/T-022.md`. 테스트·추적성·문구는 전부 합격 — ui-spec SCR-07 요소 표 **1:1**(누락 0·추가 0·순서 일치), 확정 문구 글자 단위 전수 일치, **신설 문구 0건**(사용자 승인 불필요), AC·E 근거 없는 ID 0건, 로딩 중 `0` 미노출을 **결정론적 지연 주입**으로 확인(T-FIX-03 B-1 패턴 재발 없음), 5회 연속 19/19로 flaky 아님 확인
+  - 리뷰어가 **와이어프레임 p.4를 PDF 콘텐츠 스트림·ToUnicode CMap으로 복원**해 좌표까지 실측 대조(T-019 선례). 사이드바 248px·상단바 64px이 토큰과 일치함을 검증
+  - **[Major] `설정 예시 복사` 배치** — 기준은 `없음` 바로 뒤 인라인(x=695.7)인데 구현은 `justify-between`으로 카드 우측 끝. 같은 카드 `다시 읽기`는 우측 끝(x=1014~1072)이라 **와이어프레임이 두 버튼을 의도적으로 다르게** 둔 것이 확인됨 → frontend 수정
+  - **[Major] 07 안의 04-5 `설정 열기`가 눌러도 아무 일 없음**(K4 사실 확인) — ui-spec SCR-04-5·FR-001-E1(버튼 2개 확정)과 conventions "누르면 아무 일도 없는 활성 버튼 금지"가 **서로 충돌** → 구현이 정하면 안 되는 지점이라 **A-17**로 architect 확정 요청
+  - [Minor] 카드 폭 `max-w-3xl`(768) vs 기준 819px — 절충은 합리적이나 conventions §7 MUST상 **절차적 사후 확정** 필요 → **A-18**
+  - 팀장이 리뷰어 오류 1건 확인: 리뷰어가 "Jay_Studio는 git 저장소가 아니라 diff 대조 불가"라고 했으나 **저장소가 맞다**. 그래서 팀장이 공용 파일 삭제 줄을 직접 확인 — `text.ts`는 미사용 상수 제거뿐, `CopyButton`은 `value: string→string|null`·`label` 필수화·타이머 정리 추가로 **전부 정당, 테스트 약화 0**. 리뷰어가 인용한 줄 번호(`CollectCard.tsx:175·197`)도 실제 95줄 파일과 불일치 — 실질 지적은 캡처로 확인돼 유효
+- 2026-09-25 **서브에이전트 2개가 세션 한도(429)로 중간 종료**(frontend fix round 1 · architect A-17/A-18). 팀장 확인: **둘 다 파일 변경 전에 종료**됐다(`CollectCard.tsx`의 `justify-between` 그대로, typecheck 통과·326 tests 그대로). 깨진 부분 변경 없음 → 한도 초기화 후 **동일 지시로 재실행**
+
+- 2026-09-25 **A-17·A-18 확정**(architect, ADR-42·ADR-43, 계약 변경 없음) → 4문서 반영(architecture·ui-spec·conventions·tasks). A-17은 **사용자에게 보이는 변화**(07에서 버튼 1개 미표시)라 팀장이 E-007로 승인 요청 → **승인**. 구현은 **T-FIX-08**(Frontend, 4파일)로 분리 — fix round 1이 같은 폴더를 수정 중이라 파일 충돌을 피하고 T-022 완료를 막지 않기 위함
+- 2026-09-25 T-022 **fix round 1 완료**. 팀장 검증: `npm test` 57 files/**326 tests**(기준선 유지, 감소 0)·lint·typecheck·build 통과, 지연 주입 잔존 0건, 임의값 0건(유일한 `max-w-[` 매치는 **쓰지 않은 이유를 적은 주석**), skip·only 0건. 1440 캡처로 배치 교정 육안 확인 — `설정 예시 복사`가 `없음` 바로 뒤 인라인, `다시 읽기`는 카드 우측 끝 유지
+  - 개발자가 **지시 범위 밖의 같은 계열 경쟁을 스스로 1건 더 발견**: `카드 3개를 …순서로 그린다` 테스트의 `not.toBe("")`가 **라벨 글자 때문에 즉시 참**이라 사실상 대기를 하지 않았다 → 값 경로 기준 `toContain`으로 강화(단언 수 감소 0). 결정론적 30ms 지연 주입으로 수정 전 1건 실패 → 수정 후 16/16 통과를 실증하고 주입 코드는 제거
+
+- 2026-09-25 T-022 **PASS (Round 2, fix 1회)** → 커밋. 리뷰: `docs/reviews/T-022.md`(Round 1·2). 테스트 303→**326**, 삭제·skip 0
+  - 리뷰어가 1440 캡처를 **픽셀 주사**해 실측: `설정 예시 복사` 글자 시작 **x=694 vs 기준 695.7(차이 1.7px)**, `다시 읽기`는 카드 안쪽 우측 끝, 카드 열 **768px**·라벨 x=300 전부 ADR-43 확정값과 일치
+  - **경쟁 패턴 검출력 실증**: `/api/settings`에 50ms 결정론적 지연을 주입해 Round 1 게이트(변형 B)는 **3건 실패**, 수정본(변형 A)은 16/16 통과 → 개발자가 고친 3곳이 전부 **실재하던 경쟁**이었음이 증명됐다. 특히 개발자가 지시 범위 밖에서 스스로 찾은 `.not.toBe("")`(라벨 글자 때문에 **즉시 참**이라 사실상 대기 없음)도 진짜 결함
+  - **T-FIX-03 재발 전수 조사**: `findBy*` 35곳 중 클릭이 바로 뒤따르는 5곳을 전부 열어 확인 → 모두 로드 후에만 존재하는 요소를 게이트로 씀. 약한 게이트 잔존 0건, **재발 0건**
+  - 공용 파일 회귀 0: `git grep CopyButton HEAD`로 **변경 전 컴포넌트 사용처가 0건**임을 확인 → 시그니처 변경·상수 제거의 영향 범위가 애초에 없었다
+  - 리뷰어가 **팀장 기록 실수 1건 지적**: progress.md Current 블록에 이전 문장 꼬리가 섞여 있었다 → 팀장이 즉시 재작성·중복 줄 제거
+  - 남은 Minor: 로딩 중 버튼 38px 이동(금지 규칙 없음, `w-64`가 5개 행 공유라 **건드리지 않는 쪽 권장**) / 에러 시 카드별 잔존 요소 불일치(ui-spec 에러 열 미지정 → architect 선택) / `WorkflowDeleteDialog.test.tsx:236` 3200ms 고정 대기 → T-FIX-07
