@@ -2,9 +2,9 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **T-022 done(Round 2 PASS)** → 다음 **T-FIX-08** → **T-021**
+- Current: **작업 보류(사용자 지시)**. T-FIX-08 리뷰 PASS까지 완료·커밋. **재개 시 첫 작업: `git stash pop`으로 T-021 부분 작업 복원 → T-021 이어서 완성**
   - 이번 세션 정지 지점(사용자 지시): **T-021 구현·리뷰·커밋까지**
-  - 순서: T-022 커밋 → **T-FIX-08**(E-007 승인분, 4파일) → **T-021** → 정지
+  - 이번 세션 완료: A-15 → T-FIX-05·T-FIX-06 → A-17·A-18 → T-022 → T-FIX-08(리뷰 PASS까지). T-021은 **중단**(부분 작업 stash 보관)
     - T-FIX-08을 T-021보다 먼저 두는 이유: 작은 작업이고 T-021이 같은 `screens/settings/`·`SettingsScreen.test.tsx`를 건드려 뒤에 하면 충돌한다
   - 남은 태스크: **T-FIX-08** → **T-021** → T-023 → T-024(E2E 전체) → T-FIX-04 → **A-16**(architect) → **T-FIX-07** → Integration → Final Report
   - **주의(리뷰어 지적)**: `helperStatus`가 `checking` 고정이라 **T-021 전까지 07의 `열기 도우미`는 `확인 중…` 고정**이다. 07을 "완료된 화면"으로 사용자에게 보고하지 말 것
@@ -208,3 +208,19 @@
   - 개발자가 정적 단언을 **뮤테이션으로 검증**: `useLocation().pathname === "/settings"`를 임시 주입 → 정적 단언 1 failed → 원복 → 7 passed. 단언이 실제로 규칙 위반을 잡는다
   - 팀장이 캡처 양쪽 직접 확인: **07은 `다시 읽기` 1개만 남고 `설정 열기` 사라짐** / **01은 `설정 열기` primary 그대로 유지**
   - 자원: bootRun·Spring JVM·vite PID 3개 전부 종료 확인(`pgrep` 0건, 8080·5173 리슨 0건), 임시 캡처 스크립트 삭제
+
+- 2026-09-25 **T-021 사용자 지시로 중단**. 개발 에이전트가 파일 쓰기를 멈추고 정지 보고까지 완료(팀장이 60초간 쓰기 없음을 확인한 뒤 보관). 부분 작업은 **`git stash@{0}`에 보관** — `T-021 부분 작업(사용자 지시 중단, 일관 상태 347 tests)`. **재개 시 `git stash pop`부터 하라**(팀장이 보관 내용 검증 완료: 수정 10파일 + **신규 5파일이 `stash@{0}^3`에 정상 저장**됨 — 유실 없음)
+  - 상태는 **일관**하다(깨진 중간 상태 아님): typecheck·lint 통과, `npm test` 59 files/**347 tests** 전부 통과(기준선 330 + 신규 17, 기존 330개 삭제·skip·약화 0). `npm run build`만 미실행
+  - 만든 것: `api/helper.ts`(133줄)·`api/helper.test.ts`(239줄)·`dialogs/helper-missing/{HelperMissingDialog.tsx,HelperMissingDialog.test.tsx,useHelperOpen.ts}` 신규 5 + 기존 10파일 수정(02·03·07 버튼 연결, `client.ts`, `text.ts`, `ClaudeOpenCard` prop)
+  - **미완(T-021 Done when 기준)**: 03 Header 단위 테스트 4개(`[FR-013-AC2][FR-013-AC6]`·`[FR-014-AC5]`·`[FR-013-E3]`·`[FR-013-E4]`), 07 단위 테스트(`[FR-013-AC10]`·토큰 null·403 인라인), 스크린샷 폴더 미생성
+  - **⚠ 개발자가 찾은 계약 갭(리뷰어가 반드시 확인할 것)**: `client.ts`는 **변경 메서드에만** `X-JayStudio-Browser-Token`을 붙이는데 백엔드 `HelperTokenController`는 **GET인데도** 헤더를 검사한다(api-spec도 이 엔드포인트에만 `security: browserToken` 명시). 그대로 두면 `GET /api/helper/token`이 **항상 403**이고 client의 1회 자동 재시도도 헤더를 안 붙여 **02·03 버튼이 늘 인라인 에러**가 된다. 개발자가 `apiGet(path, { withBrowserToken: true })` 옵트인을 추가해 helper에서만 켰다(기존 GET 동작·"GET은 토큰 안 붙인다" 기존 테스트 그대로 통과). 계약을 **지키는 쪽** 수정이라 판단해 BLOCKED로 올리지 않았다 — **재개 시 이 판단을 리뷰어가 검증해야 한다**
+  - 다음 세션 쟁점(개발자 자기보고): ① 07 무응답 시 `HelperMissingDialog`까지 띄우는 것이 과한가(ui-spec §공통 표는 사용 화면을 02·03·07로 적었으나 SCR-07 요소 표에는 "버튼 비활성"만) ② `GET /api/helper/token` 서버 오류 시 07 표시가 확정 문서에 없음(현재 `미설치`로 떨어뜨림, 새 문구는 안 만듦) ③ 첫 스냅샷 전 02 상단바 버튼이 활성인데 누르면 아무 일 없음(ui-spec 로딩 열이 `활성`) — "무동작 활성 버튼 금지"와 경계선 ④ `lib/text.ts` 상수 이름 변경(`SETTINGS_COPY_COMMAND_LABEL` → `COPY_COMMAND_LABEL`, 값·화면 문구 동일)
+  - 자원: 에이전트가 컨테이너·백그라운드 프로세스를 띄우지 않았고 vitest fork만 정리(`pgrep -fl vitest` 0건, 4180·4181·4190·4191 리슨 0건, `docker ps -a` 0건)
+
+- 2026-09-25 **T-FIX-08 리뷰 PASS**(Blocker 0·Major 0·Minor 2). 리뷰: `docs/reviews/T-FIX-08.md`. Done when **6/6 충족**
+  - 리뷰어가 **probe 11건**으로 정적 단언 검출력을 실측: `useLocation`·`useMatch`·`window.location`·경로 비교·`startsWith`·조건부 제거·기본값 뒤집기 전부 검출 ✔. 오탐 제거 로직이 **아예 없어** 진짜 위반을 가리는 축소가 없음도 확인
+  - `AgentsDirMissing` 사용처 **전수 조사**: 운영 코드 3곳뿐(01·02는 기본값, 07만 `false`) → 회귀 경로 없음
+  - `useNavigate` 잔존은 **MUST 위반 아님** 확정 — conventions §7이 금지한 것은 **경로 판정**이고 `useNavigate`는 버튼 동작. ADR-42도 동작 유지를 명시. 개발자 판단이 맞았다
+  - **리뷰어의 가장 값진 발견(probe M11)**: 호출처(`KpiSection`·`WorkflowsScreen`)에 `showOpenSettings={false}`를 주입해도 **330개가 전부 통과**한다 — 01·02 기존 테스트가 04-5 **제목만** 단언해 화면 층 회귀를 못 잡는다. 문서 기준(컴포넌트 단위 테스트)은 충족해 PASS를 유지하되 **T-FIX-07에 보강 지시** 추가
+  - Minor 2건 → **T-FIX-07**: ① 01·02 화면 테스트에 버튼 존재 단언 1줄씩 ② 정적 단언 패턴 회피 경로 2개(M5 역순 비교·M7 `useHref`) 보강
+  - 미검증으로 남은 것: **E2E-06**("01·02의 04-5에는 `설정 열기`가 있고 07에는 없다", architecture.md:342)은 아직 미구현 → **T-024**에서 ADR-42 문구대로 단언되는지 확인 필요

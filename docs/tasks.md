@@ -618,7 +618,7 @@
 - Depends on: -
 
 ## T-FIX-08 07의 04-5에서 `설정 열기` 미표시 (ADR-42)
-- Status: done — 팀장 검증 통과(리뷰는 T-021과 묶어 진행, D-044)
+- Status: done — **리뷰 PASS**(`docs/reviews/T-FIX-08.md`, Blocker 0·Major 0·Minor 2 → T-FIX-07)
 - Scope: Frontend
 - FR: FR-001-E1(의미 변경 없음 — 새 AC 없음), ui-rules 2
 - AC: 없음(기존 AC 유지)
@@ -650,6 +650,10 @@
   - `forbiddenOrigin()` 정의가 사라지고 `grep -rn "forbiddenOrigin" backend/src`에 `OriginFilter`의 필드·테스트만 남는다. `./gradlew test` 통과 수 감소 없음
   - 프론트 픽스처 교체 후 `npm test` 통과 수 감소 없음
   - 기존 테스트 삭제·skip·약화 0
+- 추가(T-FIX-08 리뷰 Minor 2건, `docs/reviews/T-FIX-08.md`):
+  - `HomeScreen.test.tsx`·`WorkflowsScreen.test.tsx`에 `expect(screen.getByRole("button", { name: "설정 열기" })).toBeInTheDocument();` 1줄씩 추가 — 리뷰어 probe M11로 **호출처에 `showOpenSettings={false}`를 주입해도 330개가 전부 통과**함이 확인됐다(두 테스트가 04-5 제목만 단언). 화면 층에서 ADR-42 호출처 회귀를 고정한다
+  - `AgentsDirMissing.test.tsx:161-164` 정적 단언 패턴 보강 — probe M5(역순 비교 `"/settings" === x`)·M7(`useHref(".").includes("settings")`)이 안 걸린다. `useHref|useNavigationType` 추가 + 경로 비교 정규식을 **좌우 양방향**으로. `showOpenSettings && !useHref(...)`처럼 prop과 AND 결합하면 현재는 정적·동작 단언을 모두 통과한다
+  - (제안) ADR-42 정적 단언을 `test/staticRules.test.ts`로 모으고, 대응 단언이 없는 **ADR-30**(`TopBar`가 라우트를 읽지 않는다)도 같은 패턴으로 커버
 - Depends on: T-FIX-05, T-FIX-06
 
 ## T-FIX-04 T-020 리뷰 Minor 묶음 (도우미 견고성 · 설치 스크립트 안전장치)
@@ -671,7 +675,7 @@
 - Depends on: T-020
 
 ## T-021 터미널 열기 프론트 연동 (02 · 03 · 07)
-- Status: todo
+- Status: todo — **사용자 지시로 중단(2026-09-25)**. 부분 작업이 `git stash@{0}`에 보관돼 있다(일관 상태, 347 tests 통과). 재개 시 `git stash pop`부터
 - Scope: Frontend
 - FR: FR-013, FR-014
 - AC: FR-013-AC6, FR-013-AC9, FR-013-AC10, FR-014-AC5
