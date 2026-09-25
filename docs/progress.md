@@ -9,7 +9,7 @@
   - 남은 태스크: **T-FIX-08** → **T-021** → T-023 → T-024(E2E 전체) → T-FIX-04 → **A-16**(architect) → **T-FIX-07** → Integration → Final Report
   - **주의(리뷰어 지적)**: `helperStatus`가 `checking` 고정이라 **T-021 전까지 07의 `열기 도우미`는 `확인 중…` 고정**이다. 07을 "완료된 화면"으로 사용자에게 보고하지 말 것
   - **주의**: ui-spec·conventions가 "07의 04-5에 `설정 열기` 미표시"를 이미 MUST로 확정했으므로, **T-FIX-08이 누락·연기되면 그 시점부터 §7 MUST 위반**이 된다
-  - **사람이 직접 확인할 항목(자동 검증 불가, 최종 보고용)**: `docs/reviews/T-020.md` §7에 명령·기대 결과가 순서대로 정리돼 있다 — **H-3** 도우미 설치 후 실제 Terminal.app이 `JayStudio` 기준 `claude` / `claude --agent develop-tech-lead`로 열림(자동화 권한 대화상자 포함) / **H-4** 다른 기기에서 4180·4181 접속 불가 / launchd 실제 등록(`launchctl bootstrap`) 경로 / **H-2** 실제 hook 설정 후 상태 전이
+  - **사람이 직접 확인할 항목(자동 검증 불가, 최종 보고용)**: `docs/reviews/T-020.md` §7에 명령·기대 결과가 순서대로 정리돼 있다 — **H-3** 도우미 설치 후 실제 Terminal.app이 `JayStudio` 기준 `claude` / `claude --agent develop-tech-lead`로 열림(자동화 권한 대화상자 포함) / **H-4** 다른 기기에서 4180·4181 접속 불가 / launchd 실제 등록(`launchctl bootstrap`) 경로 / **H-2** 실제 hook 설정 후 상태 전이 → **2026-09-25 통과 확인**
   - 후속 Minor: T-015 pitch·13자 이름 번짐·미니맵 줌 → **T-024** / 04-4 변형 캐처 → **T-024**(D-032) / playwright.config viewport + T-FIX-03 캡처 뷰포트(m4) → **T-024** / TopBar 긴 hostPath 2줄 접힘 → 후속 / ADR-33 정적 검사 잔여 사각·`ImportDialog` 240줄 → 후속 / 06-5 `덮어쓰기` 토큰 부재·`shell: false` 표기 불일치 → **architect 문서 정리** / 중첩 `<main>`(01·02·03)·`App.tsx` 낡은 주석 → 후속 / `WorkflowDeleteDialog.test.tsx:236` 3200ms 고정 대기 → **T-FIX-07** / 07 에러 시 카드별 잔존 요소 불일치 → architect(선택)
   - **디스크 사용 현황(2026-09-25 조사, 정리는 사용자 지시로 보류)**: 이번 프로젝트 기인 약 **24.8GB**
     - **Docker 빌드 캐시 22.06GB** ← 대부분. `docker compose up -d --build`를 E2E·화면 캡처마다 반복한 결과. `backend-build` 스테이지(JDK+Gradle) **937.2MB 항목이 11개**(≈10.3GB) + Gradle 의존성 66MB대 30여 개, 총 **161개 항목**. **전부 `RECLAIMABLE`**
@@ -230,3 +230,12 @@
   - **리뷰어의 가장 값진 발견(probe M11)**: 호출처(`KpiSection`·`WorkflowsScreen`)에 `showOpenSettings={false}`를 주입해도 **330개가 전부 통과**한다 — 01·02 기존 테스트가 04-5 **제목만** 단언해 화면 층 회귀를 못 잡는다. 문서 기준(컴포넌트 단위 테스트)은 충족해 PASS를 유지하되 **T-FIX-07에 보강 지시** 추가
   - Minor 2건 → **T-FIX-07**: ① 01·02 화면 테스트에 버튼 존재 단언 1줄씩 ② 정적 단언 패턴 회피 경로 2개(M5 역순 비교·M7 `useHref`) 보강
   - 미검증으로 남은 것: **E2E-06**("01·02의 04-5에는 `설정 열기`가 있고 07에는 없다", architecture.md:342)은 아직 미구현 → **T-024**에서 ADR-42 문구대로 단언되는지 확인 필요
+
+- 2026-09-25 **H-2 실환경 검증 통과 — 실제 hook 설정 후 이벤트 수집·상태 전이 동작 확인**(사용자가 `.claude/settings.json` 생성 + 컨테이너 기동, 팀장이 읽기 전용으로 확인)
+  - 설정 파일 정합: **12개 이벤트 전부**, `type: http`, `url: http://127.0.0.1:4180/hooks/events`, 헤더 `X-JayStudio-Collect-Token`이 `.jaystudio/collect-token`과 **일치**(64자), `timeout: 3` → `HookSettingsExampleBuilder` 출력 형식과 일치
+  - `registry.hookConfigured: **true**`(07 화면 `설정됨` 판정 동작), `agentsDirMissing: false`, `writable: true`, 에이전트 **6개**·워크플로우 1개 인식
+  - `live.everReceived: **true**`, `recentEvents` **20건** 수신, `lastReceivedAt` 실시간 갱신. `PreToolUse`/`PostToolUse`가 `도구 실행 · Bash` / `도구 완료 · Bash`로 요약됨(FR-003 요약 동작)
+  - **상태 기계 동작 확인**: `develop-tech-lead` = `running` + `currentTool.name=Bash`, 나머지 5개 에이전트 = `idle`. 로비·정의없는 서브에이전트 비어 있음(정상)
+  - **FR-015 마스킹이 실제 조건에서 동작**: 팀장이 curl로 보낸 브라우저 토큰이 이벤트 본문에 `••••••••`로 저장됐고, `/api/state` 응답 전문에 **수집 토큰 평문 0건·64자 hex 문자열 0건**
+  - 배포된 번들에 T-022 07 화면 요소(`마운트 폴더`·`설정 예시 복사`·`열기 도우미`·`다시 읽기`) 포함 확인
+  - **아직 안 되는 것**: 02 `Claude 열기`·03 `팀장 호출`·07 `테스트로 열기`는 **T-021 미완**이라 동작하지 않는다(`열기 도우미`는 `확인 중…` 고정). 도우미 자체도 미설치(H-3 대기)
