@@ -2,9 +2,9 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **A-15 done(ADR-41 확정·E-006 승인)** → 다음: T-FIX-06·T-FIX-05 → T-022. 이번 세션 정지 지점(사용자 지시): **A-15 확정 → T-022 구현·리뷰·커밋까지 하고 멈춤**. T-021은 다음 세션
+- Current: **T-FIX-05·T-FIX-06 done·커밋 완료** → **T-022 시작**(이번 세션 정지 지점) 이번 세션 정지 지점(사용자 지시): **A-15 확정 → T-022 구현·리뷰·커밋까지 하고 멈춤**. T-021은 다음 세션
   - **순서 정정(D-038)**: progress.md의 기존 남은 태스크 순서 `T-021 → T-022`는 tasks.md 의존성과 **반대**였다. `T-021`은 `Depends on: T-015, T-016, T-020, **T-022**`이고, 실제로 T-021이 연결하는 버튼이 T-022가 만드는 `screens/settings/*`에 있다. 올바른 순서는 **T-022 → T-021**
-  - 남은 태스크(재정정, E-006 지시): **T-FIX-06 + T-FIX-05** → **T-022** → T-021 → T-023 → T-024(E2E 전체) → T-FIX-04 → Integration → Final Report
+  - 남은 태스크: **T-022**(진행) → T-021 → T-023 → T-024(E2E 전체) → T-FIX-04 → **A-16**(architect) → **T-FIX-07** → Integration → Final Report → T-023 → T-024(E2E 전체) → T-FIX-04 → Integration → Final Report
   - **재개 시 첫 작업(사용자 지시)**: **A-15 — 허용 Origin 목록에 `http://localhost:<port>` 포함 여부를 architect가 판단**한다. tasks.md의 `## A-15` 항목에 증상·원인·재현 결과·검토 항목이 정리돼 있다. 그다음 T-021
   - 남은 태스크: **A-15** → T-021 → T-022 → T-023 → T-024(E2E 전체) → **T-FIX-04** → Integration → Final Report
   - **자원 사용 규칙(사용자 지시, 모든 서브에이전트 프롬프트에 넣을 것)**: CPU 부하 프로세스(`yes` 등) 금지, **스트레스 테스트는 사용자 허락 필요**. 타이밍·flaky 확인은 **결정론적 지연 주입**으로만. 반복 실행은 해당 파일만. 실험은 스크래치 사본에서 하고 정리 확인(`pgrep`·`lsof`)
@@ -108,6 +108,8 @@
 - D-016 `--agent <미정의 name>` 메인 세션(agent_type이 정의 파일에 없음)은 Live(agents/lobby/undefinedSubagents)에 표시하지 않고 이벤트 목록에만(agentLabel=agent_type, workflow=null) — FR-003-AC5 로비 정의(agent_type 없는 세션)·FR-004-AC7(정의된 에이전트)·api-spec EventRow 문구 그대로. ADR-10에 명시 완료 / T-006
 - D-015 architecture §9 SQLite 손상 자동 복구는 설계 문서 범위 안이므로 축소하지 않고 T-005에서 구현: 자체 `DataSource` 빈 생성 전에 quick_check → 실패 시 `events.db(-wal/-shm)`를 `events.db.corrupt-<시각>`으로 이동 후 새로 생성. 통합 테스트 1개 추가 / T-005
 - D-014 `.jaystudio/teams/*.json` 심볼릭 링크도 PathGuard로 거부(읽지 않고 형식 오류) — NFR-07 "심볼릭 링크는 따라가지 않는다"는 일반 원칙 / T-003
+- D-041 리뷰어가 찾은 [Major] dev 프로필 허용 Origin 문서·구현 불일치를 **이번 세션에서 고치지 않고 A-16으로 분리** — scaffold부터 있던 선행 결함이고 fail-closed(더 좁음) 방향이라 보안 위험이 없으며, 운영 이미지는 dev 프로필을 쓰지 않아 사용자 영향이 없다. 문서와 구현 중 무엇이 맞는지는 설계 판단이라 architect 몫 / A-16
+- D-040 T-FIX-05·T-FIX-06을 **병렬 실행** — 통상 "한 번에 한 태스크" 규칙의 예외로 두되, 두 태스크는 `backend/`와 `frontend/`로 **파일 트리가 완전히 분리**되고 하나의 ADR-41 수정이라 Backend/Frontend 병렬 패턴과 동일하다. 리뷰는 각 태스크별로 받는다 / T-FIX-05, T-FIX-06
 - D-039 A-15 확정(ADR-41) 수용 — 팀장이 기각 근거를 원문으로 검증: `FR-013-AC7`이 도우미 허용 Origin 기본값을 `http://127.0.0.1:4180`으로 값까지 확정하므로 서버 목록만 넓히면 도우미는 계속 403이고 화면엔 FR-013-E2 확정 문구가 떠 원인을 더 감춘다 / `final_requirements_architecture.md:117`도 서버 기본값을 127.0.0.1로 확정 / NFR-04는 **바인딩** 규칙이라 정규화로 의미가 바뀌지 않음 → 에스컬레이션·`/planner` 불필요, CONTRACT CHANGE 없음 확인. ADR 헤딩 중복 0, 금지 문서(requirements_*·final_*·docs/ui) 미수정 확인 / A-15, T-FIX-05, T-FIX-06
 - D-038 태스크 순서 정정: 남은 순서를 `T-021 → T-022`에서 **`T-022 → T-021`**로 바로잡음 — tasks.md `T-021 Depends on`에 T-022가 있고, T-021이 연결할 07 설정 화면 요소를 T-022가 만든다(팀장 권한: 태스크 순서 조정) / T-021, T-022
 - D-012 라이브러리 승인: `spring-boot-starter-webmvc-test`(test scope) — Spring Boot 4.1이 MockMvc 테스트 지원을 분리한 공식 스타터, Apache-2.0, 확정 스택 안 / T-002
@@ -159,3 +161,14 @@
 
 - 2026-09-25 재개(7차). **A-15 → ADR-41로 확정**(architect, `CONTRACT CHANGE: no`). 허용 목록에 `localhost` 추가는 **기각**하고 프론트 진입 주소 정규화 + 403 안내 문구로 해결. 팀장 검증: 기각 근거 3건 원문 대조(FR-013-AC7·final arch:117·NFR-04), ADR 헤딩 중복 0, 금지 문서 미수정, 신설 문구 부재 재확인. 신설 태스크 **T-FIX-05**(Backend, 문구) · **T-FIX-06**(Frontend, 정규화), T-024에 **E2E-15** 추가. 사용자 승인(E-006)으로 T-FIX-05 unblock, 두 태스크를 T-022보다 먼저 진행
 - 2026-09-25 프론트 기준선 측정(T-022 비교용): 52 files / **296 tests** 통과, 실패·skip 0, lint·typecheck 통과
+- 2026-09-25 T-FIX-06(Frontend) 개발 DONE. 팀장 검증: `npm test` 54 files/**303 tests**(296→303, +7, 삭제·skip 0)·lint·typecheck 통과, 설계 문서 미수정, 백그라운드 프로세스 정리 확인(4199 리슨 없음·`http.server` 없음). 구현 직접 확인 — 가드가 `createRoot`·`startStream`보다 먼저, `http:`+루프백 별칭만 대상, 포트·경로·쿼리·해시 보존, **정규화 결과 재투입 시 null이라 루프 불가**. 개발자가 정적 단언 2건을 **뮤테이션으로 검증**(위반 파일 주입·가드 변형 → 각각 실패 확인 후 복구). 리뷰 대기
+- 2026-09-25 T-FIX-05(Backend) 개발 DONE. 팀장 검증: `./gradlew test --rerun-tasks` **실제 실행**(`4 executed`, 캐시 아님) → **279 tests/0 실패/0 errors/0 skipped**. 403 문구가 승인본(E-006)과 일치(`%s` 치환), 허용 목록·fail-closed 무변경, 설계 문서 미수정, Gradle 데몬 `--stop` 후 `pgrep` 0건 확인. `publicOrigin` 계산을 `AppProperties.publicOrigin()` 한 곳으로 모아 `Config.publicOrigin`과 403 안내가 갈라지지 않게 함
+  - 개발자 자기보고 2건을 팀장이 **사실로 확인**: (B1) `ApiException.forbiddenOrigin()`은 **호출처 0건인 죽은 코드**인데 **옛 문구**를 들고 있어 쓰면 conventions §4 MUST 위반 403이 나간다 / (B2) `client.test.ts:62` 픽스처가 `허용되지 않은 요청입니다`로 확정 문구와 다름. 둘 다 리뷰어 판정으로 넘김
+
+- 2026-09-25 **T-FIX-05 PASS · T-FIX-06 PASS (둘 다 round 1)** → 커밋. 리뷰: `docs/reviews/T-FIX-05_T-FIX-06.md`. Blocker 0 · 태스크 범위 Major 0
+  - 리뷰어가 **뮤테이션 probe 6건**으로 프론트 정적 단언 3종이 진짜 위반을 잡는지 직접 재현하고, **오탐 제거 로직이 진짜 위반까지 가리는지**(probe E)까지 확인 — 잔여 사각은 '테스트 파일에만 있는 이동 코드'뿐이라 번들 미포함으로 실질 위험 없음. 백엔드 정적 단언도 `application.yaml` 주석 한 줄 추가로 발화 확인 후 `shasum` 원복
+  - 리뷰어가 **dev 프로필을 실기동해 curl로 실측**: `localhost:8080`·`[::1]:8080` 403, `127.0.0.1:5173` 200, Origin 없음+same-origin 200. 403 본문 바이트덤프로 `<`·`>`·`%s` 잔존 0 확인
+  - **프로덕션 번들 원문**에서 가드가 부트스트랩보다 앞에 남아 있음을 확인(소스뿐 아니라 빌드 산출물로 검증)
+  - 계약값 무변경 확인: `AppProperties.publicOrigin()` 식이 이전과 문자 단위 동일, `/api/state`·`/api/settings` 값 동일
+  - 신규 이슈: **[Major] dev 프로필 허용 Origin 문서·구현 불일치 → A-16 분리**(D-041) · [Minor] 3건 → **T-FIX-07** 신설
+  - 자원: 리뷰어가 띄운 bootRun·JVM·Gradle 데몬 전부 정리 확인(`pgrep` 0건, `lsof -ti :8080 :4180 :4199` 0건), probe 파일 5개 삭제·원복 확인

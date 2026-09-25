@@ -542,7 +542,7 @@
 - Depends on: -
 
 ## T-FIX-05 403 `FORBIDDEN_ORIGIN` 안내 문구 (ADR-41 (d))
-- Status: todo — 신설 문구 **사용자 승인 완료(2026-09-25, E-006)**
+- Status: done — 신설 문구 사용자 승인(2026-09-25, E-006) · 리뷰 PASS(`docs/reviews/T-FIX-05_T-FIX-06.md`)
 - Scope: Backend
 - FR: FR-008(오류 매핑에 403이 없어 생긴 공백 보완 — 새 AC 없음), architecture §5
 - AC: 없음(기존 AC 유지)
@@ -558,7 +558,7 @@
 - Depends on: T-002 (문구 승인 완료)
 
 ## T-FIX-06 진입 주소 정규화 — `localhost`·`[::1]` → `127.0.0.1` (ADR-41 (b))
-- Status: todo
+- Status: done — 리뷰 PASS(`docs/reviews/T-FIX-05_T-FIX-06.md`)
 - Scope: Frontend
 - FR: FR-008(증상 발생 지점), FR-013(같은 원인의 도우미 403 함정 제거) — 새 AC 없음
 - AC: 없음(기존 AC 유지)
@@ -577,6 +577,40 @@
   - E2E-15는 T-024에서 검증한다(여기서는 단위까지)
 - Depends on: T-013
 - 관련: T-021·T-022(도우미 호출 화면 — 정규화 후 `Origin`이 `http://127.0.0.1:<포트>`로 통일되어 FR-013-E2 오인 표시가 사라진다. 코드 의존은 없다), T-024(E2E-15), T-FIX-04와 무관(도우미 코드·인자 변경 없음)
+
+## A-16 (architect 확정 요청) dev 프로필 허용 Origin이 문서보다 좁다 — 문서·구현 중 무엇이 맞는가
+- Status: todo
+- Scope: architect 판단 → 확정되면 backend 반영(또는 문서 정정)
+- FR: architecture §5 Origin 규칙, NFR-04
+- 출처: T-FIX-05·T-FIX-06 리뷰(`docs/reviews/T-FIX-05_T-FIX-06.md`) [Major · 선행 결함]
+- 증상(리뷰어 dev 실기동 실측, 팀장 코드 재확인):
+  - `application-dev.yaml:10-11`이 `allowed-origins`를 `http://127.0.0.1:5173` **하나**로 두고, `OriginFilter.resolveAllowedOrigins`(47-57)는 값이 있으면 기본값을 **대체**한다 → dev 허용 목록 = {5173}
+  - 그런데 `architecture.md:160`은 "dev 프로필에서 `http://127.0.0.1:5173`을 **더한 둘뿐이다**", `architecture.md:125`는 "**추가**", `conventions.md:97`도 동일 → 문서상 dev 허용 목록 = {8080, 5173}
+  - 실측: dev 기동 후 `Origin: http://127.0.0.1:8080` → **403**(문서대로면 200이어야 함)
+- 영향: dev에서 8080에 직접 접속하면 GET은 되고 POST만 403 — **ADR-41이 없애려던 바로 그 함정**이 dev에 남는다. 게다가 새 403 안내가 `publicOrigin`(= 8080)을 가리켜 "지금 있는 주소로 다시 접속하라"는 막다른 안내가 된다
+- 성격: scaffold 커밋(9f156d2)부터 있던 선행 결함. fail-closed(더 좁음) 방향이라 **보안 위험 없음**. 운영 이미지는 dev 프로필을 쓰지 않아(compose·Dockerfile에 프로필 설정 0건) **사용자 영향 없음** → 이번 세션에서 고치지 않고 분리
+- 검토할 것:
+  1. dev 허용 목록을 문서대로 {publicOrigin, 5173} **둘**로 넓힐지 → `application-dev.yaml`을 `http://127.0.0.1:${JAYSTUDIO_PUBLIC_PORT},http://127.0.0.1:5173`으로
+  2. 아니면 "dev는 5173으로 **대체**"가 원래 의도였는지 → `architecture.md` §4.2·§5와 `conventions.md` §6 문구를 구현에 맞게 정정
+  3. 1을 택하면 403 안내가 dev에서도 실제 접속 가능한 주소를 가리키는지 확인
+- 주의: 허용 목록을 넓히는 방향이므로 NFR-04·architecture §5 DoD("다른 Origin 차단")와 충돌하지 않는지 확인할 것. 요구사항 의미를 바꿔야 하면 `CONTRACT CHANGE`/에스컬레이션으로 보고
+- Depends on: -
+
+## T-FIX-07 T-FIX-05·T-FIX-06 리뷰 Minor 묶음
+- Status: todo
+- Scope: Backend + Frontend
+- 출처: `docs/reviews/T-FIX-05_T-FIX-06.md` [Minor] 3건
+- Backend:
+  - `api/ApiException.java:23-25` `forbiddenOrigin()` **팩터리 삭제**(호출처 0건인 죽은 코드인데 옛 문구 `허용되지 않은 출처입니다`를 들고 있어, 쓰이는 순간 conventions §4 MUST를 깨는 403이 나간다). 문구는 `OriginFilter` 상수 한 곳에만 둔다. `ApiError.code` enum은 그대로
+- Frontend:
+  - `api/client.test.ts:62` 픽스처 message를 확정 문구(`허용되지 않은 출처입니다 · http://127.0.0.1:4180 주소로 다시 접속하세요`)로 교체. 단언 변경 불필요
+  - `test/staticRules.test.ts:88-95` 단언 #2의 테스트 파일 제외가 남기는 사각을 주석에 명시하거나 검사 범위를 좁힌다(실질 위험 없음 — 테스트 파일은 번들에 미포함)
+  - (제안) 단언 #1은 **순서만** 보므로 가드 앞에 새 API 호출을 넣는 변경을 못 잡는다 → "가드 이전 텍스트에 호출 없음" 단언 추가 검토
+- Done when:
+  - `forbiddenOrigin()` 정의가 사라지고 `grep -rn "forbiddenOrigin" backend/src`에 `OriginFilter`의 필드·테스트만 남는다. `./gradlew test` 통과 수 감소 없음
+  - 프론트 픽스처 교체 후 `npm test` 통과 수 감소 없음
+  - 기존 테스트 삭제·skip·약화 0
+- Depends on: T-FIX-05, T-FIX-06
 
 ## T-FIX-04 T-020 리뷰 Minor 묶음 (도우미 견고성 · 설치 스크립트 안전장치)
 - Status: todo

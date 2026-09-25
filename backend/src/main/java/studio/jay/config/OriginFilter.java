@@ -22,11 +22,20 @@ import studio.jay.api.ApiError;
  */
 public class OriginFilter implements Filter {
 
+    /**
+     * 403 {@code FORBIDDEN_ORIGIN} 안내 문구 (architecture.md §5 "403 FORBIDDEN_ORIGIN 응답 문구", ADR-41,
+     * conventions.md §4 MUST). {@code %s} 자리에 서버가 {@code Config.publicOrigin} 값을 치환해
+     * 완성 문장으로 보낸다. 프론트는 이 {@code message}를 가공 없이 그대로 표시한다.
+     */
+    private static final String FORBIDDEN_ORIGIN_MESSAGE_FORMAT = "허용되지 않은 출처입니다 · %s 주소로 다시 접속하세요";
+
     private final Set<String> allowedOrigins;
+    private final String forbiddenOriginMessage;
     private final ObjectMapper objectMapper;
 
     public OriginFilter(AppProperties appProperties, ObjectMapper objectMapper) {
         this.allowedOrigins = resolveAllowedOrigins(appProperties);
+        this.forbiddenOriginMessage = FORBIDDEN_ORIGIN_MESSAGE_FORMAT.formatted(appProperties.publicOrigin());
         this.objectMapper = objectMapper;
     }
 
@@ -72,7 +81,7 @@ public class OriginFilter implements Filter {
             ApiError.writeJson(
                     response,
                     HttpServletResponse.SC_FORBIDDEN,
-                    new ApiError("FORBIDDEN_ORIGIN", "허용되지 않은 출처입니다"),
+                    new ApiError("FORBIDDEN_ORIGIN", forbiddenOriginMessage),
                     objectMapper);
             return;
         }

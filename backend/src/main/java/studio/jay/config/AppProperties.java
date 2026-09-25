@@ -40,6 +40,17 @@ public class AppProperties {
         this.hostPath = hostPath;
     }
 
+    /**
+     * 확정 진입 주소 (api-spec {@code Config.publicOrigin} = {@code http://127.0.0.1:<public-port>}).
+     * {@code SnapshotAssembler}의 {@code Config}와 {@code OriginFilter}의 403 {@code FORBIDDEN_ORIGIN}
+     * 안내 문구가 같은 값을 쓰도록 한 곳에서 계산한다(architecture.md §5, ADR-41).
+     * 게터 이름({@code getPublicOrigin})을 쓰지 않는 이유: 파생 값이므로
+     * {@code jaystudio.public-origin} 설정으로 오해하지 않게 한다.
+     */
+    public String publicOrigin() {
+        return "http://127.0.0.1:" + publicPort;
+    }
+
     public String getPublicPort() {
         return publicPort;
     }

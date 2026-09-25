@@ -53,7 +53,7 @@ public class SnapshotAssembler {
      * {@code GET /api/state}·{@code GET /api/settings}가 같은 값을 보이도록 한다.
      */
     public Config buildConfig() {
-        String publicOrigin = "http://127.0.0.1:" + appProperties.getPublicPort();
+        String publicOrigin = appProperties.publicOrigin();
         String collectUrl = publicOrigin + "/hooks/events";
         String defaultSessionCommand = CommandStrings.defaultSessionCommand(appProperties.getHostPath());
         return new Config(
