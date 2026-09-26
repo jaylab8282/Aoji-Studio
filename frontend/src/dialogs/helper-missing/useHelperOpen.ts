@@ -8,8 +8,11 @@
  * - 400·그 밖의 사유 → 도우미(또는 서버)가 준 `message` 그대로(FR-013-E3, conventions.md §4 MUST).
  *
  * 도우미 주소는 `snapshot.config.helperUrl`을 쓴다(ADR-12). 첫 스냅샷 전에는 주소를 모르므로
- * 호출하지 않는다 — 화면은 `AppShell`이 스냅샷을 받은 뒤에만 본문을 그리고(ADR-32), 02 상단바
- * 버튼만 그 전에도 보인다(ui-spec SCR-02 로딩 열 `활성`).
+ * 호출하지 않는다 — 화면은 `AppShell`이 스냅샷을 받은 뒤에만 본문을 그린다(ADR-32). 02 상단바
+ * 버튼만 그 전에도 보이지만, 로딩 중에는 호출하는 쪽(`WorkflowsHeader`)이 버튼을 비활성으로 두어
+ * 애초에 `open`을 호출하지 않는다(ui-spec §공통 "값이 오기 전 버튼 상태", ADR-44). 아래
+ * `helperUrl === null` 조기 return은 그 규칙을 대신하는 것이 아니라, 호출 경로가 하나 더 생겨도
+ * 잘못된 요청이 나가지 않도록 남겨 둔 방어선이다.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { openHelperSession } from "../../api/helper";

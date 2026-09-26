@@ -2,7 +2,11 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **T-021 in_progress** (2026-09-26 재개 6차). 부분 작업 작업 트리 복원 확인(stash 비어 있음, typecheck 통과 · 59 files/347 tests 통과 = 기록과 일치)
+- Current: **T-FIX-09 in_progress** (2026-09-27 이어서 진행). 이번 세션 정지 지점(사용자 지시): **T-FIX-09 구현 → 리뷰 PASS → 커밋까지**
+  - 진행 순서 확정(사용자): T-FIX-09 → T-024 → T-FIX-04 → A-16 → T-FIX-07 → Integration → Final Report
+  - **도우미 설치(H-3)는 T-FIX-04 이후**다 — T-020 리뷰 지적대로 설치 절차가 아직 어느 문서에도 없어 지금은 사람이 H-3를 수행할 방법이 없고, T-FIX-04 Done when이 그 절차 문서화를 포함한다
+  - T-024 착수 시: Docker 빌드 캐시(22GB, 전부 RECLAIMABLE)는 **재사용**한다(사용자가 '지금은 그대로 두기' 선택, 2026-09-25)
+- (이전) Current: **T-021 in_progress** (2026-09-26 재개 6차). 부분 작업 작업 트리 복원 확인(stash 비어 있음, typecheck 통과 · 59 files/347 tests 통과 = 기록과 일치)
   - **이번 세션 정지 지점(사용자 지시, 2026-09-26 확장): T-021 커밋 → T-023 구현·리뷰·커밋까지**
     - 최초 지시는 T-021 커밋까지였으나 리뷰 진행 중 사용자가 T-023까지로 확장
     - T-023은 `Depends on: -`이고 Tools 범위라 T-021(Frontend)과 파일 충돌 없음. 다만 '한 번에 한 태스크' 규칙에 따라 T-021 커밋 후 착수
@@ -287,3 +291,17 @@
   - 후속 Suggestion: api-spec `HookPayload.permission_mode`에 "backend 미사용" 한 줄 주석(architect 선택) / `runCli`(spawn)에 명시적 타임아웃 추가 → **T-FIX-07에 합류**
   - 자원: Docker 0 · `./gradlew test` 0회 · 좀비 프로세스·잔여 포트 0 · `tools/fixtures/*` 원본 쓰기 0건(md5 불변)
 - 2026-09-26 팀장이 `CLAUDE.md` Commands **test 절에 `cd tools/replay && npm test` 추가**(Rules "적혀 있지 않은 명령으로 통과를 주장하지 않는다" 준수). 팀장이 직접 실행해 확인한 명령이다
+
+- 2026-09-27 사용자가 **진행 순서 확정**: 원래 순서대로(T-FIX-09 → T-024 → T-FIX-04 → A-16 → T-FIX-07 → Integration → Final Report). 이번 세션 정지 지점은 **T-FIX-09 커밋까지**
+  - 사용자 질문("T-FIX-09가 도우미 설치해야 하는 건가?")에 팀장이 정리: **아니다.** T-FIX-09는 Frontend 전용(Backend·Helper 없음). 도우미 설치는 **T-FIX-04(설치 절차 문서화 포함) → H-3(사람 확인)** 순서이고, T-020 리뷰 지적대로 **지금은 설치 절차가 어느 문서에도 없어 H-3 수행 자체가 불가**하다
+- 2026-09-27 T-FIX-09 개발 DONE(frontend-developer). `WorkflowsHeader.tsx`에 `disabled={config === null}` + `onClick`은 null일 때 미전달(`CopyButton`·`ClaudeOpenCard`와 동일 형태), **`disabledReason` 미전달**(ADR-44), `useHelperOpen.ts`는 **주석만** 정정(동작 코드 무변경)
+  - 팀장 검증: `npm test` 59 files/**356 tests**(354→356, +2, 감소·skip·only 0)·lint·typecheck·build 통과. `grep disabledReason` **0건**. `useHelperOpen.ts` diff에서 **비주석 줄 변경 0줄** 확인. 03·07·설계 문서·Backend **무변경**
+  - 팀장이 구현 diff 실물 확인: 라벨·`variant="secondary"`·`>_` 아이콘·배치·`HelperMissingDialog` 연결 불변
+  - 개발자가 기존 AC1/AC6 테스트를 **중복 신설하지 않고 단언만 보강**(`toBeEnabled()` + 활성/비활성 구분 클래스 2건), 신규는 2개만
+- 2026-09-27 T-FIX-09 **PASS (round 1)** → 커밋. 리뷰: `docs/reviews/T-FIX-09.md`. **Blocker·Major·Minor 0건**
+  - **뮤테이션 probe로 검출력 실증**: `disabled={config===null}` → `disabled={false}`로 되돌리면 **신규 테스트 2개 실패** / `disabledReason` 추가하면 **1개 실패**. `onClick` 가드만 되돌리면 7/7 통과하지만, 이는 사각이 아니라 **네이티브 `disabled`가 이미 클릭을 막아 동작 회귀가 발생하지 않는 경우**다(jsdom·실제 브라우저 공통). 팀장이 우려한 "두 가드가 서로를 가리는 사각"은 **없음**으로 판정 — 관측 가능한 유일한 차단선인 `disabled`가 직접 커버된다
+  - **"보강"이 위장된 약화가 아님을 diff 줄 단위로 확인**: 옛 `calls.find` 단일 검사가 `calls.filter(...).toHaveLength(1)`로 **더 엄격해졌고** 기존 단언 전부 유지. className 단언도 `Button.tsx:29·37`을 읽어 **실제로 활성·비활성을 가르는 클래스**임을 확인(거짓 안심 아님)
+  - **ADR-44의 "코드 변경은 02 한 곳뿐" 전제를 리뷰어가 독립 재확인**: 03은 `WorkflowDetailScreen.tsx:27`이 게이트 안에서 `return null`, 07은 `canTestOpen`·`CopyButton`이 이미 규칙 충족. `AppShell`의 ready 게이트가 `<main>`만 감싼다는 구조로 **게이트 밖 스냅샷 의존 요소가 셋뿐**임도 확인 → ADR-44 주장 유효
+  - conventions §3 새 MUST("조용히 return 금지") **전수 검색 → 신규 위반 0건**
+  - **팀장 후속 검증(리뷰어 절차 이탈)**: 리뷰어가 뮤테이션을 **스크래치 사본이 아니라 원본 파일에서** 수행했다(지시 위반). 팀장이 독립 검증 — md5 `6b19ee02…`가 보고값과 일치, 뮤테이션 잔존물 0건, 변경 파일 5개뿐, 테스트 7/7 재통과 → **실제 오염 없음**. 다음 리뷰 프롬프트에서 스크래치 사본 사용을 더 강하게 못 박는다
+  - 후속 Suggestion: 테스트가 `Button` 내부 클래스명에 결합된 점 → **T-FIX-07에 합류**

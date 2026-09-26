@@ -15,8 +15,10 @@ import { useSnapshotStore } from "../../state/snapshotStore";
 export function WorkflowsHeader() {
   const { config } = useSnapshotStore();
   const helper = useHelperOpen();
-  // 이 버튼은 상단바에 있어 첫 스냅샷 전에도 보이고, ui-spec SCR-02 `로딩` 열이 `활성`으로 지정했다.
-  // 스냅샷이 오기 전에는 도우미 주소·명령이 모두 없으므로 `useHelperOpen`이 호출하지 않는다.
+  // 이 버튼은 상단바에 있어 첫 스냅샷 전에도 보인다. `config === null`(첫 스냅샷 전) 동안은
+  // 비활성이고 이유 줄은 붙이지 않는다(ui-spec §공통 "값이 오기 전 버튼 상태", ADR-44) —
+  // 스냅샷이 오면 도우미 주소·명령이 갖춰져 자동으로 활성이 된다. 아래 `config === null ? "" : …`은
+  // 비활성 상태라 클릭 핸들러 자체가 호출되지 않으므로 실제로는 도달하지 않는 값이다.
   const command = config === null ? "" : config.defaultSessionCommand;
 
   return (
@@ -27,7 +29,11 @@ export function WorkflowsHeader() {
             {helper.errorMessage}
           </span>
         )}
-        <Button variant="secondary" onClick={() => helper.open({ target: "default" }, command)}>
+        <Button
+          variant="secondary"
+          disabled={config === null}
+          onClick={config === null ? undefined : () => helper.open({ target: "default" }, command)}
+        >
           <span aria-hidden="true" className="mr-2">
             {">_"}
           </span>

@@ -94,18 +94,51 @@ describe("WorkflowsHeader", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
-  it("[FR-013-AC1][FR-013-AC6] 02 Claude 열기 → 도우미 /open에 {target:'default'}만 보낸다", async () => {
+  it("[ADR-44][FR-013-AC1][FR-013-AC6] 스냅샷 수신 후 → 버튼 활성(secondary), 누르면 config.helperUrl + '/open'으로 {target:'default'} 1회", async () => {
     const calls = stubFetch();
     render(<WorkflowsHeader />);
 
-    fireEvent.click(openButton());
+    // 스냅샷을 받은 뒤(beforeEach가 fixture를 넣었다)에는 비활성 모양이 아니라 secondary 활성 모양이다.
+    const button = openButton();
+    expect(button).toBeEnabled();
+    expect(button.className).toContain("border-border-strong");
+    expect(button.className).not.toContain("border-dashed");
+
+    fireEvent.click(button);
 
     await waitFor(() => expect(calls.some((call) => call.url.endsWith("/open"))).toBe(true));
-    const openCall = calls.find((call) => call.url.endsWith("/open"));
-    expect(openCall?.url).toBe(`${HELPER_URL}/open`);
-    expect(JSON.parse(openCall?.body ?? "{}")).toEqual({ target: "default" });
-    expect(openCall?.headers["X-JayStudio-Helper-Token"]).toBe("b".repeat(64));
+    const openCalls = calls.filter((call) => call.url.endsWith("/open"));
+    expect(openCalls).toHaveLength(1);
+    expect(openCalls[0]?.url).toBe(`${HELPER_URL}/open`);
+    expect(JSON.parse(openCalls[0]?.body ?? "{}")).toEqual({ target: "default" });
+    expect(openCalls[0]?.headers["X-JayStudio-Helper-Token"]).toBe("b".repeat(64));
     // 성공(204)은 화면에 아무 것도 남기지 않는다 — 터미널은 맥북에서 열린다.
+    expect(screen.queryByTestId("helper-missing-dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("[ADR-44] 첫 스냅샷 전(snapshotStore 초기 상태) → 'Claude 열기 · 기본 세션' 버튼이 disabled이고 이유 줄 텍스트가 문서에 없다", () => {
+    snapshotStore.reset();
+    stubFetch();
+    render(<WorkflowsHeader />);
+
+    const button = openButton();
+    expect(button).toBeDisabled();
+    // `disabledReason`을 넘기지 않으므로 Button은 버튼 하나만 그린다 — 옆에 이유 줄(sibling span)이 없다.
+    expect(button.parentElement?.children).toHaveLength(1);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("[ADR-44] 첫 스냅샷 전 클릭 시도 → 도우미 fetch 0회, HelperMissingDialog 없음, 에러 줄 없음", () => {
+    snapshotStore.reset();
+    const calls = stubFetch();
+    render(<WorkflowsHeader />);
+
+    const button = openButton();
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+
+    expect(calls).toEqual([]);
     expect(screen.queryByTestId("helper-missing-dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
