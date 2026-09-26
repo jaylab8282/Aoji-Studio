@@ -68,7 +68,7 @@
 | `AppShell` (사이드바 248px + 상단바 64px + 본문) | 01·02·03·07 | `Sidebar`(`bg-chrome`, 오른쪽 `border-border`) + `TopBar` + 본문. `Sidebar` 구성은 아래 행 |
 | `Sidebar` (01 PNG 좌측 기준, 01·02·03·07 동일) | 01·02·03·07 | **로고 영역**(위): 높이 `--height-header`(64px, `TopBar`와 수평 정렬) 안에 초록 로고 아이콘(28×28, `bg-running rounded-control`, 글리프 없음, `aria-hidden`) + 워드마크 `Jay Studio`(정적, `lib/text.ts` `APP_WORDMARK`, `text-section font-bold text-text`), 왼쪽 여백 16px. **탭 메뉴**: `홈`/`에이전트 워크플로우`/`설정` 세로 3개, 사이드바 안쪽 여백(inset, 좌우 12px)을 둔 둥근(`rounded-control`) 항목. 선택 탭 `bg-selected` + `text-text` + 왼쪽 초록 바(`border-l-4 border-running`); 비선택 `text-text-secondary`, 왼쪽 바 투명. 클릭 → 해당 라우트. **하단**: `CollectorStatus` 카드(아래 행). 로고·탭은 정적이라 빈/로딩/에러/연결 끊김 상태 없음 |
 | `CollectorStatus` (사이드 탭 하단 카드) | 전 화면 | `Sidebar` 하단에 붙는 카드(`rounded-card border border-border bg-card`, 사이드바 안쪽 여백 12px, 아래 16px). 제목 `수집 상태`(aux, muted), `snapshot.registry.hookConfigured` → `● hook 설정됨`(running 점) / `hook 설정 안 됨`(idle 점), `마지막 수신 <hh:mm:ss>` = `snapshot.live.lastReceivedAt`(null → `마지막 수신 없음`, aux faint). 로딩: 두 줄 스켈레톤 |
-| `TopBar` | 01·02·03·07 | 왼쪽 브레드크럼/제목 + 프로젝트 칩 `● 프로젝트 · <hostPath>`(`snapshot.config.hostPath`, mono, **01·02에만 표시한다. 03·07에는 칩을 두지 않는다** — ADR-30), 오른쪽 `127.0.0.1 전용`(정적, faint). 02는 오른쪽에 `Claude 열기 · 기본 세션` 버튼 추가. 칩 표시 여부는 화면(라우트)별 설정으로 넘기고 `TopBar`가 라우트를 직접 읽지 않는다 |
+| `TopBar` | 01·02·03·07 | 왼쪽 브레드크럼/제목 + 프로젝트 칩 `● 프로젝트 · <hostPath>`(`snapshot.config.hostPath`, mono, **01·02에만 표시한다. 03·07에는 칩을 두지 않는다** — ADR-30), 오른쪽 `127.0.0.1 전용`(정적, faint). 02는 오른쪽에 `Claude 열기 · 기본 세션` 버튼 추가. 칩 표시 여부는 화면(라우트)별 설정으로 넘기고 `TopBar`가 라우트를 직접 읽지 않는다. **`TopBar`는 04-2 공통 스켈레톤 밖이므로 여기 놓이는 스냅샷 의존 요소는 각자 로딩 표현을 갖는다**: 프로젝트 칩은 자체 스켈레톤, 02 `Claude 열기 · 기본 세션`은 비활성(아래 "값이 오기 전 버튼 상태", ADR-44) |
 | `DisconnectBanner` (04-3) | 전 화면 상단 | `connectionStore.state === 'disconnected'`일 때만. `실시간 연결이 끊겼습니다 · N초 후 재연결` + `지금 재연결`(secondary). 배경 `danger-soft`, 테두리 `danger-border`, 글자 `danger`. 아래 작은 줄 `마지막 갱신 <hh:mm:ss> 기준 화면 유지` |
 | `Skeleton` | 전 화면 | `bg-soft` 블록, 애니메이션 없음 |
 | `StatusDot` / `StatusLabel` | 전 화면 | 9~10px 사각, 모서리 `--radius-dot`(3px, `rounded-dot`), running은 `shadow-glow`. `StatusLabel` = 점 + 글자. 이 문서의 모든 `●` 상태 점(`CollectorStatus`, 01 KPI 4·`실시간 연결됨`, 02 범례, 03 04-4 배너·패널 `상태`, 07 `열기 도우미`·`hook 설정` 행)은 `StatusDot`으로 그린다. 03 오피스 캐릭터·02 책상은 상태 점이 없다(셔츠·모니터 색 + 상태 글자, pixel-sprites 기준). `TopBar` 프로젝트 칩의 `●`는 상태가 아닌 장식이라 이 규칙 대상이 아니다 |
@@ -89,7 +89,7 @@
 
 | 상태 | 표현 |
 |---|---|
-| 로딩 (04-2) | 첫 `snapshot`(또는 `GET /api/state`) 전: 숫자·이름·카드·층 자리 `Skeleton`. `0`이나 빈 문구를 먼저 보여주지 않는다. **구현 기준(ADR-32): 스냅샷을 기다리는 본문 요소의 로딩은 `AppShell`이 `snapshotStore.ready === false` 동안 본문 전체를 대신 그리는 공통 스켈레톤 하나로 충족한다.** 각 화면 요소 표의 `로딩` 열에 적힌 `스켈레톤`·`스켈레톤 N개`는 "그 요소가 로딩 중 값을 보이지 않는다"는 뜻이며 화면마다 별도 스켈레톤 컴포넌트를 만들라는 뜻이 아니다. **예외 — 자체 스켈레톤을 갖는 요소**: 본문 밖에 있어 공통 스켈레톤이 덮지 않는 요소(`TopBar` 프로젝트 칩, `CollectorStatus`)와, 스냅샷이 아닌 자체 API 호출·부분 갱신으로 채워지는 요소(SCR-03 패널 `최근 이벤트` 4줄, SCR-05-R 목록 5행, SCR-06 폼 필드, SCR-07 `GET /api/settings` 값 행) |
+| 로딩 (04-2) | 첫 `snapshot`(또는 `GET /api/state`) 전: 숫자·이름·카드·층 자리 `Skeleton`. `0`이나 빈 문구를 먼저 보여주지 않는다. **구현 기준(ADR-32): 스냅샷을 기다리는 본문 요소의 로딩은 `AppShell`이 `snapshotStore.ready === false` 동안 본문 전체를 대신 그리는 공통 스켈레톤 하나로 충족한다.** 각 화면 요소 표의 `로딩` 열에 적힌 `스켈레톤`·`스켈레톤 N개`는 "그 요소가 로딩 중 값을 보이지 않는다"는 뜻이며 화면마다 별도 스켈레톤 컴포넌트를 만들라는 뜻이 아니다. **예외 — 자체 스켈레톤을 갖는 요소**: 본문 밖에 있어 공통 스켈레톤이 덮지 않는 요소(`TopBar` 프로젝트 칩, `CollectorStatus`)와, 스냅샷이 아닌 자체 API 호출·부분 갱신으로 채워지는 요소(SCR-03 패널 `최근 이벤트` 4줄, SCR-05-R 목록 5행, SCR-06 폼 필드, SCR-07 `GET /api/settings` 값 행). **버튼은 스켈레톤으로 대체하지 않고 비활성으로 둔다** — 아래 "값이 오기 전 버튼 상태"(ADR-44) |
 | 에러 | 카드 안에 `무엇을 못 했는지 + 원인 + 복구 버튼`. API 실패는 `ApiError.message` 그대로 |
 | 연결 끊김 (04-3) | `DisconnectBanner`. 화면은 마지막 스냅샷 유지. 버튼은 그대로 활성(요청 실패 시 에러 표시) |
 | 수집 중단·미수신 | `CollectorStatus`·01 KPI에 `hook 설정 안 됨` 또는 마지막 수신 시각. 03은 04-4 배너 |
@@ -145,6 +145,17 @@
 | 06 `저장` — 필수값 비어 있음 / 06 역할 라디오 — 소속이 `(없음)` | 없음 | 같은 폼의 입력 상태가 원인 |
 | 05·06 요청 진행 중, 06 수정 모드 파일 읽는 중, 06-5 두 버튼 진행 중, 05-3 FR-017-E1 안내 표시 중 | 없음 | 진행 중 상태(라벨로 표시) |
 
+### 값이 오기 전 버튼 상태 (ADR-44)
+
+- **버튼이 눌렸을 때 쓸 값(스냅샷 `config`, 자체 API 응답, 사전 확인 결과)이 아직 없으면 그 버튼은 비활성이다. 값이 도착하면 자동으로 활성이 된다.** 값이 없는 동안 활성으로 두고 클릭 핸들러가 조용히 아무 일도 하지 않는 구현은 금지한다(`docs/ui/ui-rules.md` 2 "눌러도 아무 일이 없는 활성 버튼을 만들지 않는다").
+- **이유 줄은 붙이지 않는다.** 원인이 같은 화면 안에 이미 보이기 때문이다 — 첫 스냅샷 전에는 상단바 프로젝트 칩·`CollectorStatus`·본문 04-2가 모두 스켈레톤이고, 07 자체 API 대기 중에는 같은 카드의 값 행이 스켈레톤이거나 `열기 도우미` 행이 `확인 중…`이다. 위 "비활성 버튼의 이유 줄"(ADR-35) 기준의 "원인이 화면에 바로 보이면 지정하지 않는다"에 해당하므로 ADR-35 목록에 추가하지 않고 **문구도 새로 만들지 않는다**.
+- 모양은 §공통 `Button` 비활성 표현(ADR-29: 채움 배경·강조 테두리 없이 점선 + faint 글자) 그대로다.
+- 적용 지점(전수)
+  - 02 `Claude 열기 · 기본 세션` — `TopBar`에 있어 04-2 공통 스켈레톤이 덮지 않는 **유일한 스냅샷 의존 버튼**이다. `config === null`(= 첫 스냅샷 전) 동안 비활성.
+  - 03 `팀장 호출 · 터미널 열기`, 03 패널 `정의 수정`·`제거` — 03 본문은 `snapshotStore.ready === false` 동안 공통 스켈레톤으로 대체되므로 첫 스냅샷 전에는 렌더되지 않는다(ADR-32). 요소 표의 `로딩` 열 `비활성`은 이 뜻이다.
+  - 07 `테스트로 열기` — 도우미 확인이 끝나기 전(`확인 중…`) 비활성, `명령 복사` — `GET /api/settings` 값이 오기 전 비활성.
+  - 사이드바 탭·04-3 `지금 재연결`은 스냅샷 값을 쓰지 않으므로 로딩 중에도 활성이다(이 규칙의 대상이 아니다).
+
 ---
 
 ## SCR-01 홈 (`/`)
@@ -184,7 +195,7 @@
 | 요소 | 데이터 출처 | 빈 | 로딩 | 에러 | 연결 끊김 | 클릭 시 동작·이동 |
 |---|---|---|---|---|---|---|
 | 상단바 제목 `에이전트 워크플로우`, 프로젝트 칩, `127.0.0.1 전용` | `config.hostPath` | - | 칩 스켈레톤 | - | 유지 | - |
-| 버튼 `>_ Claude 열기 · 기본 세션` (secondary, 터미널 아이콘) | `config.defaultSessionCommand`(표시·복사용), `GET /api/helper/token`, 도우미 `POST /open {target:'default'}` (FR-013-AC1·AC6) | - | 활성 | 도우미 무응답(2초) → `HelperMissingDialog`(FR-013-AC9·E1) / 403 → 인라인 `도우미 인증 실패 · 도우미를 다시 설치하세요`(FR-013-E2) | 활성 | 도우미 호출. 화면 이동 없음 |
+| 버튼 `>_ Claude 열기 · 기본 세션` (secondary, 터미널 아이콘) | `config.defaultSessionCommand`(표시·복사용), `GET /api/helper/token`, 도우미 `POST /open {target:'default'}` (FR-013-AC1·AC6) | - | **비활성**(이유 줄 없음 — §공통 "값이 오기 전 버튼 상태", ADR-44) | 도우미 무응답(2초) → `HelperMissingDialog`(FR-013-AC9·E1) / 403 → 인라인 `도우미 인증 실패 · 도우미를 다시 설치하세요`(FR-013-E2) | 활성 | 도우미 호출. 화면 이동 없음 |
 | 요약 줄 `JayStudio` `.claude` `에이전트 [N] · 스킬 [N] · 워크플로우 [N]` | `registry.agentCount`, `skillCount`, `workflows.length` | - | 스켈레톤 | 04-5면 에이전트 수 `-` | 유지 | - |
 | 링크 `워크플로우 밖 에이전트 [N] · 가져오기` (link 색, 밑줄) | N = `registry.agents.filter(a => a.workflow === null).length` | N=0이면 `워크플로우 밖 에이전트 0`으로 표시하고 비활성 | 스켈레톤 | - | 활성 | `?dialog=import` (워크플로우 드롭다운 있음, FR-009-AC7) |
 | 버튼 `+ 에이전트 만들기` (add) | - | - | - | `writable=false` → 비활성 `쓰기 권한 없음` | 활성 | `?dialog=agent-new` (워크플로우 미선택) |
@@ -204,6 +215,7 @@
 | 미니맵 (하단 컨트롤 영역 오른쪽 끝) | 층 그리드 축소(1/10) 사각형들 + 현재 뷰포트 테두리(running). **기준 컨테이너는 층 스크롤 영역**(`scrollTop`·`clientHeight`·`scrollHeight`, window 아님). 테두리 위치 = `scrollTop / scrollHeight`, 높이 = `clientHeight / scrollHeight`(둘 다 zoom 배율이 적용된 값으로 통일, 최소 4%) | 워크플로우 0 → 숨김 | - | - | 활성 | 클릭 시 층 스크롤 영역을 해당 위치로 스크롤(window 스크롤 아님) |
 
 - 비활성 요소: 02에는 팀장 선택 목록·`팀장으로 열기` 메뉴가 **없다**(FR-013-AC3, 와이어프레임 p.2 ▾ 메뉴는 확정 결정으로 제거). 책상 위 도구 말풍선 없음(03 전용).
+- **`Claude 열기 · 기본 세션`의 로딩 구간 (ADR-44)**: 이 버튼은 `TopBar`에 있어 `AppShell` 공통 스켈레톤이 덮지 않으므로 02 본문이 스켈레톤인 동안에도 보인다. 첫 스냅샷 전에는 도우미 주소(`config.helperUrl`)와 명령(`config.defaultSessionCommand`)이 모두 없어 호출할 수 없으므로 **비활성**으로 둔다(이유 줄 없음, 모양은 §공통 `Button` 비활성 = ADR-29). 이전 판의 이 행 `로딩` 열은 `활성`이었는데, 활성인 채로 두면 클릭이 팝업·에러·상태 변화 없이 사라져 `docs/ui/ui-rules.md` 2를 위반한다(T-021 리뷰 A-19). 첫 스냅샷이 오면 자동으로 활성이 된다. 기준 PNG는 스냅샷을 받은 뒤의 화면이므로 이 변경은 PNG 대조 결과를 바꾸지 않는다.
 - 기준 PNG(`docs/ui/screens/02-workflows.png`)와의 확정된 차이 — 화면 대조 시 결함으로 보지 않는다:
   1. 층 헤더 `삭제` 버튼과 비활성 사유 `팀원을 먼저 제거하세요`는 기준 PNG에 없다. PNG가 FR-017(워크플로우 삭제) 확정 이전 산출물이기 때문이며, 표시 근거는 FR-006-AC12·FR-017-AC1이다(ADR-25). 그 밖의 요소 누락·추가는 그대로 결함이다.
   2. 기준 PNG는 콘텐츠 높이가 뷰포트(1020px)에 거의 맞아 "층 그리드 아래 공백"과 "하단 컨트롤 영역"이 같은 그림이 된다. 층이 많아 스크롤이 생기는 경우의 기준은 위 레이아웃 항(ADR-23)이며, 기준 PNG는 이 문제의 판단 근거가 되지 못한다.
@@ -220,7 +232,7 @@
 | 브레드크럼 `홈 / 에이전트 워크플로우 / [이름]` | `:name` | - | - | - | - | `홈` → `/`, `에이전트 워크플로우` → `/workflows` |
 | 버튼 `‹` (aria-label `에이전트 워크플로우로`) | - | - | - | - | - | `/workflows` |
 | 헤더 `[이름]` `에이전트 [N] · 스킬 [N]` 칩 `실행 중 [N]명` `팀장 [name]` | `registry.workflows.find(name)`: 에이전트 = lead+members 수, 스킬 = `skillCount`, 칩 = `workflowChip.ts`(FR-007-AC9), 팀장 = `lead`(mono) / null → `팀장 없음`(danger). **04-4 표시 중에도 칩은 실제 `live.agents[*].status`로 계산한다**(표시 고정 대상이 아니다 — ADR-27) | - | 공통(AppShell) | 워크플로우 없음 → 화면 본문 전체를 `워크플로우를 찾을 수 없습니다` + 버튼 `에이전트 워크플로우로`(primary → `/workflows`)로 대체 (FR-007-E2, FR-017-AC4) | 유지 | - |
-| 버튼 `>_ 팀장 호출 · 터미널 열기` (terminal) | `workflow.lead`, `GET /api/helper/token`, 도우미 `POST /open {target:'lead', leadName}` (FR-013-AC2·AC6). 명령 표시·복사 = `cd "<config.hostPath>" && claude --agent <lead>` | `lead === null` → 비활성 + `팀장 없음` (FR-007-AC8, FR-013-AC4) | 비활성 | 무응답 → `HelperMissingDialog`(팀장 명령 포함, FR-013-AC9) / 403 → `도우미 인증 실패 · 도우미를 다시 설치하세요` / 400 → 도우미 message / 누른 직후 `registry.agents`에 lead가 없으면 호출하지 않고 `팀장이 없습니다` 표시 (FR-013-E4) | 활성 | 도우미 호출. 이동 없음 |
+| 버튼 `>_ 팀장 호출 · 터미널 열기` (terminal) | `workflow.lead`, `GET /api/helper/token`, 도우미 `POST /open {target:'lead', leadName}` (FR-013-AC2·AC6). 명령 표시·복사 = `cd "<config.hostPath>" && claude --agent <lead>` | `lead === null` → 비활성 + `팀장 없음` (FR-007-AC8, FR-013-AC4) | 비활성 — 03 본문은 첫 스냅샷 전 공통 스켈레톤으로 대체되므로 이 버튼은 렌더되지 않는다(ADR-32·ADR-44) | 무응답 → `HelperMissingDialog`(팀장 명령 포함, FR-013-AC9) / 403 → `도우미 인증 실패 · 도우미를 다시 설치하세요` / 400 → 도우미 message / 누른 직후 `registry.agents`에 lead가 없으면 호출하지 않고 `팀장이 없습니다` 표시 (FR-013-E4) | 활성 | 도우미 호출. 이동 없음 |
 | 04-4 배너 (오피스 카드 위) | `isCollectorDown = !live.everReceived || !registry.hookConfigured` (FR-007-E1, ADR-17): `● hook 이벤트 수신 없음 · 마지막 수신 <yyyy-mm-dd hh:mm 또는 없음>` (idle 점, bg-soft). **수집 중단 규칙: 배너가 표시되는 동안 03의 캐릭터·상태 글자·선택 패널 상태는 표시만 `대기`로 고정한다(`displayStatus = isCollectorDown ? 'idle' : live.status`). 01·02·API 값은 그대로** | 조건 아니면 숨김 | - | - | 유지 | - |
 | 오피스 카드 제목 `오피스` `에이전트 1명 = 캐릭터 1개 · 팀장 첫 자리, 나머지 이름순` | 정적 | - | - | - | - | - |
 | 오피스 그리드 캐릭터(`OfficeSprite`) ×N: 말풍선, 캐릭터, `팀장` 배지, name 칩, 상태 글자 | `agentOrder.ts`(FR-007-AC1), `live.agents[name]`: 말풍선 = `actionLabel.ts`(FR-007-AC2: waiting → 주황 채움 `권한 요청`; running + currentTool Edit/Write/NotebookEdit → `타이핑 · <도구>`; Read/Grep/Glob → `읽기 · <도구>`; 그 밖 도구 → `<도구>`; running인데 currentTool null → `작업 중`; idle → 회색 `대기`). 셔츠·모니터 = 상태색. 상태 글자 = `작업 중`/`권한 대기`/`대기` + `parentLabel` → `· 부모 <라벨>`(FR-007-AC3). **수집 중단(04-4 표시 중): 상태 입력을 `idle`로 바꿔 렌더링 → 셔츠·모니터 대기색, 말풍선 회색 `대기`, 상태 글자 `대기`(부모 접미 없음)** | 인원 0 → 3칸 모두 `빈 자리` | 공통(AppShell) | - | 유지 | 칸 클릭 → 선택(패널 갱신). 선택 칸 = running 테두리 + running-soft 배경 |
@@ -418,7 +430,7 @@
 | 행 `기본 세션` `cd "<hostPath>" && claude`(mono) | `settings.defaultSessionCommand` (FR-013-AC1·AC5) | - | 스켈레톤 | - | 유지 | - |
 | 행 `팀장으로 열기` = `settings.leadSessionCommandTemplate` 값 그대로(`cd "<hostPath>" && claude --agent <팀장 name>`. **이 값의 `<팀장 name>`은 서버가 주는 템플릿 문자열의 일부라 화면에 그대로 나온다** — FR-013-AC2 확정 문구, ADR-33 (a)의 유일한 괄호 노출 사례) + 힌트 `도우미가 받는 값은 팀장 name 하나 · 소문자·숫자·하이픈만 허용` | `settings.leadSessionCommandTemplate` (FR-013-AC2·AC5) | - | 스켈레톤 | - | 유지 | - |
 | 행 `열기 도우미` `● 설치됨 · 응답 확인 [hh:mm:ss]` / `● 미설치 · helper/install.sh로 설치` | 진입 시와 버튼 누를 때 도우미 `GET /health`(2초 타임아웃) (FR-013-AC10). `GET /api/helper/token`이 null이면 `미설치 · 토큰 파일 없음` | - | `확인 중…` | 무응답 → 미설치 표시 | 유지 | - |
-| 버튼 `테스트로 열기 (도우미 설치 후)` `명령 복사` | 도우미 `POST /open {target:'default'}` / 클립보드 = `defaultSessionCommand` (FR-014-AC5) | - | - | 도우미 미응답 → `테스트로 열기` 비활성 `도우미 미설치` (FR-013-AC10). 403 → `도우미 인증 실패 · 도우미를 다시 설치하세요`(FR-013-E2) | 활성 | 테스트로 열기 → 도우미 호출 / 명령 복사 → `복사됨` |
+| 버튼 `테스트로 열기 (도우미 설치 후)` `명령 복사` | 도우미 `POST /open {target:'default'}` / 클립보드 = `defaultSessionCommand` (FR-014-AC5) | - | **둘 다 비활성**(이유 줄 없음 — ADR-44): `테스트로 열기`는 `열기 도우미` 행이 `확인 중…`인 동안, `명령 복사`는 `settings` 미수신 동안 | 도우미 미응답 → `테스트로 열기` 비활성 `도우미 미설치` (FR-013-AC10). 403 → `도우미 인증 실패 · 도우미를 다시 설치하세요`(FR-013-E2) | 활성 | 테스트로 열기 → 도우미 호출 / 명령 복사 → `복사됨` |
 | 카드 3 `수집` 행 `수집 주소` `http://127.0.0.1:[포트]/hooks/events`(mono) | `settings.collectUrl` | - | 스켈레톤 | - | 유지 | - |
 | 행 `hook 설정` `.claude/settings.json · 설정됨`(running) / `없음`(danger) + 버튼 `설정 예시 복사` | `settings.hookConfigured` (FR-014-AC3), 클립보드 = `settings.hookSettingsExample` (FR-014-AC2) | - | 스켈레톤 | - | 유지 | `설정 예시 복사` → `복사됨` |
 | 각주 `allowedHttpHookUrls가 설정되어 있으면 수집 주소를 허용 목록에 추가하세요` | `settings.allowedHttpHookUrlsNote` | - | - | - | - | - |

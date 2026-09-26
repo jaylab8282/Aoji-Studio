@@ -2,7 +2,12 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **작업 보류(사용자 지시)**. T-FIX-08 리뷰 PASS까지 완료·커밋. **재개 시 첫 작업: `git stash pop`으로 T-021 부분 작업 복원 → T-021 이어서 완성**
+- Current: **T-021 in_progress** (2026-09-26 재개 6차). 부분 작업 작업 트리 복원 확인(stash 비어 있음, typecheck 통과 · 59 files/347 tests 통과 = 기록과 일치)
+  - **이번 세션 정지 지점(사용자 지시, 2026-09-26 확장): T-021 커밋 → T-023 구현·리뷰·커밋까지**
+    - 최초 지시는 T-021 커밋까지였으나 리뷰 진행 중 사용자가 T-023까지로 확장
+    - T-023은 `Depends on: -`이고 Tools 범위라 T-021(Frontend)과 파일 충돌 없음. 다만 '한 번에 한 태스크' 규칙에 따라 T-021 커밋 후 착수
+  - T-021 남은 범위: 미완 단위 테스트(03 Header 4개 · 07 SettingsScreen 3계열). 스크린샷은 T-021 Done when에 없다(E2E는 T-024)
+  - 리뷰어가 반드시 검증할 것: `apiGet(path, { withBrowserToken: true })` 옵트인 판단(GET /api/helper/token 403 계약 갭 대응)
   - 이번 세션 정지 지점(사용자 지시): **T-021 구현·리뷰·커밋까지**
   - 이번 세션 완료: A-15 → T-FIX-05·T-FIX-06 → A-17·A-18 → T-022 → T-FIX-08(리뷰 PASS까지). T-021은 **중단**(부분 작업 stash 보관)
     - T-FIX-08을 T-021보다 먼저 두는 이유: 작은 작업이고 T-021이 같은 `screens/settings/`·`SettingsScreen.test.tsx`를 건드려 뒤에 하면 충돌한다
@@ -239,3 +244,26 @@
   - **FR-015 마스킹이 실제 조건에서 동작**: 팀장이 curl로 보낸 브라우저 토큰이 이벤트 본문에 `••••••••`로 저장됐고, `/api/state` 응답 전문에 **수집 토큰 평문 0건·64자 hex 문자열 0건**
   - 배포된 번들에 T-022 07 화면 요소(`마운트 폴더`·`설정 예시 복사`·`열기 도우미`·`다시 읽기`) 포함 확인
   - **아직 안 되는 것**: 02 `Claude 열기`·03 `팀장 호출`·07 `테스트로 열기`는 **T-021 미완**이라 동작하지 않는다(`열기 도우미`는 `확인 중…` 고정). 도우미 자체도 미설치(H-3 대기)
+
+- 2026-09-26 재개(6차). T-021 부분 작업이 **작업 트리에 이미 복원돼 있었다**(stash 비어 있음 — 지난 세션 기록의 `git stash pop` 지시는 이미 수행된 상태). 팀장 검증으로 일관 상태 확인: typecheck 통과, `npm test` 59 files/347 tests 전부 통과
+- 2026-09-26 T-021 **이어서 완성**(frontend-developer). 기존 구현은 **손대지 않고 빠져 있던 단위 테스트 7개만** 추가 — 03 `Header.test.tsx` 4개(`[FR-013-AC2][FR-013-AC6]`·`[FR-014-AC5]`·`[FR-013-E3]`·`[FR-013-E4]`), 07 `SettingsScreen.test.tsx` 3개(`[FR-013-AC10]` 진입·재확인 / 토큰 null / `[FR-013-E2]` 403 인라인)
+  - 개발자가 grep으로 먼저 확인해 **이미 커버된 ID는 중복 작성하지 않았다**(`api/helper.test.ts`가 AC6·AC8·AC9·E1·E2·AC10을, `WorkflowsHeader.test.tsx`가 02의 AC1·AC3·AC6·AC9·E1·E2를 이미 커버)
+  - 팀장 검증: `npm test` 59 files/**354 tests**(347→354, +7, 삭제·skip·`.only` 0)·lint·typecheck·**build(이번에 처음 실행)** 전부 통과. AC·E 8개 전부 테스트 제목 연결(AC6:3·AC9:5·AC10:3·FR-014-AC5:2·E1:3·E2:3·E3:2·E4:1). 설계 문서·Backend 미수정. `console.log`·`STEP` 디버그 흔적 0건
+  - 팀장이 `withBrowserToken` 사용처 전수 확인: `helper.ts:84` **1곳뿐**, `client.ts:120`은 `method !== "GET" || withBrowserToken === true`, 다른 `apiGet` 4곳(`agentEventsStore`·`SettingsScreen`·`stream.ts`·`useAgentFormState`)은 옵션 미전달 = 기본 false
+  - 개발자가 `vi.useFakeTimers()` 구간에서 `@testing-library`의 `waitFor`가 타임아웃되는 원인을 재현·확인(폴링용 실제 타이머가 fake로 대체됨) → `act(async()=>{ await vi.advanceTimersByTimeAsync(2000) })` + 동기 `expect`로 해결(`WorkflowsHeader.test.tsx` 기존 패턴과 동일). 디버그 `console.log` 전부 제거 확인
+- 2026-09-26 T-021 **리뷰 Round 1 NEEDS_FIX** (Blocker 0 · Major 1 · Suggestion 2). 리뷰: `docs/reviews/T-021.md`. **Done when 8/8 충족**
+  - **핵심 쟁점 `withBrowserToken` → 정당 판정**(계약 준수, architect 불필요). `architecture.md:153`이 `/api/helper/token`을 GET **예외**로 이미 명시, `api-spec.yaml:364`도 `security: browserToken` 명시 → **"변경 메서드에만 토큰"이라는 client.ts 기본 규칙 쪽이 이 예외를 놓친 기존 결함**이었다. 리뷰어가 백엔드 기존 테스트를 실행해 **헤더 없음 → 403 UNAUTHORIZED_TOKEN / 헤더 있음 → 200**을 실측, 개발자 주장이 사실임을 확인. 보안은 **강화 방향**
+  - 이전 세션 미해결 4건 판정: ① 07 `HelperMissingDialog` 현행 PASS(공통표 85행이 07을 사용 화면으로 명시, SCR-07 421행은 클릭 시 재확인 경로를 배제한 것이 아님) / ② 토큰 GET 서버 오류 표시 현행 PASS(문서 공백을 새 문구 없이 기존 `미설치`로 흡수 = conventions §2 부합) / ③ **Major → A-19로 분리** / ④ `COPY_COMMAND_LABEL` 개명 PASS(옛 이름 참조 0건, 사용처 2곳, 값·문구 동일)
+  - 리뷰어 검증: 확정 문구 7종 글자 단위 일치·**신설 문구 0건**, `HelperMissingDialog` 요소 순서 ui-spec 1:1·`Dialog` 기본 `md`(ADR-40 준수), `POST /open` 본문 키가 `target`(+`leadName`)뿐이고 **호스트 경로·`claude` 문자열이 body에 없음**을 `.not.toContain`으로 확인(FR-013 보안 경계), 2초 타임아웃이 `AbortController`로 **실제 abort**됨을 `signal.addEventListener('abort')`로 검증(타이머 방치 아님), fake timer로 **1999ms/2000ms 경계 실증**
+  - **[Major] 02 로딩 중 `Claude 열기` 무동작** — `TopBar`가 `ready` 게이트 **밖**(`AppShell.tsx:28`, `router.tsx:26`)이라 `config === null`에도 활성인데 `useHelperOpen.ts:58`이 조용히 return. `conventions.md:63` MUST vs `ui-spec.md:187` 로딩 열 `활성` **충돌** → 구현이 정할 수 없어 **A-19(architect 확정)로 분리**. ADR-42(A-17)가 같은 범주에서 "현행 유지"를 기각한 선례가 있어 같은 기준 적용 요청
+  - E2E-09·E2E-11은 T-023·T-024 미완이라 **T-024로 이연**(T-022 선례). H-3은 사람 확인 항목
+- 2026-09-26 A-19 architect 확정 요청 실행(ADR-44 예정). 03·07 같은 구간 일관성·로딩 지속 시간 실측 근거·ui-spec 로딩 열 전수 조사를 함께 지시
+- 2026-09-26 **A-19 확정 완료 → ADR-44**(architect, 계약 변경 없음, **신설 문구 0건**). 4문서 반영(architecture ADR-44 신설 / ui-spec §공통 "값이 오기 전 버튼 상태" 신설 + 로딩 열 3곳 정정 / conventions §3 MUST 2건·§7 MUST 1건 / tasks.md A-19 done + T-FIX-09 신설)
+  - 결론: **로딩 중 비활성, 이유 줄 없음**. ADR-35 지정 기준("원인이 같은 화면에서 바로 보이면 이유 줄을 지정하지 않는다")에 로딩 구간을 대입하면 **지정하지 않는 쪽** — 첫 스냅샷 전에는 프로젝트 칩·본문·`CollectorStatus`가 전부 스켈레톤이라 원인이 이미 화면에 보인다. 따라서 "비활성 ⇒ 문구 신설"이라는 A-19의 전제가 성립하지 않는다
+  - **이미 코드에 선례가 있었다**: `CopyButton.tsx:50`이 `value === null`이면 비활성 + 이유 줄 없음으로 동작하고 그 주석이 ADR-35를 근거로 든다. ADR-44는 그 선례를 전 화면 규칙으로 승격한 것
+  - ADR-42와 일관: 둘 다 ① 현행 유지 기각 → ② 신설 이유 줄 기각 → ③ **신설 문구 0건 해법** 순서. ADR-42가 "미표시"를 택한 세 번째 근거("07에서는 **영원히** 활성화되지 않는 컨트롤이 남는다")가 로딩 구간에는 성립하지 않아(스냅샷이 오면 반드시 끝나는 일시 상태) A-19는 "일시 비활성"이 된다 — 결론이 다른 것이 아니라 같은 기준의 상황별 적용
+  - **로딩 지속 시간 실측 근거**: 정상 경로는 수십 ms(`/api/state` max 12.7ms, SSE p95 2.4ms — T-007). 그러나 **실패 경로는 상한이 없다**(`stream.ts` 토큰 실패·`onerror`·heartbeat 45초 무수신 → 폴백 1회 후 5→10→20→30초 백오프, `ready === false` 무기한 유지). ui-spec SCR-04-2도 "30초 넘게 미수신이면 04-3 배너"를 이미 규정 → **"찰나"는 정상 경로에만 성립**해 현행 유지(선택지 3)의 근거가 무너진다
+  - **ui-spec 로딩 열 전수 조사**: `로딩` 열이 `활성`인 행은 **SCR-02 `Claude 열기` 한 행뿐**이었다. `-`로 적힌 버튼 행은 모두 `ready` 게이트 안이라 첫 스냅샷 전 렌더되지 않아 같은 결함이 없고, 게이트 **밖** 컨트롤은 사이드바 탭·04-3 `지금 재연결`뿐인데 둘 다 스냅샷 값을 쓰지 않는다 → **잠재 결함 0건, 02 한 곳으로 한정**
+  - 03·07은 코드 변경 없음(03은 `ready` 게이트 안이고 `WorkflowDetailScreen.tsx:27`이 config·registry·live 중 하나라도 null이면 `return null` / 07은 `helperStatus !== 'installed'`면 이미 비활성). **07은 ui-spec 로딩 열 표기만 `-` → `비활성`로 정정**
+  - architect가 팀장 프롬프트의 경로 오류 2건을 정정: `components/layout/AppShell.tsx` → 실제 `components/common/AppShell.tsx`, `router.tsx` → 실제 `app/router.tsx`. 팀장이 리뷰 보고의 경로 표기를 그대로 옮긴 것이 원인 — **리뷰어 경로 인용 오류가 또 나왔다**(T-022 때 줄번호 오류 선례)
+- 2026-09-26 T-021 **done** → 커밋 `feat(T-021)` eeb4bb6. Done when 8/8 충족·Blocker 0이고 유일한 Major가 ADR-44 확정으로 T-FIX-09에 배정됐다. 리뷰어가 보고에서 "이 항목만 분리하면 나머지 T-021 산출물은 그대로 진행 가능"이라고 명시했고, 팀장이 담당 배정 권한으로 분리 처리(**T-022 → A-17 → T-FIX-08 선례와 동일**). 재리뷰는 코드 변경이 없어 생략

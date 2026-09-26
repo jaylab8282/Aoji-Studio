@@ -578,6 +578,33 @@
 - Depends on: T-013
 - 관련: T-021·T-022(도우미 호출 화면 — 정규화 후 `Origin`이 `http://127.0.0.1:<포트>`로 통일되어 FR-013-E2 오인 표시가 사라진다. 코드 의존은 없다), T-024(E2E-15), T-FIX-04와 무관(도우미 코드·인자 변경 없음)
 
+## A-19 (architect 확정 완료 2026-09-26 → ADR-44) 02 상단바 `Claude 열기`가 첫 스냅샷 전 활성인데 눌러도 아무 일이 없다
+- Status: done (확정 완료) — 구현은 **T-FIX-09**, 착수 전 팀장이 사용자 승인 여부를 판단한다
+- Scope: architect 판단 → Frontend 수정 태스크로 분리
+- FR: FR-013-AC1, SCR-02
+- 출처: T-021 리뷰(`docs/reviews/T-021.md`) [Major]
+- 증상(리뷰어 코드 추적, 팀장 확인):
+  - `TopBar`는 `ready` 게이트 **밖**에서 렌더된다(`AppShell.tsx:28`) — `WorkflowsHeader`가 `rightExtra`로 꽂힌다(`router.tsx:26`)
+  - 그래서 첫 스냅샷 전(`config === null`)에도 `Claude 열기`가 **활성**으로 보이는데, `useHelperOpen.open`은 `helperUrl === null`이면 `pendingRef`도 세우지 않고 **조용히 return**한다(`useHelperOpen.ts:58`)
+  - 클릭이 다이얼로그·에러·상태 변경 **어떤 눈에 보이는 변화도 없이** 사라진다
+- 충돌(확정 전 상태): `conventions.md` §3 Frontend MUST("누르면 아무 일도 없는 활성 버튼 금지", 같은 문구가 §7에서 3회 반복) vs `ui-spec.md:187`(SCR-02 로딩 열 `활성`) → **ADR-44가 ui-spec을 `비활성`으로 정정해 해소**
+- 선례: `architecture.md:683` **ADR-42(A-17)**가 같은 범주(눌러도 아무 일 없는 활성 버튼)를 다루며 **"현행 유지"를 기각**했다. 같은 기준을 적용해야 한다
+- 검토한 선택지: (1) 로딩 중 비활성 + 이유 줄 / (2) 활성 유지 + 클릭 시 최소 피드백 / (3) 현행 유지를 공식 예외로 기록
+- 확정 결과(ADR-44): **(1)을 채택하되 이유 줄은 붙이지 않는다 — 즉 "로딩 중 비활성, 이유 줄 없음". 신설 문구 0건이라 문구 승인이 필요하지 않다.**
+  - 근거: ADR-35의 이유 줄 지정 기준(`ui-spec.md` §공통)은 "원인이 그 버튼 **밖**에 있어 화면만 보고는 알 수 없을 때" 지정하라는 것이다. 첫 스냅샷 전에는 같은 상단바의 프로젝트 칩·사이드바 `CollectorStatus`·본문 04-2가 모두 스켈레톤이므로 원인이 화면에 이미 보인다 → **이유 줄을 지정하지 않는 쪽**이다. 따라서 "비활성 = 문구 신설"이라는 전제가 성립하지 않는다
+  - 같은 규칙이 이미 코드에 있다: `components/ui/CopyButton.tsx:50`이 `value === null`이면 비활성 + 이유 줄 없음으로 동작하고, 주석이 같은 근거(ADR-35 + 같은 카드 안 스켈레톤)를 든다. ADR-44는 그 선례를 전 화면 규칙으로 승격한 것이다
+  - (2) 기각: 재사용할 수 있는 확정 문구가 없다. `HelperMissingDialog`(`열기 도우미가 응답하지 않습니다`)는 **사실과 다르다** — 아직 `config.helperUrl`을 몰라 도우미를 호출조차 하지 않았으므로 미설치라고 단정하면 FR-013-AC9·E1의 뜻을 왜곡하고 사용자를 불필요한 재설치로 유도한다. 새 문구는 (1)+이유 줄과 같은 신설 문제로 돌아간다
+  - (3) 기각: "찰나"가 **정상 경로에만** 성립한다. 실측 `GET /api/state` max 12.7ms·SSE 방송 p95 2.4ms(T-007 리뷰, `progress.md:46`)로 정상 경로는 수십 ms지만, 토큰 발급 실패·`EventSource.onerror`·heartbeat 45초 무수신이면 `GET /api/state` 폴백 후 **5→10→20→30초 백오프**로 재시도하며(`api/stream.ts:12-14, 65-73, 86-102`) 폴백까지 실패하면 `ready === false`가 상한 없이 유지된다. `ui-spec` SCR-04-2 자신이 "30초 넘게 미수신이면 04-3 배너"를 규정해 장시간 로딩을 전제한다
+- ADR-42(A-17)와의 일관성: ADR-42는 같은 범주에서 ① 현행 유지를 "명문 MUST를 문서로 승인하는 셈"이라 기각 ② 비활성 + 신설 이유 줄도 기각 ③ **신설 문구 0건** 해법을 택했다. ADR-44도 같은 순서로 (3)·(2)를 기각하고 신설 문구 0건 해법을 택한다. ADR-42가 비활성을 기각한 세 근거 중 둘(문구 신설 / ADR-35 기준 불일치)은 여기서도 유효하고, 세 번째("07에서는 **영원히** 활성화되지 않는 컨트롤이 남는다")만 여기서는 성립하지 않는다 — 로딩은 스냅샷이 오면 반드시 끝나는 일시 상태다. 그래서 ADR-42는 "미표시", A-19는 "일시 비활성"이 되며, 두 결론은 **같은 기준을 각 상황에 적용한 결과**다
+- 03·07 일관성 확인(코드 실독): **세 화면 모두 같은 규칙 하나로 정리되고, 코드 수정은 02 한 곳뿐이다**
+  - 03 `팀장 호출 · 터미널 열기` — `AppShell` `ready` 게이트 **안**이고 `WorkflowDetailScreen.tsx:27`이 `config`·`registry`·`live` 중 하나라도 null이면 `return null` → 첫 스냅샷 전에는 렌더 자체가 없다. `ui-spec`의 `로딩` 열 `비활성`과 모순 없음(ADR-32). **코드 변경 없음**
+  - 07 `테스트로 열기` — `ready` 게이트 **안** + `ClaudeOpenCard.tsx:58,93`이 `helperStatus.kind !== 'installed'`면 `disabled`. 진입 직후 `checking` 동안도 비활성이고 이유 줄이 없다(같은 카드 `열기 도우미` 행이 `확인 중…`). **코드 변경 없음**, `ui-spec` `로딩` 열 표기만 `-` → `비활성`으로 정정
+  - 07 `명령 복사`(`CopyButton`) — 이미 규칙대로 동작. **코드 변경 없음**
+- `ui-spec` `로딩` 열 전수 조사: `로딩` 열이 `활성`인 행은 **SCR-02 `Claude 열기` 한 행뿐**이었다(확정 전 `ui-spec.md:187` → 지금은 `비활성`). `로딩`이 `-`인 다른 버튼 행(01 `에이전트 워크플로우 열기 →`, 02 `+ 에이전트 만들기`·`+ 워크플로우 추가`·줌·미니맵, 04-7 `워크플로우 추가`, 07 두 버튼)은 모두 `ready` 게이트 안이라 첫 스냅샷 전 렌더되지 않아 같은 결함이 없다. 게이트 밖 컨트롤 중 스냅샷 값을 쓰지 않는 사이드바 탭·04-3 `지금 재연결`은 로딩 중에도 정상 동작한다 → **잠재 결함 0건**
+- 사용자에게 보이는 변화: **있음** — 02 진입 직후 `Claude 열기 · 기본 세션`이 점선·faint 비활성 모양(ADR-29)으로 보이다가 첫 스냅샷이 오면 활성이 된다. 신설 문구 0건, 신설 요소 0건, 라벨·배치·클릭 동작 변화 0건, 기준 PNG 대조 영향 0(PNG는 스냅샷 수신 후 화면). 확정 문서가 지정한 상태 값을 바꾸는 결정이라 **팀장이 사용자 승인 대상인지 판단하고, 승인 전에는 구현하지 않는다**(E-004·E-005·E-006, ADR-42 선례)
+- 요구사항 의미 변경 여부: **없음.** FR-013-AC1·AC3·AC6 그대로. 로딩 중에는 애초에 호출이 일어나지 않았으므로 호출 가능한 순간의 동작이 하나도 바뀌지 않는다. 계약 변경 없음
+- Depends on: -
+
 ## A-16 (architect 확정 요청) dev 프로필 허용 Origin이 문서보다 좁다 — 문서·구현 중 무엇이 맞는가
 - Status: todo
 - Scope: architect 판단 → 확정되면 backend 반영(또는 문서 정정)
@@ -636,6 +663,30 @@
   - `cd frontend && npm test` 통과 수가 줄지 않고 `npm run lint`·`npm run typecheck` 통과
 - Depends on: T-022 (fix round 1 완료 후)
 
+## T-FIX-09 02 `Claude 열기 · 기본 세션`을 첫 스냅샷 전 비활성으로 (ADR-44)
+- Status: todo — 착수 전 팀장이 사용자 승인 여부를 판단한다(A-19 "사용자에게 보이는 변화" 항)
+- Scope: Frontend
+- FR: FR-013-AC1·AC3·AC6(의미 변경 없음 — 새 AC 없음), `docs/ui/ui-rules.md` 2
+- AC: 없음(기존 AC 유지)
+- Errors: 없음(FR-013-E1~E4 동작 불변 — 호출이 일어나는 경로를 건드리지 않는다)
+- Screens: SCR-02 (07은 표기 정정만이라 코드 변경 없음)
+- Backend: 없음
+- Frontend:
+  - `screens/workflows/WorkflowsHeader.tsx` — `config === null`이면 `<Button disabled>`. `disabledReason`은 **넘기지 않는다**(ADR-44: 이유 줄 없음). `onClick`도 `config === null`일 때 넘기지 않아 `CopyButton`·`ClaudeOpenCard`와 같은 형태로 맞춘다. 라벨·variant(`secondary`)·`>_` 아이콘·배치·`HelperMissingDialog` 연결은 그대로. `command` 계산의 `config === null ? "" : …` 분기는 남겨도 되지만 도달하지 않는 값이므로 주석을 실제 동작(비활성)으로 고친다
+  - `dialogs/helper-missing/useHelperOpen.ts` — 동작은 그대로 두고 파일 머리 주석의 "02 상단바 버튼만 그 전에도 보인다(ui-spec SCR-02 로딩 열 `활성`)"를 ADR-44 기준(로딩 중 비활성, 호출하는 쪽이 막는다)으로 고친다. `helperUrl === null` 조기 return은 **방어선으로 유지**한다(호출 경로가 하나 더 생겨도 잘못된 요청이 나가지 않게)
+  - `screens/workflows/WorkflowsHeader.test.tsx` — 아래 Done when 테스트 추가
+- 배경: A-19 / ADR-44. `TopBar`가 `AppShell`의 `ready` 게이트 밖이라(`components/common/AppShell.tsx:28`) 첫 스냅샷 전에도 이 버튼만 활성으로 보이는데, `useHelperOpen.open`이 `helperUrl === null`이면 조용히 return해 클릭이 어떤 눈에 보이는 변화도 없이 사라졌다(`useHelperOpen.ts:58`)
+- Done when:
+  - 단위 `WorkflowsHeader.test [ADR-44] 첫 스냅샷 전(snapshotStore 초기 상태) → 'Claude 열기 · 기본 세션' 버튼이 disabled이고 이유 줄 텍스트가 문서에 없다`
+  - 단위 `WorkflowsHeader.test [ADR-44] 첫 스냅샷 전 클릭 시도 → 도우미 fetch 0회, HelperMissingDialog 없음, 에러 줄 없음`(비활성이라 호출이 시작되지 않음을 고정한다)
+  - 단위 `WorkflowsHeader.test [ADR-44][FR-013-AC1] 스냅샷 수신 후 → 버튼 활성(secondary), 누르면 config.helperUrl + '/open'으로 {target:'default'} 1회`(기존 FR-013-AC6 테스트가 이 상태를 이미 덮으면 단언만 보강)
+  - 단위 회귀 — T-021의 `[FR-013-AC6]`·`[FR-013-AC9]`·`[FR-013-E1]`·`[FR-013-E2]`·`[FR-013-E3]` 테스트가 **그대로 통과**한다(스냅샷 수신 후 동작 불변). 기존 테스트 삭제·skip·약화 0
+  - 정적 단언 또는 리뷰 확인 — `screens/workflows/WorkflowsHeader.tsx`에 `disabledReason`이 없다(ADR-44: 이 지점은 ADR-35 이유 줄 목록에 넣지 않는다)
+  - `cd frontend && npm test` 통과 수가 줄지 않고 `npm run lint`·`npm run typecheck` 통과
+  - 화면 대조 — `docs/ui/screens/02-workflows.png`와의 대조 결과가 T-021과 같다(기준 PNG는 스냅샷 수신 후 화면이라 변화 없음)
+- Depends on: T-021 (fix round 1 완료 후)
+- 관련: 03(`screens/workflow-detail/Header.tsx`)·07(`screens/settings/ClaudeOpenCard.tsx`, `components/ui/CopyButton.tsx`)은 **이미 ADR-44 규칙을 충족해 코드 변경이 없다**(A-19 "03·07 일관성 확인" 참조). T-FIX-08과 파일이 겹치지 않는다
+
 ## T-FIX-07 T-FIX-05·T-FIX-06 리뷰 Minor 묶음
 - Status: todo
 - Scope: Backend + Frontend
@@ -675,7 +726,7 @@
 - Depends on: T-020
 
 ## T-021 터미널 열기 프론트 연동 (02 · 03 · 07)
-- Status: todo — **사용자 지시로 중단(2026-09-25)**. 부분 작업이 `git stash@{0}`에 보관돼 있다(일관 상태, 347 tests 통과). 재개 시 `git stash pop`부터
+- Status: **done** — Round 1 리뷰(`docs/reviews/T-021.md`) Done when **8/8 충족**, Blocker 0. 유일한 Major(02 로딩 중 `Claude 열기` 무동작)는 A-19 → **ADR-44 확정 → T-FIX-09로 분리**. 리뷰어가 "이 항목만 분리하면 나머지 T-021 산출물은 그대로 진행 가능"이라고 명시했고, 팀장이 담당 배정 권한으로 분리 처리(T-022→A-17→T-FIX-08 선례와 동일)
 - Scope: Frontend
 - FR: FR-013, FR-014
 - AC: FR-013-AC6, FR-013-AC9, FR-013-AC10, FR-014-AC5
@@ -693,6 +744,7 @@
   - FR-013-E3 — 단위 `[FR-013-E3] 400 → 도우미 message 표시`
   - FR-013-E4 — 단위 `[FR-013-E4] 누른 시점 registry에 lead 없음 → 호출 안 함, '팀장이 없습니다'` + E2E-09
 - Depends on: T-015, T-016, T-020, T-022
+- 관련: A-19/ADR-44(02 `Claude 열기`의 로딩 구간 비활성)는 **T-FIX-09로 분리**한다 — 사용자 승인 판단(A-19)이 T-021 완료를 막지 않게 하고, 03·07은 이미 규칙을 충족해 이 태스크의 코드가 바뀌지 않는다. 07 `테스트로 열기`·`명령 복사`는 ui-spec `로딩` 열 표기 정정만이라 코드 변경이 없다(A-18/ADR-43과 같은 형태)
 
 ## T-022 07 설정 화면
 - Status: done — Round 2 PASS(`docs/reviews/T-022.md`)
@@ -781,7 +833,7 @@
 | FR-010 | AC1·AC5·AC7 T-010 · AC2·AC3 T-010, T-019 · AC4·AC6 T-019 · E1·E2·E3 T-010, T-019 |
 | FR-011 | AC1·AC2·AC6 T-010 · AC3·AC4 T-010, T-019 · AC5 T-010, T-016 · E1·E2·E4 T-010, T-019 · E3 T-010, T-019 |
 | FR-012 | AC1·AC3 T-019 · AC2·AC4 T-011 · AC5 T-011, T-019 · AC6 T-011, T-016 · E1·E2 T-011, T-019 |
-| FR-013 | AC1·AC2 T-012, T-020(+H-3) · AC3 T-015 · AC4 T-016 · AC5 T-012 · AC6 T-021 · AC7 T-020 · AC8 T-002 · AC9 T-021 · AC10 T-021 · AC11 T-020(+H-3) · E1 T-021 · E2 T-020, T-021 · E3 T-020, T-021 · E4 T-021 |
+| FR-013 | AC1 T-012, T-020(+H-3), T-021, T-FIX-09 · AC2 T-012, T-020(+H-3) · AC3 T-015, T-FIX-09 · AC4 T-016 · AC5 T-012 · AC6 T-021, T-FIX-09 · AC7 T-020 · AC8 T-002 · AC9 T-021 · AC10 T-021 · AC11 T-020(+H-3) · E1 T-021 · E2 T-020, T-021 · E3 T-020, T-021 · E4 T-021 |
 | FR-014 | AC1 T-012, T-022 · AC2 T-012, T-022(+H-2) · AC3 T-003, T-022 · AC4 T-012, T-022 · AC5 T-021 · E1 T-001 |
 | FR-015 | AC1·AC2·AC3 T-005 |
 | FR-016 | AC1~AC4 T-013, T-024 |
