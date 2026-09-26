@@ -93,7 +93,23 @@ async function toApiError(res: Response): Promise<ApiError> {
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
-async function sendRequest<T>(method: Method, path: string, body?: unknown, isRetry = false): Promise<T> {
+export interface RequestOptions {
+  /**
+   * GET인데도 브라우저 토큰 헤더를 붙인다.
+   * 변경 메서드에만 토큰을 요구하는 것이 기본 규칙이지만(architecture.md §5), api-spec.yaml이
+   * `security: browserToken`을 명시한 GET 엔드포인트가 하나 있다 — `GET /api/helper/token`
+   * (도우미 토큰은 브라우저 토큰을 통과한 요청에만 전달한다, FR-013-AC8). 그 한 곳만 켠다.
+   */
+  withBrowserToken?: boolean;
+}
+
+async function sendRequest<T>(
+  method: Method,
+  path: string,
+  body?: unknown,
+  options: RequestOptions = {},
+  isRetry = false,
+): Promise<T> {
   const headers: Record<string, string> = {};
   let requestBody: string | undefined;
   if (body !== undefined) {
@@ -101,7 +117,7 @@ async function sendRequest<T>(method: Method, path: string, body?: unknown, isRe
     requestBody = JSON.stringify(body);
   }
 
-  if (method !== "GET") {
+  if (method !== "GET" || options.withBrowserToken === true) {
     headers[BROWSER_TOKEN_HEADER] = await getBrowserToken();
   }
 
@@ -116,7 +132,7 @@ async function sendRequest<T>(method: Method, path: string, body?: unknown, isRe
     const error = await toApiError(res);
     if (error.code === "UNAUTHORIZED_TOKEN") {
       await getBrowserToken(true);
-      return sendRequest<T>(method, path, body, true);
+      return sendRequest<T>(method, path, body, options, true);
     }
     throw error;
   }
@@ -136,16 +152,21 @@ async function sendRequest<T>(method: Method, path: string, body?: unknown, isRe
 }
 
 /** 모든 공개 호출의 단일 출구. 어떤 예외가 나와도 `ApiError`만 밖으로 나간다. */
-async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+async function request<T>(
+  method: Method,
+  path: string,
+  body?: unknown,
+  options: RequestOptions = {},
+): Promise<T> {
   try {
-    return await sendRequest<T>(method, path, body);
+    return await sendRequest<T>(method, path, body, options);
   } catch (error) {
     throw normalizeError(error);
   }
 }
 
-export function apiGet<T>(path: string): Promise<T> {
-  return request<T>("GET", path);
+export function apiGet<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return request<T>("GET", path, undefined, options);
 }
 
 export function apiPost<T>(path: string, body?: unknown): Promise<T> {

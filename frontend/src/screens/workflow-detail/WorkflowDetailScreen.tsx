@@ -52,7 +52,13 @@ export function WorkflowDetailScreen() {
 
   return (
     <main className="flex h-body-viewport flex-col px-page-x pt-6 pb-7">
-      <Header workflow={workflow} skillCount={registry.skillCount} liveAgents={live.agents} />
+      <Header
+        workflow={workflow}
+        skillCount={registry.skillCount}
+        liveAgents={live.agents}
+        registryAgents={registry.agents}
+        hostPath={config.hostPath}
+      />
       <div className="flex min-h-0 flex-1 gap-4">
         <Office
           workflow={workflow}

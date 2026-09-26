@@ -63,6 +63,24 @@ export const UNKNOWN_ERROR_MESSAGE = "서버에 연결할 수 없습니다 · �
 // CopyButton (ui-spec §공통). 라벨은 쓰는 화면이 정하고(`명령 복사`·`설정 예시 복사`),
 // 복사 성공 표시 문구만 공용이다.
 export const COPY_BUTTON_COPIED_LABEL = "복사됨";
+/** `명령 복사`. 07 카드 2와 `HelperMissingDialog`이 같은 라벨을 쓴다(ui-spec §공통, FR-014-AC5). */
+export const COPY_COMMAND_LABEL = "명령 복사";
+
+// ── 열기 도우미 (FR-013, ui-spec §공통 `HelperMissingDialog` · SCR-02 · SCR-03 · SCR-07) ─────
+/** 도우미가 없거나 2초 안에 응답하지 않을 때 뜨는 팝업(FR-013-AC9·E1). */
+export const HELPER_MISSING_DIALOG_TITLE = "열기 도우미가 응답하지 않습니다";
+export const HELPER_MISSING_DIALOG_BODY = "helper/install.sh로 설치한 뒤 다시 시도하세요";
+/** 도우미가 403으로 거부했을 때 버튼 옆에 붙는 확정 문구(FR-013-E2). */
+export const HELPER_AUTH_FAILED_TEXT = "도우미 인증 실패 · 도우미를 다시 설치하세요";
+/** 버튼을 누른 시점에 `registry.agents`에 팀장이 없을 때(FR-013-E4). 도우미를 호출하지 않는다. */
+export const LEAD_GONE_TEXT = "팀장이 없습니다";
+/**
+ * 03 `팀장 호출 · 터미널 열기`가 표시·복사하는 명령(FR-013-AC2, ui-spec SCR-03).
+ * 도우미에게는 이 문자열이 아니라 팀장 name만 보낸다(FR-013-AC6).
+ */
+export function leadSessionCommand(hostPath: string, leadName: string): string {
+  return `cd "${hostPath}" && claude --agent ${leadName}`;
+}
 
 // AgentsDirMissing (SCR-04-5, 01·02·07 공통)
 export const AGENTS_DIR_MISSING_TITLE = "에이전트 폴더를 찾을 수 없습니다";
@@ -526,7 +544,6 @@ export const SETTINGS_HELPER_NO_TOKEN_TEXT = "미설치 · 토큰 파일 없음"
 export const SETTINGS_TEST_OPEN_BUTTON_LABEL = "테스트로 열기 (도우미 설치 후)";
 /** FR-013-AC10 이유 줄(ADR-35 지정 지점). */
 export const HELPER_MISSING_REASON = "도우미 미설치";
-export const SETTINGS_COPY_COMMAND_LABEL = "명령 복사";
 
 // 카드 3 수집
 export const SETTINGS_COLLECT_CARD_TITLE = "수집";

@@ -6,7 +6,7 @@
  * `<팀장 name>`은 서버가 준 템플릿 문자열의 일부이며 ADR-33 (a)의 유일한 괄호 노출 사례다
  * (FR-013-AC2 확정 문구) — 프론트가 지우거나 치환하지 않는다.
  *
- * 도우미 상태(`GET /health`)와 `테스트로 열기`의 실제 호출(`POST /open`)은 T-021 범위다.
+ * 도우미 상태(`GET /health`) 확인과 `테스트로 열기`의 실제 호출(`POST /open`)은 `SettingsScreen`이 한다.
  * 이 카드는 상태를 prop으로 받아 표시만 하고, 호출할 수 있는 상태(`installed` + `onTestOpen`)가
  * 아니면 버튼을 비활성으로 둔다 — 눌러도 아무 일이 없는 활성 버튼을 만들지 않는다(ui-rules 2).
  */
@@ -17,10 +17,10 @@ import { MonoText } from "../../components/ui/MonoText";
 import { StatusDot } from "../../components/ui/StatusDot";
 import { formatHms } from "../../lib/format/time";
 import {
+  COPY_COMMAND_LABEL,
   HELPER_MISSING_REASON,
   SETTINGS_CLAUDE_CARD_DESCRIPTION,
   SETTINGS_CLAUDE_CARD_TITLE,
-  SETTINGS_COPY_COMMAND_LABEL,
   SETTINGS_HELPER_CHECKING_TEXT,
   SETTINGS_HELPER_MISSING_TEXT,
   SETTINGS_HELPER_NO_TOKEN_TEXT,
@@ -41,7 +41,9 @@ interface ClaudeOpenCardProps {
   settings: Settings | null;
   loadErrorMessage: string | null;
   helperStatus: HelperStatus;
-  /** 도우미 `POST /open {target:'default'}`. T-021이 넘긴다. */
+  /** `테스트로 열기`가 받은 사유(403 확정 문구·도우미 message). 버튼 아래 한 줄로 보여준다. */
+  openErrorMessage?: string | null;
+  /** 도우미 `POST /open {target:'default'}`. */
   onTestOpen?: () => void;
 }
 
@@ -49,6 +51,7 @@ export function ClaudeOpenCard({
   settings,
   loadErrorMessage,
   helperStatus,
+  openErrorMessage = null,
   onTestOpen,
 }: ClaudeOpenCardProps) {
   const loading = settings === null;
@@ -93,8 +96,14 @@ export function ClaudeOpenCard({
         >
           {SETTINGS_TEST_OPEN_BUTTON_LABEL}
         </Button>
-        <CopyButton value={settings?.defaultSessionCommand ?? null} label={SETTINGS_COPY_COMMAND_LABEL} />
+        <CopyButton value={settings?.defaultSessionCommand ?? null} label={COPY_COMMAND_LABEL} />
       </div>
+
+      {openErrorMessage === null ? null : (
+        <p role="alert" className="text-body text-danger">
+          {openErrorMessage}
+        </p>
+      )}
     </SettingsCard>
   );
 }

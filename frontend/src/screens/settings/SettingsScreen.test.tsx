@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsScreen } from "./SettingsScreen";
@@ -22,9 +22,20 @@ interface FetchCall {
 interface Handlers {
   settings?: () => Response | Promise<Response>;
   rescan?: () => Response | Promise<Response>;
+  /**
+   * 도우미 `GET <helperUrl>/health` (FR-013-AC10). 기본값은 **응답하지 않는 프라미스**다 —
+   * 진입 확인이 끝나기 전 화면(`확인 중…`)을 흔들림 없이 유지하려는 것이고,
+   * 도우미 상태를 보는 테스트는 이 핸들러를 직접 넘긴다. `signal`은 2초 타임아웃 테스트가
+   * `abort`에 반응하는 응답을 만들 때만 쓴다(고정 대기 없이 경계를 만든다).
+   */
+  helperHealth?: (signal: AbortSignal | null | undefined) => Response | Promise<Response>;
+  /** 서버 `GET /api/helper/token` (FR-013-AC8). */
+  helperToken?: () => Response | Promise<Response>;
+  /** 도우미 `POST <helperUrl>/open` (FR-013-AC6). */
+  helperOpen?: () => Response | Promise<Response>;
 }
 
-/** `/api/settings`·`/api/registry/rescan`만 응답하는 fetch 대역(테스트 전용). */
+/** `/api/settings`·`/api/registry/rescan`·도우미 호출만 응답하는 fetch 대역(테스트 전용). */
 function stubFetch(handlers: Handlers = {}): FetchCall[] {
   const calls: FetchCall[] = [];
   vi.stubGlobal(
@@ -46,10 +57,32 @@ function stubFetch(handlers: Handlers = {}): FetchCall[] {
           ? jsonResponse(registryFixture())
           : handlers.rescan();
       }
+      if (url.includes("/api/helper/token")) {
+        return handlers.helperToken === undefined
+          ? jsonResponse({ token: "b".repeat(64) })
+          : handlers.helperToken();
+      }
+      if (url.endsWith("/health")) {
+        return handlers.helperHealth === undefined
+          ? new Promise<Response>(() => {})
+          : handlers.helperHealth(init?.signal);
+      }
+      if (url.endsWith("/open")) {
+        return handlers.helperOpen === undefined
+          ? new Response(null, { status: 204 })
+          : handlers.helperOpen();
+      }
       throw new Error(`unexpected fetch: ${url}`);
     }),
   );
   return calls;
+}
+
+/** 2초 타임아웃의 `abort`에만 반응하는 응답(고정 대기 없이 경계를 만든다). */
+function neverResolving(signal: AbortSignal | null | undefined): Promise<Response> {
+  return new Promise<Response>((_, reject) => {
+    signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+  });
 }
 
 function registryFixture(overrides: Partial<Registry> = {}): Registry {
@@ -92,6 +125,7 @@ describe("SettingsScreen (SCR-07)", () => {
   afterEach(() => {
     snapshotStore.reset();
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("[FR-014-AC4] 마운트 폴더 = settings.hostPath(맥북 경로)", async () => {
@@ -377,5 +411,74 @@ describe("SettingsScreen (SCR-07)", () => {
     expect(rowText("settings-row-trash")).toContain(".jaystudio/trash/ · 제거한 에이전트 보관");
     expect(rowText("settings-row-retention")).toContain("30일");
     expect(rowText("settings-row-format-errors")).toContain("없음");
+  });
+
+  it("[FR-013-AC10] 진입 시 /health 호출, 무응답 → '테스트로 열기' 비활성 '도우미 미설치', 버튼 누를 때 재확인", async () => {
+    vi.useFakeTimers();
+    const missingCalls = stubFetch({ helperHealth: (signal) => neverResolving(signal) });
+    const { unmount } = renderScreen();
+
+    // 진입 시(`useEffect`) 도우미 `GET /health`를 호출한다. mock fetch는 동기로 호출을 기록하므로
+    // 렌더 직후 이미 호출이 잡힌다(`waitFor`는 가짜 타이머와 함께 쓰지 않는다 — 폴링이 멈춘다).
+    expect(missingCalls.some((call) => call.url.endsWith("/health"))).toBe(true);
+
+    // 2초 안에 응답이 없으면 미설치로 본다(FR-013-AC9와 같은 경계, api/helper.ts).
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    expect(rowText("settings-row-helper")).toContain("미설치 · helper/install.sh로 설치");
+    expect(screen.getByRole("button", { name: "테스트로 열기 (도우미 설치 후)" })).toBeDisabled();
+    expect(screen.getByText("도우미 미설치")).toBeInTheDocument();
+
+    unmount();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+
+    // 도우미가 응답하는 상태로 다시 진입하면 버튼이 활성화된다.
+    const installedCalls = stubFetch({ helperHealth: () => jsonResponse({ ok: true, version: "1" }) });
+    renderScreen();
+
+    await waitFor(() => expect(rowText("settings-row-helper")).toContain("응답 확인"));
+    const testOpenButton = screen.getByRole("button", { name: "테스트로 열기 (도우미 설치 후)" });
+    expect(testOpenButton).toBeEnabled();
+
+    fireEvent.click(testOpenButton);
+
+    // 버튼을 누르면 도우미를 호출하기 전에 /health로 다시 확인한다("버튼 누를 때 재확인").
+    await waitFor(() =>
+      expect(installedCalls.filter((call) => call.url.endsWith("/health")).length).toBeGreaterThanOrEqual(2),
+    );
+    await waitFor(() => expect(installedCalls.some((call) => call.url.endsWith("/open"))).toBe(true));
+  });
+
+  it("[FR-013-AC10] GET /api/helper/token이 null이면 '미설치 · 토큰 파일 없음'을 보여준다", async () => {
+    stubFetch({
+      helperHealth: () => jsonResponse({ ok: true, version: "1" }),
+      helperToken: () => jsonResponse({ token: null }),
+    });
+    renderScreen();
+
+    await waitFor(() => expect(rowText("settings-row-helper")).toContain("미설치 · 토큰 파일 없음"));
+    expect(screen.getByRole("button", { name: "테스트로 열기 (도우미 설치 후)" })).toBeDisabled();
+    expect(screen.getByText("도우미 미설치")).toBeInTheDocument();
+  });
+
+  it("[FR-013-E2] 403 → 인라인 '도우미 인증 실패 · 도우미를 다시 설치하세요'", async () => {
+    stubFetch({
+      helperHealth: () => jsonResponse({ ok: true, version: "1" }),
+      helperOpen: () =>
+        jsonResponse({ code: "FORBIDDEN_ORIGIN", message: "허용되지 않은 출처입니다" }, 403),
+    });
+    renderScreen();
+
+    await waitFor(() => expect(rowText("settings-row-helper")).toContain("응답 확인"));
+    fireEvent.click(screen.getByRole("button", { name: "테스트로 열기 (도우미 설치 후)" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "도우미 인증 실패 · 도우미를 다시 설치하세요",
+    );
+    // 403은 도우미가 응답한 것이므로 미설치 안내(HelperMissingDialog)를 띄우지 않는다.
+    expect(screen.queryByTestId("helper-missing-dialog")).not.toBeInTheDocument();
   });
 });
