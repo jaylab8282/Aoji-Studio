@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "name": "ops-team",
+  "description": "운영 워크플로우",
+  "lead": "ops-lead",
+  "members": ["ops-member"],
+  "createdAt": "2026-09-20T10:00:00+09:00",
+  "updatedAt": "2026-09-20T10:00:00+09:00"
+}

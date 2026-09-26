@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "name": "floor-26",
+  "description": "project-large 워크플로우 floor-26 (인원 3명)",
+  "lead": "agent-086",
+  "members": [
+    "agent-087",
+    "agent-088"
+  ],
+  "createdAt": "2026-09-20T10:00:00+09:00",
+  "updatedAt": "2026-09-20T10:00:00+09:00"
+}

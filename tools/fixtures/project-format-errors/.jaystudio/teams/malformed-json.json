@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "malformed-json"
+  "description": "쉼표가 빠져 JSON 파싱 자체가 실패하는 구성 파일",
+  "lead": null,
+  "members": []
+}

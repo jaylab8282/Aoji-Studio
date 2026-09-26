@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "name": "dup-affiliation-b",
+  "description": "dup-affiliation-agent를 팀원으로 참조하는 두 번째 워크플로우(중복 소속)",
+  "lead": null,
+  "members": ["dup-affiliation-agent"],
+  "createdAt": "2026-09-20T10:00:00+09:00",
+  "updatedAt": "2026-09-20T10:00:00+09:00"
+}

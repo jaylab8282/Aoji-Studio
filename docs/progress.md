@@ -143,6 +143,7 @@
 - D-007 ADR-11 승인: 도우미는 osascript를 argv로 spawn(shell:false), 문자열 삽입 값은 고정 경로와 정규식 검증 name뿐 — FR-013-AC11 취지(셸 조합 없음) 충족 / T-020
 
 ## Escalations
+- E-008 [resolved] ADR-44 적용(02 `Claude 열기` 로딩 중 비활성)이 확정 UI 기준(ui-spec 로딩 열 `활성`)을 바꾸고 사용자에게 보이는 변화라 승인 요청 — **승인**(2026-09-26). 신설 문구 0건이라 문구 승인은 불필요했다
 - E-007 [resolved] A-17 — 07에서 04-5 `설정 열기` 버튼을 빼는 것이 확정 문서(FR-001-E1·ui-rules 5)가 열거한 버튼을 한 화면에서 제거하는 일이라 승인 요청. 팀장이 근거 원문 확인(`docs/ui/screen-flow.md:27` = 이 버튼의 **도착지가 07 자신**, 07에서의 자기 이동은 확정 흐름표에 없음) — 사용자: **07에서만 숨김 승인**(ADR-42). 01·02는 변화 없음
 - E-006 [resolved] A-15 신설 문구 `허용되지 않은 출처입니다 · <publicOrigin> 주소로 다시 접속하세요`(403 FORBIDDEN_ORIGIN) — 확정 문서·docs/ui 전수 확인 결과 같은 뜻의 문장 없음(팀장 재확인) — 사용자: **승인**. 아울러 T-FIX-05·T-FIX-06을 **T-022보다 먼저** 구현하도록 지시
 - E-005 [resolved] 가져오기 거부 사유 `FORMAT_ERROR` 화면 문구 신설 가부(확정 문서에 해당 완성 문장 없음) — 사용자: **신규 문장 승인**(`읽지 못한 정의 파일입니다 · 목록을 확인하세요`)
@@ -267,3 +268,22 @@
   - 03·07은 코드 변경 없음(03은 `ready` 게이트 안이고 `WorkflowDetailScreen.tsx:27`이 config·registry·live 중 하나라도 null이면 `return null` / 07은 `helperStatus !== 'installed'`면 이미 비활성). **07은 ui-spec 로딩 열 표기만 `-` → `비활성`로 정정**
   - architect가 팀장 프롬프트의 경로 오류 2건을 정정: `components/layout/AppShell.tsx` → 실제 `components/common/AppShell.tsx`, `router.tsx` → 실제 `app/router.tsx`. 팀장이 리뷰 보고의 경로 표기를 그대로 옮긴 것이 원인 — **리뷰어 경로 인용 오류가 또 나왔다**(T-022 때 줄번호 오류 선례)
 - 2026-09-26 T-021 **done** → 커밋 `feat(T-021)` eeb4bb6. Done when 8/8 충족·Blocker 0이고 유일한 Major가 ADR-44 확정으로 T-FIX-09에 배정됐다. 리뷰어가 보고에서 "이 항목만 분리하면 나머지 T-021 산출물은 그대로 진행 가능"이라고 명시했고, 팀장이 담당 배정 권한으로 분리 처리(**T-022 → A-17 → T-FIX-08 선례와 동일**). 재리뷰는 코드 변경이 없어 생략
+- 2026-09-26 **E-008 승인**: ADR-44 적용(02 `Claude 열기`가 첫 스냅샷 전 비활성). 사용자에게 보이는 변화라 팀장이 승인 요청 → **승인**. 구현은 **T-FIX-09**. 선택지 "현행 유지"·"로딩 중 미표시"는 사용자가 택하지 않음
+- 2026-09-26 T-023 시작(Depends on: -, Scope: Tools). 사용자 정지 지점은 T-023 커밋까지. **T-FIX-09는 승인 완료·대기**(T-021 done이라 선행 조건 충족)
+
+- 2026-09-26 T-023 개발 DONE(backend-developer, Scope: Tools). `replay.mjs`를 골격(64줄)에서 **이어서 완성**(`--delay-ms` 추가·기본 50ms·`delayImpl`/`fetchImpl` 주입, 비2xx 판정 `status!==204`→`!response.ok`), `scenarios/{states.jsonl(28줄),showcase.jsonl,README.md}` 신설, fixture 3종(`project-configured`·`project-large`·`project-showcase`) 신설, `project-format-errors`에 **신규 4파일만 추가**(기존 7파일 무수정)
+  - 외부 npm 의존 **0건 추가**(`node:test` 등 표준 모듈만) — conventions Tools 원칙 준수. helper의 `node --test` 선례를 따름
+  - 팀장 검증: `cd tools/replay && npm test` **31/31 통과**. `project-large` 에이전트 **100**·워크플로우 **30**, 인원=`lead`+`members`라 floor-01이 **정확히 7명**(span 경계), 총합 30+70=100. `states.jsonl`에 hook 이벤트 **12종 전부** 등장. 변경 범위 `tools/`만(backend·frontend·설계 문서 무변경, 기존 fixture 수정 `M` 0건)
+  - 팀장이 **절대 제약 확인**: 실제 `JayStudio/.claude/settings.json` mtime 9월 25일 18:27 그대로 = 오늘 변경 0건
+  - 팀장이 fixture 참조 전수 확인: backend 테스트는 어느 fixture도 코드 참조하지 않고(`StateControllerTest`는 임시 폴더), `project-basic`만 e2e 문서 절차가 복사하는데 **미변경** → gradle 회귀 위험이 구조적으로 없어 `./gradlew test` 생략 판단
+- 2026-09-26 T-023 **PASS (round 1)** → 커밋. 리뷰: `docs/reviews/T-023.md` (Blocker 0 · Major 0 · Minor 1)
+  - **리뷰어의 가장 값진 검증**: 개발자가 `lib/fixtureFormat.mjs`를 백엔드 파서의 **재구현**(SnakeYAML 대신 한 줄 파서)으로 만들어, fixture가 간이 파서는 통과하나 **실제 백엔드는 거부**할 위험이 있었다(그러면 T-024 E2E에서 터진다). 리뷰어가 **독립 Java 하니스**를 짜서 실제 운영 클래스(`AgentDefinitionParser`·`WorkflowConfigStore`·`HookConfigDetector`·`ProjectFolderScanner`)를 직접 호출해 전 fixture를 읽기 전용 재스캔 → **모든 수치·오류·중복소속·`hookConfigured`가 실제 백엔드로도 그대로 재현**, 괴리 **0건**. 기존 컴파일 산출물을 재사용해 `./gradlew test` **0회**로 수행
+  - **FR-004-AC2 13행 전수 대응표 작성**(README를 믿지 않고 JSONL 원문 대조): 12행이 실제 줄로 재현되고, 13행(컨테이너 재시작)은 hook 이벤트가 아니라 표현 불가 — 개발자 주장이 사실임을 백엔드 테스트 2개(`SessionStateMachineTest:212`·`LiveStateServiceTest:253`) **실재 확인**으로 입증. 나머지 요구 항목(AskUserQuestion·로비 2세션·정의 있는/없는 서브·워크플로우 밖·마스킹·순서 어긋남) 누락 0
+  - **뮤테이션으로 테스트 검출력 실증**(스크래치 사본): 중복 소속 `members` 비움 → 해당 테스트 실패 / showcase `settings.json` 수집 URL 변경 → hook 설정 테스트 실패 → `fixtures.test.mjs`가 껍데기가 아님을 증명
+  - `showcase.jsonl`이 `docs/ui/screens/02-workflows.png`의 로비 문구(`[세션 1]·작업 중`/`[세션 2]·입력 대기`)와 **글자까지 일치**함을 리뷰어가 PNG 원본을 열어 확인
+  - 계약 확인: 헤더·엔드포인트가 `api-spec.yaml:401,487`과 일치. `!response.ok` 일반화는 Done when 원문("비 2xx 시 exit 1")과 글자 그대로 일치하고 성공 응답이 `204`만 정의돼 회귀 위험 없음
+  - 보안: fixture placeholder 토큰이 실제 `.jaystudio/collect-token`과 **다름**을 직접 비교 확인 → Blocker 아님
+  - **[Minor] `tasks.md:779` `project-basic` 서술("에이전트 5, 스킬 2")이 실물(2·1)과 다름** — 리뷰어가 T-024 Done when(§8.2 E2E-01은 "이벤트 0건·워크플로우 0개"만 명시)까지 대조해 **개수 비의존** 확인 → **팀장이 실물 기준으로 정정 완료**
+  - 후속 Suggestion: api-spec `HookPayload.permission_mode`에 "backend 미사용" 한 줄 주석(architect 선택) / `runCli`(spawn)에 명시적 타임아웃 추가 → **T-FIX-07에 합류**
+  - 자원: Docker 0 · `./gradlew test` 0회 · 좀비 프로세스·잔여 포트 0 · `tools/fixtures/*` 원본 쓰기 0건(md5 불변)
+- 2026-09-26 팀장이 `CLAUDE.md` Commands **test 절에 `cd tools/replay && npm test` 추가**(Rules "적혀 있지 않은 명령으로 통과를 주장하지 않는다" 준수). 팀장이 직접 실행해 확인한 명령이다

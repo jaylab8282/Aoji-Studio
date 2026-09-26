@@ -1,0 +1,28 @@
+{"session_id":"sess-dev-lead","cwd":"/workspace","hook_event_name":"SessionStart","agent_type":"dev-lead","permission_mode":"default","source":"startup"}
+{"session_id":"sess-dev-lead","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"dev-lead","tool_name":"Edit","tool_input":{"file_path":".claude/agents/dev-lead.md"},"permission_mode":"acceptEdits"}
+{"session_id":"sess-dev-lead","cwd":"/workspace","hook_event_name":"PostToolUse","agent_type":"dev-lead","tool_name":"Edit","tool_input":{"file_path":".claude/agents/dev-lead.md"},"permission_mode":"acceptEdits"}
+{"session_id":"sess-dev-lead","cwd":"/workspace","hook_event_name":"PostToolUseFailure","agent_type":"dev-lead","tool_name":"Edit","tool_input":{"file_path":".claude/agents/dev-lead.md"},"reason":"disk full","permission_mode":"acceptEdits"}
+{"session_id":"sess-dev-lead","cwd":"/workspace","hook_event_name":"PermissionDenied","agent_type":"dev-lead","tool_name":"Edit","permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"dev-lead","tool_name":"AskUserQuestion","tool_input":{"description":"이 방향으로 진행할까요?"},"permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace","hook_event_name":"PermissionRequest","agent_type":"dev-lead","tool_name":"Bash","tool_input":{"command":"rm -rf build"},"permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace","hook_event_name":"Notification","agent_type":"dev-lead","notification_type":"permission_prompt","permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace","hook_event_name":"Notification","agent_type":"dev-lead","notification_type":"idle_timeout","permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace","hook_event_name":"Stop","agent_type":"dev-lead","permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace","hook_event_name":"SubagentStart","agent_id":"sub-defined-1","agent_type":"dev-member","permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace","hook_event_name":"SubagentStart","agent_id":"sub-undefined-1","agent_type":"Explore","permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace","hook_event_name":"SubagentStop","agent_id":"sub-defined-1","agent_type":"dev-member","permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace","hook_event_name":"SessionEnd","agent_type":"dev-lead","reason":"user_exit","permission_mode":"default"}
+{"session_id":"sess-ac3-member-a","cwd":"/workspace","hook_event_name":"SubagentStart","agent_id":"sub-ac3-a","agent_type":"dev-member","permission_mode":"default"}
+{"session_id":"sess-ac3-member-b","cwd":"/workspace","hook_event_name":"SubagentStart","agent_id":"sub-ac3-b","agent_type":"dev-member","permission_mode":"default"}
+{"session_id":"sess-ac3-member-b","cwd":"/workspace","hook_event_name":"PreToolUse","agent_id":"sub-ac3-b","agent_type":"dev-member","tool_name":"AskUserQuestion","tool_input":{"description":"승인할까요?"},"permission_mode":"default"}
+{"session_id":"sess-ac3-lead-a","cwd":"/workspace","hook_event_name":"SubagentStart","agent_id":"sub-ac3-lead-a","agent_type":"ops-lead","permission_mode":"default"}
+{"session_id":"sess-ac3-lead-b","cwd":"/workspace","hook_event_name":"SubagentStart","agent_id":"sub-ac3-lead-b","agent_type":"ops-lead","permission_mode":"default"}
+{"session_id":"sess-ac3-lead-b","cwd":"/workspace","hook_event_name":"Stop","agent_id":"sub-ac3-lead-b","agent_type":"ops-lead","permission_mode":"default"}
+{"session_id":"sess-lobby-a","cwd":"/workspace","hook_event_name":"SessionStart","permission_mode":"default","source":"startup"}
+{"session_id":"sess-lobby-a","cwd":"/workspace","hook_event_name":"UserPromptSubmit","permission_mode":"default"}
+{"session_id":"sess-lobby-b","cwd":"/workspace","hook_event_name":"SessionStart","permission_mode":"default","source":"startup"}
+{"session_id":"sess-lobby-b","cwd":"/workspace","hook_event_name":"PermissionRequest","tool_name":"AskUserQuestion","permission_mode":"default"}
+{"session_id":"sess-lobby-a","cwd":"/workspace","hook_event_name":"SubagentStart","agent_id":"sub-undefined-lobby","agent_type":"UnknownAgent","permission_mode":"default"}
+{"session_id":"sess-ops-member-mask","cwd":"/workspace","hook_event_name":"SessionStart","agent_type":"ops-member","permission_mode":"default","source":"startup"}
+{"session_id":"sess-ops-member-mask","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"ops-member","tool_name":"Bash","tool_input":{"command":"export TOKEN=abcd1234efgh5678 && curl -H 'Authorization: Bearer sk-liveSECRETvalue000' https://example.com"},"permission_mode":"default"}
+{"session_id":"sess-order-broken","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"freelancer","tool_name":"Grep","tool_input":{"pattern":"TODO"},"permission_mode":"default"}

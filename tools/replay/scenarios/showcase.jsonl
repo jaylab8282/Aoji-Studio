@@ -1,0 +1,22 @@
+{"session_id":"sess-lobby-1","cwd":"/workspace/JayStudio","hook_event_name":"SessionStart","permission_mode":"default","source":"startup"}
+{"session_id":"sess-lobby-1","cwd":"/workspace/JayStudio","hook_event_name":"UserPromptSubmit","permission_mode":"default"}
+{"session_id":"sess-lobby-2","cwd":"/workspace/JayStudio","hook_event_name":"SessionStart","permission_mode":"default","source":"startup"}
+{"session_id":"sess-lobby-2","cwd":"/workspace/JayStudio","hook_event_name":"PermissionRequest","tool_name":"AskUserQuestion","permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/JayStudio","hook_event_name":"SessionStart","agent_type":"dev-lead","permission_mode":"acceptEdits","source":"startup"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/JayStudio","hook_event_name":"PreToolUse","agent_type":"dev-lead","tool_name":"Edit","tool_input":{"file_path":".claude/agents/dev-lead.md"},"permission_mode":"acceptEdits"}
+{"session_id":"sess-dev-02","cwd":"/workspace/JayStudio","hook_event_name":"SessionStart","agent_type":"dev-02","permission_mode":"default","source":"startup"}
+{"session_id":"sess-dev-02","cwd":"/workspace/JayStudio","hook_event_name":"PreToolUse","agent_type":"dev-02","tool_name":"Read","tool_input":{"file_path":"README.md"},"permission_mode":"default"}
+{"session_id":"sess-dev-03","cwd":"/workspace/JayStudio","hook_event_name":"SessionStart","agent_type":"dev-03","permission_mode":"default","source":"startup"}
+{"session_id":"sess-dev-03","cwd":"/workspace/JayStudio","hook_event_name":"PreToolUse","agent_type":"dev-03","tool_name":"AskUserQuestion","tool_input":{"description":"승인할까요?"},"permission_mode":"default"}
+{"session_id":"sess-dev-04","cwd":"/workspace/JayStudio","hook_event_name":"SessionStart","agent_type":"dev-04","permission_mode":"default","source":"startup"}
+{"session_id":"sess-dev-05","cwd":"/workspace/JayStudio","hook_event_name":"SessionStart","agent_type":"dev-05","permission_mode":"default","source":"startup"}
+{"session_id":"sess-dev-05","cwd":"/workspace/JayStudio","hook_event_name":"PreToolUse","agent_type":"dev-05","tool_name":"Bash","tool_input":{"command":"export TOKEN=abc123secretXYZ"},"permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/JayStudio","hook_event_name":"SubagentStart","agent_id":"sub-showcase-defined","agent_type":"dev-07","permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/JayStudio","hook_event_name":"SubagentStart","agent_id":"sub-showcase-undefined","agent_type":"Explore","permission_mode":"default"}
+{"session_id":"sess-dev-06","cwd":"/workspace/JayStudio","hook_event_name":"SessionStart","agent_type":"dev-06","permission_mode":"default","source":"startup"}
+{"session_id":"sess-mkt-lead","cwd":"/workspace/JayStudio","hook_event_name":"SessionStart","agent_type":"mkt-lead","permission_mode":"default","source":"startup"}
+{"session_id":"sess-mkt-lead","cwd":"/workspace/JayStudio","hook_event_name":"PreToolUse","agent_type":"mkt-lead","tool_name":"Bash","tool_input":{"command":"npm run build"},"permission_mode":"default"}
+{"session_id":"sess-mkt-02","cwd":"/workspace/JayStudio","hook_event_name":"SessionStart","agent_type":"mkt-02","permission_mode":"default","source":"startup"}
+{"session_id":"sess-mkt-03","cwd":"/workspace/JayStudio","hook_event_name":"SessionStart","agent_type":"mkt-03","permission_mode":"default","source":"startup"}
+{"session_id":"sess-mkt-03","cwd":"/workspace/JayStudio","hook_event_name":"PostToolUse","agent_type":"mkt-03","tool_name":"Write","tool_input":{"file_path":"report.md"},"permission_mode":"default"}
+{"session_id":"sess-ops-01","cwd":"/workspace/JayStudio","hook_event_name":"SessionStart","agent_type":"ops-01","permission_mode":"default","source":"startup"}

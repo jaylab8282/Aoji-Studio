@@ -24,6 +24,7 @@
   - Backend: `cd backend && ./gradlew test`
   - Frontend: `cd frontend && npm test`
   - Helper: `cd helper && npm test`
+  - Tools(재생 도구·fixture 형식): `cd tools/replay && npm test`
 - lint / typecheck:
   - Frontend: `cd frontend && npm run lint && npm run typecheck`
   - Backend: `./gradlew build`에 컴파일 타입 검사 포함(별도 린터 없음, 확정 스택)

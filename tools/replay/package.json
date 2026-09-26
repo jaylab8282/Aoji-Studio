@@ -6,5 +6,11 @@
   "description": "JSONL 시나리오를 수집 주소로 순서대로 POST하는 개발 도구 (architecture.md §7).",
   "bin": {
     "jaystudio-replay": "./replay.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test"
   }
 }

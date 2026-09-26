@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "name": "video-team",
+  "description": "영상 워크플로우 (모두 대기 상태 시연)",
+  "lead": "video-lead",
+  "members": ["video-02", "video-03", "video-04"],
+  "createdAt": "2026-09-20T10:00:00+09:00",
+  "updatedAt": "2026-09-20T10:00:00+09:00"
+}

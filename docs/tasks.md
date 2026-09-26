@@ -770,13 +770,13 @@
 - 관련: A-17/ADR-42(07의 04-5 `설정 열기` 미표시)는 **T-FIX-08로 분리**한다 — fix round 1이 `screens/settings/CollectCard.tsx`·`SettingsScreen.test.tsx`를 동시에 고치는 중이라 같은 파일을 두 작업이 건드리지 않게 하고, 사용자 승인 판단(A-17)이 T-022 완료를 막지 않게 한다. A-18/ADR-43은 확정만이라 이 태스크 안에서 끝난다
 
 ## T-023 이벤트 재생 도구 · fixture 세트
-- Status: todo
+- Status: **done** — 리뷰 **PASS**(`docs/reviews/T-023.md`, Blocker 0 · Major 0 · Minor 1). Minor(위 `project-basic` 서술)는 팀장이 이 줄에서 정정 완료
 - Scope: Tools
 - FR: FR-003, FR-004
 - AC: FR-003-AC9
 - Errors: -
 - Screens: -
-- Tools: `tools/replay/replay.mjs`(`--url`, `--token-file`, `--delay-ms`, JSONL 순서 POST, 실제 hook 입력 필드), `scenarios/`: `states.jsonl`(FR-004-AC2 13행 + AC3 + AskUserQuestion + 로비 2세션 + 정의 없는 서브 + 정의 있는 서브 + 워크플로우 밖 + 마스킹 대상 + 순서 어긋남), `showcase.jsonl`(E2E-13 스크린샷용, 01·02·03 PNG와 유사한 상태 구성), `fixtures/`: `project-basic`(에이전트 5, 스킬 2, 워크플로우 0, settings.json 없음), `project-configured`(워크플로우 2, hook 설정 있음), `project-empty`, `project-no-agents-dir`, `project-format-errors`(5종 오류 + 깨진 참조 + 구성 파일 JSON 오류 + 중복 소속), `project-large`(에이전트 100·워크플로우 30·인원 7 이상 층), `project-showcase`
+- Tools: `tools/replay/replay.mjs`(`--url`, `--token-file`, `--delay-ms`, JSONL 순서 POST, 실제 hook 입력 필드), `scenarios/`: `states.jsonl`(FR-004-AC2 13행 + AC3 + AskUserQuestion + 로비 2세션 + 정의 없는 서브 + 정의 있는 서브 + 워크플로우 밖 + 마스킹 대상 + 순서 어긋남), `showcase.jsonl`(E2E-13 스크린샷용, 01·02·03 PNG와 유사한 상태 구성), `fixtures/`: `project-basic`(**실물: 에이전트 2·스킬 1**, 워크플로우 0, settings.json 없음 — T-001 scaffolder 산출물. 개수는 예시였고 Done when·T-024 어느 쪽도 개수에 의존하지 않아 실물을 기준으로 정정했다, T-023 리뷰 Minor), `project-configured`(워크플로우 2, hook 설정 있음), `project-empty`, `project-no-agents-dir`, `project-format-errors`(5종 오류 + 깨진 참조 + 구성 파일 JSON 오류 + 중복 소속), `project-large`(에이전트 100·워크플로우 30·인원 7 이상 층), `project-showcase`
 - Done when:
   - FR-003-AC9 — 단위 `replay.test [FR-003-AC9] 시나리오의 hook_event_name이 12종 안에만 있음`, `각 이벤트에 공통 필드 session_id·cwd·hook_event_name·permission_mode 존재`
   - 재생 도구 — 단위 `replay.test 순서대로 POST, 헤더 Content-Type·토큰, 비 2xx 시 exit 1`
