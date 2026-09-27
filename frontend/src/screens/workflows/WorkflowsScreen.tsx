@@ -126,7 +126,7 @@ export function WorkflowsScreen() {
         className="flex h-44 shrink-0 items-end justify-between bg-page px-page-x pb-8"
       >
         <ZoomControls zoom={zoom} onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} onZoomFit={handleZoomFit} />
-        <Minimap workflows={registry.workflows} scrollRef={scrollRef} />
+        <Minimap workflows={registry.workflows} scrollRef={scrollRef} zoom={zoom} />
       </div>
     </main>
   );

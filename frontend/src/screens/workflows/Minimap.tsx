@@ -7,7 +7,12 @@
  * 기준 컨테이너는 window가 아니라 **층 스크롤 영역**이다(ADR-23, ui-spec.md SCR-02 미니맵 행):
  * 테두리 위치 = `scrollTop / scrollHeight`, 높이 = `clientHeight / scrollHeight`(같은 좌표계 = 줌 배율이
  * 적용된 층 스크롤 영역 기준, 최소 4%). 클릭하면 층 스크롤 영역을 그 위치로 스크롤한다.
- * 정밀한 스크롤 동기화의 E2E 검증은 T-024 범위다.
+ *
+ * 줌(`zoom`)은 층 영역에 `transform: scale`로 걸리므로 배율이 바뀌면 층 스크롤 영역의 `scrollHeight`가
+ * 함께 바뀐다(`clientHeight`는 스크롤 컨테이너 자신의 크기라 그대로다). 그래서 `zoom`을 prop으로 받아
+ * 측정 effect의 의존성에 둔다 — 스크롤 이벤트가 없어도 배율 변경만으로 다시 계산된다(T-FIX-10,
+ * 이연 Minor T-015 m2: 예전에는 줌 아웃 시 브라우저의 `scrollTop` clamp가 내는 scroll 이벤트에 우연히
+ * 의존했다).
  */
 import { useEffect, useState, type MouseEvent, type RefObject } from "react";
 import type { Workflow } from "../../api/types";
@@ -20,6 +25,11 @@ interface MinimapProps {
   workflows: Workflow[];
   /** 층 스크롤 영역(04-6 목록·로비·층 그리드를 담는 자체 스크롤 컨테이너). */
   scrollRef: RefObject<HTMLDivElement | null>;
+  /**
+   * 현재 줌 배율(%). 층 영역의 `transform: scale`이 바뀌면 층 스크롤 영역의 `scrollHeight`도 바뀌므로
+   * 이 값이 뷰포트 재측정의 방아쇠다(ui-spec.md SCR-02 미니맵 행 "둘 다 zoom 배율이 적용된 값으로 통일").
+   */
+  zoom: number;
 }
 
 function agentCountOf(workflow: Workflow): number {
@@ -31,7 +41,7 @@ function blockClass(workflow: Workflow): string {
   return floorColumnSpan(agentCountOf(workflow)) === 3 ? "col-span-3 h-10" : "col-span-1 h-6";
 }
 
-export function Minimap({ workflows, scrollRef }: MinimapProps) {
+export function Minimap({ workflows, scrollRef, zoom }: MinimapProps) {
   const [viewport, setViewport] = useState({ top: 0, height: 100 });
 
   useEffect(() => {
@@ -47,6 +57,7 @@ export function Minimap({ workflows, scrollRef }: MinimapProps) {
       });
     }
 
+    // `zoom`이 바뀐 렌더의 커밋 뒤에 돌므로, 여기서 읽는 `scrollHeight`는 이미 새 배율이 반영된 값이다.
     updateViewport();
     scrollArea.addEventListener("scroll", updateViewport, { passive: true });
     window.addEventListener("resize", updateViewport);
@@ -54,7 +65,7 @@ export function Minimap({ workflows, scrollRef }: MinimapProps) {
       scrollArea.removeEventListener("scroll", updateViewport);
       window.removeEventListener("resize", updateViewport);
     };
-  }, [scrollRef, workflows]);
+  }, [scrollRef, workflows, zoom]);
 
   function handleClick(event: MouseEvent<HTMLDivElement>) {
     const scrollArea = scrollRef.current;
