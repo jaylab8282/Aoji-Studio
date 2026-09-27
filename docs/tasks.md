@@ -674,6 +674,24 @@
 - 하지 말 것: `docs/requirements_*`·`final_requirements_*`·`docs/ui/` 수정. 코드 수정(결정만 한다)
 - Depends on: -
 
+## A-22 (architect 확정 완료 2026-09-28 → ADR-46) 사용자 요청 UI 개선 3건 — hover·focus 규칙 / 01 대표 카드 활동 줄 / 01 실시간 이벤트 표 높이
+- Status: done (확정 완료) — 설계 문서 확정. **구현은 T-025**(Frontend + E2E 단언 갱신). 요구사항 변경 **0건**
+- Scope: architect 판단 → Frontend·Tools 반영
+- FR: FR-005-AC3·AC6·AC8(의미 변경 없음 — 새 AC 없음), FR-015-AC2, `docs/ui/ui-rules.md` 2·5·6·8, ui-spec §공통·SCR-01, conventions §7·§8
+- 출처: 사용자 요청 4건 중 3건(팀장이 확정 문서와 대조해 분류. 4번 "워크플로우 삭제 조건을 모달로"는 FR-017-AC1과 충돌해 `/planner`로 보냈다 — A-22 대상 아님)
+- 판단한 것과 확정 결과(ADR-46)
+  1. **버튼·사이드 탭 hover** — 요청: "사이드 탭 포함 모든 버튼에 마우스 호버링할 때 색이 바뀌는 등의 이벤트". 확정 문서에 hover 규정이 0건이고 구현도 2곳뿐이었다(`FeaturedWorkflows.tsx:39`·`Floor.tsx:143`, 둘 다 `hover:bg-selected`). 핵심 제약은 `bg/selected`가 "선택된 사이드 탭" 색이라 hover에 같은 값을 쓰면 선택과 구분되지 않는 것.
+     - **확정(ADR-46 A): 기존 토큰만으로 해결된다 — 새 토큰이 필요하지 않다.** hover 기본값 `bg/selected`, **선택 표시에 `bg/selected`를 쓰는 요소(사이드 탭·05-R 목록 행)만 hover `bg/soft`** → 밝기 순서가 기본(`chrome` 18,24,38) < hover(`soft` 23,31,46) < 선택(`selected` 29,39,56)으로 세 값 모두 구분된다(각 이동이 채널당 +5 이상). 상태 색 채움 variant(`primary`·`terminal`·`danger`)는 색 토큰을 교체하지 않고 `brightness-110` 한 단계. 텍스트 링크는 밑줄. 비활성·선택 항목·클릭 동작 없는 요소는 hover 없음. `:focus-visible`은 hover와 같은 표현 + 브라우저 기본 outline 유지(`outline-none` 금지). 색 전환만 `transition-colors duration-200`.
+     - 기각: 전부 `bg/soft`로 통일(카드·`bg/soft` 표면에서 채널당 +1~2라 보이지 않는다) / hover 토큰 신설(ADR-31·ADR-43과 같은 이유로 권한 밖) / 채움 버튼 hover 없음(요청의 주 동작 버튼이 빠진다).
+     - 기존 hover 2곳: **유지, 코드 변경 0건.** `design-tokens.md`의 `쓰는 곳` 열은 대표 용례이지 배타적 허용 목록이 아니라는 해석을 ui-spec §공통에 명문화했다.
+  2. **01 대표 카드 `최근 활동 · <요약>`이 길다** — 요약 제거는 `final_requirements_function.md:242`·`ui-spec.md:177` 변경이라 `/planner` 대상. **확정(ADR-46 B): 요약 유지 + CSS 한 줄 clamp(`truncate` + `min-w-0`) + `title` 전체 표시.** 글자 수 상수 방식 기각 — 새 확정 값(N)이 필요하고, DOM 텍스트를 자르면 `e2e-04.spec.ts:534`·`featuredWorkflows.test.ts`의 기존 단언이 깨진다. **`title`에 넣는 값도 이미 마스킹된 문자열이어야 한다**(FR-015-AC2, `ui-rules.md:52`)를 ui-spec·conventions MUST로 명시했다.
+  3. **01 실시간 이벤트 표 50줄** — 페이지네이션은 FR-005-AC6·범위 밖 목록과 어긋나 기각(팀장 반대 → 사용자 우회안 채택). **확정(ADR-46 C): 표를 `h-96`(384px, Tailwind 기본 스케일) 고정 높이 자체 스크롤 컨테이너에 넣고 `<thead>` sticky.** 50개 전부 DOM 유지 → AC6 유지, `최근 [N]개`의 N 불변. 새 높이 토큰·임의값 0건(ADR-43 선례). 접근성은 `tabIndex={0}` + `role="region"` + `aria-labelledby`(기존 제목) → 새 문구 0건.
+     - 부수 효과 확정: 기준 PNG와의 차이는 **ui-spec SCR-01에 "기준 PNG와의 확정된 차이" 목록을 신설**해 처리(표 높이·보이는 행 수·문서 총 높이는 대조 대상 아님). **E2E-13 01 캡처는 `fullPage` + "문서 높이 ≥ 1140" 단언을 버리고 "캡처 직전 뷰포트를 1440×1140으로 바꿨다 되돌리는 뷰포트 clip"으로 바꾼다**(문서가 1140px보다 짧아질 수 있다). 이 변경은 **T-024 Minor 4(사이드바 하단 `수집 상태` 카드가 프레임 밖)를 해소하는 방향**이며, 표 클램프 후에도 01 콘텐츠 높이가 1140px를 넘으면 그대로 남으므로 T-025가 문서 높이를 실측해 보고한다. A-21 항목 2(캡처 뷰포트 문구 정정)도 같은 사실 정정이라 함께 반영했다.
+- 사용자에게 보이는 변화: **있음**(항목별로 ADR-46에 적었다). 요약: hover·focus 피드백 신설, 대표 카드 활동 줄 한 줄 말줄임 + 툴팁, 01 이벤트 표가 약 10줄 고정 높이 + 내부 스크롤(01 화면이 400px 이상 짧아진다). **새 문구 0건 · 새 요소 0건 · 새 색·토큰 0건 · 계약 변경 없음**
+- 요구사항 의미 변경 여부: **없음.** FR·AC·E 문장 어느 것도 hover·말줄임·표 높이를 규정하지 않고, 표시하는 데이터·개수·문구가 그대로다
+- 하지 말 것: `docs/requirements_*`·`final_requirements_*`·`docs/ui/` 수정. `docs/ui/screens/*.png` 갱신(차이는 ui-spec 목록으로 처리)
+- Depends on: -
+
 ## T-FIX-08 07의 04-5에서 `설정 열기` 미표시 (ADR-42)
 - Status: done — **리뷰 PASS**(`docs/reviews/T-FIX-08.md`, Blocker 0·Major 0·Minor 2 → T-FIX-07)
 - Scope: Frontend
@@ -881,6 +899,36 @@
 - 정정(A-20 / **ADR-45**, 2026-09-27): **E2E 공개 포트 `4190` → `4185`.** `4190`은 WHATWG Fetch bad port(sieve)라 Node 전역 `fetch`를 쓰는 `tools/replay/replay.mjs`가 연결 시도조차 못 해 **E2E-04·E2E-13(재생 시나리오)이 실행 불가**였다. `compose.e2e.yaml`(`ports`·`JAYSTUDIO_PUBLIC_PORT`·`JAYSTUDIO_ALLOWED_ORIGINS`)·하네스 상수(`playwright.config.ts`·`lib/e2e-state.ts`·`tests/e2e-14.spec.ts`)·`CLAUDE.md`·`README.md`의 포트를 `4185`로 맞춘 뒤 3단계를 이어간다. `4191`(dry-run 도우미)·`4192`(다른 Origin 서버)는 bad port가 아니므로 그대로. `replay.mjs`는 **수정하지 않는다**(T-023 리뷰 PASS 유지). 운영 포트 `4180`·`4181`, FR 의미, 계약은 변화 없음
 - Depends on: T-014, T-015, T-016, T-017, T-018, T-019, T-021, T-022, T-023, T-FIX-06
 
+## T-025 UI 개선 3건 — hover·focus 표현 / 01 대표 카드 활동 줄 clamp / 01 실시간 이벤트 표 고정 높이 (A-22, ADR-46)
+- Status: todo
+- Scope: Frontend, Tools(E2E-13 캡처 방식·단언 갱신만)
+- FR: FR-005, FR-015 (**의미 변경 없음 — 새 AC·E 없음**), `docs/ui/ui-rules.md` 2·5·6·8
+- AC: 없음(기존 AC 유지. 회귀로 지켜야 하는 것: FR-005-AC3, FR-005-AC6, FR-005-AC8, FR-006-AC4, FR-015-AC2)
+- Errors: 없음
+- Screens: 공통(hover·focus 규칙), SCR-01, SCR-02, SCR-03, SCR-04-7, SCR-05-R, SCR-06, SCR-07 (hover는 공용 컴포넌트를 쓰는 전 화면에 걸린다)
+- Backend: 없음
+- Frontend
+  - **항목 1 (ADR-46 A, ui-spec §공통 "마우스 hover·키보드 `:focus-visible` 표현")** — 공용 컴포넌트에서만 구현한다: `components/ui/Button.tsx`(`secondary`·`add` → `hover:bg-selected focus-visible:bg-selected`, `primary`·`terminal`·`danger` → `hover:brightness-110 focus-visible:brightness-110`, **비활성일 때는 hover·focus 클래스를 붙이지 않는다**), `components/common/Sidebar.tsx`(비선택 탭 → `hover:bg-soft hover:text-text` + 같은 `focus-visible:`, 선택 탭은 변화 없음), `components/ui/Select.tsx`·`SearchInput.tsx`·`TextInput.tsx`·`TextArea.tsx`(`hover:bg-selected`). 화면 전용 클릭 영역만 그 화면에 둔다: `screens/home/FeaturedWorkflows.tsx:39`(현행 `hover:bg-selected` **유지**), `screens/workflows/Floor.tsx:143`(현행 유지), `screens/workflow-detail/Office.tsx` 비선택 칸, `dialogs/import-agents/ImportDialog.tsx` 비선택 목록 행. 텍스트 링크에는 `hover:underline`. 색 전환은 `transition-colors duration-200`만(이미 `Button`에 있다). `outline-none`을 쓰지 않는다
+  - **항목 2 (ADR-46 B, ui-spec SCR-01 "대표 카드 활동 줄")** — `screens/home/FeaturedWorkflows.tsx` 활동 줄에 `truncate` + 부모 flex 항목 `min-w-0` + `title={활동 줄 문자열}`. `lib/text.ts`의 `recentActivityLabel`·`lastActivityLabel`·`NO_ACTIVITY_TEXT`는 **바꾸지 않는다**(같은 문자열을 화면과 `title`에 함께 쓴다 = 이미 마스킹된 값). 글자 수 상수·`ellipsis.ts` 사용 금지
+  - **항목 3 (ADR-46 C, ui-spec SCR-01 "실시간 이벤트 표 영역")** — `screens/home/EventsTable.tsx`: `<table>`을 `h-96 overflow-y-auto` 컨테이너로 감싸고 `tabIndex={0}` + `role="region"` + `aria-labelledby`(카드 제목 `실시간 이벤트`에 `id` 부여), `<thead>`에 `sticky top-0 bg-card`. 문구·열·행 렌더 로직·`recentEventsSubtitle(N)`은 그대로
+- Tools: `tools/e2e/tests/e2e-13.spec.ts` `captureFrame`을 **뷰포트 clip 한 가지 방식**으로 바꾼다 — `fullPage`·`needsFullPage`·"문서 높이 ≥ 프레임 높이" 단언 제거, 기준 프레임이 기본 뷰포트(1024)보다 높은 화면(01)만 캡처 직전 `page.setViewportSize({width:1440, height:frame.height})` 후 원래 뷰포트로 되돌린다. 02·03은 동작 변화 없음. 실측 annotation에 **문서 높이와 사이드바 하단 `수집 상태` 카드가 프레임 안인지**를 남긴다(A-22 / ADR-46 C, T-024 Minor 4 판정 근거)
+- Done when
+  - 항목 1 값 규칙 — 단위 `Button.test [ADR-46 A] secondary·add → hover:bg-selected, primary·terminal·danger → hover:brightness-110, 다섯 variant 모두 focus-visible에 같은 표현`, `[ADR-46 A] disabled·disabledReason → hover·focus 클래스 없음`
+  - 항목 1 사이드 탭 구분 — 단위 `Sidebar.test [ADR-46 A] 비선택 탭 → hover:bg-soft + hover:text-text, 선택 탭 → hover 클래스 없고 bg-selected + border-running 유지`(선택과 hover가 다른 값임을 고정한다 — A-22 핵심 제약)
+  - 항목 1 입력·드롭다운 — 단위 `Select.test`·`SearchInput.test`·`TextInput.test`·`TextArea.test` 중 해당 컴포넌트에 `[ADR-46 A] hover:bg-selected` 단언(테스트 파일이 없는 컴포넌트는 새로 만든다)
+  - 항목 1 정적 단언 — 리뷰어 코드 확인 또는 정적 테스트: ① `frontend/src`에 `outline-none`·`focus:outline-none` 0건 ② 임의값 hover(`hover:bg-[`) 0건 ③ `hover:`·`focus-visible:` 클래스가 있는 파일이 **공용 컴포넌트 6개 + 화면 전용 4곳**뿐(conventions §7 MUST "공용 컴포넌트에서만")
+  - 항목 2 — 단위 `FeaturedWorkflows.test [ADR-46 B] 활동 줄에 truncate + title, title 문자열 = 화면 텍스트와 동일`, `[ADR-46 B][FR-015-AC2] summary에 ••••••••가 있으면 title에도 ••••••••가 들어가고 마스킹 전 원문 문자열은 DOM·title 어디에도 없다`
+  - 항목 3 — 단위 `EventsTable.test [ADR-46 C] 표 컨테이너에 h-96·overflow-y-auto·tabIndex=0·role=region·aria-labelledby(카드 제목 id), thead에 sticky`, `[ADR-46 C][FR-005-AC6] 이벤트 50개 fixture → 행 50개가 모두 렌더되고 최근 50개 · 전체 로그 화면 없음 문구 유지, 페이지네이션 요소 0개`
+  - **회귀 — 항목 1(전 화면 공용 컴포넌트 변경, T-013~T-022)**: `cd frontend && npm test` 통과 수가 T-024 시점(59 files / 359 tests)보다 **줄지 않는다**. 기존 테스트 삭제·skip·약화 0. 특히 className을 단언하는 기존 테스트(`Button.test`의 variant·비활성 표현 = ADR-29, `Sidebar`·`AppShell.test`의 선택 탭 표현, `Floor.test`·`FeaturedWorkflows.test`의 카드 테두리 = ADR-24)가 **그대로** 통과해야 한다
+  - **회귀 — 항목 2·3(01 화면 = T-014, E2E-04·E2E-13)**: `e2e-04.spec.ts:534`(`최근 활동 · 도구 실행 · Bash · <마스킹된 summary>` `toContainText`)와 `최근 [N]개 · 전체 로그 화면 없음` 단언 3곳(`e2e-01.spec.ts:113` N=0, `e2e-04.spec.ts:521`, `e2e-13.spec.ts:319`)은 **수정하지 않고 그대로 통과한다**(clamp는 DOM 텍스트를 보존하고 N도 변하지 않는다). `e2e-13.spec.ts:322`의 표 안 행 단언(`export TOKEN=••••••••`)도 `toBeVisible()` 기준이라 스크롤로 가려져도 통과한다 — 이 두 사실이 깨지면 구현이 규격과 다르다는 신호다
+  - **갱신이 필요한 테스트(전수)**: `tools/e2e/tests/e2e-13.spec.ts`의 `captureFrame` 하나뿐이다(캡처 방식·단언). 그 밖의 E2E spec·백엔드 테스트는 수정 대상이 아니다
+  - E2E-13 재실행 — `cd tools/e2e && ./scripts/run-e2e.sh`(또는 E2E-13 배치 단독)에서 캡처 4장이 기준과 같은 픽셀 크기(`01-home` 1440×1140 · `02-workflows` 1440×1020 · `03-workflow-detail` 1440×880 · `03-workflow-detail-collector-down` 1440×880)로 남고 9배치 전부 통과
+  - 화면 대조 — 리뷰어가 `docs/ui/screens/01-home.png`와 새 `01-home.png`를 대조해 **ui-spec SCR-01 "기준 PNG와의 확정된 차이" 2항(표 높이·행 수·문서 높이 / 활동 줄 말줄임) 밖의 요소 누락·추가·순서 차이가 없음**을 확인한다. 02·03 대조 결과는 T-024와 같아야 한다(hover·focus는 정적 캡처에 나타나지 않는다)
+  - T-024 Minor 4 판정 — E2E-13 annotation에 남은 01 문서 높이 실측값과 사이드바 하단 `수집 상태` 카드의 프레임 내부 여부를 리뷰 보고에 적는다(1140px 초과면 Minor 4가 남았다는 뜻이므로 그대로 보고한다)
+  - hover·focus 사람 확인 — 리뷰어가 실제 브라우저에서 사이드 탭(비선택/선택), 다섯 variant 버튼, 비활성 버튼, 드롭다운·입력창, 01 대표 카드, 02 책상 칸, 03 오피스 칸에 마우스를 올리고 Tab으로 이동해 ① 비선택 탭 hover가 선택 탭과 구분되는지 ② 비활성 버튼에 변화가 없는지 ③ 새 문구·새 색이 없는지를 확인한다
+  - `cd frontend && npm run lint && npm run typecheck` 통과
+- Depends on: T-024
+
 ---
 
 ## 사람 확인 항목 (Definition of Done, architecture §8.3)
@@ -901,7 +949,7 @@
 | FR-002 | AC1 T-003 · AC2 T-003, T-015 · AC3 T-010, T-019 · AC4 T-003 · AC5 T-003 · AC6 T-003 |
 | FR-003 | AC1 T-002, T-024(+H-4) · AC2 T-002, T-024 · AC3 T-005 · AC4 T-006 · AC5 T-006, T-015 · AC6 T-006, T-013 · AC7 T-005 · AC8 T-012(+H-2, H-5) · AC9 T-005, T-012, T-023 · AC10 T-005 · E1 T-005 · E2 T-005 |
 | FR-004 | AC1 T-006 · AC2 T-006, T-024(+H-2) · AC3 T-006 · AC4 T-006 · AC5 T-006 · AC6 T-007, T-024 · AC7 T-006, T-015 · E1 T-006 |
-| FR-005 | AC1 T-013, T-014 · AC2 T-013, T-014 · AC3 T-014 · AC4 T-014 · AC5 T-014, T-017 · AC6 T-006, T-007 · AC7 T-014 · AC8 T-014 · AC9 T-013 · AC10 T-014 · E1 T-014 |
+| FR-005 | AC1 T-013, T-014 · AC2 T-013, T-014 · AC3 T-014, T-025 · AC4 T-014 · AC5 T-014, T-017 · AC6 T-006, T-007, T-025 · AC7 T-014 · AC8 T-014, T-025 · AC9 T-013 · AC10 T-014 · E1 T-014 |
 | FR-006 | AC1~AC12 T-015 (AC5 T-013, AC11 T-003, AC12 T-015) · E1 T-015 · E2 T-015 · E3 T-015 |
 | FR-007 | AC1·AC2·AC4·AC7·AC8·AC9 T-016 · AC3 T-006, T-016 · AC5 T-006, T-016 · AC6 T-006, T-016 · E1 T-016 · E2 T-016 |
 | FR-008 | AC1·AC2 T-008 · AC3·AC4 T-017 · E1·E2·E3 T-008, T-017 |
@@ -911,6 +959,6 @@
 | FR-012 | AC1·AC3 T-019 · AC2·AC4 T-011 · AC5 T-011, T-019 · AC6 T-011, T-016 · E1·E2 T-011, T-019 |
 | FR-013 | AC1 T-012, T-020(+H-3), T-021, T-FIX-09 · AC2 T-012, T-020(+H-3) · AC3 T-015, T-FIX-09 · AC4 T-016 · AC5 T-012 · AC6 T-021, T-FIX-09 · AC7 T-020 · AC8 T-002 · AC9 T-021 · AC10 T-021 · AC11 T-020(+H-3) · E1 T-021 · E2 T-020, T-021 · E3 T-020, T-021 · E4 T-021 |
 | FR-014 | AC1 T-012, T-022 · AC2 T-012, T-022(+H-2) · AC3 T-003, T-022 · AC4 T-012, T-022 · AC5 T-021 · E1 T-001 |
-| FR-015 | AC1·AC2·AC3 T-005 |
+| FR-015 | AC1·AC3 T-005 · AC2 T-005, T-025(01 대표 카드 `title` 툴팁에도 마스킹된 값만 — ADR-46 B) |
 | FR-016 | AC1~AC4 T-013, T-024 |
 | FR-017 | AC1 T-008, T-015 · AC2·AC3·AC5 T-017 · AC4 T-008, T-016 · E1·E2 T-008, T-017 |

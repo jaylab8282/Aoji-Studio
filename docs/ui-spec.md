@@ -66,7 +66,7 @@
 | 이름 | 쓰는 화면 | 상태·규칙 |
 |---|---|---|
 | `AppShell` (사이드바 248px + 상단바 64px + 본문) | 01·02·03·07 | `Sidebar`(`bg-chrome`, 오른쪽 `border-border`) + `TopBar` + 본문. `Sidebar` 구성은 아래 행 |
-| `Sidebar` (01 PNG 좌측 기준, 01·02·03·07 동일) | 01·02·03·07 | **로고 영역**(위): 높이 `--height-header`(64px, `TopBar`와 수평 정렬) 안에 초록 로고 아이콘(28×28, `bg-running rounded-control`, 글리프 없음, `aria-hidden`) + 워드마크 `Jay Studio`(정적, `lib/text.ts` `APP_WORDMARK`, `text-section font-bold text-text`), 왼쪽 여백 16px. **탭 메뉴**: `홈`/`에이전트 워크플로우`/`설정` 세로 3개, 사이드바 안쪽 여백(inset, 좌우 12px)을 둔 둥근(`rounded-control`) 항목. 선택 탭 `bg-selected` + `text-text` + 왼쪽 초록 바(`border-l-4 border-running`); 비선택 `text-text-secondary`, 왼쪽 바 투명. 클릭 → 해당 라우트. **하단**: `CollectorStatus` 카드(아래 행). 로고·탭은 정적이라 빈/로딩/에러/연결 끊김 상태 없음 |
+| `Sidebar` (01 PNG 좌측 기준, 01·02·03·07 동일) | 01·02·03·07 | **로고 영역**(위): 높이 `--height-header`(64px, `TopBar`와 수평 정렬) 안에 초록 로고 아이콘(28×28, `bg-running rounded-control`, 글리프 없음, `aria-hidden`) + 워드마크 `Jay Studio`(정적, `lib/text.ts` `APP_WORDMARK`, `text-section font-bold text-text`), 왼쪽 여백 16px. **탭 메뉴**: `홈`/`에이전트 워크플로우`/`설정` 세로 3개, 사이드바 안쪽 여백(inset, 좌우 12px)을 둔 둥근(`rounded-control`) 항목. 선택 탭 `bg-selected` + `text-text` + 왼쪽 초록 바(`border-l-4 border-running`); 비선택 `text-text-secondary`, 왼쪽 바 투명. **비선택 탭의 hover·focus는 `bg-soft` + `text-text`이고 선택 탭에는 hover 표현이 없다**(아래 "마우스 hover·키보드 `:focus-visible` 표현" ②, ADR-46 A). 클릭 → 해당 라우트. **하단**: `CollectorStatus` 카드(아래 행). 로고·탭은 정적이라 빈/로딩/에러/연결 끊김 상태 없음 |
 | `CollectorStatus` (사이드 탭 하단 카드) | 전 화면 | `Sidebar` 하단에 붙는 카드(`rounded-card border border-border bg-card`, 사이드바 안쪽 여백 12px, 아래 16px). 제목 `수집 상태`(aux, muted), `snapshot.registry.hookConfigured` → `● hook 설정됨`(running 점) / `hook 설정 안 됨`(idle 점), `마지막 수신 <hh:mm:ss>` = `snapshot.live.lastReceivedAt`(null → `마지막 수신 없음`, aux faint). 로딩: 두 줄 스켈레톤 |
 | `TopBar` | 01·02·03·07 | 왼쪽 브레드크럼/제목 + 프로젝트 칩 `● 프로젝트 · <hostPath>`(`snapshot.config.hostPath`, mono, **01·02에만 표시한다. 03·07에는 칩을 두지 않는다** — ADR-30), 오른쪽 `127.0.0.1 전용`(정적, faint). 02는 오른쪽에 `Claude 열기 · 기본 세션` 버튼 추가. 칩 표시 여부는 화면(라우트)별 설정으로 넘기고 `TopBar`가 라우트를 직접 읽지 않는다. **`TopBar`는 04-2 공통 스켈레톤 밖이므로 여기 놓이는 스냅샷 의존 요소는 각자 로딩 표현을 갖는다**: 프로젝트 칩은 자체 스켈레톤, 02 `Claude 열기 · 기본 세션`은 비활성(아래 "값이 오기 전 버튼 상태", ADR-44) |
 | `DisconnectBanner` (04-3) | 전 화면 상단 | `connectionStore.state === 'disconnected'`일 때만. `실시간 연결이 끊겼습니다 · N초 후 재연결` + `지금 재연결`(secondary). 배경 `danger-soft`, 테두리 `danger-border`, 글자 `danger`. 아래 작은 줄 `마지막 갱신 <hh:mm:ss> 기준 화면 유지` |
@@ -74,7 +74,7 @@
 | `StatusDot` / `StatusLabel` | 전 화면 | 9~10px 사각, 모서리 `--radius-dot`(3px, `rounded-dot`), running은 `shadow-glow`. `StatusLabel` = 점 + 글자. 이 문서의 모든 `●` 상태 점(`CollectorStatus`, 01 KPI 4·`실시간 연결됨`, 02 범례, 03 04-4 배너·패널 `상태`, 07 `열기 도우미`·`hook 설정` 행)은 `StatusDot`으로 그린다. 03 오피스 캐릭터·02 책상은 상태 점이 없다(셔츠·모니터 색 + 상태 글자, pixel-sprites 기준). `TopBar` 프로젝트 칩의 `●`는 상태가 아닌 장식이라 이 규칙 대상이 아니다 |
 | `WorkflowChip` | 01·02·03 | `lib/derive/workflowChip.ts`: waiting>0 → `권한 대기 N명`(waiting-soft 배경·waiting 글자) / running>0 → `실행 중 N명`(running-soft·running) / 둘 다 0 → `모두 대기`(bg-selected·text-secondary). **우선순위: 권한 대기가 있으면 권한 대기 칩**(01 PNG 카드 2) |
 | `workflowCardBorder` (파생 규칙, 컴포넌트 아님) | 01 대표 카드·02 층 카드 | `lib/derive/workflowCardBorder.ts`: 입력 `{ running, waiting, leadMissing }` → 테두리 토큰. 우선순위 **① `leadMissing` → `danger-border` ② `running > 0` → `running-border` ③ `waiting > 0` → `waiting` ④ 그 외 → `border/default`**. `leadMissing`은 02 층 카드만 `true`가 될 수 있고 01은 항상 `false`를 넘긴다. 칩(`WorkflowChip`)은 waiting 우선, 테두리는 running 우선으로 서로 다르다(ADR-24). 상태를 색으로만 알리는 표시가 아니라 카드 안 요약·칩 글자가 상태를 말한다(conventions §3) |
-| `Button` | 전 화면 | variant `primary`/`terminal`/`secondary`/`add`/`danger`. **비활성(`disabledReason` 또는 `disabled`)일 때는 variant의 채움 배경과 강조 테두리 색을 모두 지우고**(배경 투명, 테두리 `border/dashed` 점선) faint 글자만 남긴다. 이유 줄은 아래 "비활성 버튼의 이유 줄"(ADR-35)이 지정한 지점에서만 `disabledReason`으로 옆에 붙는다. 즉 비활성은 variant 표현 위에 덧칠하는 상태가 아니라 variant 표현을 대체하는 여섯 번째 표현이다(ui-rules 2 표의 `비활성` 행, ADR-29). 비활성 버튼은 variant와 무관하게 모두 같은 모양이다 |
+| `Button` | 전 화면 | variant `primary`/`terminal`/`secondary`/`add`/`danger`. **비활성(`disabledReason` 또는 `disabled`)일 때는 variant의 채움 배경과 강조 테두리 색을 모두 지우고**(배경 투명, 테두리 `border/dashed` 점선) faint 글자만 남긴다. 이유 줄은 아래 "비활성 버튼의 이유 줄"(ADR-35)이 지정한 지점에서만 `disabledReason`으로 옆에 붙는다. 즉 비활성은 variant 표현 위에 덧칠하는 상태가 아니라 variant 표현을 대체하는 여섯 번째 표현이다(ui-rules 2 표의 `비활성` 행, ADR-29). 비활성 버튼은 variant와 무관하게 모두 같은 모양이다. **hover·focus 표현은 아래 "마우스 hover·키보드 `:focus-visible` 표현"(ADR-46 A)이 variant별로 정한다 — `secondary`·`add`는 `bg-selected`, `primary`·`terminal`·`danger`는 `brightness-110`, 비활성은 변화 없음** |
 | `Dialog` | 05·06 | 가운데 모달, 배경 dim, `bg-card` 12px, ESC·`취소`로 닫기. 04-3 배너는 모달 뒤 화면 상단에 그대로. **폭은 `size` 두 단계뿐이다(ADR-40): `md`(기본, `max-w-md` 448px) = 05-L·05-3·06-5·06-6·`HelperMissingDialog`·`ConfirmByNameDialog` / `lg`(`max-w-3xl` 768px) = 목록 표·다열 폼이 들어가는 05-R·06 폼.** Tailwind 기본 스케일 값이며 새 폭 토큰도 임의값(`max-w-[…]`)도 쓰지 않는다. 두 단계 밖의 폭이 필요하면 구현이 정하지 말고 architect에 확정을 요청한다 |
 | `FormatErrorList` (04-6) | 02 | 아래 SCR-04-6 |
 | `AgentsDirMissing` (04-5) | 01·02·07 | 아래 SCR-04-5. **`설정 열기` 버튼은 01·02에서만 그린다(07에서는 그리지 않는다 — ADR-42).** 표시 여부는 화면이 prop으로 넘기고 컴포넌트가 라우트를 직접 읽지 않는다(ADR-30과 같은 방식) |
@@ -156,6 +156,27 @@
   - 07 `테스트로 열기` — 도우미 확인이 끝나기 전(`확인 중…`) 비활성, `명령 복사` — `GET /api/settings` 값이 오기 전 비활성.
   - 사이드바 탭·04-3 `지금 재연결`은 스냅샷 값을 쓰지 않으므로 로딩 중에도 활성이다(이 규칙의 대상이 아니다).
 
+### 마우스 hover·키보드 `:focus-visible` 표현 (ADR-46 A)
+
+**한 줄 규칙: 클릭·이동할 수 있는 요소는 hover와 `:focus-visible`에서 표면이 한 단계 밝아진다. 밝기 순서는 언제나 기본 < hover < 선택이고, 새 색 값·새 토큰은 만들지 않는다.** 이 절이 전 화면의 hover 규정이며 **화면별 요소 표에는 hover를 적지 않는다**(중복·불일치 방지).
+
+| 부류 | 대상(전수) | hover·`:focus-visible` 표현 |
+|---|---|---|
+| ① 어두운 배경 토큰 표면 또는 배경 없는 클릭 영역 | `Button` `secondary`·`add`, 아이콘 버튼(02 줌 `+`·`−`·`맞춤`, 03 `‹`, 검색), 드롭다운(`<select>`: 02 층 선택, 05-R 대상 워크플로우, 06 모델·소속), 입력창(`TextInput`·`SearchInput`·`TextArea`), 01 대표 워크플로우 카드(카드 전체 클릭 영역), 02 층 안 책상 칸, 03 오피스 칸(비선택), 04-7 점선 카드의 버튼 | 배경을 **`bg/selected`**로 바꾼다 (`hover:bg-selected focus-visible:bg-selected`) |
+| ② 선택 표시에 `bg/selected`를 쓰는 요소 | 사이드 탭(비선택 항목), 05-R 목록 행(비선택 행) | 배경을 **`bg/soft`**로 바꾼다. 사이드 탭은 글자도 `text/secondary` → `text/primary`로 올린다. 선택 항목(`bg/selected` + 왼쪽 초록 바)과 값이 달라 구분된다 |
+| ③ 상태 색 채움을 가진 `Button` variant | `primary`(`bg/running`), `terminal`(`running-soft`), `danger`(`danger-soft`) | 색 토큰을 **교체하지 않고** `brightness-110` 한 단계만 준다. `design-tokens.md`에 더 밝은 초록·빨강·진한 옅은 채움이 없고, 다른 토큰으로 바꾸면 variant·상태 의미가 바뀐다 |
+| ④ 텍스트 링크 | `text/link` 글자(01 `전체 보기 →`, 02 `워크플로우 밖 에이전트 [N] · 가져오기`, 04-1 `설정 화면`, 04-6 `정상 파일은 수정 팝업에서 편집 →`) | 밑줄을 더한다(이미 밑줄이면 변화 없음). 색은 바꾸지 않는다(더 밝은 링크 토큰이 없다) |
+
+- **hover 표현이 없는 것(전수)**
+  - **비활성 버튼**(`disabled` 또는 `disabledReason`): variant와 무관하게 hover 변화 없음. 이유: 눌리지 않는 컨트롤의 피드백은 거짓 정보다(`docs/ui/ui-rules.md` 2).
+  - **선택된 항목**: 사이드 탭 선택 항목, 05-R 선택 행, 03 선택된 오피스 칸(running 테두리 + running-soft 배경). 이유: 선택이 최종 상태이고 `bg/selected`보다 밝은 배경 토큰이 없다.
+  - **클릭 동작이 없는 요소**: 01 실시간 이벤트 표 행(행 클릭 없음)·KPI 카드·상태 막대, 칩·배지(`WorkflowChip`·`팀장` 배지), 배너(04-3·04-4), 02 로비 항목, 02 층 카드 자체(층 헤더 버튼만 클릭), 03 정의 없는 서브에이전트 작은 캐릭터·`빈 자리` 칸, 07 값 행. 이유: hover 피드백은 "클릭할 수 있다"는 신호라서 없는 동작을 기대하게 만든다.
+- **전환(transition)**: 배경·글자·테두리 **색** 변화에만 `transition-colors duration-200`을 쓴다(§공통 `Button`이 이미 갖고 있다). ③의 `brightness`와 ④의 밑줄에는 전환을 두지 않는다.
+- **`:focus-visible`**: 위 표의 hover와 **같은** 표현을 쓰고 브라우저 기본 outline을 **지우지 않는다**(`outline-none`·`focus:outline-none` 금지). focus ring 색·굵기 토큰이 `design-tokens.md`에 없으므로 새로 정의하지 않는다(ADR-31과 같은 이유).
+- **`bg/selected` 사용에 대한 해석**: `docs/ui/design-tokens.md`의 `쓰는 곳` 열("선택된 사이드 탭")은 **대표 용례이지 배타적 허용 목록이 아니다**. `ui-rules.md` 머리말이 정한 제약은 "`design-tokens.md`의 값만 쓴다"이며, 기존 토큰을 hover에 쓰는 것은 새 값을 만드는 행위가 아니다. 그래서 이미 이 값을 쓰는 두 곳(01 대표 카드, 02 책상 칸)은 **규정 위반이 아니라 위 ①의 선례**이며 그대로 둔다.
+- **구현 위치**: 공용 컴포넌트에서 처리하고 화면 파일에 흩뿌리지 않는다(`Button`, `Sidebar`, `Select`·`SearchInput`·`TextInput`·`TextArea`). 화면 전용 클릭 영역(01 대표 카드, 02 책상 칸, 03 오피스 칸, 05-R 목록 행)만 그 화면 컴포넌트에 두고 값은 위 표에 있는 것만 쓴다.
+- hover·focus는 **새 문구·새 요소·새 색을 만들지 않으므로** `docs/ui/screens/*.png`(포인터 없는 정적 상태) 대조 결과를 바꾸지 않는다.
+
 ---
 
 ## SCR-01 홈 (`/`)
@@ -174,12 +195,29 @@
 | KPI 4 `수집 상태` `● hook 설정됨`/`hook 설정 안 됨` + `마지막 수신 [hh:mm:ss]` | `registry.hookConfigured`, `live.lastReceivedAt` | `lastReceivedAt` null → `마지막 수신 없음` | 스켈레톤 | - | 유지 | - |
 | 상태 막대 `에이전트 상태 hook 이벤트 기준` + 범례 `작업 중 [N]` `입력·권한 대기 [N]` `대기 [N]` + 3색 막대 | `counts.ts` 3상태 수 (합 = `agentCount`, FR-005-AC2). 막대 비율 = 각 수 / agentCount | `everReceived=false` → 막대 전체 idle색, 범례 `대기 N` (04-1은 이벤트 표 영역에) | 스켈레톤 | 04-5면 숨김 | 유지 | - |
 | 섹션 제목 `에이전트 워크플로우` + `대표 3개 · 실행 중 에이전트가 있는 워크플로우 → 최근 활동순` + 오른쪽 `전체 보기 →` | 정적 | - | - | - | - | `전체 보기 →` → `/workflows` |
-| 대표 워크플로우 카드 ×3: 이름, 칩, 설명, `에이전트 [N] · 스킬 [N]`, `최근 활동 · <요약>` 또는 `마지막 활동 · <yyyy-mm-dd hh:mm>`, `워크플로우 보기 →`(카드 전체 클릭) | `featuredWorkflows.ts`(FR-005-AC3): `registry.workflows` × `live.agents` 상태·`lastEvent.at`. 이름 `workflow.name`, 설명 `workflow.description`, 에이전트 = lead+members 수, 스킬 = `registry.skillCount`(FR-005-AC4), 최근 활동 = 소속 에이전트 `lastEvent` 중 최신 `title · summary`(running/waiting 있을 때) / `마지막 활동 · at`(모두 대기) / `활동 없음`. 카드 테두리: `workflowCardBorder.ts` 공통 규칙(ADR-24) — running>0 → `running-border` / running=0·waiting>0 → `waiting` / 그 외 → `border/default`. **01 대표 카드는 팀장 없음을 표시하지 않으므로 danger 분기를 쓰지 않는다**(`leadMissing: false` 고정, 01 PNG에 해당 표현 없음). 테두리는 칩과 달리 running이 waiting보다 우선한다 | `workflows.length === 0` → 04-7 카드 1장 (FR-005-AC5) | 카드 3장 스켈레톤 | - | 유지 | 카드·`워크플로우 보기 →` → `/workflows` |
+| 대표 워크플로우 카드 ×3: 이름, 칩, 설명, `에이전트 [N] · 스킬 [N]`, `최근 활동 · <요약>` 또는 `마지막 활동 · <yyyy-mm-dd hh:mm>`, `워크플로우 보기 →`(카드 전체 클릭) | `featuredWorkflows.ts`(FR-005-AC3): `registry.workflows` × `live.agents` 상태·`lastEvent.at`. 이름 `workflow.name`, 설명 `workflow.description`, 에이전트 = lead+members 수, 스킬 = `registry.skillCount`(FR-005-AC4), 최근 활동 = 소속 에이전트 `lastEvent` 중 최신 `title · summary`(running/waiting 있을 때) / `마지막 활동 · at`(모두 대기) / `활동 없음`. 카드 테두리: `workflowCardBorder.ts` 공통 규칙(ADR-24) — running>0 → `running-border` / running=0·waiting>0 → `waiting` / 그 외 → `border/default`. **01 대표 카드는 팀장 없음을 표시하지 않으므로 danger 분기를 쓰지 않는다**(`leadMissing: false` 고정, 01 PNG에 해당 표현 없음). 테두리는 칩과 달리 running이 waiting보다 우선한다. **활동 줄(`최근 활동 · <요약>` 등)은 한 줄 clamp + `title`로 표시한다** — 아래 "대표 카드 활동 줄"(ADR-46 B) | `workflows.length === 0` → 04-7 카드 1장 (FR-005-AC5) | 카드 3장 스켈레톤 | - | 유지 | 카드·`워크플로우 보기 →` → `/workflows` |
 | 실시간 이벤트 카드 제목 `실시간 이벤트` + `최근 [N]개 · 전체 로그 화면 없음` + 오른쪽 `● 실시간 연결됨` | N = `recentEvents.length`(≤50). 연결 표시 = `connectionStore.state` (`connected` → running 점 `실시간 연결됨`, 그 외 `연결 끊김` idle 점) | - | 스켈레톤 | - | `연결 끊김` 표시 | - |
-| 실시간 이벤트 표: 열 `시각` `워크플로우` `에이전트` `이벤트` `요약` | `snapshot.recentEvents[]` (FR-005-AC6 최신순 50): `at`→hh:mm:ss(mono faint), `workflow ?? '-'`(FR-005-AC7), `agentLabel`(mono), `title`(kind `permission`/`permission-denied`는 waiting 색, `tool`·`tool-done`은 running 색 도구명, 그 외 secondary), `summary`(mono, 이미 마스킹됨 FR-005-AC8) | `everReceived=false` → 표 대신 04-1 (FR-005-E1) | 행 5개 스켈레톤 | - | 유지 | 행 클릭 없음 |
+| 실시간 이벤트 표: 열 `시각` `워크플로우` `에이전트` `이벤트` `요약`. **고정 높이 자체 스크롤 영역 안에 놓고 머리 행은 sticky다** — 아래 "실시간 이벤트 표 영역"(ADR-46 C) | `snapshot.recentEvents[]` (FR-005-AC6 최신순 50): `at`→hh:mm:ss(mono faint), `workflow ?? '-'`(FR-005-AC7), `agentLabel`(mono), `title`(kind `permission`/`permission-denied`는 waiting 색, `tool`·`tool-done`은 running 색 도구명, 그 외 secondary), `summary`(mono, 이미 마스킹됨 FR-005-AC8) | `everReceived=false` → 표 대신 04-1 (FR-005-E1) | 행 5개 스켈레톤 | - | 유지 | 행 클릭 없음 |
 | 표 하단 각주 `token·key·password 등 기본 패턴은 ••••••••로 가림` | 정적 | - | - | - | - | - |
 
 - 비활성 요소: 없음. 표 행 클릭·원문 보기 없음(Out of Scope: 전체 로그 화면).
+
+- **대표 카드 활동 줄 (ADR-46 B)**
+  - 활동 줄은 **한 줄 clamp**이다: 요소 폭을 넘으면 한 줄에서 잘리고 `…`가 붙는다(`truncate` = `overflow-hidden` + `text-ellipsis` + `whitespace-nowrap`, 부모 flex 항목에 `min-w-0`). 글자 수 상수를 두지 않는다 — 카드가 3열 그리드라 폭이 변하고, `docs/ui/ui-rules.md:37`의 12자 기준은 고정폭 `name` 전용 확정값이다.
+  - 마우스를 올리면 `title` 속성으로 전체 문자열을 보여준다(`ui-rules.md:37`의 "말줄임 + 마우스를 올리면 전체"와 같은 형태).
+  - **`title`에 넣는 값은 화면에 보이는 것과 같은 문자열, 즉 서버가 이미 마스킹해 보낸 `lastEvent.title`·`summary`로 만든 활동 줄 그대로다. 마스킹 전 원문을 얻는 경로를 만들지 않는다**(FR-015-AC2, FR-005-AC8). 따라서 `ui-rules.md:52`("가리기 전 원문은 마우스 오버로도 보여주지 않는다")를 위반하지 않는다 — 툴팁 문자열에도 `••••••••`가 그대로 들어 있다.
+  - 같은 요소가 쓰는 `마지막 활동 · <yyyy-mm-dd hh:mm>`·`활동 없음`도 같은 처리다(짧아 실제로는 잘리지 않는다). **실시간 이벤트 표의 `요약` 열은 이 규칙의 대상이 아니다.**
+
+- **실시간 이벤트 표 영역 (ADR-46 C)**
+  - 표(`<table>`)를 감싸는 **자체 스크롤 컨테이너**를 둔다: 높이 `h-96`(384px, Tailwind 기본 스케일) 고정 + `overflow-y-auto`. 새 높이 토큰도 임의값(`h-[380px]`)도 쓰지 않는다(ADR-43과 같은 방식). 행 높이 ≈ 36~37px이라 **머리 행 1줄 + 본문 9~10줄**이 보인다.
+  - `recentEvents` 50개는 전부 DOM에 있고 스크롤로 모두 접근한다(FR-005-AC6 유지). 페이지네이션·가상 스크롤·행 접기·`전체 로그` 이동을 만들지 않는다. 카드 제목 옆 `최근 [N]개 · 전체 로그 화면 없음`의 N(= `recentEvents.length`)은 변하지 않는다.
+  - 머리 행(`<thead>`)은 `sticky top-0` + 배경 `bg/card`(카드와 같은 토큰)로 스크롤 중에도 보인다. 이것은 같은 표의 머리 행이므로 conventions §7 MUST가 금지한 "스크롤되는 콘텐츠 위에 `fixed`·`sticky`로 덮는 보조 컨트롤"(02 줌·미니맵, ADR-23)에 해당하지 않는다.
+  - 접근성: 스크롤 컨테이너에 `tabIndex={0}`(키보드 화살표·PageUp/Down 스크롤) + `role="region"` + `aria-labelledby`로 **기존** 카드 제목 `실시간 이벤트`를 가리킨다. `aria-label`에 새 문장을 쓰지 않는다. 포커스 표시는 §공통 hover·focus 규칙대로 브라우저 기본 outline을 유지한다. 표 행에는 hover 표현이 없다(행 클릭 없음).
+  - 02 층 스크롤 영역(ADR-23)과 같은 용어를 쓰되, 02는 뷰포트 높이에 맞춘 `flex:1; min-height:0`이고 01은 **고정 높이**다(01 본문은 일반 흐름이다). `position: fixed` 오버레이 금지는 01에도 적용된다.
+
+- 기준 PNG(`docs/ui/screens/01-home.png`, 1440×1140)와의 확정된 차이 — 화면 대조 시 결함으로 보지 않는다(ADR-46. SCR-02·SCR-03·SCR-05-R·SCR-07의 같은 목록과 형식·효력이 같다). **이 목록에 없는 요소 누락·추가·순서 차이는 그대로 결함이다.**
+  1. **실시간 이벤트 표의 높이와 동시에 보이는 행 수**: 기준 PNG는 5행 목업이 그대로 늘어난 모습이지만 구현은 `h-96` 고정 높이 + 내부 스크롤이다(위 항, ADR-46 C). 대조 기준은 **카드 제목·부제·연결 표시·열 구성(5열)·행 내용·각주**이고, 표 영역 높이·보이는 행 수·01 문서 총 높이는 대조 대상이 아니다.
+  2. **대표 카드 활동 줄의 말줄임**: 기준 PNG의 활동 줄은 카드 폭에 맞는 짧은 목업 문자열이라 잘리지 않는다. 구현은 폭을 넘으면 한 줄에서 자른다(위 항, ADR-46 B). 잘림 여부는 데이터 길이에 달렸으므로 대조 대상이 아니다.
 
 ---
 
