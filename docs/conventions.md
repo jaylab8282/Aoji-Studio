@@ -133,6 +133,7 @@
 - MUST `MaskerTest`는 FR-015-AC1의 키워드 10종과 접두 4종(`sk-`, `ghp_`, `xox[abp]-`, `AKIA`)을 각각 검증한다.
 - MUST 프론트 컴포넌트 테스트는 스토어에 fixture 스냅샷을 넣고 렌더링해 문구·비활성·이유를 검증한다. `fetch`·`EventSource`는 테스트에서만 대체한다.
 - MUST E2E는 실제 컨테이너(`tools/e2e/compose.e2e.yaml`)와 dry-run 도우미로 실행하고, Server·Frontend를 목킹하지 않는다. `page.route`로 `/api/**`를 가로채지 않는다. 이유: Integration Verification.
+- MUST 자동 검증용으로 호스트에 공개하는 포트(E2E 공개 포트 `4185`, dry-run 도우미 `4191`, 다른 Origin 서버 `4192`)는 **WHATWG Fetch "bad port"(blocked ports) 목록에 있는 값을 쓰지 않는다**. 특히 `4190`(sieve)은 쓰지 않는다. 새 포트를 추가하면 그 목록에 없는지 확인하고 architecture §8.1에 적는다. 이유: Node 전역 `fetch`(undici)는 bad port를 **연결 시도 없이** 즉시 거부하므로(`fetch failed / cause: bad port`) `tools/replay/replay.mjs`·하네스 같은 Node 도구가 서버가 정상인데도 절대 성공하지 못한다(ADR-45).
 - MUST E2E-13 스크린샷은 뷰포트 1440×(1140|1020|880)로 `tools/e2e/screenshots/01-home.png` 등에 저장한다. 이유: 리뷰 대조.
 - MUST 성능 테스트: FR-001-AC3(변경→SSE p95 < 1.5s, 100회), FR-003-AC3(수집 응답 p95 < 100ms, 1000회), NFR-02 목록 API(에이전트 100·워크플로우 30 fixture에서 `GET /api/state` < 1s)는 통합 테스트로 측정하고 결과 수치를 테스트 로그에 남긴다.
 - SHOULD 커버리지 수치 목표는 두지 않는다. AC·E ID 연결이 기준이다.

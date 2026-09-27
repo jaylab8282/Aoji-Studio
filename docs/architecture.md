@@ -285,7 +285,7 @@ LiveState {
 | 정의·구성 파일 | `/workspace` 파일 I/O | `tools/fixtures/*`를 임시 폴더(`mktemp -d`)로 복사해 마운트·`JAYSTUDIO_MOUNT_PATH`로 지정 | 환경 변수·compose override. 실제 `JayStudio/.claude`는 자동 구간에서 절대 사용하지 않음 |
 | macOS Terminal | 도우미 `osascript` (`spawn`, 인자 배열) | 도우미 `--dry-run`: 검증까지 수행하고 실행 대신 stdout에 `DRY-RUN <command>` 1줄 기록, 204 응답. 단위 테스트는 `openTerminal` 함수 주입 | CLI 플래그. 기본은 실행. launchd plist에는 `--dry-run`을 넣지 않는다 |
 | launchd | `install.sh`가 plist 생성 + `launchctl bootstrap` | `plist.mjs`의 순수 함수로 plist 문자열 생성만 테스트 | 설치·제거는 사람이 실행 |
-| Docker Desktop | compose | E2E는 `tools/e2e/compose.e2e.yaml`(fixture 마운트, 포트 `127.0.0.1:4190`, 볼륨 `jaystudio-e2e-data`) | 별도 compose 파일 |
+| Docker Desktop | compose | E2E는 `tools/e2e/compose.e2e.yaml`(fixture 마운트, 포트 `127.0.0.1:4185`, 볼륨 `jaystudio-e2e-data`) | 별도 compose 파일 |
 
 ### 7.1 hook 설정 예시 (07 `설정 예시 복사`가 생성, FR-014-AC2)
 
@@ -325,9 +325,9 @@ LiveState {
 
 | 구성요소 | 기동 방식 | 비고 |
 |---|---|---|
-| Server + Frontend | `docker compose -f tools/e2e/compose.e2e.yaml up -d --build` (같은 Dockerfile, fixture 임시 폴더 마운트, `127.0.0.1:4190`, `JAYSTUDIO_HELPER_URL=http://127.0.0.1:4191`) | Frontend는 컨테이너가 제공하는 빌드 결과를 실제 브라우저(Chromium)로 사용 |
-| 열기 도우미 | `node helper/jaystudio-helper.mjs --dry-run --port 4191 --project-dir <fixture> --allowed-origins http://127.0.0.1:4190 --token-file <fixture>/.jaystudio/helper-token` | 검증·CORS·응답은 실제, 터미널만 dry-run |
-| hook 입력 | `node tools/replay/replay.mjs --url http://127.0.0.1:4190/hooks/events --token-file <fixture>/.jaystudio/collect-token scenarios/<name>.jsonl` | 실제 수집 경로 |
+| Server + Frontend | `docker compose -f tools/e2e/compose.e2e.yaml up -d --build` (같은 Dockerfile, fixture 임시 폴더 마운트, 공개 `127.0.0.1:4185:4180`, `JAYSTUDIO_PUBLIC_PORT=4185`, `JAYSTUDIO_ALLOWED_ORIGINS=http://127.0.0.1:4185`, `JAYSTUDIO_HELPER_URL=http://127.0.0.1:4191`) | Frontend는 컨테이너가 제공하는 빌드 결과를 실제 브라우저(Chromium)로 사용. E2E 공개 포트는 `4185`다(**`4190`은 쓰지 않는다** — WHATWG Fetch bad port, ADR-45) |
+| 열기 도우미 | `node helper/jaystudio-helper.mjs --dry-run --port 4191 --project-dir <fixture> --allowed-origins http://127.0.0.1:4185 --token-file <fixture>/.jaystudio/helper-token` | 검증·CORS·응답은 실제, 터미널만 dry-run |
+| hook 입력 | `node tools/replay/replay.mjs --url http://127.0.0.1:4185/hooks/events --token-file <fixture>/.jaystudio/collect-token scenarios/<name>.jsonl` | 실제 수집 경로. `replay.mjs`는 Node 전역 `fetch`를 쓰므로 대상 포트가 bad port가 아니어야 한다(ADR-45) |
 | 파일 변경 | Playwright 테스트가 fixture 임시 폴더의 파일을 직접 쓰고 삭제 | FR-001-AC3 |
 
 ### 8.2 E2E 시나리오 (User Scenarios·Integration Verification 기준)
@@ -341,14 +341,14 @@ LiveState {
 | E2E-05 | 04-3 재연결: 컨테이너 `pause` → 배너·카운트다운(5→10) → `unpause` → 배너 사라지고 스냅샷 갱신. `지금 재연결` 즉시 시도 | FR-016-AC1~AC4 |
 | E2E-06 | 04-5·04-6: `project-no-agents-dir` → 01·02·07 04-5, `다시 읽기`로 복구(01·02의 04-5에는 `설정 열기`가 있고 07의 04-5에는 없다 — ADR-42) / `project-format-errors` → 02 04-6 목록(5종 + 깨진 참조 + 구성 파일 오류), 형식 오류 파일 수정 시도 → 06 열리지 않음 | FR-001-AC4·E1, FR-002-AC1~AC6, FR-006-E1·E2, FR-011-E3 |
 | E2E-07 | 외부 변경 감지: fixture에 정의 파일·구성 파일 추가·수정·삭제 → 2초 이내 02 반영 | FR-001-AC3, FR-004-AC6(파일 측) |
-| E2E-08 | 다른 Origin 차단: Playwright가 `http://127.0.0.1:4192`에 띄운 정적 페이지에서 `fetch('http://127.0.0.1:4190/api/workflows', POST)`·`EventSource` → 실패. 토큰 없는 수집 → 401. `curl`(Origin 없음) → 403 | FR-003-AC1·AC2, 인증 규칙 |
+| E2E-08 | 다른 Origin 차단: Playwright가 `http://127.0.0.1:4192`에 띄운 정적 페이지에서 `fetch('http://127.0.0.1:4185/api/workflows', POST)`·`EventSource` → 실패. 토큰 없는 수집 → 401. `curl`(Origin 없음) → 403 | FR-003-AC1·AC2, 인증 규칙 |
 | E2E-09 | 터미널 열기: dry-run 도우미로 02 `Claude 열기` → stdout `DRY-RUN cd "<fixture>" && claude`; 03 `팀장 호출` → `--agent <lead>`; 도우미 정지 → 미설치 안내·`명령 복사`; 잘못된 토큰 파일 → 403 표시; 팀장 없음 → 비활성 | FR-013-AC1·AC2·AC4·AC6·AC9·AC10·E1·E2·E4 |
 | E2E-10 | 워크플로우 삭제: 인원 있는 층 `삭제` 비활성 → 인원 0 → 05-3 → 이름 입력 → 삭제 → 층 사라짐, 열려 있던 03 탭은 `찾을 수 없습니다` | FR-017-AC1~AC4·E1, FR-007-E2 |
 | E2E-11 | 07 설정: 값 표시, `설정 예시 복사` JSON을 fixture `settings.json`에 쓰면 `hook 설정됨`, `명령 복사`, `테스트로 열기` | FR-014-AC1~AC5, FR-013-AC5 |
 | E2E-12 | 02 줌·미니맵·검색·드롭다운·30개 워크플로우 상단 바 | FR-006-AC6~AC8 |
 | E2E-13 | 스크린샷: `project-showcase` fixture + `showcase.jsonl` 재생 후 01·02·03을 1440 폭으로 캡처해 `tools/e2e/screenshots/`에 저장 | DoD 화면 대조(리뷰어) |
-| E2E-14 | `scripts/check-port.sh`: `docker compose port`가 `127.0.0.1:` 접두 | NFR-04, DoD |
-| E2E-15 | 진입 주소 정규화(ADR-41): `http://localhost:4190/workflows?x=1`로 열면 주소가 `http://127.0.0.1:4190/workflows?x=1`로 바뀌고, 이어서 워크플로우 추가(POST)가 403 없이 성공한다. 정규화 후 요청에 실리는 `Origin` 값은 `http://127.0.0.1:4190` 하나뿐이다. 접속 자체가 되지 않으면(브라우저가 `localhost`를 `::1`로만 해석) 테스트를 `skip`하지 말고 원인을 기록해 architect에 확인을 요청한다 | ADR-41, FR-008-AC4, 인증 규칙 |
+| E2E-14 | `scripts/check-port.sh`: `docker compose port`가 `127.0.0.1:` 접두(E2E 배치에서는 `127.0.0.1:4185`) | NFR-04, DoD |
+| E2E-15 | 진입 주소 정규화(ADR-41): `http://localhost:4185/workflows?x=1`로 열면 주소가 `http://127.0.0.1:4185/workflows?x=1`로 바뀌고, 이어서 워크플로우 추가(POST)가 403 없이 성공한다. 정규화 후 요청에 실리는 `Origin` 값은 `http://127.0.0.1:4185` 하나뿐이다. 접속 자체가 되지 않으면(브라우저가 `localhost`를 `::1`로만 해석) 테스트를 `skip`하지 말고 원인을 기록해 architect에 확인을 요청한다 | ADR-41, FR-008-AC4, 인증 규칙 |
 
 ### 8.3 사람 확인 항목 (final 문서 Definition of Done과 동일)
 
@@ -674,7 +674,7 @@ LiveState {
 - 결정: **(b) + (d) 채택, (a)·(c) 기각.**
   - (b) 채택 이유: ① 확정 진입 주소가 이미 `127.0.0.1:<포트>` 하나다(final 문서 User Scenarios 1 "`127.0.0.1:<포트>`에 접속한다", `docs/ui/screen-flow.md` `앱 접속 127.0.0.1:<포트>`) — 정규화는 요구사항을 바꾸는 것이 아니라 확정 진입 주소를 강제한다. ② 서버·도우미·수집 주소·07 표시값이 모두 `127.0.0.1` 하나를 전제로 하므로, 화면이 어느 주소로 열려도 뒤따르는 모든 요청이 한 Origin으로 통일된다(도우미 403 함정까지 같이 사라진다). ③ 허용 목록·바인딩·토큰 규칙을 하나도 건드리지 않아 NFR-04·DoD "다른 Origin 차단"과 무관하다. ④ 루프가 없다: 정규화 후 `hostname === '127.0.0.1'`이면 조건이 거짓이다. 포트·스킴·경로를 바꾸지 않으므로, 이미 연결에 성공한 소켓과 같은 곳으로 간다(`localhost`가 IPv4로 해석됐기 때문에 접속이 됐다는 사실 자체가 `127.0.0.1:<포트>`의 도달 가능성을 보장한다).
   - (a) 기각 이유: ① 도우미를 고치지 않으면 함정의 절반만 사라지는데, 도우미 기본값은 FR-013-AC7이 값까지 확정한 AC라 바꾸면 **확정 요구사항 수정**이 된다. ② `http://localhost:<포트>`는 보안상 우리 앱 자신과 같은 주체이지만(그 포트를 점유한 프로세스는 우리뿐이다), 허용 목록은 틀리면 바로 구멍이 되는 지점이라 "확정 진입 주소 하나"라는 최소 상태를 유지하는 편이 낫다. ③ 확정 진입 주소가 둘이 되면 북마크·문서·07 표시값·사람 확인 절차(H-1·H-4)가 두 주소로 갈린다. ④ `http://[::1]:<포트>`는 어차피 넣을 이유가 없다: compose가 `127.0.0.1:`(IPv4)만 공개하므로 `[::1]`로는 연결 자체가 안 되고, 브라우저는 `localhost`를 `::1`로 해석해 접속하더라도 `Origin`에 사용자가 입력한 호스트명(`localhost`)을 그대로 쓴다. 넣으면 절대 오지 않을 값이 허용 목록에 남는다.
-  - (c) 기각 이유: 안내 줄은 확정 문서에 없는 화면 요소·문구를 새로 만들어야 하고(ui-spec 공통 영역 신설), 사용자는 안내를 읽고 주소를 직접 고쳐야 한다. (b)가 같은 상황을 사람 개입 없이 끝낸다. `publicOrigin` 비교 기반 리다이렉트도 기각한다: 포트가 다른 배치(E2E `4190`)에서 잘못된 주소로 튕길 수 있어 (b)의 "호스트명만 바꾼다"보다 위험하다.
+  - (c) 기각 이유: 안내 줄은 확정 문서에 없는 화면 요소·문구를 새로 만들어야 하고(ui-spec 공통 영역 신설), 사용자는 안내를 읽고 주소를 직접 고쳐야 한다. (b)가 같은 상황을 사람 개입 없이 끝낸다. `publicOrigin` 비교 기반 리다이렉트도 기각한다: 포트가 다른 배치(E2E `4185`, ADR-45)에서 잘못된 주소로 튕길 수 있어 (b)의 "호스트명만 바꾼다"보다 위험하다.
   - (d) 채택 이유: (b)가 덮는 것은 `localhost`·`[::1]` 두 별칭뿐이다. 그 밖의 경로(호스트명을 직접 바꾼 접속 등)에서 403이 뜨면 화면에는 서버 `message`만 남으므로(conventions §4 MUST "message를 가공 없이 표시"), 복구 방법은 `message` 안에 있어야 한다. FR-008 오류 매핑에 403이 없어 생긴 공백을 서버 문구 한 줄로 메운다. 프론트에 403 전용 분기를 만들지 않는다.
 - 확정 문구(신설): `허용되지 않은 출처입니다 · <publicOrigin> 주소로 다시 접속하세요` — `<publicOrigin>`은 서버가 치환해 완성 문장으로 보낸다(ADR-33 (a) 치환). **확정 문서(`final_requirements_function.md`, `docs/ui/`)에 같은 뜻의 문장이 없어 신설이며, 사용자 승인 전에는 구현하지 않는다**(T-FIX-05, E-004·E-005 선례).
 - 정규화 규칙(구현 기준): `lib/origin.ts`에 순수 함수 `canonicalHref(href: string): string | null`(스킴이 `http:`이고 `hostname`이 `localhost` 또는 `[::1]`이면 호스트명만 `127.0.0.1`로 바꾼 href, 그 밖이면 `null`)과 `redirectToCanonical(loc: Location): boolean`(`canonicalHref`가 값을 주면 `loc.replace(...)` 후 `true`)을 둔다. `main.tsx`는 `createRoot`·렌더·첫 API 호출보다 먼저 `redirectToCanonical(window.location)`을 호출하고 `true`면 렌더하지 않는다. `location`을 인자로 받으므로 단위 테스트가 가짜 객체로 검증한다. `0.0.0.0`은 정규화 대상에 넣지 않는다(conventions §6 MUST가 코드에 `0.0.0.0` 문자열을 금지한다 — 이 경우는 (d)의 안내 문구가 담당).
@@ -740,3 +740,31 @@ LiveState {
 - 사용자에게 보이는 변화: **있음** — 02 진입 직후(정상 경로 수십 ms, 실패 경로에서는 더 길게) `Claude 열기 · 기본 세션`이 점선·faint 비활성 모양(ADR-29)으로 보이고 첫 스냅샷이 오면 secondary 활성으로 바뀐다. 새 문구 0건, 새 요소 0건, 새 색·토큰 0건, 라벨·배치·클릭 동작 변화 0건. `docs/ui/screens/02-workflows.png`는 스냅샷을 받은 뒤의 화면이라 대조 결과가 달라지지 않는다. 확정 문서(ui-spec)가 지정한 상태 값을 바꾸는 결정이므로 **사용자 승인 대상 여부는 팀장이 판단한다**(E-004·E-005·E-006, ADR-42 선례).
 - 요구사항 의미 변경 여부: **없음.** FR-013-AC1(기본 세션 명령 문자열)·AC3(02에 버튼 하나뿐)·AC6(도우미 요청 본문)은 그대로다. 로딩 중에는 애초에 `helperUrl`이 없어 호출이 일어나지 않았으므로 **호출이 가능한 순간의 동작은 하나도 바뀌지 않는다**.
 - 영향: ui-spec §공통 "값이 오기 전 버튼 상태"(신설)·SCR-02 요소 표 `Claude 열기` 행 `로딩` 열·SCR-07 `테스트로 열기` 행 `로딩` 열, conventions §3 Frontend MUST 1건 추가·§7 MUST 1건 추가, tasks.md A-19·**T-FIX-09**·추적 매트릭스. **ADR-35의 이유 줄 지정 목록은 바뀌지 않는다**(이유 줄을 붙이지 않는 비활성이다). **계약 변경 없음** — `api-spec.yaml`·`realtime-spec.md`·ui-spec 데이터 출처 열은 건드리지 않는다.
+
+### ADR-45 E2E 공개 포트를 `4190` → `4185`로 바꾼다 (Node `fetch` bad port, A-20, 2026-09-27)
+
+- 배경(팀장 재현, 2026-09-27, Node v24.9.0): §8.1이 지정한 재생 명령 `node tools/replay/replay.mjs --url http://127.0.0.1:4190/hooks/events …`이 **구조적으로 성공할 수 없었다**. `replay.mjs`는 Node 전역 `fetch`(undici)를 쓰고, `4190`은 WHATWG Fetch 표준의 **"bad port"(blocked ports) 목록**(sieve / ManageSieve)에 있다. undici는 요청을 보내기 전에 포트를 검사해 **연결 시도조차 하지 않고** 즉시 거부한다.
+  - 실측: `fetch('http://127.0.0.1:4190/x')` → `fetch failed | cause: bad port`(연결 시도 없음) / `fetch('http://127.0.0.1:4185/x')`·`fetch('http://127.0.0.1:4180/x')` → `connect ECONNREFUSED`(정상적으로 연결 시도).
+  - 서버는 정상이었다: 컨테이너 기동 상태에서 `curl -X POST http://127.0.0.1:4190/hooks/events` → **204**. 브라우저 쪽 충실도 문제도 없다: Playwright Chromium은 `4190`을 정상 처리했고(`page.goto`·in-page `fetch`·`EventSource`·request 컨텍스트 모두 성공, 하네스 25개 통과) 우회 플래그(`--explicitly-allowed-ports`)도 쓰지 않았다. **문제는 Node 전송 계층 하나로 한정된다.**
+  - 영향 범위: E2E-04(`states.jsonl` 재생)·E2E-13(`showcase.jsonl` 재생 후 스크린샷) 실행 불가. 브라우저 조작만 하는 시나리오와 이미 완성된 하네스(globalSetup·E2E-08·E2E-14·격리 테스트)는 영향 없다.
+- 선택지
+  - (a) **E2E 공개 포트를 bad port 목록에 없는 값(`4185`)으로 바꾼다.**
+  - (b) 재생만 Node 전송 계층을 갈아끼워 실행한다(`replay.mjs` 무수정, 하네스에 전용 전송 구성요소 추가).
+  - (c) `replay.mjs`를 `node:http`로 다시 쓴다.
+- 결정: **(a) 채택. `tools/e2e/compose.e2e.yaml` 공개 포트를 `127.0.0.1:4185:4180`으로, `JAYSTUDIO_PUBLIC_PORT`·`JAYSTUDIO_ALLOWED_ORIGINS`를 `4185` 기준으로 바꾼다.**
+  - (a) 채택 이유
+    1. **요구사항 밖의 값이다.** `4190`은 `final_requirements_*.md`에 한 번도 나오지 않고 설계가 정한 E2E 전용 공개 포트다(운영 `4180`·`4181`, dev `8080`·`5173`은 확정 값이며 **전부 bad port 목록 밖이라 영향 없다**). 따라서 요구사항 변경이 아니고 사용자에게 보이는 동작도 바뀌지 않는다.
+    2. **원인을 고치는 유일한 선택지다.** bad port는 "우리 도구가 우회할 대상"이 아니라 표준이 정한 금지 목록이고, 목록은 **늘어나는 방향으로만 개정된다**. 포트를 옮기면 `replay.mjs`뿐 아니라 앞으로 붙일 모든 Node 기반 도구(전역 `fetch`를 쓰는 것이 기본값이다)가 한 번에 안전해진다. (b)·(c)는 `replay.mjs` 한 곳만 구제하고 같은 함정을 다음 도구에 남긴다.
+    3. **리뷰 통과한 이음새를 건드리지 않는다.** `replay.mjs`는 T-023에서 리뷰 PASS됐고 단위 테스트가 `fetchImpl` 주입을 이음새로 쓴다. (c)는 그 이음새와 테스트를 다시 설계해야 하고, 통과한 코드를 원인과 무관한 이유로 고치는 변경이 된다. (b)는 설계 문서에 없는 구성요소를 하네스에 하나 늘려 §8.1의 "실제로 띄워 연결하는 구성요소" 목록과 실제 하네스가 어긋난다.
+    4. 변경 표면이 값 하나다: compose 3줄 + 문서 + 하네스 상수. 코드 로직 변경 0건.
+  - (b)·(c) 기각 이유: 위 2·3. 추가로 (b)는 "재생만 다른 전송 계층"이라 재생 경로가 나머지 하네스와 달라지고, 전송 계층 차이 때문에 생기는 실패를 앞으로 디버깅할 때 원인 후보가 하나 늘어난다.
+- **포트 선택 근거 (bad port 전수 확인)**: WHATWG Fetch blocked ports 목록에서 4000번대는 `4045`(lockd)·`4190`(sieve) 둘뿐이다. 새 값 **`4185`는 목록에 없고**(팀장 실측: `connect ECONNREFUSED` = 정상 연결 시도), 함께 쓰는 **`4191`(dry-run 도우미)·`4192`(다른 Origin 정적 서버)도 목록에 없다** — 둘은 그대로 둔다. `4185`는 `418x` 대역을 유지해 운영 `4180`·`4181`과 같은 계열로 읽히면서 값이 겹치지 않는다. E2E 포트는 개발 머신에서 비어 있기만 하면 되고, 점유돼 있으면 `compose up`이 실패해 조용히 넘어가지 않는다.
+- 기존 기록과의 정합성 (함께 정리한다)
+  - "실제 브라우저로 `4190`을 검증했다"는 팀장 기록·`docs/progress.md`·`docs/reviews/*`의 `4190` 언급은 **지난 실행의 사실 기록이므로 고치지 않는다**. 그 기록의 결론(브라우저·서버는 `4190`에서 정상)은 이 ADR의 근거로 그대로 살아 있고, 포트를 옮기는 이유는 브라우저가 아니라 **Node 도구** 때문이다. 앞으로의 실행 기준 포트는 이 ADR 이후 `4185`다.
+  - ADR-41의 "포트가 다른 배치(E2E `4190`)" 문구는 `4185`로 정정했다. 정규화 규칙 자체(`canonicalHref`는 **호스트명만** 바꾸고 포트·경로·쿼리·해시를 유지)는 포트 값과 무관하므로 바뀌지 않는다.
+  - `frontend/src/lib/origin.test.ts`(`4190`을 'E2E 포트' 예시 데이터로 사용)와 `helper/test/cors.test.mjs`(`parseAllowedOrigins`의 `4190` 예시)는 **테스트가 여전히 옳고 그대로 통과한다** — 둘 다 "포트를 바꾸지 않는다"·"문자열을 그대로 다룬다"를 검증하는 예시 값일 뿐 실제 접속을 하지 않는다. 주석의 `E2E 포트` 표현만 사실과 어긋나므로 문구 정정은 **선택 사항**이며, 이 ADR은 코드 수정을 요구하지 않는다.
+  - `tools/e2e/lib/harness-utils.ts`가 bad port를 피해 `node:http`를 쓰는 것은 포트를 옮긴 뒤에도 **그대로 두면 된다**(동작에 문제 없음). 주석의 이유 설명만 사실과 달라지므로 문구 정정은 선택 사항이다.
+- 사용자에게 보이는 변화: **없음.** 운영 공개 포트(`4180`)·도우미 포트(`4181`)·수집 주소·`publicOrigin`·07 표시값·허용 Origin 규칙·바인딩 규칙(`127.0.0.1:` 접두, NFR-04)이 전부 그대로다. 바뀌는 것은 개발 머신에서만 뜨는 E2E 컨테이너의 호스트 공개 포트 하나다.
+- 요구사항 의미 변경 여부: **없음.** `4190`은 확정 문서에 없는 값이고, FR·AC·E·NFR 문장 어디도 E2E 포트를 지정하지 않는다. E2E-04·E2E-13·E2E-15가 검증하는 AC·E 목록은 그대로다.
+- 영향: architecture §7(Docker Desktop 행)·§8.1(Server+Frontend·열기 도우미·hook 입력 3행)·§8.2(E2E-08·E2E-14·E2E-15)·ADR-41 문구, conventions §8 MUST 1건 신설(자동 검증 포트는 bad port 목록 밖에서 고른다), tasks.md **T-024**(Tools·Done when의 포트 문구). **계약 변경 없음** — `api-spec.yaml`·`realtime-spec.md`는 운영 포트(`4180`·`4181`)와 dev(`8080`)만 참조하고 `4190`이 없으며, ui-spec은 포트를 `<포트>` 자리값으로만 쓴다(SCR-07 `수집 주소` 행은 `settings.collectUrl` 출처). 엔드포인트·메시지·필드 0건 변경.
+- 팀장이 고칠 파일(architect 권한 밖): `tools/e2e/compose.e2e.yaml`(`ports`·`JAYSTUDIO_PUBLIC_PORT`·`JAYSTUDIO_ALLOWED_ORIGINS`), `CLAUDE.md` Commands e2e의 `E2E_BASE_URL`, `README.md` e2e 절, 하네스 상수(`tools/e2e/playwright.config.ts`·`lib/e2e-state.ts`·`tests/e2e-14.spec.ts`).
