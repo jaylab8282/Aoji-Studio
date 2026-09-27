@@ -2,7 +2,14 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **T-FIX-09 in_progress** (2026-09-27 이어서 진행). 이번 세션 정지 지점(사용자 지시): **T-FIX-09 구현 → 리뷰 PASS → 커밋까지**
+- Current: **T-024 done · 커밋 완료** (2026-09-27). 이번 세션 정지 지점(사용자 지시) **달성** — T-024 구현 → 리뷰 PASS → 커밋까지
+  - 다음 순서(사용자 확정): **T-FIX-04 → A-16 → T-FIX-07 → Integration → Final Report**. A-21(T-024 리뷰에서 나온 architect 판단 3건)은 **A-16 처리 시점에 함께** 보는 것을 권한다
+  - **사용자 판단이 필요한 항목 1건(A-21 3번)**: 책상 pitch가 기준 PNG와 다르다(가로 −11px, 세로 +17px). 원인 후보 `--spacing-card`가 01·02·03 공유 토큰이라 값 변경은 **사용자에게 보이는 변화**다 → architect 판단 후 (b)안이면 사용자 승인 필요
+  - (이전) T-024 in_progress. 팀장이 3단계로 나눠 진행
+  - T-FIX-09는 **done·커밋 완료**(`b5707ef`). 워킹트리 깨끗한 상태에서 T-024 착수
+  - 팀장이 T-024를 **3단계로 분할**(태스크 분할 권한): ① 하네스(globalSetup·compose·도우미 dry-run·4192 Origin 서버·E2E-08·E2E-14·격리 테스트) ② E2E-01·02·03·06·07·10 ③ E2E-04·05·09·11·12·13·15. 리뷰는 3단계가 모두 끝난 뒤 T-024 전체로 한 번 받는다
+  - 팀장이 `progress.md`에만 있던 **이연 Minor 5건을 tasks.md T-024 `추가` 절로 옮겨 적음**(T-015 m5·m1 pitch 실측 / m6 13자 이름 / m2 미니맵 줌 / D-032 04-4 변형 캐처 / T-FIX-03 m4 뷰포트 1440×1024 통일)
+- (이전) Current: **T-FIX-09 in_progress** (2026-09-27). 정지 지점: T-FIX-09 커밋까지 → **달성**
   - 진행 순서 확정(사용자): T-FIX-09 → T-024 → T-FIX-04 → A-16 → T-FIX-07 → Integration → Final Report
   - **도우미 설치(H-3)는 T-FIX-04 이후**다 — T-020 리뷰 지적대로 설치 절차가 아직 어느 문서에도 없어 지금은 사람이 H-3를 수행할 방법이 없고, T-FIX-04 Done when이 그 절차 문서화를 포함한다
   - T-024 착수 시: Docker 빌드 캐시(22GB, 전부 RECLAIMABLE)는 **재사용**한다(사용자가 '지금은 그대로 두기' 선택, 2026-09-25)
@@ -90,6 +97,22 @@
 - 2026-09-23 사용자 지시로 보류. T-017은 시작하지 않음
 
 ## Decisions
+- D-060 T-024 리뷰 **Minor 8건을 전부 후속으로 돌리고 T-024·T-FIX-10을 커밋** — 리뷰어가 Blocker·Major **0건**으로 판정했고 8건 모두 ① 실해 없음이 확인되었거나(Minor 1은 리뷰어가 금지 패턴을 직접 돌려 위반 0건, Minor 2·4·5는 다른 테스트가 이미 덮는다) ② 문서 기준 위반이 아니거나(Minor 3 — ui-spec이 재측정 시점을 정하지 않는다) ③ 문구·주석 정정이다. Minor 7(stale 주석)은 **팀장이 직접 정리**했고(사소한 정리 범위), 나머지는 Tools·Frontend → **T-FIX-07**, 설계 판단 2건 → **A-21**로 배정했다 / T-024, T-FIX-10, T-FIX-07, A-21
+- D-061 리뷰어 뮤테이션 **M4 미검출(호출처 배선)을 수정 라운드 없이 T-FIX-07로 넘김** — T-FIX-10 Done when의 "E2E만으로 두지 않는다"는 **컴포넌트 재계산 고정**을 뜻하고 그건 M1·M2·M3으로 실증됐다. 배선 축은 E2E-12가 실제로 덮고 있어(현재 통과) 실해가 없으며, **같은 계열 항목(ADR-42 호출처 probe M11)이 이미 T-FIX-07에 있어** 한 번에 처리하는 편이 회귀 확인 범위가 좁다. 다만 "단위 테스트를 통과한 채 새어나온다"는 이번 사건의 교훈이 배선 축에도 적용되는 것은 사실이므로 **T-FIX-07에서 반드시 처리**한다 / T-FIX-10, T-FIX-07
+- D-062 **책상 pitch 실측 결과를 코드 수정 없이 A-21로 올림** — 팀장·리뷰어 독립 실측이 일치했다(가로 span-1 74.84~75.0 vs 기준 86~87, span-3 118.0 vs 123.0, 세로 109 vs 92). 원인 후보 `--spacing-card`는 **01·03과 공유하는 토큰**이라 값 변경이 세 화면을 바꾸는 **사용자에게 보이는 변화**다 → Decision Authority상 팀장이 임의로 못 정한다. T-015가 이 차이를 알고 PASS된 이력과 리뷰어 동의("토큰 변경은 T-024 범위 밖")도 근거 / T-015, T-024, A-21
+- D-063 **T-015 m6(13자 이름 번짐)은 해소로 판정** — 실측상 칩 폭 56.7px < 열 폭 74.84px, 좌우 여유 9.06·9.08px, 겹침 0건이고, 리뷰어가 `DeskSprite.tsx`에 `overflow-hidden`·`max-width`·`text-overflow`가 **없음**을 확인해 "클리핑 때문에 안 보이는 것"이 아님을 증명했다. 말줄임(12자+…)을 먼저 단언한 뒤 재는 구조도 확인됨. 단 리뷰어가 **더 넓은 요소는 상태 줄**임을 지적해 그 측정은 Minor 6으로 T-FIX-07에 남긴다 / T-015, T-024, T-FIX-07
+- D-057 T-024 ③c가 검출한 **미니맵 줌 미반응을 T-FIX-10으로 신설해 T-024 커밋 전에 고친다** — ① 빨간 스위트로는 T-024를 PASS·커밋할 수 없다 ② `ui-spec.md:215`가 "둘 다 zoom 배율이 적용된 값으로 통일"을 **MUST로 확정**했고 `Minimap.tsx:34`가 `zoom`을 받지 않는 것을 팀장이 코드로 확인해 **결함이 확정적**이다 ③ 계약 변경이 아니므로 T-015를 `todo`로 되돌리지 않는다(**D-031 선례**). 개발자가 테스트를 약화시키지 않고 결함을 그대로 드러낸 판단이 옳다 / T-015, T-024, T-FIX-10
+- D-058 ③c의 **배치 순서 변경(결함 배치를 맨 뒤로)을 승인** — `run_batch`가 실패 시 즉시 `exit 1`이라 결함 배치를 앞에 두면 뒤 배치가 아예 실행되지 않는다. 결함 있는 배치를 9번으로 옮겨 **한 번의 실행으로 나머지 8배치 전부를 검증**하게 한 것은 타당하고, 테스트 내용은 그대로이며 결함이 고쳐지면 순서를 바꾸지 않고 전체가 통과한다. 스크립트 주석에 이유도 남겼다 / T-024
+- D-059 E2E-05에만 `test.setTimeout(240_000)`을 쓰는 것을 승인 — `playwright.config.ts`의 30초를 **전역으로 늘리지 않았고**(다른 spec의 느려짐 감지선을 유지), 끊김 판정 45초(`realtime-spec` §4 heartbeat 무수신)를 **두 번** 기다려야 하는 시나리오 특성상 불가피하다. 단축하려면 요구사항의 45초 규칙 자체가 바뀌어야 한다 / T-024
+- D-054 E2E-09의 **도우미 정지를 `SIGSTOP`/`SIGCONT`로** 만드는 방식을 승인 — 팀장이 근거 검증: 요건이 요구하는 것은 "연결 거부"가 아니라 **무응답**이고(FR-013-AC9 "2초 안에 응답하지 않으면", ui-spec SCR-02 에러 열 `도우미 무응답(2초)`), 프론트 `fetchWithTimeout`이 타임아웃과 연결 실패를 같은 `null`로 합치므로 SIGSTOP이 **실제 2초 타임아웃 경로**를 지난다(실측 2350·2375ms). 재기동 방식을 쓰면 `globalSetup`이 로그를 `openSync(...,"w")`로 열어 **앞 테스트 근거인 `DRY-RUN` 줄이 잘려나가고** `helperPid` 상태도 어긋난다. 원복을 `SIGCONT` → `ps -o state=` 확인 → `/health` 200 → **`listPortListeners(4191) === [helperPid]`** 단언까지 하고, 복구 후 버튼을 다시 눌러 `DRY-RUN` 증분까지 확인한 점이 결정적 / T-024
+- D-055 E2E-09의 **403 케이스를 `page.route` 목킹 없이** 만든 방식을 승인 — 도우미는 토큰을 **기동 시 1회** 읽고(`jaystudio-helper.mjs` `main()` → 상수 `token`), 서버는 **요청마다** 파일을 읽는다(`HelperTokenController.getToken()`의 `Files.readString`). 그래서 fixture 토큰 파일만 바꾸면 브라우저가 받는 토큰 ≠ 도우미 토큰이 되어 **실제 403 `UNAUTHORIZED_TOKEN`**이 나온다. 목킹 금지(conventions §8)를 지키면서 진짜 인증 실패 경로를 통과시킨 타당한 설계 / T-024
+- D-056 FR-013-E4의 **인라인 문구(`팀장이 없습니다`)를 E2E로 단언하지 않는 것을 승인** — 팀장이 서버 코드로 검증: `WorkflowConfigStore` 385~392가 정의 파일 없는 팀장을 **깨진 참조로 보고 `lead`를 null로 내린다**. 따라서 프론트의 `lead !== null && registry.agents에 없음` 분기는 **API로 도달 불가한 방어 코드**이고, 실제로 일어나는 일은 "호출하지 않고 화면이 갱신된다"다. E2E는 그 관찰 가능한 결과(2초 내 비활성 + `팀장 없음` + force click에도 도우미 호출 0건 + 파일 복구 후 재활성)로 덮고, 문구는 단위 테스트(`Header.test.tsx:246`)가 덮는다. 문구 단언을 만들려면 계약·구현을 바꿔야 하므로 하지 않는 것이 맞다 / T-024
+- D-052 **fixture `settings.json`의 hook url·토큰이 E2E 실제 값과 달라 `hookConfigured=false`가 되는 문제**를 fixture 수정이 아니라 **spec이 마운트된 임시 사본을 다시 쓰는 방식**으로 처리하는 것을 승인 — 팀장 실물 확인: `project-configured`·`project-showcase`가 `http://127.0.0.1:4180/hooks/events` + placeholder 토큰(`fixture0000…aa`)을 하드코딩하고, `tools/replay/test/fixtures.test.mjs:173·221`이 그 값을 단위 테스트로 고정한다. **포트 변경(ADR-45)과 무관하게 원래부터 그랬다**(토큰도 다르다) → T-023 fixture의 설계 공백이다. fixture를 고치면 그 단위 테스트까지 함께 손대야 하는데, fixture의 하드코딩 값은 **호스트 포트·토큰에 의존할 수 없는 성질**이라 어느 값을 넣어도 E2E에서 맞지 않는다. 실제 파일을 실제로 다시 쓰는 것이라 목킹이 아니고(`hook 설정됨` 화면 표시로 단언) 임시 사본만 바뀐다 / T-023, T-024
+- D-053 `tools/replay/scenarios/README.md` 21·23줄의 기대 라벨(`[세션 1]`·`[세션 2]`)이 **누적 재생에서는 `[세션 5]`·`[세션 6]`**이라는 개발자 판정을 **팀장이 데이터로 검증해 수용** — `states.jsonl` 15~20줄의 `SubagentStart`는 `session_id`가 **부모 세션**이고 `agent_type`은 서브에이전트 것이다(팀장이 11·15줄 원문 확인). 부모 4개(`sess-ac3-*`)는 `SessionStart`가 없어 FR-004-E1로 생성되고 `agent_type`이 없어 FR-003-AC5에 따라 로비 1~4를 차지한다. **제품 동작이 옳고 README 표기가 부정확**하므로 코드·테스트는 실제 동작대로 두고 README 문구 정정만 후속으로 돌린다 / T-023, T-024, T-FIX-07
+- D-051 T-024 ②단계가 보고한 `ImportDialog.tsx:149` 라벨 연결 무효를 **T-FIX-07에 합류**(별도 태스크 신설·T-018 되돌리기 없음) — 팀장이 두 파일 실물 대조로 사실 확인했고(`AgentFormFields.tsx:111`이 같은 문제를 T-019 리뷰 때 이미 조건부로 고쳐 둔 **선례가 존재**), ui-spec 위반이 아니며 화면 표시·동작이 그대로다. 개발자가 테스트를 이 결함에 맞춰 약화시키지 않고 **Field 루트를 잡는 방식으로 우회 없이 단언**한 점도 확인했다(수정 후에도 그 spec은 그대로 통과한다) / T-018, T-024, T-FIX-07
+- D-050 **A-20 확정(ADR-45) 수용** — 팀장이 기각 근거를 독립 검증: ① `4185`가 bad port 목록 밖임을 직접 실측(`ECONNREFUSED` = 정상 연결 시도) ② WHATWG blocked ports의 4000번대는 `4045`·`4190` 둘뿐이라 함께 쓰는 `4191`·`4192`도 안전 ③ `api-spec.yaml`·`realtime-spec.md`·`ui-spec.md` **git diff 0건**으로 계약 무변경 확인 ④ ADR-45 번호 중복 0 ⑤ 팀장이 쓴 T-024 `Status`·`추가` 절 원문 보존 확인. (c)(`replay.mjs`를 `node:http`로) 기각도 타당 — T-023 리뷰 PASS된 도구의 `fetchImpl` 주입 이음새를 원인과 무관한 이유로 재설계하게 되고, 같은 함정을 다음 Node 도구에 남긴다. bad port 회피가 `conventions.md` §8 MUST로 승격돼 앞으로는 리뷰에서 위반 판정이 가능해졌다 / T-024, A-20
+- D-048 `playwright.config.ts`에 **`workers: 1` 추가를 승인**(개발자가 지시 목록 밖에서 넣은 항목) — 모든 spec이 **같은 컨테이너·같은 임시 fixture 폴더**를 공유하는데 Playwright 기본값은 파일 사이를 병렬로 돌린다(첫 실행이 실제로 4 workers). E2E-03·07·11의 파일 쓰기와 SSE 상태 시나리오가 서로를 덮으면 flaky가 되므로 원인 차원에서 막는 편이 맞다. 설계·계약과 무관한 테스트 실행 설정이라 팀장 권한 / T-024
+- D-049 4190 bad port 문제를 **팀장이 직접 포트를 바꾸지 않고 A-20(architect)으로 보냄** — `architecture.md` §8.1·§8.2가 4190을 명시하고 ADR-41(E2E-15)도 그 값을 문구에 담고 있어, 값 변경은 여러 문서의 일관성 판단이 필요한 **설계 수정**이다. 다만 `final_requirements_*.md`에 없는 값이고 운영 포트(4180·4181)와 사용자에게 보이는 동작이 바뀌지 않으므로 **요구사항 변경·에스컬레이션은 아니다** / T-024, A-20
 - D-047 사용자 보고 403 `FORBIDDEN_ORIGIN`은 **코드 결함이 아니라 접속 URL 문제**로 판정(팀장 재현). 다만 `localhost` 접속이 조회만 되고 쓰기만 실패하는 함정이라 사용자 제안대로 **허용 목록에 `http://localhost:<port>` 추가 여부를 architect가 판단**하도록 A-15로 기록. 팀장이 직접 허용 목록을 고치지 않는 이유: NFR-04·architecture §5의 "다른 Origin 차단" DoD와 맞물린 **보안 기준 변경**이라 Decision Authority상 설계·요구사항 판단 영역이다 / A-15
 - D-046 T-020 리뷰 Minor 5건을 **T-FIX-04로 묶고 T-020은 PASS 커밋** — 전부 기능 결함이 아니라 견고성·운용 안전장치이고(리뷰어도 Minor 판정), 그중 `uninstall.sh --label` 미검증은 사용자가 직접 실행하는 스크립트의 자기 인자라 원격 공격면이 아니다. 다만 **설치 절차 문서 부재는 사람이 H-3을 수행할 수 없게 만드는 실질 공백**이라 T-FIX-04에 포함하고 Integration 전에 처리한다 / T-020, T-FIX-04
 - D-045 **자원 사용 규칙(사용자 지시)**: CPU 부하 프로세스를 띄우지 않는다. flaky·타이밍 검증은 **결정론적 지연 주입**으로만 하고, 반복이 필요하면 해당 파일만 돌린다. 실험은 스크래치 사본에서 하고 정리 여부를 `pgrep`으로 확인한다. **스트레스 테스트가 필요하면 먼저 사용자 허락을 받는다.** 근거: 부하 방식은 사용자 머신 load average를 31까지 올리고도 검출력이 없었고(`yes ×4`는 수정 전 코드도 통과), 같은 결함을 50ms 지연 주입이 100% 재현했다. 모든 서브에이전트 프롬프트에 이 규칙을 넣는다 / 전 태스크
@@ -305,3 +328,80 @@
   - conventions §3 새 MUST("조용히 return 금지") **전수 검색 → 신규 위반 0건**
   - **팀장 후속 검증(리뷰어 절차 이탈)**: 리뷰어가 뮤테이션을 **스크래치 사본이 아니라 원본 파일에서** 수행했다(지시 위반). 팀장이 독립 검증 — md5 `6b19ee02…`가 보고값과 일치, 뮤테이션 잔존물 0건, 변경 파일 5개뿐, 테스트 7/7 재통과 → **실제 오염 없음**. 다음 리뷰 프롬프트에서 스크래치 사본 사용을 더 강하게 못 박는다
   - 후속 Suggestion: 테스트가 `Button` 내부 클래스명에 결합된 점 → **T-FIX-07에 합류**
+
+- 2026-09-27 T-024 **①단계(하네스) 개발 DONE**(backend-developer, Scope: Tools). `globalSetup.ts`/`globalTeardown.ts` 신설로 CLAUDE.md 수동 e2e 절차(fixture 임시 복사 → compose up --build → 준비 대기 → dry-run 도우미 4191 → 다른 Origin 서버 4192 → 정리)를 자동화. `lib/{e2e-state.ts,harness-utils.ts,other-origin-server.mjs}` + `tests/{e2e-08,e2e-14,isolation}.spec.ts`. `playwright.config.ts`에 viewport **1440×1024**(m4 이연 항목 해소)·`workers: 1` 추가
+  - 팀장 검증: `npx playwright test` **25 passed (9.2s)**. teardown 로그가 프로세스 2건 회수 → `down -v` → 임시 fixture 삭제 → "남은 프로세스·포트 없음"까지 출력. 팀장이 독립 확인: `lsof -nP -iTCP:4190 -iTCP:4191 -iTCP:4192` 0건 · `pgrep -fl "jaystudio-helper|other-origin-server"` 0건 · `docker ps -a` 0건 · `$TMPDIR/jaystudio-e2e-*` 0건
+  - 팀장이 금지 파일 미수정 확인: `git diff --name-only -- frontend backend helper tools/replay` **비어 있음**, `docs/` 변경은 팀장이 쓴 progress.md·tasks.md뿐
+  - `workers: 1`은 지시 목록 밖 추가지만 **승인**(D-048) — 모든 spec이 같은 컨테이너·같은 fixture 폴더를 공유하는데 Playwright 기본값은 파일 사이를 병렬 실행한다(실제로 첫 실행이 4 workers). ②③의 파일 쓰기·SSE 시나리오가 서로를 덮으면 flaky가 되므로 원인 차원 차단이 맞다
+  - E2E-08 첫 케이스는 서버 403이 아니라 **브라우저 CORS 프리플라이트 차단**으로 판정됐다(annotation에 근거 기록). 개발자가 `Origin` 헤더를 직접 붙인 케이스를 **별도 테스트로 추가해 403 `FORBIDDEN_ORIGIN` 문자열까지** 단언 → 두 경로를 구분해 덮음. 리뷰어가 이 분리가 타당한지 볼 것
+- 2026-09-27 T-024 **BLOCKED (architecture) → A-20으로 처리**: `architecture.md` §8.1이 지정한 재생 명령 `node tools/replay/replay.mjs --url http://127.0.0.1:4190/...`은 **물리적으로 실행 불가**. 포트 **4190은 WHATWG Fetch 표준 bad port 목록**(ManageSieve)이라 Node undici가 연결 시도조차 하지 않는다
+  - **팀장 직접 재현**(Node v24.9.0): `fetch(...:4190/x)` → `bad port`(연결 시도 없음) / `fetch(...:4185/x)`·`fetch(...:4180/x)` → `ECONNREFUSED`(정상 시도) / 같은 주소에 `curl -X POST` → **204**(서버 정상)
+  - 팀장 추가 검증: Playwright Chromium은 4190을 정상 처리하고 **우회 플래그(`--explicitly-allowed-ports`)를 쓰지 않음**을 `playwright-core` 검색으로 확인 → **브라우저 충실도 문제는 없다**. 깨지는 건 Node 기반 재생 경로 하나뿐
+  - **요구사항 변경 아님**: `4190`은 `final_requirements_*.md`에 등장하지 않는 설계 전용 값이고 운영 포트 4180·4181은 bad port가 아니다(팀장 grep·실측) → 에스컬레이션·`/planner` 불필요, architect 설계 정정으로 처리
+  - 영향: **E2E-04·E2E-13만** 차단(재생 도구 필요). 하네스·브라우저 조작 시나리오는 무영향 → **②단계를 A-20과 병렬 진행**
+- 2026-09-27 T-024 **②단계 시작**(frontend-developer): E2E-01·02·03·06·07·10 + `scripts/run-e2e.sh`(fixture 배치별 실행). 포트 literal 금지·상수만 사용 지시(A-20 결과로 값이 바뀔 수 있음)
+- 2026-09-27 **A-20 확정 완료 → ADR-45**(architect, `CONTRACT CHANGE: no`, 사용자에게 보이는 동작 변화 0건). E2E 공개 포트 **4190 → 4185**, `replay.mjs` 무수정. 3문서 반영(architecture §7·§8.1 3행·§8.2 E2E-08·14·15·ADR-41 문구 + **ADR-45 신설** / conventions §8 **bad port 금지 MUST 신설** / tasks.md **A-20 항목 신설** + T-024 포트 문구 정정)
+  - 팀장 검증: 변경 문서가 `architecture.md`·`conventions.md`·`tasks.md`뿐(+팀장의 progress.md), **계약 문서 3종·요구사항 문서·`docs/ui/`·`CLAUDE.md`·`README.md`·코드 전부 무수정** 확인. `4185` 포트 비어 있음 확인
+  - 남은 `4190` 문구는 의도적 잔존뿐: conventions §8 금지 규칙 본문, ADR-45의 배경 서술, `progress.md`·`docs/reviews/*`의 **지난 실행 사실 기록**(architect 권고대로 고치지 않는다)
+  - 포트 변경의 **코드·설정 반영은 팀장이 ②단계 종료 후 적용**한다(②단계 에이전트가 지금 4190 컨테이너로 테스트 중이라 중간에 바꾸면 그 실행이 깨진다). 적용 대상: `compose.e2e.yaml` 3줄 · `playwright.config.ts` 2곳 · `lib/e2e-state.ts` `BASE_URL` · `tests/e2e-14.spec.ts` 3곳 · `CLAUDE.md` e2e 1줄 · `README.md` 1줄
+  - `frontend/src/lib/origin.test.ts`·`helper/test/cors.test.mjs`의 `4190`은 **접속하지 않는 예시 문자열**이라 테스트가 그대로 옳다(ADR-45가 코드 수정을 요구하지 않음). 주석 문구 정정은 선택 사항 → 팀장은 **하지 않기로** 결정(무의미한 diff로 회귀 확인 범위만 넓힌다)
+- 2026-09-27 T-024 **②단계(UI 시나리오 6개) 개발 DONE**(frontend-developer). `tests/e2e-{01,02,03,06,07,10}.spec.ts` **신규 37개** + 공용 `tests/ui-helpers.ts` + `scripts/run-e2e.sh`(fixture 배치별 실행, 실패 시 즉시 exit 1 + 배치별 요약). **기존 파일 수정 0건**
+  - 개발자 실행 결과: `./scripts/run-e2e.sh` exit 0 — 배치1 `project-basic` 39(신규 14 + ①단계 25) · 배치2 `project-configured` 16 · 배치3 `project-no-agents-dir` 4 · 배치4 `project-format-errors` 3 = **총 62 passed**
+  - 시간 요건을 **실측 단언**: FR-001-AC3 6가지 변경 모두 기한 2000ms 안(634~1015ms) · FR-001-AC4 `다시 읽기` 61ms(기한 1000ms) · FR-017-E1 안내 3364ms(ADR-34 3000ms 기준)
+  - 목킹 0(`page.route` 0건)·`waitForTimeout` 0·`test.skip`/`only` 0·주소·포트 literal 0(전부 상수·상대 경로) — 팀장이 포트 변경 전에 literal 0을 요구한 대로 작성돼 ADR-45 반영에 영향받지 않는다
+  - FR-012-E1(휴지통 이동 실패)을 **목킹 없이** 재현: `.jaystudio/trash`를 일반 파일로 둬 `createDirectories` 실패를 유도 → 500 `IO_FAILED` 확정 문구 확인 후 원복
+  - **UI 결함 0건**. Minor 관찰 1건(`ImportDialog` 라벨 연결)은 D-051로 T-FIX-07 합류
+  - **하네스 구멍 발견(②단계 실측 + ①단계 KNOWN ISSUE 일치)**: `E2E_KEEP_UP=1`로 남은 낡은 도우미(4191)가 살아 있으면 새 도우미는 `EADDRINUSE`로 죽는데 `waitForHttpOk(4191/health)`는 **낡은 프로세스가 응답해 통과**하고 상태 파일엔 죽은 pid가 남는다. ③단계 **E2E-09가 도우미 로그로 fixture 경로까지 단언**하므로 이 상태면 **엉뚱한 fixture 명령을 검증하고도 통과**한다 → ①단계 에이전트에 **포트 선점 검사 + 자식 조기 종료 감지**를 지시(ADR-45 포트 반영과 함께)
+- 2026-09-27 T-024 **①단계 에이전트에 후속 지시**(같은 에이전트 이어서, 맥락 유지): ① ADR-45 포트 4190 → 4185 코드·설정 반영(architect가 준 줄 단위 목록 그대로) ② globalSetup 포트 선점 검사·자식 조기 종료 감지 추가. **②단계 산출물 수정 금지**(포트 상수만 바꾸면 그대로 돌아야 한다 — 어기면 보고하게 함)
+- 2026-09-27 T-024 **①단계 후속 DONE**(같은 backend-developer, 맥락 유지): ADR-45 포트 4185 반영(`compose.e2e.yaml` 3줄·`playwright.config.ts`·`lib/e2e-state.ts` `BASE_URL`·`tests/e2e-14.spec.ts` 3곳·주석 2파일) + **globalSetup 3중 방어** 신설 — ① 기동 전 4185·4191·4192 선점 검사(소유 pid·명령줄·정리 명령 출력) ② 자식 `exit` 이벤트 + `kill(pid,0)` 이중 사망 판정 ③ 헬스 200 직후 **리스너 pid == 내가 띄운 pid** 확인
+  - 개발자가 **결정론적으로 재현 실증**: (A) 4191 점유 후 실행 → 컨테이너를 띄우기도 전에 소유 pid 찍고 실패 (B) 점유 해제 → 정상 통과 (C) 4185 열림을 **사건으로 감지해 즉시** 4192 점유 → `EADDRINUSE` 로그와 함께 "기동 직후 종료" 실패, 이어 teardown이 남은 포트를 **성공으로 덮지 않고 실패로 드러냄**. 부하·대기 기반 검증 아님(D-045 준수)
+  - **ADR-45 효과 실증**: `node ../replay/replay.mjs --url http://127.0.0.1:4185/hooks/events … states.jsonl` → `재생 완료: 28건 전송`, exit 0 (4190에서는 `fetch failed`·exit 1) → **③단계 E2E-04·13 차단 해소**
+  - **팀장 직접 검증**: `./scripts/run-e2e.sh` → 4배치 **62 passed**(39+16+4+3, ②단계와 동일 수 = 감소 0)·모든 배치 `컨테이너 준비 완료: http://127.0.0.1:4185`. 배치 단독 명령 형태도 직접 실행 확인(`E2E_FIXTURE=project-no-agents-dir … --grep` → 4 passed). 잔여물 0건(`lsof` 4185·4190·4191·4192 0 · `pgrep` 0 · `docker ps -a` 0 · 임시 fixture 0 · `.e2e-state.json` 0)
+  - 팀장이 `git status`로 ②단계 산출물 무수정 확인 — 포트 상수만 바뀌어도 그대로 통과(spec에 포트 literal이 없었다)
+- 2026-09-27 팀장이 **`CLAUDE.md` Commands e2e 절과 `README.md`를 갱신**: 수동 6단계(`mktemp`·`cp -R`·`compose up`·`check-port.sh`·`E2E_BASE_URL=…4190 npm test`·`down -v`) → `./scripts/run-e2e.sh` 한 줄 + 배치 단독 실행 + 실패 조사(`E2E_KEEP_UP=1`). **팀장이 직접 실행해 확인한 명령만 적었다**(Rules 준수). 포트 4185·bad port 주의도 명기
+- 2026-09-27 T-024 **③단계 시작**(frontend-developer): E2E-04·05·09·11·12·13·15 + 이연 Minor 5건(pitch·이름 번짐 실측 / 미니맵 줌 단언 / 04-4 변형 캐처 / 뷰포트 1440×1024) + `run-e2e.sh` 배치 추가. E2E-05 `pause` 원복·E2E-09 도우미 상태 복구를 명시 지시
+- 2026-09-27 T-024 ③단계 **첫 시도 중단**: 에이전트가 문서 읽기 단계에서 **세션 한도(429)로 종료**. 팀장 확인 결과 **부분 산출물 0건**(`tests/`에 ③단계 파일 없음, `screenshots/` 비어 있음)·**잔여물 0건**(포트·프로세스·컨테이너·임시 fixture·상태 파일 전부 0) → 작업 트리 오염 없음
+  - 한도 재설정 후 **③단계를 3덩이로 쪼개 순차 진행**하도록 변경(팀장 판단, 태스크 분할 권한 + CLAUDE.md "긴 실행은 중간 결과를 볼 수 있는 단위로 쪼갠다"): **③a** E2E-04·15 / **③b** E2E-09·11 / **③c** E2E-05·12·13 + 이연 Minor 실측. 포트·컨테이너를 공유하므로 **병렬 불가**
+- 2026-09-27 T-024 **③a 시작**(frontend-developer): E2E-04(재생 28줄 대응표 기반·마스킹·hook 제거/복구) + E2E-15(ADR-41 정규화). `settings.json` hook 복구 보장과 "접속 불가 시 skip 금지, 원인 기록" 명시 지시
+- 2026-09-27 T-024 **③a DONE**(frontend-developer): `tests/e2e-04.spec.ts`(8개)·`tests/e2e-15.spec.ts`(1개)·`lib/replay.ts`(재생 래퍼, 줄 범위 슬라이스를 OS 임시 폴더에 만들고 즉시 삭제) + `isolation.spec.ts` `HARNESS_FILES` 등록 + `run-e2e.sh` **배치 5** 추가
+  - **팀장 검증**: `E2E_FIXTURE=project-configured npx playwright test tests/e2e-04.spec.ts tests/e2e-15.spec.ts` → **9 passed (24.7s)**, 정리 완료. 금지 파일 변경 0건(`git status -- frontend backend helper tools/replay tools/fixtures docs/api-spec.yaml docs/ui-spec.md docs/realtime-spec.md docs/ui` **비어 있음**)
+  - E2E-04 설계 타당: `states.jsonl`을 **1줄씩** 재생한다(전체 재생 후 상태만 보면 11·12줄 서브에이전트가 13·14줄에서 제거돼 검증 불가). `mode:"serial"`로 누적 상태 의존을 명시
+  - 시간 실측: SSE 반영 28줄 각각 **1~11ms**(기한 2000ms) · hook 제거→04-4 **1040ms** / 복구→배너 사라짐 **902ms**(기한 2000ms) · heartbeat 1회 수신까지 11.7초 동안 상태 불변(FR-004-AC5)
+  - 마스킹(FR-015-AC2)을 **화면·`/api/state`·에이전트 이벤트 API·컨테이너 로그 4곳에서 전수 확인**(원문 토큰 0건)
+  - E2E-15: `localhost` 접속이 실제로 됨(Chromium이 IPv4 해석) → **skip 없이 통과**. 접속 실패 시 원인을 남기는 try/catch도 준비돼 있어 architecture §8.2의 "skip 금지" 지시 충족
+  - 미커버 1건 기록: FR-007-AC2의 `읽기 · <도구>` 분기는 `states.jsonl`에 해당 줄이 없어(28줄 `Grep`의 주인 `freelancer`는 워크플로우 밖) E2E로 못 덮고 **단위 테스트 `actionLabel.test.ts`가 덮는다** — 시나리오 줄 추가는 `tools/replay/` 수정이 필요해 하지 않음(타당)
+  - 참고: 개발자가 타입 검사 시도로 `npx`가 `tsc@2.0.4`를 **npx 캐시**에 내려받았다. 프로젝트 의존성·lock 무변경(팀장 확인) — 실제 검사는 `frontend/node_modules/typescript`로 했다
+- 2026-09-27 T-024 **③b 시작**: E2E-09(터미널 열기 dry-run)·E2E-11(07 설정)
+- 2026-09-27 T-024 **③b DONE**(frontend-developer): `tests/e2e-09.spec.ts`(7개)·`tests/e2e-11.spec.ts`(5개) + `run-e2e.sh` **배치 6**. 기존 파일 수정 0건(공용 로직 추출은 공유분이 한 줄뿐이라 **하지 않는 판단**을 팀장이 승인 — e2e-04의 JSON 조립 코드는 E2E-11이 **써서는 안 되는** 코드다. FR-014-AC2의 뜻이 "07이 준 클립보드 값을 그대로 쓴다"이므로)
+  - **팀장 검증**: `E2E_FIXTURE=project-configured npx playwright test tests/e2e-09.spec.ts tests/e2e-11.spec.ts` → **12 passed (30.2s)**, 정리 완료. 개발자 보고 전체 스위트 **6배치 85개**(41+16+4+3+9+12). 금지 파일 변경 0건
+  - **FR-014-AC2를 끝까지 검증**: 07 `설정 예시 복사` 클립보드 JSON을 **무가공으로** fixture `settings.json`에 저장 → `hook 설정됨` → **그 예시의 url·헤더로 실제 hook POST 204** → 01 실시간 이벤트에 `세션 시작`·`dev-lead`·`마지막 수신` 표시. 즉 "07이 주는 예시가 실제로 동작하는 값인지"를 실제 수집 경로로 확인했다
+  - FR-014-AC1(웹은 `settings.json`을 쓰지 않는다)을 **내용 + mtime 동일**로 단언
+  - 클립보드는 헤드리스 Chromium에서 `grantPermissions` + `navigator.clipboard.readText()`로 정상 동작(우회 없음)
+  - **결함 0건**. 도우미 정지·403·E4 처리 방식은 D-054·D-055·D-056으로 승인
+- 2026-09-27 T-024 **③c 시작**: E2E-05(재연결 pause/unpause, **단독 배치**)·E2E-12(줌·미니맵·검색·30개)·E2E-13(스크린샷) + 이연 Minor 5건 실측
+- 2026-09-27 T-024 ③c **1차 중단**(세션 한도 429, E2E-12 작성 직후). 팀장 확인: 부분 산출물은 `tests/e2e-12.spec.ts`(340줄·**6개**, 줌·`맞춤`·층 드롭다운·상단 바 한 줄·검색·**미니맵 뷰포트=이연 Minor 3**) 하나이고 `TODO`·`skip`·`only` 0건. `e2e-05`·`e2e-13` 없음, `screenshots/` 비어 있음, `run-e2e.sh` 배치 6까지
+  - **잔여물 0건 확인**(중요 — pause 상태 컨테이너가 남으면 다음 실행 전체가 깨진다): `docker ps -a` 0개(pause 포함) · `lsof` 4185·4191·4192 0건 · `pgrep` 0건 · e2e 볼륨 0건 · 임시 fixture 0건 · `.e2e-state.json` 0건
+  - 한도 재설정 후 **같은 에이전트에 이어서 재개**(맥락 유지): ① e2e-12 실행 검증·마감 ② e2e-05(단독 배치, pause 원복 보장) ③ e2e-13(재생 후 상태 단언 → 1440×1024 캡처 + 04-4 변형) ④ 이연 Minor 1·2 pitch·이름 번짐 실측 ⑤ 배치 7~ 등록 후 전체 재실행
+- 2026-09-27 T-024 **③c DONE**(frontend-developer, 재개분): `tests/e2e-05.spec.ts`(398줄)·`e2e-12.spec.ts`(366줄·7개)·`e2e-13.spec.ts`(679줄·6개) + `run-e2e.sh` 배치 7·8·9 + **캡처 PNG 4장**. 수정 금지 파일 0건(팀장이 mtime·git status로 확인)
+  - 전체 `./scripts/run-e2e.sh` **4분 12초, 99개 중 98 passed / 1 failed**. 실패 1건은 **신규 테스트가 잡은 제품 결함**(미니맵 줌) → **T-FIX-10** 신설(D-057)
+  - **팀장 검증**: `ui-spec.md:215`가 "둘 다 zoom 배율이 적용된 값으로 통일"을 MUST로 확정 + `Minimap.tsx:34` props `{workflows, scrollRef}`·`useEffect` deps `[scrollRef, workflows]`로 **`zoom` 미수신** 확인 → 결함 확정. E2E 실측(scrollHeight 3351→5002인데 테두리 18.7407% 고정, 계산식은 12.55%)과 일치
+  - **캡처 4장 픽셀 크기가 기준 이미지와 정확히 일치**(팀장이 PNG 헤더로 대조): `01-home` 1440×1140 · `02-workflows` 1440×1020 · `03-workflow-detail` 1440×880 · `03-workflow-detail-collector-down` 1440×880(D-032 변형, 기준 없음)
+  - **E2E-05 시간 실측**(고정 대기 없음): pause → 04-3 배너 **45,000ms**(`realtime-spec` heartbeat 45초 무수신 경로 — `docker pause`는 소켓을 끊지 않아 onerror가 아니다) · 카운트다운 표본 `5→4` 간격 **967ms** · `지금 재연결` 클릭 → 배너 해제 **23ms**, 새 스트림 요청 **35ms** · 재끊김 후 백오프 `10→9`(5→10 두 배) · unpause → 배너 해제 + 끊긴 동안 추가된 에이전트 등장까지 **9,094ms**
+  - **이연 Minor 실측 결과**: ① **가로 pitch span-1(4열) 74.84px** (기준 PNG 86px, **−11.16px**) · span-3(9열) 118px · **세로 pitch 109px**(양쪽 동일) — 토큰 미변경 ② **13자 이름 번짐 없음**(표기 `vid-longname…` 12자+…, 칩 폭 56.7px < 열 폭 74.84px, 좌우 여유 9.06·9.08px, 인접 간격 14.98px, 겹침 0) — T-015 당시 지적은 현재 구현에서 **재현되지 않는다** ③ 미니맵 줌 → **결함 확정(T-FIX-10)** ④ 04-4 변형 캡처 완료 ⑤ 뷰포트 1440×1024 단언
+  - 사고 1건: 배치 순서 변경을 위해 실행을 중단해 teardown이 돌지 못하고 컨테이너·도우미·임시 fixture가 남았다 → 개발자가 수동 정리 후 무잔존 확인하고 재실행. **최종 잔존 0건**(pause 컨테이너 0 포함)
+- 2026-09-27 **T-FIX-10 시작**(frontend-developer, Frontend 전용): 미니맵 줌 재계산 + **단위 회귀 테스트 + 뮤테이션 검출력 증명**(스크래치 사본에서, 원본 md5 대조). `e2e-12.spec.ts`를 고쳐 통과시키는 것을 명시 금지
+- 2026-09-27 **T-FIX-10 개발 DONE**(frontend-developer): `Minimap.tsx`에 `zoom: number` prop 추가 + 측정 `useEffect` 의존성 `[scrollRef, workflows]` → `[scrollRef, workflows, zoom]`, `WorkflowsScreen.tsx` 1줄(`zoom={zoom}` 전달, 기존 로컬 상태 재사용 — 새 store 없음), `Minimap.test.tsx` 회귀 3개 추가(기존 3개 본문·기대값 무변경)
+  - 계산식은 **손대지 않았다** — 줌은 스크롤 영역 **안쪽** 래퍼에 `transform: scale`을 걸어 `scrollHeight`만 변하고 `clientHeight`는 그대로이므로 ui-spec 식이 이미 같은 좌표계다. 문제는 "언제 다시 재는가" 하나였다(팀장 확인: 타당)
+  - `ResizeObserver` 단독안 탈락 근거: `frontend/src`에 사용·폴리필 0건이고 jsdom에도 없어 **단위 테스트로 고정 불가** → Done when의 회귀 테스트 요건을 못 채운다
+  - **뮤테이션 검출력 증명**: 스크래치 사본에서 의존성을 결함 상태로 되돌리면 신규 3개가 **전부 실패**(높이 18.74% vs 기대 12.55% / 위치 44.76% vs 29.99% / 하한 10.47% vs 4%). 원본 md5 실험 전후 동일(3파일) — **T-FIX-09의 절차 위반이 반복되지 않았다**
+  - **팀장 검증**: `npm test` **59 files / 359 tests**(356→359, +3, skip·삭제·감소 0)·lint·typecheck·build 통과. 변경 파일은 02 내부 3개뿐(`grep -rn "Minimap"` 참조가 `WorkflowsScreen.tsx` 1곳뿐 = 02 전용, 01·03 무영향)
+  - 개발자 보고 **남은 사각**(Done when 범위 밖, 기존 동작): 검색·층 필터로 `scrollHeight`가 바뀔 때와 실시간 스냅샷으로 책상이 늘 때는 여전히 즉시 재측정되지 않는다(`workflows`가 필터 이전 값) → **리뷰어에게 사실 확인·위반 여부 판정을 요청**했다
+- 2026-09-27 **팀장 전체 검증 통과**: `./scripts/run-e2e.sh` → **9배치 99개 전부 PASS**(41·16·4·3·9·12·1·6·7). 잔여물 0건(`docker ps -a` 0·pause 0·`lsof` 4185·4191·4192 0·`pgrep` 0·e2e 볼륨 0·임시 fixture 0·`.e2e-state.json` 0). 캡처 4장 픽셀 크기가 기준 이미지와 **정확히 일치**
+- 2026-09-27 **reviewer 실행**(scope: task, T-024 + T-FIX-10 동시 — T-FIX-05·06 선례). 팀장이 지정한 중점: 추적 완전성(§8.2 전 행 ID) / "통과가 실질인지"(문구 원문 대조·목킹 0·시간 실측·뮤테이션 검출력) / 격리 `HARNESS_FILES` 누락 / **DoD 화면 대조 4장 직접 육안 대조** / 이연 Minor 실측치 재검증(특히 "이름 번짐 없음"이 측정 허점이 아닌지) / T-FIX-10의 남은 사각 판정 / 자원·정리 규칙. **뮤테이션은 스크래치 사본에서만**(T-FIX-09 절차 위반 재발 방지)
+- 2026-09-27 T-024 + T-FIX-10 **리뷰 PASS** → `docs/reviews/T-024.md`(팀장이 리뷰어 보고 전문을 옮겨 적었다 — 리뷰어가 하네스 규칙상 파일을 쓰지 못한다). **Blocker 0 · Major 0 · Minor 8 · Suggestion 2**
+  - 리뷰어가 직접 한 검증: `npm test` 359개 재확인 / 배치 9 단독 재현 **7 passed** / **스크래치 사본 뮤테이션 4건**(M1·M2·M3 검출, **M4 미검출**) / **PNG 직접 디코딩**으로 pitch 독립 실측 / 한글 리터럴 **311개**를 ui-spec·final·api-spec 원문과 대조 → **지어낸 문구 0건** / §8.2 전 행 검증 ID 전수 대조 → **미덮임 0건**
+  - **원본 md5 전후 동일 확인**(T-FIX-09의 절차 위반이 반복되지 않았다). 리뷰어가 띄운 컨테이너·pid 2개도 teardown으로 정리 후 무잔존 확인
+  - 리뷰어 보충 발견: `읽기 · Read`(FR-007-AC2)와 FR-013-E4가 **E2E에서도 덮여 이중 검증**이고 단위 테스트 대체가 아니었다 / `live.lobby` 증가 시 미니맵 재측정 누락(개발자 미보고) / 개발자가 보고한 "실시간 스냅샷으로 책상이 늘 때 재측정 안 됨"은 **사실이 아님**(`snapshotStore.setRegistry`가 registry를 통째로 교체해 effect가 재실행된다)
+  - 팀장이 Minor 7(stale 주석) 직접 정리, Minor 1·2·4·5·6 → **T-FIX-07**, Minor 3·8 + pitch 판단 → **A-21 신설**(D-060~D-063)
+- 2026-09-27 **T-024 · T-FIX-10 커밋 완료.** 3개 커밋으로 분리: `docs: ADR-45`(architect 산출물) / `feat(T-FIX-10)`(프론트 3파일) / `feat(T-024)`(하네스·spec 15개·캡처 4장·문서·상태). **이번 세션 정지 지점 달성**
+

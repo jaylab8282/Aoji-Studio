@@ -33,13 +33,15 @@
   - 확인: `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:4180/` → `200`
 - down:
   - `docker compose down -v`
-- e2e:
-  - `cd tools/e2e && npm install && npx playwright install chromium`
-  - `export E2E_FIXTURE_DIR=$(mktemp -d) && cp -R ../fixtures/project-basic/. "$E2E_FIXTURE_DIR"/`
-  - `docker compose -f compose.e2e.yaml up -d --build`
-  - `./scripts/check-port.sh compose.e2e.yaml jaystudio-e2e 4180`
-  - `E2E_BASE_URL=http://127.0.0.1:4190 npm test`
-  - `docker compose -f compose.e2e.yaml down -v && rm -rf "$E2E_FIXTURE_DIR" && unset E2E_FIXTURE_DIR`
+- e2e (공개 포트 `127.0.0.1:4185` — `4190`은 쓰지 않는다: WHATWG Fetch bad port, ADR-45):
+  - (사전 1회) `cd tools/e2e && npm install && npx playwright install chromium`
+  - 전체: `cd tools/e2e && ./scripts/run-e2e.sh`
+    - `globalSetup`이 fixture 임시 복사 → `compose.e2e.yaml up -d --build` → dry-run 도우미(4191) → 다른 Origin 페이지 서버(4192)까지 준비하고, `globalTeardown`이 컨테이너·프로세스·임시 폴더를 정리한다. 사전 준비 명령 없음
+    - 기동 전에 4185·4191·4192 선점 검사를 한다 — 낡은 스택이 남아 있으면 소유 pid와 정리 명령을 출력하고 즉시 실패한다
+  - 배치 단독 실행(fixture가 다른 시나리오는 실행을 나눈다):
+    - `cd tools/e2e && E2E_FIXTURE=project-configured npx playwright test tests/e2e-03.spec.ts tests/e2e-07.spec.ts tests/e2e-10.spec.ts`
+    - `cd tools/e2e && E2E_FIXTURE=project-no-agents-dir npx playwright test tests/e2e-06.spec.ts --grep "project-no-agents-dir"`
+  - 실패 조사: 위 명령 앞에 `E2E_KEEP_UP=1`을 붙이면 정리를 건너뛴다. 조사 후 출력된 정리 명령을 그대로 실행하고 `lsof -nP -iTCP:4185 -iTCP:4191 -iTCP:4192`로 확인한다
 
 ## Automation
 - design_checkpoint: on

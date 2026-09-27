@@ -60,18 +60,21 @@ cd helper && npm test
 ```bash
 cd tools/e2e
 npm install
-npx playwright install chromium   # ~/Library/Caches/ms-playwright 에 설치
+npx playwright install chromium   # ~/Library/Caches/ms-playwright 에 설치 (사전 1회)
 
-FIXTURE_DIR=$(mktemp -d)
-cp -R ../fixtures/project-basic/. "$FIXTURE_DIR"/
+./scripts/run-e2e.sh               # fixture 배치 전체
+```
 
-E2E_FIXTURE_DIR="$FIXTURE_DIR" docker compose -f compose.e2e.yaml up -d --build
-./scripts/check-port.sh compose.e2e.yaml jaystudio-e2e 4180
+`globalSetup`이 fixture를 임시 폴더로 복사하고 `compose.e2e.yaml`을 띄운 뒤
+dry-run 도우미(4191)와 다른 Origin 페이지 서버(4192)까지 준비하며,
+`globalTeardown`이 컨테이너·프로세스·임시 폴더를 정리한다. 사전 준비 명령은 없다.
+E2E 공개 포트는 `127.0.0.1:4185`다 — `4190`은 쓰지 않는다(WHATWG Fetch bad port, ADR-45).
 
-E2E_BASE_URL=http://127.0.0.1:4190 npm test
+배치 하나만 돌리려면:
 
-E2E_FIXTURE_DIR="$FIXTURE_DIR" docker compose -f compose.e2e.yaml down -v
-rm -rf "$FIXTURE_DIR"
+```bash
+cd tools/e2e
+E2E_FIXTURE=project-configured npx playwright test tests/e2e-03.spec.ts
 ```
 
 ## 저장소 구조

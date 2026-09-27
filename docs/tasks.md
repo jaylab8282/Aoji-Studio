@@ -644,6 +644,36 @@
 - 사용자에게 보이는 변화: **없음**(현행 구현 확정). 계약 변경 없음
 - Depends on: -
 
+## A-20 (architect 확정 완료 2026-09-27 → ADR-45) §8.1 재생 명령이 실행 불가 — E2E 포트 `4190`이 Node `fetch` bad port
+- Status: done (확정 완료) — 설계 문서 정정 완료. 값 반영은 **T-024**(팀장이 `compose.e2e.yaml`·`CLAUDE.md`·`README.md`·하네스 상수를 고친다). **코드 로직 변경 0건**
+- Scope: architect 판단 → Tools 설정값 반영
+- FR: 없음(E2E 전용 포트는 확정 요구사항에 없는 설계 값). architecture §8.1·§8.2, conventions §8
+- 출처: 팀장 직접 재현(2026-09-27, Node v24.9.0)
+- 증상: §8.1 `hook 입력` 행의 `node tools/replay/replay.mjs --url http://127.0.0.1:4190/hooks/events …`가 **절대 성공할 수 없다**. `4190`은 WHATWG Fetch "bad port"(sieve)이고 Node 전역 `fetch`(undici)는 **연결 시도 없이** 즉시 거부한다(`fetch failed / cause: bad port`). 같은 시점에 `curl`은 204, Playwright Chromium은 `4190`을 정상 처리 → 원인은 Node 전송 계층 하나. **E2E-04·E2E-13 실행 불가**
+- 확정 결과(ADR-45): **(a) E2E 공개 포트 `4190` → `4185`.** `replay.mjs`는 수정하지 않는다(T-023 리뷰 PASS 유지). (b) 재생 전용 전송 계층 추가는 **기각**(설계에 없는 하네스 구성요소가 늘고 다음 Node 도구에 같은 함정이 남는다). (c) `replay.mjs`를 `node:http`로 재작성도 **기각**(`fetchImpl` 주입 이음새와 단위 테스트를 다시 설계해야 하고, 원인과 무관한 코드를 고치게 된다). `4185`·`4191`·`4192`는 bad port 목록 밖이고 운영 `4180`·`4181`도 영향 없음
+- 요구사항 의미 변경 여부: **없음.** `4190`은 `final_requirements_*.md`에 등장하지 않는 E2E 전용 설계 값이고, E2E-04·13·15가 검증하는 AC·E 목록은 그대로다. 계약 변경 없음(`api-spec.yaml`·`realtime-spec.md`는 `4180`·`4181`·`8080`만, ui-spec은 `<포트>` 자리값만 쓴다)
+- 사용자에게 보이는 변화: **없음**(개발 머신에서만 뜨는 E2E 컨테이너의 호스트 공개 포트 하나)
+- Depends on: -
+
+## A-21 (architect 확정 요청) T-024 리뷰에서 나온 설계 판단 3건 — 미니맵 재측정 시점 · 캡처 뷰포트 문구 · 책상 pitch 토큰
+- Status: todo — **T-024·T-FIX-10을 막지 않는다**(문서 기준 위반 0건으로 판정됨). 사용자가 정한 순서상 A-16 처리 시점에 함께 판단하면 좋다
+- Scope: architect 판단 → 결정에 따라 Frontend·Tools 반영
+- 출처: `docs/reviews/T-024.md` Minor 3·8 + 이연 Minor 실측 결과(T-015 m5·m1)
+- 판단할 것
+  1. **미니맵 뷰포트 재측정 시점을 명문화할지** (리뷰 Minor 3) — `ui-spec.md:215`는 계산식만 정하고 **언제 다시 재는지**를 정하지 않는다. 현재 `Minimap`의 effect 의존성은 `[scrollRef, registry.workflows, zoom]`이라 ① 검색·층 선택 필터로 `scrollHeight`가 바뀔 때 ② `live.lobby`가 늘어날 때는 테두리가 그대로다(리뷰어 확인). FR-006-AC6은 "미니맵이 동작한다"만, AC8은 필터 결과만 규정하므로 **현재 구현은 문서 위반이 아니다**. 명문화하면 `ResizeObserver(스크롤 영역 자식)` 하나가 세 경우를 모두 덮는다(의존성 나열보다 견고) — 단 `frontend/src`에 ResizeObserver 사용례가 0건이고 jsdom에 없어 **단위 테스트 고정 수단을 함께 정해야** 한다(T-FIX-10에서 그 이유로 채택하지 않았다)
+     - 함께 판단: 미니맵 블록이 **필터 이전** `registry.workflows`를 그려 필터 중 화면의 층 수와 어긋나는 점(리뷰어 지적). 사용자에게 보이는 동작이므로 바꾸려면 팀장이 사용자 승인을 받는다
+  2. **`conventions.md:137` 문구 정정** (리뷰 Minor 8) — "뷰포트 1440×(1140|1020|880)"은 실제와 어긋난다. `playwright.config.ts`는 뷰포트를 **1440×1024**로 고정하고(T-FIX-03 m4) 1140/1020/880은 **출력 PNG 크기**다. "뷰포트 1440×1024로 캡처해 1440×(1140|1020|880)로 저장한다"로 문구만 정정. 코드 변경 없음
+  3. **책상 pitch가 기준 PNG와 다른 것을 받아들일지, 토큰을 바꿀지** (T-015 m5·m1 실측 완료) — 팀장·리뷰어 독립 실측치:
+     | 항목 | 구현(캡처) | 기준 PNG | 차이 |
+     |---|---|---|---|
+     | 가로 pitch span-1(4열) | 74.84~75.0px | 86~87px | **−11px** |
+     | 가로 pitch span-3(9열) | 118.0px | 123.0px | **−5px** |
+     | 세로 pitch | 109px | 92px | **+17px** |
+     - 원인 후보: `--spacing-card` 16px vs 기준 10px. 이 토큰은 **01·03과 공유**하므로 값 변경은 세 화면의 모양을 바꾼다 → **사용자에게 보이는 변화**라 architect가 (a) 현행 확정 (b) 토큰 변경 중 무엇이 맞는지 판단하고, (b)라면 팀장이 **사용자 승인**을 받은 뒤 반영한다(E-008 선례)
+     - 참고: T-015는 이 차이를 알고도 PASS됐고(Minor 이연), 리뷰어는 "토큰 변경은 T-024 범위 밖이 맞다"고 동의했다
+- 하지 말 것: `docs/requirements_*`·`final_requirements_*`·`docs/ui/` 수정. 코드 수정(결정만 한다)
+- Depends on: -
+
 ## T-FIX-08 07의 04-5에서 `설정 열기` 미표시 (ADR-42)
 - Status: done — **리뷰 PASS**(`docs/reviews/T-FIX-08.md`, Blocker 0·Major 0·Minor 2 → T-FIX-07)
 - Scope: Frontend
@@ -687,6 +717,28 @@
 - Depends on: T-021 (fix round 1 완료 후)
 - 관련: 03(`screens/workflow-detail/Header.tsx`)·07(`screens/settings/ClaudeOpenCard.tsx`, `components/ui/CopyButton.tsx`)은 **이미 ADR-44 규칙을 충족해 코드 변경이 없다**(A-19 "03·07 일관성 확인" 참조). T-FIX-08과 파일이 겹치지 않는다
 
+## T-FIX-10 02 미니맵 뷰포트 테두리가 줌 변경에 반응하지 않는다 (T-015 m2, T-024 E2E-12가 검출)
+- Status: **done** — 리뷰 **PASS**(`docs/reviews/T-024.md` §6, Done when 5/5). `zoom` prop + effect 의존성 추가로 해소(계산식 무변경 — 줌이 스크롤 영역 **안쪽** 래퍼에 걸려 `scrollHeight`만 변하므로 ui-spec 식이 이미 옳았고 재측정 시점만 문제였다). 리뷰어 뮤테이션 M1·M2·M3으로 검출력 확인. 남은 사각은 Minor 2·3으로 후속
+- Scope: Frontend
+- FR: FR-006
+- AC: FR-006-AC6
+- Errors: -
+- Screens: SCR-02
+- 출처: T-024 ③c단계 `tests/e2e-12.spec.ts` `[FR-006-AC6][E2E-12][T-015 m2]` **FAIL**. T-015 리뷰 Round 2 Minor m2가 T-024로 이연된 항목이고, 이번에 실측으로 결함이 확정됐다
+- 사실(팀장 확인):
+  - `docs/ui-spec.md:215` MUST — 미니맵 "테두리 위치 = `scrollTop / scrollHeight`, 높이 = `clientHeight / scrollHeight`(**둘 다 zoom 배율이 적용된 값으로 통일**, 최소 4%)"
+  - `frontend/src/screens/workflows/Minimap.tsx:34`는 props가 `{ workflows, scrollRef }`뿐이고 `useEffect` 의존성이 `[scrollRef, workflows]`다 → **`zoom`을 받지 않아** 줌 변경 시 `updateViewport()`가 돌지 않는다
+  - E2E 실측: 층 스크롤 영역 `scrollHeight` 3351px → 5002px로 커졌는데 테두리 높이가 **18.7407% 그대로**(계산식대로면 **12.55%** = 628 / 5002)
+  - 동작이 일관되지도 않다 — 스크롤을 내린 상태에서 줌 아웃하면 브라우저가 `scrollTop`을 clamp하며 scroll 이벤트가 발생해 **우연히** 갱신된다
+- Done when:
+  - 줌을 바꾸면 미니맵 테두리 위치·높이가 새 배율의 `scrollTop`·`clientHeight`·`scrollHeight`로 **다시 계산**된다(최소 4% 하한 유지)
+  - `tests/e2e-12.spec.ts`의 `[FR-006-AC6][E2E-12][T-015 m2]`가 **통과**하고, 같은 파일의 스크롤 반응 테스트(현재 PASS)와 나머지 5개도 그대로 통과한다
+  - **컴포넌트 단위 회귀 테스트 추가** — 줌 변경 시 재계산을 고정한다(E2E만으로 두지 않는다. 이 결함이 단위 테스트를 통과한 채 새어나온 것이 이번 사건이다)
+  - `npm test`·`lint`·`typecheck`·`build` 통과, 기존 테스트 **삭제·skip·기대값 약화 0건**, 통과 수 감소 없음
+  - 01·03은 이 변경과 무관해야 한다(`Minimap`은 02 전용). 02 나머지 요소 회귀 없음
+- 하지 않을 것: `--spacing-card` 등 design token 값 변경(**책상 pitch 문제는 별건**이고 architect 판단 영역이다), ui-spec 수정(계산식은 이미 확정돼 있다)
+- Depends on: -
+
 ## T-FIX-07 T-FIX-05·T-FIX-06 리뷰 Minor 묶음
 - Status: todo
 - Scope: Backend + Frontend
@@ -710,6 +762,18 @@
 - 추가(T-023 리뷰 Suggestion 2건, `docs/reviews/T-023.md`):
   - `tools/replay/test/replay.test.mjs`의 `runCli`(spawn 기반)에 **명시적 타임아웃** 추가 — 현재 로컬 스텁이 즉시 응답해 위험은 낮지만, 스텁이 멈추면 테스트가 무한 대기한다. 개발자가 최초 구현에서 `spawnSync` + 같은 프로세스 스텁 조합으로 **실제 교착을 겪고** 비동기 `spawn`으로 바꾼 이력이 있어 안전망이 필요하다
   - (architect 선택) `api-spec.yaml`의 `HookPayload.permission_mode` 설명에 "현재 backend는 이 필드를 저장·사용하지 않음" 한 줄 — `HookPayload.java`가 record에 포함하지 않아 무시하는데 스키마엔 있다. `required`가 아니고 소비하는 FR이 없어 결함은 아니다
+- 추가(T-024 ②단계에서 발견, 팀장 확인 완료 — D-051):
+  - `frontend/src/dialogs/import-agents/ImportDialog.tsx:149` — `대상 워크플로우` 필드가 `?workflow`가 있어 값이 `<span id={targetId}>`(고정 텍스트)일 때도 `Field`에 `htmlFor={targetId}`를 넘긴다. `<span>`은 labelable 요소가 아니라 `<label for>`가 무효가 되고 `getByLabel("대상 워크플로우")`로 잡히지 않는다. **같은 문제를 `AgentFormFields.tsx:111`이 이미 `htmlFor={workflowPickerMissing ? undefined : ids.workflow}`로 고쳐 두었고 주석에 `T-019 리뷰 Minor 2`라고 적혀 있다** — 그 선례와 같은 형태로 맞춘다(팀장이 두 파일 실물 대조 확인). ui-spec 위반은 아니고 화면 표시도 그대로라 T-024를 막지 않는다
+- 추가(T-024 ③a에서 발견, 팀장이 데이터로 검증 — D-053):
+  - `tools/replay/scenarios/README.md` 21·23줄의 기대 라벨 `[세션 1]`·`[세션 2]`는 **그 줄만 단독 재생할 때**만 맞다. 28줄을 순서대로 누적 재생하면 15~20줄 `SubagentStart`의 **부모 세션 4개(`sess-ac3-*`, `SessionStart` 없음 → FR-004-E1로 생성, `agent_type` 없음 → FR-003-AC5로 로비)**가 로비 1~4를 차지해 21·23줄은 `[세션 5]`·`[세션 6]`이고 25줄 정의 없는 서브의 `parentLabel`도 `[세션 5]`다. **제품 동작이 옳고 표가 부정확**하므로 README 표에 그 사실을 적는다(코드·테스트 변경 없음). 팀장 확인 근거: 11줄 `session_id=sess-dev-lead`(SessionStart 있음) vs 15줄 `session_id=sess-ac3-member-a`(없음), 양쪽 모두 `agent_type`은 서브에이전트 것
+  - `tools/fixtures/project-configured`·`project-showcase`의 `.claude/settings.json`이 hook url `http://127.0.0.1:4180/hooks/events`와 placeholder 토큰을 하드코딩해 **E2E(실제 포트·실제 수집 토큰)에서는 `hookConfigured=false`가 된다** — fixture 설명(`hook 설정 있음`)과 어긋난다. 값 자체는 호스트 포트·토큰에 의존할 수 없어 어떤 값도 맞출 수 없으므로(D-052) **fixture 파일은 그대로 두고** 그 성질을 `tools/replay/scenarios/README.md`(또는 fixture 설명)에 적는다: "E2E는 마운트된 임시 사본의 `settings.json`을 실제 `collectUrl`·수집 토큰으로 다시 쓴 뒤 `hook 설정됨`을 검증한다"
+- 추가(T-024 + T-FIX-10 리뷰 Minor, `docs/reviews/T-024.md` — 팀장 배정):
+  - **[Minor 1] Tools** `tools/e2e/tests/isolation.spec.ts:14-23` `HARNESS_FILES`에 `scripts/run-e2e.sh`·`scripts/check-port.sh`·`tests/ui-helpers.ts` 추가(또는 `*.spec.ts`·`node_modules` 제외 글롭으로 전환). 특히 `ui-helpers.ts`는 **fixture 경로를 계산하고 파일을 쓰는** 파일인데 주석의 제외 사유("spec은 금지 패턴을 단언 데이터로 갖는다")가 적용되지 않는다. 리뷰어가 세 파일에 금지 패턴을 직접 돌려 **실제 위반 0건**은 확인했다(사각만 남은 상태)
+  - **[Minor 2] Frontend** `WorkflowsScreen.test.tsx`에 미니맵 `zoom` **호출처 배선** 단언 1건 추가 — 리뷰어 뮤테이션 M4(`zoom={zoom}` → `zoom={100}`)가 단위 43/43을 **전부 통과**시켰다. T-FIX-10 Done when이 "E2E만으로 두지 않는다"였고 실제 결함이 **prop 배선 누락**이었으므로 같은 축을 고정해야 한다. 위 ADR-42 호출처 회귀(probe M11)와 **같은 계열이라 함께 처리**한다
+  - **[Minor 4] Tools** `e2e-13.spec.ts` 01 캡처에 "fullPage라 사이드바 하단 `수집 상태` 카드가 프레임 밖"임을 주석·annotation으로 명시(다음 리뷰어가 요소 누락으로 오판하지 않게). 원인은 `AppShell`의 `min-h-screen` + `Sidebar`의 `justify-between`. 두 요소는 이미 같은 테스트가 단언하므로 **구현 누락이 아니다**
+  - **[Minor 5] Tools** `e2e-13.spec.ts` 03 테스트에 `동작 매핑` 범례와 패널 각주 2줄 `toBeVisible()` 3줄 추가 — 880px 캡처 프레임 밖이라도 DOM 단언은 가능하다(현재 `grep` 0건, 프론트 단위 테스트만 덮는다)
+  - **[Minor 6] Tools** `e2e-13.spec.ts:592-679` 번짐 실측에 **상태 줄**(`DeskSprite.tsx:66` `작업 중 · 부모 <라벨>`) rect를 추가 — 현재는 이름 칩만 재는데 같은 책상에서 **더 넓은 요소는 상태 줄**이고 span-1 4열(74.84px)에서 넘칠 개연성이 크다. 겹침이 실제로 나오면 그때 별건 태스크로 판단(`docs/ui/README.md` "요소 가림은 결함")
+  - (Suggestion) `frontend/src/lib/origin.test.ts:12` 주석의 `E2E 4190` → "임의 포트"로 표현 정정(ADR-45로 E2E 포트는 4185. 테스트 데이터 자체는 임의 포트라 그대로도 옳다) / `e2e-08` 첫 테스트가 택한 차단 경로(403 vs 브라우저 CORS)를 배치 요약에 한 줄 고정 출력
 - Depends on: T-FIX-05, T-FIX-06
 
 ## T-FIX-04 T-020 리뷰 Minor 묶음 (도우미 견고성 · 설치 스크립트 안전장치)
@@ -789,25 +853,32 @@
 - Depends on: -
 
 ## T-024 E2E 통합 검증 (실제 컨테이너 + fixture + 재생 + dry-run 도우미)
-- Status: todo
+- Status: **done** — 리뷰 **PASS**(`docs/reviews/T-024.md`, Blocker 0 · Major 0 · Minor 8 · Suggestion 2). `./scripts/run-e2e.sh` **9배치 99개 전부 통과**(E2E-01~15 + 격리), 캡처 4장 기준 이미지와 픽셀 크기 일치. 3단계로 나눠 진행했다 — ① 하네스(globalSetup·도우미 dry-run·4192 Origin 서버·E2E-08·E2E-14·격리) ② E2E-01·02·03·06·07·10 ③ E2E-04·05·09·11·12·13·15. 리뷰 Minor 8건은 아래 배정대로 후속 처리(T-024를 막지 않음)
 - Scope: Tools
 - FR: 전체
 - AC: FR-001-AC3, FR-004-AC2, FR-004-AC6, FR-016-AC1, FR-016-AC4, FR-003-AC1, FR-003-AC2
 - Errors: -
 - Screens: SCR-01 ~ SCR-07 전체
-- Tools: `tools/e2e/playwright.config.ts`(webServer 없음, globalSetup이 fixture 복사 → compose e2e up → dry-run 도우미 기동 → 대기), `compose.e2e.yaml`, `tests/e2e-01…e2e-13.spec.ts` + `e2e-15.spec.ts`(architecture §8.2), `scripts/check-port.sh`(E2E-14), 1440 폭 스크린샷 저장, 다른 Origin용 정적 페이지 서버(4192)
+- Tools: `tools/e2e/playwright.config.ts`(webServer 없음, globalSetup이 fixture 복사 → compose e2e up → dry-run 도우미 기동 → 대기), `compose.e2e.yaml`(공개 포트 `127.0.0.1:4185:4180`, `JAYSTUDIO_PUBLIC_PORT=4185`, `JAYSTUDIO_ALLOWED_ORIGINS=http://127.0.0.1:4185` — **`4190`은 쓰지 않는다**, ADR-45), `tests/e2e-01…e2e-13.spec.ts` + `e2e-15.spec.ts`(architecture §8.2), `scripts/check-port.sh`(E2E-14), 1440 폭 스크린샷 저장, 다른 Origin용 정적 페이지 서버(4192), dry-run 도우미(4191)
 - Done when:
   - E2E-01 ~ E2E-13 — 각 spec 통과(테스트 제목에 §8.2의 검증 ID 나열)
-  - E2E-14 — `check-port.sh` 출력 `127.0.0.1:4190/tcp` 확인
-  - E2E-15 (ADR-41) — `http://localhost:4190/workflows?x=1`로 진입 → 주소가 `http://127.0.0.1:4190/workflows?x=1`로 바뀌고, 이어지는 워크플로우 추가(POST)가 403 없이 성공한다. `page.on('request')`로 API 요청의 `Origin`이 `http://127.0.0.1:4190` 하나뿐임을 확인. **선행 T-FIX-06**
+  - E2E-14 — `check-port.sh` 출력 `127.0.0.1:4185/tcp` 확인 (ADR-45로 `4190` → `4185`)
+  - E2E-15 (ADR-41) — `http://localhost:4185/workflows?x=1`로 진입 → 주소가 `http://127.0.0.1:4185/workflows?x=1`로 바뀌고, 이어지는 워크플로우 추가(POST)가 403 없이 성공한다. `page.on('request')`로 API 요청의 `Origin`이 `http://127.0.0.1:4185` 하나뿐임을 확인. **선행 T-FIX-06**
   - FR-001-AC3 — E2E-07 `파일 변경 → 02 반영 2초 이내(6가지 변경)`
   - FR-004-AC2·AC6 — E2E-04 `states.jsonl 재생 → 02·03 상태가 표대로, 각 단계 2초 이내`
   - FR-007-E1 — E2E-01 `이벤트 0건으로 03 진입 → 04-4 배너 + 캐릭터 모두 대기색` / E2E-04 후반 `running 상태에서 fixture settings.json의 hook 제거 → 03 배너 + 캐릭터·패널 모두 '대기', 02 책상은 '작업 중' 유지 → hook 복구 → 03 실제 상태 복귀`
   - FR-016-AC1·AC4 — E2E-05
   - FR-003-AC1·AC2 — E2E-08 + E2E-14
-  - DoD "다른 Origin 차단" — E2E-08 `4192 페이지에서 POST → 실패(403), EventSource → error, curl Origin 없음 → 403`
+  - DoD "다른 Origin 차단" — E2E-08 `4192 페이지에서 4185로 POST → 실패(403), EventSource → error, curl Origin 없음 → 403`
   - DoD "화면 대조" — E2E-13 산출물 3장이 `tools/e2e/screenshots/`에 있고 리뷰어가 `docs/ui/screens/*.png`와 대조해 요소 누락·배치 차이 없음
   - 격리 — `globalSetup`이 실제 `JayStudio/.claude`·`.jaystudio` 경로를 참조하지 않음(경로 문자열 검사 테스트)
+- 추가(앞선 태스크에서 T-024로 이연된 Minor — 팀장이 `progress.md`에서 옮겨 적음):
+  - T-015 m5·m1 **책상 pitch 실측** — 02 캡처에서 가로 pitch가 기준 PNG 86px 대비 75px, 세로도 차이. 원인은 `--spacing-card` 16px vs 기준 10px로 **01·03이 공유하는 토큰**이다. E2E-13 캡처로 실측치를 기록하되 **토큰 값 변경은 하지 않는다**(architect 판단 영역). 실측 결과만 리뷰 보고에 남긴다
+  - T-015 m6 **13자 이름 열 번짐** — E2E-13 `project-showcase` 캡처에서 긴 이름이 인접 열로 넘치는지 확인하고 실측 기록
+  - T-015 m2 **미니맵 줌 반응** — E2E-12에서 줌 변경 시 미니맵 뷰포트 사각형이 따라 움직이는지 검증
+  - D-032 **04-4 변형 캐처** — `03-workflow-detail-collector-down.png`(hook 미설정 상태의 03)을 E2E-13 공식 캡처에 포함해 갱신
+  - T-FIX-03 m4 **캡처 뷰포트 통일** — `playwright.config.ts` viewport를 기준 캡처와 같은 **1440×1024**로 두고 E2E-13 산출물도 같은 뷰포트로 캡처한다(과거 1280×720 혼용 제거)
+- 정정(A-20 / **ADR-45**, 2026-09-27): **E2E 공개 포트 `4190` → `4185`.** `4190`은 WHATWG Fetch bad port(sieve)라 Node 전역 `fetch`를 쓰는 `tools/replay/replay.mjs`가 연결 시도조차 못 해 **E2E-04·E2E-13(재생 시나리오)이 실행 불가**였다. `compose.e2e.yaml`(`ports`·`JAYSTUDIO_PUBLIC_PORT`·`JAYSTUDIO_ALLOWED_ORIGINS`)·하네스 상수(`playwright.config.ts`·`lib/e2e-state.ts`·`tests/e2e-14.spec.ts`)·`CLAUDE.md`·`README.md`의 포트를 `4185`로 맞춘 뒤 3단계를 이어간다. `4191`(dry-run 도우미)·`4192`(다른 Origin 서버)는 bad port가 아니므로 그대로. `replay.mjs`는 **수정하지 않는다**(T-023 리뷰 PASS 유지). 운영 포트 `4180`·`4181`, FR 의미, 계약은 변화 없음
 - Depends on: T-014, T-015, T-016, T-017, T-018, T-019, T-021, T-022, T-023, T-FIX-06
 
 ---

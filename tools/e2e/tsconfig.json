@@ -8,5 +8,11 @@
     "skipLibCheck": true,
     "types": ["@playwright/test"]
   },
-  "include": ["tests/**/*.ts", "playwright.config.ts"]
+  "include": [
+    "tests/**/*.ts",
+    "lib/**/*.ts",
+    "playwright.config.ts",
+    "globalSetup.ts",
+    "globalTeardown.ts"
+  ]
 }

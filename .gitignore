@@ -20,6 +20,9 @@ helper/node_modules/
 tools/e2e/test-results/
 tools/e2e/playwright-report/
 tools/e2e/node_modules/
+tools/e2e/.e2e-state.json
+tools/e2e/.helper-dry-run.log
+tools/e2e/.other-origin-server.log
 !tools/e2e/screenshots/*.png
 tools/replay/node_modules/
 
