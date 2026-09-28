@@ -4,8 +4,9 @@
 
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { createServer } from 'node:http';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -151,4 +152,171 @@ test("[NFR-05] uninstall.sh --dry-run은 실행할 명령만 알리고 plist를 
   assert.equal(existsSync(launchctlMarker), false);
 
   rmSync(launchAgentsDir, { recursive: true, force: true });
+});
+
+// ── [보안] Label 검증 ─────────────────────────────────────────────────────────
+// 지우기 전에 검증하는지를 본다: 조작된 label이 가리키는 파일을 미리 만들어 두고,
+// 스크립트가 실패한 뒤에도 그 파일이 남아 있는지 확인한다.
+
+const BAD_LABELS = [
+  '../victim',
+  'com.jaystudio.helper/../victim',
+  '/etc/victim',
+  '.',
+  '..',
+  '',
+  'has space',
+  '-rf',
+  'a'.repeat(65),
+  'tab\there',
+];
+
+test("[보안] 잘못된 label → 아무것도 지우지 않고 실패", () => {
+  mkdirSync(launchAgentsDir, { recursive: true });
+  // 조작된 label이 겨냥하는 희생 파일. `../victim` → <launchAgentsDir>/../victim.plist
+  const victimPath = join(tempRoot, 'victim.plist');
+  writeFileSync(victimPath, 'victim');
+  const realPlist = join(launchAgentsDir, `${LABEL}.plist`);
+  writeFileSync(realPlist, '<plist version="1.0"><dict/></plist>');
+
+  for (const label of BAD_LABELS) {
+    for (const extraArgs of [[], ['--dry-run']]) {
+      const uninstall = runScript(UNINSTALL_SH, ['--label', label, ...extraArgs]);
+      assert.notEqual(uninstall.status, 0, `uninstall label=${JSON.stringify(label)}`);
+      assert.match(uninstall.stderr, /--label 값이 올바르지 않습니다|값이 필요합니다/, `uninstall label=${JSON.stringify(label)}`);
+      assert.equal(existsSync(victimPath), true, `희생 파일이 지워졌다: label=${JSON.stringify(label)}`);
+      assert.equal(existsSync(realPlist), true, `plist가 지워졌다: label=${JSON.stringify(label)}`);
+      assert.equal(existsSync(launchctlMarker), false, `launchctl이 호출됐다: label=${JSON.stringify(label)}`);
+
+      const install = runScript(INSTALL_SH, ['--project-dir', projectDir, '--label', label, ...extraArgs]);
+      assert.notEqual(install.status, 0, `install label=${JSON.stringify(label)}`);
+      assert.match(install.stderr, /--label 값이 올바르지 않습니다|값이 필요합니다/, `install label=${JSON.stringify(label)}`);
+      assert.equal(install.stdout.includes('<plist'), false, `install label=${JSON.stringify(label)}`);
+      assert.equal(existsSync(victimPath), true, `install이 희생 파일을 건드렸다: label=${JSON.stringify(label)}`);
+      assert.equal(existsSync(launchctlMarker), false, `launchctl이 호출됐다: label=${JSON.stringify(label)}`);
+    }
+  }
+
+  // 정상 label은 계속 동작한다(검증이 지나치게 좁지 않은지 확인).
+  for (const label of [LABEL, 'com.example.helper-2', 'Helper_1']) {
+    const ok = runScript(UNINSTALL_SH, ['--label', label, '--dry-run']);
+    assert.equal(ok.status, 0, `${label}: ${ok.stderr}`);
+    assert.ok(ok.stdout.includes(join(launchAgentsDir, `${label}.plist`)));
+  }
+  assert.equal(existsSync(victimPath), true);
+  assert.equal(existsSync(realPlist), true);
+
+  rmSync(victimPath, { force: true });
+  rmSync(launchAgentsDir, { recursive: true, force: true });
+});
+
+// ── [NFR-05] bootstrap 후 기동 확인 ───────────────────────────────────────────
+// 실제 launchd에 등록하지 않는다: PATH 앞의 가짜 launchctl이 호출만 기록하고 아무것도 띄우지 않으므로
+// /health 무응답 경로가 그대로 재현된다. 성공 경로는 테스트가 /health 대역 서버를 직접 띄워 만든다.
+
+const verifyRoot = mkdtempSync(join(tmpdir(), 'jaystudio-install-verify-'));
+after(() => rmSync(verifyRoot, { recursive: true, force: true }));
+const verifyBin = join(verifyRoot, 'bin');
+const verifyMarker = join(verifyRoot, 'launchctl-calls');
+mkdirSync(verifyBin, { recursive: true });
+writeFileSync(
+  join(verifyBin, 'launchctl'),
+  `#!/bin/sh\necho "$@" >> '${verifyMarker}'\nexit 0\n`,
+  { mode: 0o755 },
+);
+const verifyAgentsDir = join(verifyRoot, 'LaunchAgents');
+
+const VERIFY_ENV = {
+  PATH: `${verifyBin}:${process.env.PATH ?? ''}`,
+  HOME: verifyRoot,
+  JAYSTUDIO_LAUNCH_AGENTS_DIR: verifyAgentsDir,
+  JAYSTUDIO_HEALTH_TIMEOUT_SECONDS: '1',
+};
+
+/**
+ * install.sh를 비동기로 돌린다. spawnSync는 이벤트 루프를 막아 같은 프로세스의
+ * /health 대역 서버가 응답할 수 없으므로 여기서는 spawn을 쓴다.
+ */
+function runInstallWithVerify(args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn('/bin/bash', [INSTALL_SH, ...args], {
+      env: { ...process.env, ...VERIFY_ENV },
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk;
+    });
+    child.once('error', reject);
+    child.once('close', (status) => resolve({ status, stdout, stderr }));
+  });
+}
+
+/** 임시 포트를 하나 잡았다가 바로 닫아 "아무도 듣지 않는 포트"를 얻는다. */
+async function findFreePort() {
+  const server = createServer();
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address();
+  await new Promise((resolve) => server.close(resolve));
+  return port;
+}
+
+test("[NFR-05] install.sh는 bootstrap 후 /health 무응답이면 등록을 해제하고 실패한다", async () => {
+  const port = await findFreePort();
+  const result = await runInstallWithVerify(['--project-dir', projectDir, '--port', String(port)]);
+
+  assert.notEqual(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stderr, /도우미가 기동하지 않았습니다/);
+  assert.match(result.stderr, new RegExp(`127\\.0\\.0\\.1:${port}/health`));
+  assert.equal(result.stdout.includes('설치 완료'), false);
+  assert.equal(result.stdout.includes('기동 확인 완료'), false);
+  // 로그 파일 경로와 되돌리는 방법을 알려준다.
+  assert.ok(result.stderr.includes(join(verifyRoot, 'Library', 'Logs', `${LABEL}.log`)), result.stderr);
+  assert.ok(result.stderr.includes(join(verifyAgentsDir, `${LABEL}.plist`)), result.stderr);
+  assert.match(result.stderr, /uninstall\.sh/);
+  // KeepAlive 재시작 루프를 멈추려고 bootstrap 뒤에 bootout까지 실제로 불렀다.
+  const calls = readFileSync(verifyMarker, 'utf8').trim().split('\n');
+  const bootstrapIndex = calls.findIndex((line) => line.startsWith('bootstrap '));
+  assert.ok(bootstrapIndex >= 0, calls.join(' | '));
+  assert.match(calls.at(-1), new RegExp(`^bootout gui/\\d+/${LABEL.replace(/\./g, '\\.')}$`), calls.join(' | '));
+  assert.ok(calls.length > bootstrapIndex + 1, calls.join(' | '));
+
+  rmSync(verifyMarker, { force: true });
+  rmSync(verifyAgentsDir, { recursive: true, force: true });
+});
+
+test("[NFR-05] install.sh는 /health가 응답하면 설치 완료로 끝난다", async () => {
+  const healthPaths = [];
+  const stub = createServer((request, response) => {
+    healthPaths.push(request.url);
+    if (request.url === '/health') {
+      response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      response.end('{"ok":true,"version":"1"}');
+      return;
+    }
+    response.writeHead(404);
+    response.end();
+  });
+  await new Promise((resolve) => stub.listen(0, '127.0.0.1', resolve));
+  const { port } = stub.address();
+  try {
+    const result = await runInstallWithVerify(['--project-dir', projectDir, '--port', String(port)]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /설치 완료/);
+    assert.match(result.stdout, /기동 확인 완료/);
+    assert.equal(result.stderr.includes('도우미가 기동하지 않았습니다'), false);
+    assert.deepEqual(healthPaths, ['/health']);
+    assert.equal(existsSync(join(verifyAgentsDir, `${LABEL}.plist`)), true);
+    // 마지막 launchctl 호출이 bootstrap이다 — 기동 확인이 통과했으므로 되돌리지 않는다.
+    const calls = readFileSync(verifyMarker, 'utf8').trim().split('\n');
+    assert.match(calls.at(-1), /^bootstrap gui\/\d+ /, calls.join(' | '));
+  } finally {
+    stub.closeAllConnections();
+    await new Promise((resolve) => stub.close(resolve));
+  }
 });

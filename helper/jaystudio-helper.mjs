@@ -150,16 +150,20 @@ export function createOpenTerminal(spawnFn = nodeSpawn) {
 /**
  * 도우미 토큰을 읽거나 만든다 (architecture.md §6.3).
  * 없으면 hex 64자를 mode 600으로 만들고, 있으면 재사용한다.
+ * 재사용할 때 mode가 600이 아니면 600으로 고치고, 고칠 수 없으면 던진다(기동 실패).
  * 빈 파일·형식 위반이면 던진다(NFR-05 "인증 없이 동작하는 기본값 없음").
  * @param {string} tokenFile
+ * @param {{stderr?: {write: (chunk: string) => unknown}}} [options]
  * @returns {string}
  */
-export function ensureTokenFile(tokenFile) {
+export function ensureTokenFile(tokenFile, options = {}) {
+  const stderr = options.stderr ?? process.stderr;
   const existing = readTokenFile(tokenFile);
   if (existing !== null) {
     if (!TOKEN_PATTERN.test(existing)) {
       throw new Error('도우미 토큰 파일 형식이 올바르지 않습니다 (hex 64자)');
     }
+    enforceTokenFileMode(tokenFile, stderr);
     return existing;
   }
   mkdirSync(dirname(tokenFile), { recursive: true });
@@ -179,6 +183,30 @@ export function ensureTokenFile(tokenFile) {
   // mode 인자는 umask의 영향을 받으므로 만든 뒤 600으로 고정한다.
   chmodSync(tokenFile, 0o600);
   return token;
+}
+
+/**
+ * 기존 토큰 파일의 권한을 600으로 강제한다 (architecture.md §6.3 "모드 600").
+ * 넓은 권한을 조용히 받아들이지 않고, 고칠 수 없으면 기동을 실패시킨다(NFR-05).
+ * @param {string} tokenFile
+ * @param {{write: (chunk: string) => unknown}} stderr
+ */
+function enforceTokenFileMode(tokenFile, stderr) {
+  const mode = statSync(tokenFile).mode & 0o777;
+  if (mode === 0o600) {
+    return;
+  }
+  try {
+    chmodSync(tokenFile, 0o600);
+  } catch {
+    // 경로·권한 상세만 알리고 토큰 값은 남기지 않는다(NFR-08).
+    throw new Error('도우미 토큰 파일 권한을 600으로 고칠 수 없습니다');
+  }
+  if ((statSync(tokenFile).mode & 0o777) !== 0o600) {
+    throw new Error('도우미 토큰 파일 권한을 600으로 고칠 수 없습니다');
+  }
+  // 조용히 넘기지 않고 한 줄 남긴다. 토큰 값은 쓰지 않는다(NFR-08).
+  stderr.write('jaystudio-helper: 도우미 토큰 파일 권한을 600으로 고쳤습니다\n');
 }
 
 function readTokenFile(tokenFile) {
@@ -227,21 +255,42 @@ function sendError(response, status, code, headers = {}) {
   sendJson(response, status, { code, message: ERROR_MESSAGES[code] }, headers);
 }
 
+/**
+ * 본문을 최대 MAX_BODY_BYTES까지 읽는다.
+ * 상한을 넘으면 즉시 거부하지만 **소켓을 끊지 않는다** — 호출자가 400 INVALID_BODY를 돌려줄 수 있어야
+ * 하고(api-spec `/open`에 연결 종료라는 응답이 없다) 남은 데이터는 버리며 흘려보낸다.
+ * @param {import('node:http').IncomingMessage} request
+ * @returns {Promise<string>}
+ */
 function readBody(request) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
+    let tooLarge = false;
     request.on('data', (chunk) => {
+      if (tooLarge) {
+        // 남은 본문은 버린다(읽어서 흘려보내야 응답이 클라이언트에 도착한다).
+        return;
+      }
       size += chunk.length;
       if (size > MAX_BODY_BYTES) {
+        tooLarge = true;
+        chunks.length = 0;
         reject(new Error('BODY_TOO_LARGE'));
-        request.destroy();
         return;
       }
       chunks.push(chunk);
     });
-    request.on('error', reject);
-    request.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    request.on('error', (error) => {
+      if (!tooLarge) {
+        reject(error);
+      }
+    });
+    request.on('end', () => {
+      if (!tooLarge) {
+        resolve(Buffer.concat(chunks).toString('utf8'));
+      }
+    });
   });
 }
 

@@ -21,6 +21,10 @@ fail() {
   exit 1
 }
 
+# launchd Label 화이트리스트. 슬래시·상위 경로·공백·선두 하이픈을 막아
+# 아래 rm -f 경로가 인자로 조작되지 않게 한다(경로 처리 보안).
+LABEL_PATTERN='^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'
+
 while [ $# -gt 0 ]; do
   case "$1" in
     --label) [ $# -ge 2 ] || fail "$1 값이 필요합니다"; LABEL="$2"; shift 2 ;;
@@ -29,6 +33,9 @@ while [ $# -gt 0 ]; do
     *) usage >&2; fail "알 수 없는 인자입니다: $1" ;;
   esac
 done
+
+# 무엇도 지우거나 멈추기 전에 Label을 검증한다.
+[[ "$LABEL" =~ $LABEL_PATTERN ]] || fail "--label 값이 올바르지 않습니다 (영숫자로 시작하고 영숫자·점·밑줄·하이픈 1~64자): $LABEL"
 
 PLIST_PATH="$LAUNCH_AGENTS_DIR/$LABEL.plist"
 SERVICE_TARGET="gui/$(id -u)/$LABEL"

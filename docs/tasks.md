@@ -808,10 +808,13 @@
   - **[Minor 5] Tools** `e2e-13.spec.ts` 03 테스트에 `동작 매핑` 범례와 패널 각주 2줄 `toBeVisible()` 3줄 추가 — 880px 캡처 프레임 밖이라도 DOM 단언은 가능하다(현재 `grep` 0건, 프론트 단위 테스트만 덮는다)
   - **[Minor 6] Tools** `e2e-13.spec.ts:592-679` 번짐 실측에 **상태 줄**(`DeskSprite.tsx:66` `작업 중 · 부모 <라벨>`) rect를 추가 — 현재는 이름 칩만 재는데 같은 책상에서 **더 넓은 요소는 상태 줄**이고 span-1 4열(74.84px)에서 넘칠 개연성이 크다. 겹침이 실제로 나오면 그때 별건 태스크로 판단(`docs/ui/README.md` "요소 가림은 결함")
   - (Suggestion) `frontend/src/lib/origin.test.ts:12` 주석의 `E2E 4190` → "임의 포트"로 표현 정정(ADR-45로 E2E 포트는 4185. 테스트 데이터 자체는 임의 포트라 그대로도 옳다) / `e2e-08` 첫 테스트가 택한 차단 경로(403 vs 브라우저 CORS)를 배치 요약에 한 줄 고정 출력
+- 추가(T-FIX-04 리뷰, `docs/reviews/T-FIX-04.md`):
+  - **[Minor 1] Helper** `helper/install.sh:138-150` 기동 확인이 **포트만** 본다 — 다른 인자로 이미 돌던 도우미가 같은 포트를 점유하면 신규 서비스가 기동 실패해도 `/health`가 `"ok":true`를 돌려 `설치 완료`로 끝난다. bootstrap 전 선점 확인 또는 실패 안내에 포트 충돌 언급
+  - (Suggestion) `jaystudio-helper.mjs` `readBody`가 4096B 상한 초과 후 잔여 바이트를 계속 읽어 초대형 본문에서 소켓이 오래 열린다 → 상한의 몇 배(예: 1MB)를 넘으면 끊는 2차 상한(계약 영향 없음)
 - Depends on: T-FIX-05, T-FIX-06
 
 ## T-FIX-04 T-020 리뷰 Minor 묶음 (도우미 견고성 · 설치 스크립트 안전장치)
-- Status: todo
+- Status: **done** — 리뷰 **PASS**(`docs/reviews/T-FIX-04.md`, Blocker·Major 0 · Minor 3 · Suggestion 1). Done when 5건 충족, 도우미 테스트 33 → **38**, E2E 9배치 99개 유지. `--label` 우회 14종 전부 차단·검증이 `rm -f`·`launchctl`보다 앞임을 코드 순서로 확인, 뮤테이션으로 그 가드가 load-bearing임을 실증. **설치 절차 문서화 완료 → H-3 수행 가능**. Minor 1(포트 선점 시 기동 확인 오판)·Suggestion 1(초대형 본문 2차 상한) → **T-FIX-07**, Minor 2(README §5에 03 버튼 누락) → **팀장이 직접 수정 완료**
 - Scope: Helper
 - FR: FR-013(견고성 보완 — 새 AC 없음)
 - AC: 없음(기존 AC 유지)

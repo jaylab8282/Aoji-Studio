@@ -5,7 +5,7 @@ import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -331,6 +331,68 @@ test("[NFR-05] 첫 실행 시 helper-token 생성 mode 600 hex 64, 기존 파일
   const brokenFile = join(projectDir, 'broken-token');
   writeFileSync(brokenFile, 'not-a-token', { mode: 0o600 });
   assert.throws(() => ensureTokenFile(brokenFile), /형식이 올바르지 않습니다/);
+});
+
+test("[FR-013-E3] 본문 초과 → 400", async () => {
+  // 4096바이트 상한을 넘겨도 소켓이 끊기지 않고 api-spec `/open`의 400 { code: 'INVALID_BODY' }가 온다.
+  const projectDir = makeProjectDir('body-too-large');
+  await withServer({ projectDir }, async ({ baseUrl, commands }) => {
+    const padding = 'x'.repeat(8 * 1024);
+    const response = await openRequest(baseUrl, {
+      body: JSON.stringify({ target: 'default', padding }),
+    });
+    assert.equal(response.status, 400);
+    assert.equal(response.headers.get('content-type'), 'application/json; charset=utf-8');
+    const body = await response.json();
+    assert.deepEqual(Object.keys(body).sort(), ['code', 'message']);
+    assert.equal(body.code, 'INVALID_BODY');
+    assert.equal(typeof body.message, 'string');
+    assert.doesNotMatch(body.message, /BODY_TOO_LARGE|Error|at .*:\d+/);
+    assert.deepEqual(commands, []);
+
+    // 상한 바로 아래(4096바이트)는 정상 처리된다 — 경계가 맞는지 확인한다.
+    const underLimit = { target: 'default', padding: '' };
+    const overhead = JSON.stringify(underLimit).length;
+    underLimit.padding = 'y'.repeat(4096 - overhead);
+    const exact = JSON.stringify(underLimit);
+    assert.equal(Buffer.byteLength(exact, 'utf8'), 4096);
+    const allowed = await openRequest(baseUrl, { body: exact });
+    assert.equal(allowed.status, 204);
+    assert.deepEqual(commands, [`cd "${projectDir}" && claude`]);
+
+    // 초과 요청 뒤에도 서버는 계속 응답한다(연결만 정리된다).
+    const after = await openRequest(baseUrl, { body: { target: 'default' } });
+    assert.equal(after.status, 204);
+    assert.equal(commands.length, 2);
+  });
+});
+
+test("[NFR-05] 기존 토큰 mode 644 → 기동 실패 또는 600 복구 (600 복구를 택했다)", () => {
+  const projectDir = makeProjectDir('token-mode');
+  const token = 'c'.repeat(64);
+
+  for (const wideMode of [0o644, 0o664, 0o604, 0o666]) {
+    const tokenFile = join(projectDir, `token-${wideMode.toString(8)}`);
+    writeFileSync(tokenFile, token, { mode: 0o600 });
+    chmodSync(tokenFile, wideMode);
+    assert.equal(statSync(tokenFile).mode & 0o777, wideMode);
+
+    const notices = [];
+    const reused = ensureTokenFile(tokenFile, { stderr: { write: (chunk) => notices.push(chunk) } });
+    assert.equal(reused, token, `mode=${wideMode.toString(8)}`);
+    assert.equal(statSync(tokenFile).mode & 0o777, 0o600, `mode=${wideMode.toString(8)}`);
+    assert.equal(readFileSync(tokenFile, 'utf8'), token);
+    // 조용히 넘기지 않는다. 토큰 값은 남기지 않는다(NFR-08).
+    assert.equal(notices.length, 1, `mode=${wideMode.toString(8)}`);
+    assert.match(notices[0], /권한을 600으로 고쳤습니다/);
+    assert.equal(notices[0].includes(token), false);
+
+    // 이미 600이면 아무 말도 하지 않고 그대로 재사용한다.
+    const quiet = [];
+    assert.equal(ensureTokenFile(tokenFile, { stderr: { write: (chunk) => quiet.push(chunk) } }), token);
+    assert.deepEqual(quiet, []);
+    assert.equal(statSync(tokenFile).mode & 0o777, 0o600);
+  }
 });
 
 test("[FR-013-AC7] OPTIONS /open preflight 204 · 허용 헤더, Content-Type 불일치 → 415", async () => {
