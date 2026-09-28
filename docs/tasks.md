@@ -956,7 +956,7 @@
 |---|---|---|---|
 | H-1 | 실제 `JayStudio` 마운트 컨테이너에서 에이전트 수·스킬 수가 실제 파일과 일치 | FR-001-AC1, FR-001-AC2 | T-024 |
 | H-2 | 07 예시를 실제 `settings.json`에 넣고 `claude --agent develop-tech-lead` 실행 → 02·03 상태 전이 | FR-003-AC8, FR-003-AC9, FR-004-AC2, FR-014-AC2 | T-024 |
-| H-3 | 도우미 설치 후 02·03 버튼으로 실제 Terminal.app에서 `claude` / `claude --agent develop-tech-lead` | FR-013-AC1, FR-013-AC2, FR-013-AC11 | T-021 |
+| H-3 | 도우미 설치 후 02·03 버튼으로 실제 Terminal.app에서 `claude` / `claude --agent develop-tech-lead` | FR-013-AC1, FR-013-AC2, FR-013-AC11 | T-021, **T-FIX-04**(설치 절차) — **2026-09-28 통과** |
 | H-4 | 같은 공유기의 다른 기기에서 4180·4181 접속 불가 | FR-003-AC1, NFR-04 | T-001, T-020 |
 | H-5 | 컨테이너를 끈 상태에서 Claude Code 작업이 멈추지 않음 | FR-003-AC8, NFR-03 | T-012 |
 
