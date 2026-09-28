@@ -26,6 +26,7 @@ usage: ./install.sh --project-dir <JayStudio 맥북 경로>
                     [--label <launchd label>] [--dry-run]
 
   --dry-run  아무것도 바꾸지 않는다. 만들 plist를 stdout에, 실행할 명령을 stderr에 적는다.
+  등록 전에 포트가 비어 있는지 확인하고, 다른 프로세스가 쓰고 있으면 등록하지 않고 실패한다.
   등록 후 /health가 응답하는지 확인하고, 응답이 없으면 등록을 해제하고 실패한다.
   환경 변수 JAYSTUDIO_LAUNCH_AGENTS_DIR로 LaunchAgents 폴더를 바꿀 수 있다(기본 ~/Library/LaunchAgents).
   환경 변수 JAYSTUDIO_HEALTH_TIMEOUT_SECONDS로 기동 확인 대기 시간을 바꿀 수 있다(기본 10초, 1~120).
@@ -112,6 +113,7 @@ if [ "$DRY_RUN" = "true" ]; then
     echo "DRY-RUN plist 경로: $PLIST_PATH"
     echo "DRY-RUN 로그 파일: $LOG_FILE"
     echo "DRY-RUN 실행할 명령: launchctl bootout $SERVICE_TARGET (이미 등록된 경우)"
+    echo "DRY-RUN 선점 확인: 포트 ${PORT}를 듣고 있는 다른 프로세스가 없는지 (lsof -nP -iTCP:$PORT -sTCP:LISTEN)"
     echo "DRY-RUN 실행할 명령: launchctl bootstrap gui/$(id -u) $PLIST_PATH"
     echo "DRY-RUN 기동 확인: curl -s -H 'Origin: ${ALLOWED_ORIGINS%%,*}' http://127.0.0.1:$PORT/health (최대 ${HEALTH_TIMEOUT}초)"
   } >&2
@@ -127,6 +129,50 @@ chmod 644 "$PLIST_PATH"
 if launchctl print "$SERVICE_TARGET" >/dev/null 2>&1; then
   launchctl bootout "$SERVICE_TARGET"
 fi
+
+# 등록 전에 포트 선점을 확인한다. /health만 보면 다른 인자(다른 label·다른 프로젝트)로 이미 돌던
+# 도우미가 같은 포트를 쥐고 있을 때 신규 서비스가 기동에 실패해도 그 프로세스가 "ok":true를 돌려줘
+# `설치 완료`로 끝난다. 위에서 이 label의 서비스를 bootout했으므로 여기서 아직 듣고 있는 프로세스는
+# 지금 설치하는 서비스가 아니다.
+if command -v lsof >/dev/null 2>&1; then
+  PORT_PROBE="lsof"
+elif command -v nc >/dev/null 2>&1; then
+  PORT_PROBE="nc"
+else
+  PORT_PROBE="none"
+fi
+
+port_listeners() {
+  case "$PORT_PROBE" in
+    lsof) lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | tr '\n' ' ' | sed 's/[[:space:]]*$//' || true ;;
+    nc) if nc -z 127.0.0.1 "$PORT" >/dev/null 2>&1; then echo "확인 불가(lsof 없음)"; fi ;;
+  esac
+  return 0
+}
+
+PORT_HOLDERS=""
+if [ "$PORT_PROBE" = "none" ]; then
+  echo "install.sh: lsof·nc가 없어 포트 $PORT 선점 확인을 건너뜁니다" >&2
+else
+  # bootout 직후에는 포트가 풀리는 데 잠깐 걸릴 수 있으므로 짧게 다시 확인한다.
+  for _ in $(seq 1 8); do
+    PORT_HOLDERS="$(port_listeners)"
+    [ -n "$PORT_HOLDERS" ] || break
+    sleep 0.25
+  done
+fi
+
+if [ -n "$PORT_HOLDERS" ]; then
+  {
+    echo "install.sh: 포트 ${PORT}를 다른 프로세스가 이미 쓰고 있습니다 (pid: $PORT_HOLDERS) — 등록하지 않았습니다"
+    echo "install.sh: 이대로 등록하면 그 프로세스의 /health 응답 때문에 기동 실패를 못 보고 설치가 끝납니다"
+    echo "install.sh: 쓰는 프로세스 확인: lsof -nP -iTCP:$PORT -sTCP:LISTEN"
+    echo "install.sh: 다른 label로 설치된 도우미라면 ./uninstall.sh --label <label>로 제거한 뒤 다시 설치하거나 --port로 다른 포트를 쓰세요"
+    echo "install.sh: plist는 진단용으로 남겼습니다: $PLIST_PATH"
+  } >&2
+  exit 1
+fi
+
 launchctl bootstrap "gui/$(id -u)" "$PLIST_PATH"
 
 # 등록만으로는 기동 성공을 알 수 없다(KeepAlive true라 잘못된 인자면 조용히 재시작만 반복한다).
@@ -149,6 +195,7 @@ if [ "$HEALTH_OK" != "true" ]; then
     echo "install.sh: 도우미가 기동하지 않았습니다 — ${HEALTH_TIMEOUT}초 동안 $HEALTH_URL 무응답"
     echo "install.sh: 재시작 루프를 멈추려고 등록을 해제했습니다: launchctl bootout $SERVICE_TARGET"
     echo "install.sh: 기동 실패 원인은 로그에 있습니다: $LOG_FILE"
+    echo "install.sh: 등록 직후 다른 프로세스가 포트 ${PORT}를 가로챘을 수도 있습니다: lsof -nP -iTCP:$PORT -sTCP:LISTEN"
   } >&2
   launchctl bootout "$SERVICE_TARGET" >/dev/null 2>&1 || true
   if [ -s "$LOG_FILE" ]; then

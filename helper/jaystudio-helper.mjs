@@ -32,6 +32,12 @@ export const TOKEN_HEADER_NAME = 'x-jaystudio-helper-token';
 /** 토큰 파일 기본 위치. `--token-file`로 덮어쓴다(architecture.md §6.3). */
 export const DEFAULT_TOKEN_FILE_RELATIVE = join('.jaystudio', 'helper-token');
 const MAX_BODY_BYTES = 4096;
+/**
+ * 상한 초과 본문을 흘려보낼 때의 2차 상한(1MiB). 여기를 넘으면 소켓을 끊는다 —
+ * 초대형 본문이 400을 받은 뒤에도 소켓을 오래 붙잡는 것을 막는다.
+ * 이 값 이하의 초과 본문은 그대로 400 INVALID_BODY로 끝난다(api-spec `/open` 계약 불변).
+ */
+const MAX_DISCARDED_BODY_BYTES = 1024 * 1024;
 const TOKEN_BYTES = 32;
 const TOKEN_PATTERN = /^[0-9a-f]{64}$/;
 
@@ -259,6 +265,8 @@ function sendError(response, status, code, headers = {}) {
  * 본문을 최대 MAX_BODY_BYTES까지 읽는다.
  * 상한을 넘으면 즉시 거부하지만 **소켓을 끊지 않는다** — 호출자가 400 INVALID_BODY를 돌려줄 수 있어야
  * 하고(api-spec `/open`에 연결 종료라는 응답이 없다) 남은 데이터는 버리며 흘려보낸다.
+ * 다만 흘려보내는 양이 MAX_DISCARDED_BODY_BYTES를 넘으면 그때 소켓을 끊는다 — 초대형 본문이
+ * 소켓을 무한정 붙잡지 못하게 한다.
  * @param {import('node:http').IncomingMessage} request
  * @returns {Promise<string>}
  */
@@ -268,11 +276,15 @@ function readBody(request) {
     let size = 0;
     let tooLarge = false;
     request.on('data', (chunk) => {
+      size += chunk.length;
       if (tooLarge) {
         // 남은 본문은 버린다(읽어서 흘려보내야 응답이 클라이언트에 도착한다).
+        // 2차 상한을 넘으면 더 기다리지 않고 소켓을 끊는다.
+        if (size > MAX_DISCARDED_BODY_BYTES) {
+          request.destroy();
+        }
         return;
       }
-      size += chunk.length;
       if (size > MAX_BODY_BYTES) {
         tooLarge = true;
         chunks.length = 0;

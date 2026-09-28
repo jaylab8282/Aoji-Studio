@@ -6,6 +6,15 @@
 //   - D-032 04-4 변형(hook 미설정 03) 캡처를 공식 산출물에 포함
 //   - T-FIX-03 m4 기본 캡처 뷰포트 1440×1024 고정 (`playwright.config.ts`는 고치지 않는다)
 //   - T-024 Minor 4 01 문서 높이·사이드바 하단 `수집 상태` 카드의 프레임 내부 여부 실측 (ADR-46 C)
+//   - T-024 Minor 6 13자 이름 칩 + **상태 줄**(`작업 중 · 부모 <라벨>`) 열 번짐 실측
+//
+// **01 캡처를 보는 리뷰어가 먼저 읽을 것(T-024 Minor 4)**: 01 캡처는 뷰포트 clip 1440×1140이고
+// 01 문서 총 높이는 그보다 큰 1158px이다(T-025 실측). 그래서 사이드바 하단 `수집 상태` 카드 하단
+// 1.75px가 프레임 밖으로 잘린다 — `AppShell`의 `min-h-screen` + `Sidebar`의 `justify-between` 때문이고
+// 표 높이 `h-96`은 ADR-49 3에서 현행 유지로 확정됐다(`ui-spec.md` SCR-01 확정된 차이 1항:
+// "01 문서 총 높이는 대조 대상 아님"). **요소 누락이 아니다** — `수집 상태` 카드와 그 안의
+// `hook 설정됨`은 아래 01 테스트가 DOM으로 직접 단언하고, 실측치는 `captureFrame`이 annotation과
+// 실행 로그에 매 실행마다 남긴다.
 //
 // 재생 줄 ↔ 화면 상태의 근거는 `tools/replay/scenarios/README.md`의 showcase.jsonl 22줄 대응표다.
 // 잘못된 상태를 캡처하면 대조가 무의미하므로 **캡처 전에 대응표대로의 상태를 단언**한다.
@@ -48,6 +57,25 @@ const SHOWCASE_SCENARIO = join(SCENARIOS_DIR, "showcase.jsonl");
 
 /** 사이드바 하단 `CollectorStatus` 카드 제목(lib/text.ts `COLLECTOR_STATUS_TITLE`). 프레임 내부 여부 실측용. */
 const COLLECTOR_CARD_TITLE = "수집 상태";
+
+/**
+ * 03 오피스 하단 `동작 매핑` 범례 문구(`docs/ui-spec.md` SCR-03 요소 표 원문 그대로).
+ * 03 캡처 프레임보다 아래에 있어 캡처로는 보이지 않으므로 DOM으로 단언한다(T-024 리뷰 Minor 5).
+ */
+const OFFICE_LEGEND_TITLE = "동작 매핑";
+const OFFICE_LEGEND_ITEMS = [
+  "타이핑 = Edit·Write",
+  "읽기 = Read·Grep·Glob",
+  "주황 말풍선 = 권한 요청",
+  "회색 = 대기",
+  "작은 캐릭터 = 서브에이전트",
+];
+
+/** 03 선택 패널 각주 2줄(`docs/ui-spec.md` SCR-03 요소 표 원문. 두 번째 줄은 `workflow.lead`로 끝난다). */
+const PANEL_FOOTNOTE_TRASH = "제거 = 휴지통(.jaystudio/trash/)으로 이동 · 원문 로그 보기 없음";
+function panelFootnoteTerminal(lead: string): string {
+  return `작업 지시는 상단 팀장 호출로 연 터미널에서 직접 한다 · claude --agent ${lead}`;
+}
 
 /** 산출물 폴더(PNG는 커밋 대상). */
 const SCREENSHOT_DIR = join(E2E_DIR, "screenshots");
@@ -180,6 +208,13 @@ async function captureFrame(
 
     if (resized) {
       // T-024 Minor 4 판정 근거: 사이드바 하단 `수집 상태` 카드가 프레임 안에 들어왔는가.
+      //
+      // 현행 사실(2026-09-28 T-025 실측, ADR-49 3에서 현행 유지 확정): 01 문서 높이 1158px >
+      // 프레임 1140px이라 이 카드 하단 약 1.75px이 **프레임 밖으로 잘린다**. 캡처만 보면 카드가
+      // 없어 보일 수 있으나 요소 누락이 아니다 — 바로 아래 `toBeVisible()`이 카드를 DOM으로 단언하고
+      // (01 테스트는 카드 안의 `hook 설정됨`도 단언한다), 잘린 양은 아래 annotation에 수치로 남는다.
+      // 프레임을 문서 높이에 맞추지 않는 이유: `ui-spec.md` SCR-01 확정된 차이 1항이 "01 문서 총
+      // 높이는 대조 대상 아님"으로 확정했고 기준 PNG와 같은 픽셀 크기로 잘라야 겹쳐 볼 수 있다.
       const collectorCard = sidebar(page).getByText(COLLECTOR_CARD_TITLE, { exact: true }).locator("..");
       await expect(collectorCard).toBeVisible();
       const box = await collectorCard.boundingBox();
@@ -191,7 +226,12 @@ async function captureFrame(
         testInfo,
         `캡처 ${options.fileName} 사이드바 수집 상태 카드`,
         `top ${round2(y)}px · bottom ${bottom}px · 프레임 높이 ${frame.height}px → ` +
-          `${insideFrame ? "프레임 안" : "프레임 밖(T-024 Minor 4 잔존)"}, 문서 높이 ${documentHeight}px ` +
+          `${
+            insideFrame
+              ? "프레임 안"
+              : `프레임 밖 ${round2(bottom - frame.height)}px(T-024 Minor 4 잔존 · ADR-49 3에서 현행 유지 확정 · ` +
+                "요소 누락이 아니라 DOM 단언으로 검증된다)"
+          }, 문서 높이 ${documentHeight}px ` +
           `(${documentHeight <= frame.height ? "프레임 높이 이하" : "프레임 높이 초과"})`,
       );
     }
@@ -216,6 +256,15 @@ interface DeskMetric {
   labelLeft: number;
   labelRight: number;
   labelWidth: number;
+  /**
+   * 상태 줄(`DeskSprite.tsx` 마지막 줄 `작업 중`/`대기`/`작업 중 · 부모 <라벨>`)의 문구와 좌·우 끝·폭.
+   * 같은 책상에서 이름 칩(12자 + `…`로 제한)보다 **넓어질 수 있는 유일한 요소**라 번짐 판정에 함께 쓴다
+   * (T-024 리뷰 Minor 6).
+   */
+  statusText: string;
+  statusLeft: number;
+  statusRight: number;
+  statusWidth: number;
 }
 
 /** 층 카드 안 책상들의 실측값(DOM 순서 = FR-006-AC1 정렬 순서). */
@@ -231,6 +280,10 @@ async function deskMetrics(page: Page, workflowName: string): Promise<DeskMetric
         const root = svg.parentElement;
         const labelSpan = root?.querySelector("span[title] > span") ?? null;
         const labelRect = labelSpan?.getBoundingClientRect() ?? { left: 0, right: 0, width: 0 };
+        // 상태 줄은 책상 묶음(`DeskSprite`)의 마지막 자식 span이다. 선택 결과는 호출하는 쪽에서
+        // `statusText`로 검증한다(구조가 바뀌면 빈 문구로 드러난다).
+        const statusSpan = root?.lastElementChild ?? null;
+        const statusRect = statusSpan?.getBoundingClientRect() ?? { left: 0, right: 0, width: 0 };
         return {
           name: svg.getAttribute("aria-label") ?? "",
           label: labelSpan?.textContent ?? "",
@@ -239,6 +292,10 @@ async function deskMetrics(page: Page, workflowName: string): Promise<DeskMetric
           labelLeft: labelRect.left,
           labelRight: labelRect.right,
           labelWidth: labelRect.width,
+          statusText: statusSpan?.textContent ?? "",
+          statusLeft: statusRect.left,
+          statusRight: statusRect.right,
+          statusWidth: statusRect.width,
         };
       });
     });
@@ -270,6 +327,54 @@ function verticalPitch(desks: DeskMetric[]): number {
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
+
+/** 같은 줄(중심 y가 같은) 책상들의 묶음. 번짐·겹침은 줄 안에서만 일어난다. */
+function rows(desks: DeskMetric[]): DeskMetric[][] {
+  const grouped: DeskMetric[][] = [];
+  for (const desk of desks) {
+    const row = grouped.find((candidate) => Math.abs((candidate[0] as DeskMetric).centerY - desk.centerY) < 2);
+    if (row === undefined) {
+      grouped.push([desk]);
+    } else {
+      row.push(desk);
+    }
+  }
+  return grouped;
+}
+
+/**
+ * 같은 줄에서 상태 줄끼리 겹치는 쌍(요소 가림 판정 — `docs/ui/README.md` "요소 가림은 결함").
+ * ADR-48 C가 면제한 것은 pitch 수치뿐이고 번짐·가림은 그대로 결함 기준이다(T-024 리뷰 Minor 6).
+ */
+function statusOverlaps(desks: DeskMetric[]): string[] {
+  const found: string[] = [];
+  for (const row of rows(desks)) {
+    for (let index = 1; index < row.length; index += 1) {
+      const left = row[index - 1] as DeskMetric;
+      const right = row[index] as DeskMetric;
+      if (left.statusRight > right.statusLeft) {
+        found.push(`${left.name}↔${right.name} ${round2(left.statusRight - right.statusLeft)}px`);
+      }
+    }
+  }
+  return found;
+}
+
+/** 상태 줄이 자기 열(중심 ± pitch/2) 밖으로 나간 양. 양수면 번짐. */
+function statusBleed(desk: DeskMetric, columnPitch: number): { left: number; right: number } {
+  return {
+    left: round2(desk.centerX - columnPitch / 2 - desk.statusLeft),
+    right: round2(desk.statusRight - (desk.centerX + columnPitch / 2)),
+  };
+}
+
+/** 상태 줄이 가장 넓은 책상(가림이 먼저 일어나는 지점). */
+function widestStatusDesk(desks: DeskMetric[]): DeskMetric {
+  return [...desks].sort((a, b) => b.statusWidth - a.statusWidth)[0] as DeskMetric;
+}
+
+/** 상태 줄 문구 형식(`lib/text.ts agentStatusWithParent`). 선택자가 엉뚱한 요소를 잡으면 여기서 드러난다. */
+const STATUS_LINE_PATTERN = /^(작업 중|권한 대기|대기)( · 부모 .+)?$/;
 
 // ── 화면 조회 도우미 ──────────────────────────────────────────────────────────────
 
@@ -453,6 +558,18 @@ test("[DoD 화면 대조][E2E-13] 03 픽셀 오피스 — 말풍선·부모·작
   // 기본 선택 = 팀장(FR-007-AC4) + 패널 값(FR-007-AC5).
   await expect(panelRowValue(page, "상태")).toHaveText("작업 중");
   await expect(panelRowValue(page, "현재 도구")).toHaveText("Edit · .claude/agents/dev-lead.md");
+
+  // 오피스 하단 `동작 매핑` 범례와 패널 각주 2줄 — 03 캡처 프레임보다 아래에 있어 캡처로는 확인할 수
+  // 없지만 DOM에는 있어야 한다(ui-spec.md SCR-03 요소 표. T-024 리뷰 Minor 5).
+  const officeLegend = page.getByText(OFFICE_LEGEND_TITLE, { exact: true }).locator("..");
+  await expect(officeLegend).toBeVisible();
+  for (const item of OFFICE_LEGEND_ITEMS) {
+    await expect(officeLegend.getByText(item, { exact: true })).toBeVisible();
+  }
+  await expect(page.getByText(PANEL_FOOTNOTE_TRASH, { exact: true })).toBeVisible();
+  await expect(
+    page.locator("p").filter({ hasText: panelFootnoteTerminal("dev-lead") }),
+  ).toBeVisible();
 
   await captureFrame(page, testInfo, {
     fileName: "03-workflow-detail.png",
@@ -700,6 +817,51 @@ test("[E2E-13][T-015 m6][FR-006-AC4] 13자 이름을 가장 좁은 열(span-1 4�
       overlaps.map((desk) => desk.name),
       "13자 이름 칩이 인접 열의 이름 칩과 겹칩니다",
     ).toEqual([]);
+
+    // ── 상태 줄 번짐 (T-024 리뷰 Minor 6) ──────────────────────────────────────────
+    // 한 책상에서 이름 칩보다 넓어질 수 있는 요소는 상태 줄뿐이다(이름 칩은 12자 + `…`로 잘리지만
+    // 상태 줄은 `작업 중 · 부모 <라벨>`까지 길어진다). 가장 좁은 열(span-1 4열)에서 먼저 재고,
+    // 이 fixture 상태의 span-1 층에는 부모 접미가 붙는 책상이 없으므로 **실제로 접미가 붙은 span-3 층
+    // (dev-team의 dev-07)의 상태 줄 폭**을 함께 재서 같은 문구가 span-1 열 폭에 놓였을 때까지 수치로 남긴다
+    // (두 층의 상태 줄 글꼴·크기가 같아 폭은 열과 무관하다).
+    for (const desk of desks) {
+      expect(desk.statusText, `${desk.name} 상태 줄 문구`).toMatch(STATUS_LINE_PATTERN);
+      expect(desk.statusWidth, `${desk.name} 상태 줄 폭`).toBeGreaterThan(0);
+    }
+    const span1Widest = widestStatusDesk(desks);
+    const span1Bleed = statusBleed(span1Widest, columnPitch);
+    const span1Overlaps = statusOverlaps(desks);
+
+    const span3Desks = await deskMetrics(page, DEV_TEAM);
+    const span3Pitch = round2(horizontalPitches(span3Desks)[0] as number);
+    for (const desk of span3Desks) {
+      expect(desk.statusText, `${desk.name} 상태 줄 문구`).toMatch(STATUS_LINE_PATTERN);
+    }
+    const span3Widest = widestStatusDesk(span3Desks);
+    const span3Bleed = statusBleed(span3Widest, span3Pitch);
+    const span3Overlaps = statusOverlaps(span3Desks);
+    // 같은 문구를 가장 좁은 열(span-1)에 놓으면 한쪽으로 이만큼 나간다(중앙 정렬이라 좌우 대칭).
+    const projectedSpan1Bleed = round2((span3Widest.statusWidth - columnPitch) / 2);
+    // 그 문구를 가진 책상이 span-1에서 **나란히 두 개**일 때의 겹침(둘 다 좌우로 번지므로 폭−열 폭).
+    const projectedSpan1Overlap = round2(span3Widest.statusWidth - columnPitch);
+
+    logMeasurement(
+      testInfo,
+      "T-024 Minor 6 상태 줄 번짐",
+      `span-1(4열, 열 폭 ${columnPitch}px) 최대 상태 줄 "${span1Widest.statusText}"(${span1Widest.name}) ` +
+        `폭 ${round2(span1Widest.statusWidth)}px → 열 경계 밖 왼쪽 ${span1Bleed.left}px · 오른쪽 ${span1Bleed.right}px, ` +
+        `겹침 ${span1Overlaps.length}건${span1Overlaps.length === 0 ? "" : ` [${span1Overlaps.join(" / ")}]`} | ` +
+        `span-3(9열, 열 폭 ${span3Pitch}px) 최대 상태 줄 "${span3Widest.statusText}"(${span3Widest.name}) ` +
+        `폭 ${round2(span3Widest.statusWidth)}px → 열 경계 밖 왼쪽 ${span3Bleed.left}px · 오른쪽 ${span3Bleed.right}px, ` +
+        `겹침 ${span3Overlaps.length}건${span3Overlaps.length === 0 ? "" : ` [${span3Overlaps.join(" / ")}]`} | ` +
+        `같은 문구가 span-1 열 폭(${columnPitch}px)에 놓이면 좌·우로 각 ${projectedSpan1Bleed}px 번지고, ` +
+        `그런 책상이 나란히 두 개면 ${projectedSpan1Overlap}px 겹친다` +
+        `(양수면 번짐·겹침. 이 fixture 상태의 span-1 층에는 부모 접미가 붙는 책상이 없어 실제 겹침은 0건이다)`,
+    );
+
+    // 열 경계 번짐(pitch에서 비롯한 수치)은 ADR-48 C가 현행 확정했으나 **요소 가림은 결함 기준**이다.
+    expect(span1Overlaps, "span-1 층에서 상태 줄이 인접 열 상태 줄과 겹칩니다").toEqual([]);
+    expect(span3Overlaps, "span-3 층에서 상태 줄이 인접 열 상태 줄과 겹칩니다").toEqual([]);
   } finally {
     writeFixtureFile(teamFile(SPAN1_TEAM), originalVideoTeam);
     removeFixturePath(agentFile(LONG_NAME));

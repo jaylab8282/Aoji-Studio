@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkflowsHeader } from "./WorkflowsHeader";
+import { Button } from "../../components/ui/Button";
 import { snapshotStore } from "../../state/snapshotStore";
 import { buildSnapshotFixture } from "../../test/fixtures/snapshot";
 
@@ -69,6 +70,23 @@ function openButton(): HTMLElement {
   return screen.getByRole("button", { name: /Claude 열기 · 기본 세션/ });
 }
 
+/**
+ * `Button variant="secondary"`의 활성·비활성 **기준 모양**을 Button 자신에게서 얻는다.
+ * 클래스명 문자열(`border-border-strong`·`border-dashed`)을 이 테스트가 직접 들고 있으면 Button
+ * 내부 구현에 결합돼 리팩터링마다 깨진다(T-FIX-09 리뷰 Suggestion) — 값 대신 "기준과 같은가"를 본다.
+ */
+function referenceButtonClassName(disabled: boolean): string {
+  const reference = render(
+    <Button variant="secondary" disabled={disabled}>
+      기준
+    </Button>,
+  );
+  const className = reference.container.querySelector("button")?.className ?? "";
+  reference.unmount();
+  expect(className).not.toBe("");
+  return className;
+}
+
 describe("WorkflowsHeader", () => {
   beforeEach(() => {
     writeText.mockReset();
@@ -98,11 +116,10 @@ describe("WorkflowsHeader", () => {
     const calls = stubFetch();
     render(<WorkflowsHeader />);
 
-    // 스냅샷을 받은 뒤(beforeEach가 fixture를 넣었다)에는 비활성 모양이 아니라 secondary 활성 모양이다.
+    // 스냅샷을 받은 뒤(beforeEach가 fixture를 넣었다)에는 활성이다. 시각 표현(secondary 활성 모양)은
+    // 아래 `[ADR-44][ADR-29] 시각 표현` 테스트가 따로 고정한다 — 상태와 모양을 한 단언에 섞지 않는다.
     const button = openButton();
     expect(button).toBeEnabled();
-    expect(button.className).toContain("border-border-strong");
-    expect(button.className).not.toContain("border-dashed");
 
     fireEvent.click(button);
 
@@ -115,6 +132,23 @@ describe("WorkflowsHeader", () => {
     // 성공(204)은 화면에 아무 것도 남기지 않는다 — 터미널은 맥북에서 열린다.
     expect(screen.queryByTestId("helper-missing-dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("[ADR-44][ADR-29] 시각 표현 — 스냅샷 전은 Button 비활성 기준 모양, 스냅샷 후는 secondary 활성 기준 모양", () => {
+    const enabledReference = referenceButtonClassName(false);
+    const disabledReference = referenceButtonClassName(true);
+    // 두 기준이 실제로 다른 모양이어야 이 단언이 뜻을 갖는다(ADR-29: 비활성은 variant 표현을 대체한다).
+    expect(enabledReference).not.toBe(disabledReference);
+
+    snapshotStore.reset();
+    stubFetch();
+    const before = render(<WorkflowsHeader />);
+    expect(openButton().className).toBe(disabledReference);
+    before.unmount();
+
+    snapshotStore.replace(buildSnapshotFixture());
+    render(<WorkflowsHeader />);
+    expect(openButton().className).toBe(enabledReference);
   });
 
   it("[ADR-44] 첫 스냅샷 전(snapshotStore 초기 상태) → 'Claude 열기 · 기본 세션' 버튼이 disabled이고 이유 줄 텍스트가 문서에 없다", () => {

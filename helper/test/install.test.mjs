@@ -237,10 +237,10 @@ const VERIFY_ENV = {
  * install.sh를 비동기로 돌린다. spawnSync는 이벤트 루프를 막아 같은 프로세스의
  * /health 대역 서버가 응답할 수 없으므로 여기서는 spawn을 쓴다.
  */
-function runInstallWithVerify(args) {
+function runInstallWithVerify(args, extraEnv = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn('/bin/bash', [INSTALL_SH, ...args], {
-      env: { ...process.env, ...VERIFY_ENV },
+      env: { ...process.env, ...VERIFY_ENV, ...extraEnv },
     });
     let stdout = '';
     let stderr = '';
@@ -255,6 +255,22 @@ function runInstallWithVerify(args) {
     child.once('error', reject);
     child.once('close', (status) => resolve({ status, stdout, stderr }));
   });
+}
+
+/**
+ * 가짜 launchctl이 bootstrap 호출을 기록할 때까지 기다린다. install.sh가 bootstrap **전에**
+ * 포트 선점을 확인하므로, 기동 확인 성공 경로의 스텁은 이 시점 뒤에 듣기 시작해야
+ * 실제 순서(포트 비어 있음 → 등록 → launchd가 띄움 → /health 응답)와 같아진다.
+ */
+async function waitForBootstrapCall(timeoutMs = 10_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (existsSync(verifyMarker) && /^bootstrap /m.test(readFileSync(verifyMarker, 'utf8'))) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error('install.sh가 launchctl bootstrap을 부르지 않았다');
 }
 
 /** 임시 포트를 하나 잡았다가 바로 닫아 "아무도 듣지 않는 포트"를 얻는다. */
@@ -302,10 +318,17 @@ test("[NFR-05] install.sh는 /health가 응답하면 설치 완료로 끝난다"
     response.writeHead(404);
     response.end();
   });
-  await new Promise((resolve) => stub.listen(0, '127.0.0.1', resolve));
-  const { port } = stub.address();
+  // 스텁은 launchd가 서비스를 띄우는 자리를 대신하므로 bootstrap 호출 뒤에 듣기 시작한다
+  // (install.sh가 bootstrap 전에 포트 선점을 확인한다 — T-FIX-07).
+  const port = await findFreePort();
   try {
-    const result = await runInstallWithVerify(['--project-dir', projectDir, '--port', String(port)]);
+    const running = runInstallWithVerify(
+      ['--project-dir', projectDir, '--port', String(port)],
+      { JAYSTUDIO_HEALTH_TIMEOUT_SECONDS: '15' },
+    );
+    await waitForBootstrapCall();
+    await new Promise((resolve) => stub.listen(port, '127.0.0.1', resolve));
+    const result = await running;
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /설치 완료/);
     assert.match(result.stdout, /기동 확인 완료/);
@@ -318,5 +341,46 @@ test("[NFR-05] install.sh는 /health가 응답하면 설치 완료로 끝난다"
   } finally {
     stub.closeAllConnections();
     await new Promise((resolve) => stub.close(resolve));
+  }
+});
+
+test("[NFR-05][T-FIX-07] 포트를 다른 프로세스가 선점했으면 bootstrap 전에 실패하고 '설치 완료'로 끝나지 않는다", async () => {
+  // 다른 인자로 이미 돌던 도우미를 흉내낸다: 같은 포트에서 /health에 "ok":true를 돌려주지만
+  // 지금 설치하는 서비스가 아니다. 포트만 보는 기동 확인은 이 응답에 속아 설치를 완료로 끝냈다.
+  rmSync(verifyMarker, { force: true });
+  rmSync(verifyAgentsDir, { recursive: true, force: true });
+
+  const healthPaths = [];
+  const squatter = createServer((request, response) => {
+    healthPaths.push(request.url);
+    response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    response.end('{"ok":true,"version":"1"}');
+  });
+  await new Promise((resolve) => squatter.listen(0, '127.0.0.1', resolve));
+  const { port } = squatter.address();
+  try {
+    const result = await runInstallWithVerify(['--project-dir', projectDir, '--port', String(port)]);
+
+    assert.notEqual(result.status, 0, result.stdout + result.stderr);
+    assert.equal(result.stdout.includes('설치 완료'), false, result.stdout);
+    assert.equal(result.stdout.includes('기동 확인 완료'), false, result.stdout);
+    assert.match(result.stderr, new RegExp(`포트 ${port}를 다른 프로세스가 이미 쓰고 있습니다`));
+    assert.match(result.stderr, /lsof -nP -iTCP:/);
+    assert.match(result.stderr, /uninstall\.sh|--port/);
+    assert.ok(result.stderr.includes(join(verifyAgentsDir, `${LABEL}.plist`)), result.stderr);
+    // 선점된 포트로는 등록하지 않는다 — 그래야 launchd 재시작 루프가 시작되지 않는다.
+    const calls = existsSync(verifyMarker) ? readFileSync(verifyMarker, 'utf8').trim().split('\n') : [];
+    assert.equal(
+      calls.some((line) => line.startsWith('bootstrap ')),
+      false,
+      calls.join(' | '),
+    );
+    // 선점 프로세스의 /health를 기동 확인 근거로 쓰지 않았다.
+    assert.deepEqual(healthPaths, []);
+  } finally {
+    squatter.closeAllConnections();
+    await new Promise((resolve) => squatter.close(resolve));
+    rmSync(verifyMarker, { force: true });
+    rmSync(verifyAgentsDir, { recursive: true, force: true });
   }
 });

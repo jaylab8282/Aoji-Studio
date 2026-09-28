@@ -129,10 +129,27 @@ describe("정적 단언", () => {
     // 가드 블록 밖에 남은 렌더·SSE 호출이 없다(호출이 각각 한 번뿐인지 확인).
     expect(main.split("createRoot(").length - 1).toBe(1);
     expect(main.split("startStream()").length - 1).toBe(1);
+
+    // 위 단언들은 **순서**만 본다 → 가드보다 앞에 새 호출을 끼워 넣는 변경(예: 정규화 전에 설정을
+    // 미리 받아오는 코드)은 순서 단언을 모두 통과한다. 그래서 가드 이전 텍스트에 네트워크·렌더·SSE
+    // 호출이 하나도 없음을 함께 고정한다(import 문과 주석만 있어야 한다).
+    // ADR-41: 정규화 전에 나간 요청은 잘못된 Origin으로 나가고 곧 버려지는 문서에 남는다.
+    const beforeGuard = main.slice(0, guardStart);
+    expect(beforeGuard, "가드 이전에 네트워크·SSE 호출이 있다").not.toMatch(
+      /\b(fetch|apiGet|apiPost|apiDelete|apiPatch|apiPut|startStream|open[A-Za-z]*Stream)\s*\(/,
+    );
+    expect(beforeGuard, "가드 이전에 SSE 연결이 있다").not.toMatch(/new\s+(EventSource|WebSocket|XMLHttpRequest)/);
+    expect(beforeGuard, "가드 이전에 렌더 호출이 있다").not.toMatch(/createRoot\s*\(|\.render\s*\(/);
   });
 
   it("[ADR-41] frontend/src에서 location.replace·location.href 대입으로 출처를 바꾸는 코드는 main.tsx 한 곳뿐이고, publicOrigin으로 리다이렉트하는 코드가 없다", () => {
     // 이동 코드는 lib/origin.ts(구현) 한 파일에만 있다. 테스트 파일은 가짜 location을 쓰므로 제외한다.
+    //
+    // 남는 사각(의도한 제외 — T-FIX-05·T-FIX-06 리뷰 Minor 2): `*.test.ts(x)`가 **실제로** 출처를 바꾸는
+    // 코드를 갖는 경우는 이 단언(과 바로 아래 호출부 단언)이 잡지 않는다. 테스트 파일은 `vite build`
+    // 대상이 아니어서 운영 번들에 들어가지 않고, jsdom에서는 `location.replace` 자체가 실제 이동을
+    // 일으키지 않으므로 사용자에게 도달하는 위험이 없다. 구현 파일 쪽에는 사각이 없다
+    // (`IMPLEMENTATION_SOURCES`와 같은 제외 규칙이며, 아래 `publicOrigin` 단언은 테스트 파일까지 본다).
     const navigators = SOURCES.filter(
       ([path, text]) =>
         path !== THIS_FILE && !/\.test\.tsx?$/.test(path) && hasOriginNavigation(text),
@@ -200,6 +217,25 @@ describe("정적 단언", () => {
     // 부류 ④는 밑줄만 쓴다 — 배경·글자색 교체가 섞이면 새 값이 흩어진다(ui-spec §공통 표 ④).
     // 두 링크 × (hover + focus-visible) = 4개이며 모두 `underline`이다.
     expect(decorations).toEqual(["underline", "underline", "underline", "underline"]);
+  });
+
+  it("[ADR-30][conventions §7] TopBar가 라우트를 스스로 읽지 않는다(프로젝트 칩 표시 여부는 화면이 prop으로 넘긴다)", () => {
+    // ADR-42(`AgentsDirMissing`의 `설정 열기`)와 같은 층위의 규칙인데 대응 단언이 없었다
+    // (T-FIX-08 리뷰 제안). 공용 셸이 화면 규칙을 알기 시작하면 화면별 예외가 셸에 쌓인다.
+    const topBar = sourceOf("src/components/common/TopBar.tsx");
+
+    expect(topBar).not.toMatch(
+      /useLocation|useMatch|useResolvedPath|useSearchParams|useParams|useHref|useNavigationType/,
+    );
+    expect(topBar).not.toMatch(/window\.location|document\.location/);
+    // 라우트 경로 문자열과의 비교가 좌우 어느 방향으로도 없다.
+    expect(topBar).not.toMatch(/[=!]==?\s*["'`]\//);
+    expect(topBar).not.toMatch(/["'`]\/[^"'`]*["'`]\s*[=!]==?/);
+    expect(topBar).not.toMatch(/(startsWith|includes|match)\s*\(\s*["'`]\//);
+    // 라우터에서 아무것도 가져오지 않는다 — 새 라우터 훅이 생겨도 이 단언이 먼저 걸린다.
+    expect(topBar).not.toMatch(/from\s*"react-router(?:-dom)?"/);
+    // prop 방식이라는 근거: 시그니처에 기본값 false인 showProjectChip이 있다.
+    expect(topBar).toMatch(/showProjectChip\s*=\s*false/);
   });
 
   it("[conventions §6] frontend/src에 '0.0.0.0' 문자열이 없다", () => {

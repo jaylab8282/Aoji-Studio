@@ -156,11 +156,25 @@ describe("AgentsDirMissing", () => {
     expect(agentsDirMissingSource).not.toMatch(/useLocation/);
     expect(agentsDirMissingSource).not.toMatch(/useMatch/);
     expect(agentsDirMissingSource).not.toMatch(/useResolvedPath|useSearchParams|useParams/);
+    // `useHref`·`useNavigationType`도 현재 위치를 읽는 수단이다(T-FIX-08 리뷰 probe M7:
+    // `useHref(".").includes("settings")`가 위 목록만으로는 통과했다).
+    expect(agentsDirMissingSource).not.toMatch(/useHref|useNavigationType/);
     // 주석에도 `window.location`이 없도록 이 단언은 소스 전체를 본다.
     expect(agentsDirMissingSource).not.toMatch(/window\.location|document\.location/);
-    // 라우트 경로 문자열과의 비교(`=== "/settings"` 등)가 없다.
+    // 라우트 경로 문자열과의 비교(`=== "/settings"` 등)가 없다. 좌우 어느 쪽에 문자열이 와도 잡는다
+    // (probe M5: `"/settings" === x`는 한쪽 방향만 보는 정규식을 빠져나갔다).
     expect(agentsDirMissingSource).not.toMatch(/[=!]==?\s*["'`]\//);
+    expect(agentsDirMissingSource).not.toMatch(/["'`]\/[^"'`]*["'`]\s*[=!]==?/);
     expect(agentsDirMissingSource).not.toMatch(/(startsWith|includes|match)\s*\(\s*["'`]\//);
+    // 위 이름 목록은 새 라우터 훅이 생기면 뒤처진다 → react-router-dom에서 가져오는 것 자체를
+    // `useNavigate`(이동 수단) 하나로 고정한다. 경로를 읽는 어떤 훅을 들여와도 여기서 걸린다.
+    const routerImport = /import\s*\{([^}]*)\}\s*from\s*"react-router-dom"/.exec(agentsDirMissingSource);
+    expect(routerImport, "react-router-dom import 구문을 찾지 못했다").not.toBeNull();
+    const importedRouterNames = (routerImport?.[1] ?? "")
+      .split(",")
+      .map((name) => name.trim())
+      .filter((name) => name !== "");
+    expect(importedRouterNames).toEqual(["useNavigate"]);
     // prop 방식이라는 근거: 시그니처에 기본값 true인 showOpenSettings가 있다.
     expect(agentsDirMissingSource).toMatch(/showOpenSettings\s*=\s*true/);
   });

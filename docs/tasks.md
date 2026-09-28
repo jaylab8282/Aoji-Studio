@@ -740,6 +740,20 @@
 - 하지 말 것: `docs/requirements_*`·`final_requirements_*`·`docs/ui/` 수정. 코드 수정(결정만 한다)
 - Depends on: -
 
+## A-24 (architect 확정 요청) T-FIX-07 리뷰에서 나온 4건 — E2E flaky · 상태 줄 가림 · api-spec 주석
+- Status: todo — **다음 작업 세션에서 처리**(T-FIX-07을 막지 않는다). 출처 `docs/reviews/T-FIX-07.md`
+- Scope: architect 판단 → 결정에 따라 Tools·Frontend 반영
+- 판단할 것
+  1. **[Major] E2E flaky — `tools/e2e/tests/e2e-04.spec.ts:714`의 2000ms 창**(`ui-helpers.ts:18` `FILE_CHANGE_DEADLINE_MS`). 팀장의 전체 실행에서 배치 5가 **1 failed / 8 passed**로 깨졌고 이후 두 번 연속 통과해 **재현되지 않았다**(트레이스 유실). 리뷰어 코드 판정: 그 2초 하나가 **파일 쓰기 → 백엔드 1초 폴링(ADR-04) → SSE → React 렌더 → Playwright 폴링** 전체를 덮어 **폴링 위상만으로 최대 ~1000ms**를 먹는다(실여유 절반 미만). **T-FIX-07이 원인이 아니다**(배치 5 = `e2e-04`+`e2e-15`이고 두 spec·`ui-helpers.ts`·`lib/*`·`playwright.config.ts`·fixture 전부 diff 0건) — **선행 취약점**
+     - 고칠 방향(리뷰어 권고, 기한 증액은 마지막): ① **측정 분리** — FR-001-AC3 2초 예산은 *제품 경로*(파일 쓰기 → `/api/state` 반영 / SSE 프레임 도착)에만 걸고 브라우저 렌더 대기는 별도 기한으로 뗀다 ② **시작점 결정화** — 서버가 알리는 폴링 tick 기준으로 재거나 예산을 "폴링 주기 + X"로 명문화해 주기와의 동전던지기를 없앤다 ③ `2000` 단순 증액 금지(FR-001-AC3 단언을 조용히 완화한다), `retries: 0` 유지(retries는 은폐) ④ `e2e-04:656`·`:685`의 맨 `toHaveCount`에 명시 기한
+     - **확정 전에 재현을 시도할지도 판단해라**: 배치 5만 부하 조건에서 `--reporter=list` 출력과 `test-results/`를 보존하고 `measureFileChangeReflection` annotation의 실측 ms를 읽는 방법이 가장 빠르다(리뷰어는 시도하지 않았다). **부하 유발은 사용자 허락이 필요하다**(D-045)
+  2. **[Minor] 상태 줄 가림 — 조건부 위험**. `statusOverlaps()` 실측은 **겹침 0건**이지만 이는 fixture가 도달하는 상태에 한한다. `작업 중 · 부모 <라벨>`(span-3 실측 **96.67px**)이 **span-1 열 폭 74.84px**에 놓이면 좌우 각 **+10.92px 번짐**, 나란한 두 책상이면 **21.83px 겹침** = 1~2px 면제를 넘는 **글자-위-글자 가림**. 게다가 96.67px은 짧은 라벨 `dev-lead` 기준이고 **부모 접미는 잘리지 않는다**(이름 칩만 12자+`…`). `ui-spec.md:274`가 이 경우를 명시적으로 결함으로 남겨 뒀다
+     - 처방 선택지: 상태 줄 접미 말줄임/클램프 / span-1에서 접미 생략 / `--spacing-card` 재검토(← **사용자에게 보이는 변화**라 ADR-48 C 선례대로 팀장이 사용자 승인을 받아야 한다). **부모 접미 책상을 span-1 열에 실제로 놓는 fixture 층**을 추가해 투영이 아니라 실측이 되게 할 것
+  3. **[Minor] `docs/api-spec.yaml`** `HookPayload.permission_mode`에 "backend는 저장·사용하지 않음" 한 줄(T-023 리뷰 Suggestion, tasks.md가 "(architect 선택)"으로 표시해 T-FIX-07에서 미반영)
+  4. **[Suggestion 정리]** `ui-spec.md:235,274,305`·`conventions.md:111`이 인용한 "`docs/ui/README.md`(요소 가림은 결함)"의 **실제 원문은 "요소 누락, 배치 차이, 흐름 불일치는 결함"**이다 — 뜻은 통하나 인용 문구가 원문에 없다 / `jaystudio-helper.mjs:284` `destroy()` 후 `readBody` promise가 resolve·reject 어느 쪽도 되지 않는 점을 주석에 명시(의도대로지만 독자가 헷갈린다) / `WorkflowsHeader.test.tsx` className 완전일치(`toBe`)를 활성·비활성 판정 축만 비교하도록 좁힐지
+- 하지 말 것: `docs/requirements_*`·`final_requirements_*`·`docs/ui/` 수정, 코드 수정(결정만 한다)
+- Depends on: -
+
 ## T-FIX-08 07의 04-5에서 `설정 열기` 미표시 (ADR-42)
 - Status: done — **리뷰 PASS**(`docs/reviews/T-FIX-08.md`, Blocker 0·Major 0·Minor 2 → T-FIX-07)
 - Scope: Frontend
@@ -806,7 +820,7 @@
 - Depends on: -
 
 ## T-FIX-07 T-FIX-05·T-FIX-06 리뷰 Minor 묶음
-- Status: todo
+- Status: **done** — 리뷰 **PASS**(`docs/reviews/T-FIX-07.md`, Blocker 0 · Major 1(**T-FIX-07이 원인 아님** — 선행 flaky) · Minor 3 · Suggestion 4). **원래 3건 + 추가 7묶음 전부 처리**, 미처리는 `docs/` 소유 2건("(architect 선택)"·"(Suggestion)" 표시)뿐. 네 갈래 병렬(Backend·Helper·Frontend·Tools) 결과: backend **279 유지** · helper 38 → **40** · frontend 381 → **384** · replay **31** · E2E 99 → **106**(+7이 전부 배치 1 = `isolation` 신규 3파일 × 2 + 완전성 1로 정확히 일치). 기존 단언 삭제·약화 **0건**(제거된 `expect` 6줄 전수 확인: 4줄은 동일 단언 재삽입, 2줄은 의도된 교체이며 새 방식이 **더 엄격**). 남은 Major·Minor 3건은 **A-24**(architect)로
 - Scope: Backend + Frontend
 - 출처: `docs/reviews/T-FIX-05_T-FIX-06.md` [Minor] 3건
 - Backend:

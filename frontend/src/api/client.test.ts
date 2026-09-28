@@ -59,7 +59,14 @@ describe("client", () => {
         }
         if (url.includes("/api/workflows")) {
           postCalls += 1;
-          return jsonResponse({ code: "FORBIDDEN_ORIGIN", message: "허용되지 않은 요청입니다" }, 403);
+          return jsonResponse(
+            {
+              code: "FORBIDDEN_ORIGIN",
+              // 서버가 보내는 확정 문구 그대로(conventions.md §4 MUST, ADR-41 · `OriginFilter`).
+              message: "허용되지 않은 출처입니다 · http://127.0.0.1:4180 주소로 다시 접속하세요",
+            },
+            403,
+          );
         }
         throw new Error(`unexpected fetch: ${url}`);
       }),

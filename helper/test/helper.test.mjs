@@ -3,8 +3,10 @@
 
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { EventEmitter } from 'node:events';
+import { EventEmitter, once } from 'node:events';
 import { spawnSync } from 'node:child_process';
+import { connect } from 'node:net';
+import { setTimeout as delay } from 'node:timers/promises';
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -364,6 +366,56 @@ test("[FR-013-E3] 본문 초과 → 400", async () => {
     const after = await openRequest(baseUrl, { body: { target: 'default' } });
     assert.equal(after.status, 204);
     assert.equal(commands.length, 2);
+  });
+});
+
+test("[FR-013-E3][T-FIX-07] 2차 상한(1MiB)을 넘는 본문 → 소켓을 끊는다", async () => {
+  // 4096B 초과는 400 INVALID_BODY로 끝내지만 남은 본문을 계속 읽어 흘려보내므로, 초대형 본문은
+  // 소켓을 오래 붙잡는다. 2차 상한을 넘으면 서버가 소켓을 끊는지 본다(400 경로는 위 테스트가 고정한다).
+  const projectDir = makeProjectDir('body-hard-limit');
+  await withServer({ projectDir }, async ({ baseUrl, commands }) => {
+    const port = Number(new URL(baseUrl).port);
+    const socket = connect({ host: HELPER_HOST, port });
+    let closed = false;
+    let received = '';
+    socket.setEncoding('utf8');
+    socket.on('data', (chunk) => {
+      received += chunk;
+    });
+    socket.on('close', () => {
+      closed = true;
+    });
+    // 서버가 끊은 뒤의 쓰기 오류(EPIPE)는 이 테스트의 기대 결과다.
+    socket.on('error', () => {});
+    try {
+      await once(socket, 'connect');
+      const declaredBytes = 4 * 1024 * 1024;
+      socket.write(
+        `POST /open HTTP/1.1\r\nHost: ${HELPER_HOST}:${port}\r\nOrigin: ${ORIGIN}\r\n` +
+          `X-JayStudio-Helper-Token: ${TOKEN}\r\nContent-Type: application/json\r\n` +
+          `Content-Length: ${declaredBytes}\r\nConnection: keep-alive\r\n\r\n`,
+      );
+      const chunk = Buffer.alloc(64 * 1024, 0x78);
+      let sent = 0;
+      while (!closed && sent < declaredBytes) {
+        socket.write(chunk);
+        sent += chunk.length;
+        // 이벤트 루프에 양보해 서버 응답·종료를 그 자리에서 받는다(고정 대기 없음).
+        await new Promise((resolve) => setImmediate(resolve));
+      }
+      if (!closed) {
+        // 2차 상한이 없으면 keep-alive 소켓이 그대로 열려 있어 여기서 끝난다.
+        await Promise.race([once(socket, 'close'), delay(3000, null, { ref: false })]);
+      }
+      assert.equal(closed, true, `2차 상한(1MiB)을 넘겼는데 소켓이 열려 있다 (보낸 바이트=${sent})`);
+      assert.ok(sent > 1024 * 1024, `2차 상한 전에 끊겼다 (보낸 바이트=${sent})`);
+      // 끊기 전에 400 INVALID_BODY 응답은 그대로 나갔다(api-spec `/open` 계약 불변).
+      assert.match(received, /^HTTP\/1\.1 400 /);
+      assert.match(received, /"code":"INVALID_BODY"/);
+      assert.deepEqual(commands, []);
+    } finally {
+      socket.destroy();
+    }
   });
 });
 

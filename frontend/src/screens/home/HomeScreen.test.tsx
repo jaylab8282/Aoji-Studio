@@ -203,6 +203,9 @@ describe("HomeScreen", () => {
     renderHome();
 
     expect(screen.getByText("에이전트 폴더를 찾을 수 없습니다")).toBeInTheDocument();
+    // ADR-42 호출처 배선: 01은 `설정 열기`를 그린다(07만 숨긴다). 이 단언이 없으면 호출처에
+    // `showOpenSettings={false}`가 들어가도 아무 테스트가 깨지지 않는다(T-FIX-08 리뷰 probe M11).
+    expect(screen.getByRole("button", { name: "설정 열기" })).toBeInTheDocument();
     expect(screen.queryByText("실행 중 에이전트")).not.toBeInTheDocument();
     expect(screen.queryByText("에이전트 수")).not.toBeInTheDocument();
   });

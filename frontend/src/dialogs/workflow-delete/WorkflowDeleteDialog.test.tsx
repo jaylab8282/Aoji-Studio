@@ -223,20 +223,32 @@ describe("WorkflowDeleteDialog", () => {
   });
 
   it("[FR-017-E2] 500 → message, 팝업 유지", async () => {
-    stubFetch(() =>
-      jsonResponse({ code: "IO_FAILED", message: "구성 파일 삭제 실패 · 파일은 그대로입니다" }, 500),
-    );
-    const onClose = renderDialog();
+    // FR-017-E1 안내 시간(3000ms, ADR-34)이 지나도 500은 팝업을 닫지 않는다. 실제 시간을 재우지 않고
+    // 가짜 타이머로 그 시점을 지나간다(고정 대기는 느리고 머신 부하에 따라 불안정하다).
+    vi.useFakeTimers();
+    try {
+      stubFetch(() =>
+        jsonResponse({ code: "IO_FAILED", message: "구성 파일 삭제 실패 · 파일은 그대로입니다" }, 500),
+      );
+      const onClose = renderDialog();
 
-    typeConfirmName("개발부서");
-    fireEvent.click(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" }));
+      typeConfirmName("개발부서");
+      fireEvent.click(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" }));
+      await flushPromises();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("구성 파일 삭제 실패 · 파일은 그대로입니다");
-    // FR-017-E1 안내 시간(3000ms, ADR-34)이 지나도 500은 팝업을 닫지 않는다.
-    await new Promise((resolve) => setTimeout(resolve, 3200));
-    expect(onClose).not.toHaveBeenCalled();
-    expect(screen.getByRole("heading", { name: "개발부서 워크플로우를 삭제할까요?" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" })).toBeEnabled();
+      expect(screen.getByRole("alert")).toHaveTextContent("구성 파일 삭제 실패 · 파일은 그대로입니다");
+
+      // 3000ms를 넘겨도(3200ms) 닫히지 않는다 — 500에는 자동 닫힘 타이머 자체가 없다.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3200);
+      });
+      expect(onClose).not.toHaveBeenCalled();
+      expect(screen.getByRole("heading", { name: "개발부서 워크플로우를 삭제할까요?" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" })).toBeEnabled();
+      expect(screen.getByRole("alert")).toHaveTextContent("구성 파일 삭제 실패 · 파일은 그대로입니다");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("[SCR-05-3] 취소 → 팝업 닫힘", () => {

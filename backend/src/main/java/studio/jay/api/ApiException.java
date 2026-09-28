@@ -20,9 +20,8 @@ public class ApiException extends RuntimeException {
         this.error = error;
     }
 
-    public static ApiException forbiddenOrigin() {
-        return new ApiException(HttpStatus.FORBIDDEN, new ApiError("FORBIDDEN_ORIGIN", "허용되지 않은 출처입니다"));
-    }
+    // 403 FORBIDDEN_ORIGIN은 이 클래스에 팩터리를 두지 않는다 — 문구가 publicOrigin을 포함해야 하므로
+    // (architecture.md §5, ADR-41, conventions.md §4 MUST) OriginFilter의 상수 한 곳에서만 만든다.
 
     public static ApiException unauthorizedToken() {
         return new ApiException(

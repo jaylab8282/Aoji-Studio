@@ -57,12 +57,13 @@ test("[FR-003-AC1][FR-003-AC2][E2E-08] 다른 Origin 페이지의 POST /api/work
   );
 
   // 무엇으로 차단을 확인했는지 구분해 단언하고, 판정 근거를 보고서에 남긴다.
-  test.info().annotations.push({
-    type: "E2E-08 차단 근거",
-    description: `${result.kind} / 브라우저가 관측한 ${workflowsUrl} 응답 상태: ${
-      observedStatuses.length === 0 ? "없음(요청 자체가 보내지지 않음)" : observedStatuses.join(",")
-    }`,
-  });
+  const blockPath = `${result.kind} / 브라우저가 관측한 ${workflowsUrl} 응답 상태: ${
+    observedStatuses.length === 0 ? "없음(요청 자체가 보내지지 않음)" : observedStatuses.join(",")
+  }`;
+  test.info().annotations.push({ type: "E2E-08 차단 근거", description: blockPath });
+  // 배치 요약(run-e2e.sh)에도 한 줄 남긴다 — 어느 경로로 막혔는지가 바뀌면 회귀 원인 추적이 빨라진다
+  // (T-024 리뷰 Suggestion. `response` = 서버 403, `blocked-by-browser` = 브라우저 CORS 차단).
+  process.stdout.write(`[E2E-08 차단 경로] ${blockPath}\n`);
 
   if (result.kind === "response") {
     // 응답을 읽을 수 있었다면 403 FORBIDDEN_ORIGIN이어야 한다(architecture.md §5).

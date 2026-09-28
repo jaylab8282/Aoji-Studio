@@ -83,6 +83,10 @@ export function ImportDialog({ workflowName, onClose }: ImportDialogProps) {
   const title = target === null ? IMPORT_TITLE : importTitleFor(target);
   // ADR-37: 검색에 가려진 선택이 1명 이상일 때만 안내 줄을 그린다.
   const hiddenSelected = hiddenSelectedCount(selectedNames, visibleAgents);
+  // `대상 워크플로우` 자리에 실제 드롭다운이 있을 때만 라벨을 연결한다. `?workflow`로 대상이 고정되면
+  // 값이 `<span>`(고정 텍스트)이고 스냅샷 전에는 `Skeleton`인데, 둘 다 labelable 요소가 아니라
+  // `<label for>`가 무효가 된다(D-051. `AgentFormFields.tsx`가 T-019 리뷰 Minor 2로 같은 형태로 고쳤다).
+  const targetIsSelect = workflowName === null && registry !== null && workflows.length > 0;
 
   function toggle(name: string) {
     setSelectedNames((previous) =>
@@ -146,17 +150,13 @@ export function ImportDialog({ workflowName, onClose }: ImportDialogProps) {
           )}
         </div>
 
-        <Field label={IMPORT_TARGET_WORKFLOW_LABEL} htmlFor={targetId}>
+        <Field label={IMPORT_TARGET_WORKFLOW_LABEL} htmlFor={targetIsSelect ? targetId : undefined}>
           {workflowName !== null ? (
-            <span id={targetId} className="text-body text-text">
-              {workflowName}
-            </span>
+            <span className="text-body text-text">{workflowName}</span>
           ) : registry === null ? (
             <Skeleton className="h-btn-sm w-40" />
           ) : workflows.length === 0 ? (
-            <span id={targetId} className="text-body text-text-secondary">
-              {IMPORT_NO_WORKFLOW_NOTICE}
-            </span>
+            <span className="text-body text-text-secondary">{IMPORT_NO_WORKFLOW_NOTICE}</span>
           ) : (
             <Select
               id={targetId}

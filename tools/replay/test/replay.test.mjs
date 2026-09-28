@@ -264,19 +264,50 @@ test("--delay-ms 0이면 delayImpl을 호출하지 않는다", async () => {
 // ---------------------------------------------------------------------------
 
 /**
+ * CLI 자식 프로세스 기한. 스텁 서버는 같은 프로세스에서 즉시 응답하므로 정상 실행은 수십 ms다.
+ * 기한을 넘기면 스텁이 멈춘 것이므로 자식을 죽이고 실패시킨다 — 기한이 없으면 `node --test`의
+ * 기본 타임아웃도 없어 테스트가 무한 대기한다(T-023 리뷰 Suggestion).
+ */
+const CLI_TIMEOUT_MS = 10_000;
+
+/**
  * CLI 자식 프로세스를 비동기로 실행한다. `spawnSync`를 쓰면 부모 프로세스의 이벤트 루프가
  * 멈춰서 같은 프로세스 안의 스텁 HTTP 서버가 자식의 요청에 응답하지 못해 교착 상태가 된다 —
  * 반드시 `spawn` + Promise로 이벤트 루프를 계속 돌려야 한다.
+ *
+ * `CLI_TIMEOUT_MS`를 넘기면 SIGKILL로 끊고 stdout·stderr를 담은 오류로 reject한다.
  */
 function runCli(args) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [REPLAY_SCRIPT, ...args], { encoding: "utf8" });
     let stdout = "";
     let stderr = "";
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGKILL");
+    }, CLI_TIMEOUT_MS);
+    const settle = (finish) => {
+      clearTimeout(timer);
+      finish();
+    };
     child.stdout.on("data", (d) => (stdout += d));
     child.stderr.on("data", (d) => (stderr += d));
-    child.on("error", reject);
-    child.on("close", (status) => resolve({ status, stdout, stderr }));
+    child.on("error", (error) => settle(() => reject(error)));
+    child.on("close", (status, signal) =>
+      settle(() => {
+        if (timedOut) {
+          reject(
+            new Error(
+              `CLI가 ${CLI_TIMEOUT_MS}ms 안에 끝나지 않아 SIGKILL로 끊었습니다(signal ${signal}). ` +
+                `인자: ${args.join(" ")} / stdout: ${stdout.trim()} / stderr: ${stderr.trim()}`,
+            ),
+          );
+          return;
+        }
+        resolve({ status, stdout, stderr });
+      }),
+    );
   });
 }
 

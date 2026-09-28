@@ -258,6 +258,11 @@ describe("ImportDialog", () => {
     renderDialog("개발부서");
     expect(screen.queryByRole("combobox", { name: "대상 워크플로우" })).not.toBeInTheDocument();
     expect(screen.getByText("개발부서", { selector: "span" })).toBeInTheDocument();
+    // D-051: 값이 `<span>`(고정 텍스트)이면 labelable 요소가 아니므로 라벨을 연결하지 않는다
+    // (`AgentFormFields`의 T-019 리뷰 Minor 2 선례). `for`가 남으면 무효한 `<label for>`가 된다.
+    const fixedTargetLabel = screen.getByText("대상 워크플로우");
+    expect(fixedTargetLabel.tagName).toBe("LABEL");
+    expect(fixedTargetLabel).not.toHaveAttribute("for");
     expect(screen.getByRole("heading", { name: "개발부서(으)로 기존 에이전트 가져오기" })).toBeInTheDocument();
   });
 
@@ -270,6 +275,10 @@ describe("ImportDialog", () => {
     );
 
     expect(screen.getByText("먼저 워크플로우를 추가하세요")).toBeInTheDocument();
+    // D-051: 안내도 `<span>`이라 라벨을 연결하지 않는다.
+    const emptyTargetLabel = screen.getByText("대상 워크플로우");
+    expect(emptyTargetLabel.tagName).toBe("LABEL");
+    expect(emptyTargetLabel).not.toHaveAttribute("for");
     check("agent-02");
     expect(screen.getByRole("button", { name: "선택한 1명 가져오기" })).toBeDisabled();
     // ADR-35: 이 비활성 지점에는 이유 줄이 없다.
