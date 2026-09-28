@@ -981,7 +981,7 @@
 - Depends on: T-024
 
 ## T-026 hover 전수 목록 정정 반영 — 05-R 목록 행 hover 제거 · 03 브레드크럼 링크 hover 추가 (A-23, ADR-49 1·6)
-- Status: todo
+- Status: **done** — 팀장 검증 통과(`npm test` 376 → **381**, lint·typecheck·build, **E2E spec 수정 0건으로 9배치 99개 통과**, 캡처 4장 픽셀 크기 유지, `ImportAgentTable.tsx`에 `hover:`·`focus-visible:` **0건**). 뮤테이션 3건 전부 검출(05-R hover 재삽입 2건 실패 / 브레드크럼 `focus-visible:` 제거 2건 실패 / **T-025 리뷰 M7b가 여전히 3건 실패** = `SCREEN_HOVER_VALUES` 축소가 회귀 방어를 약화시키지 않았다). 변경 규모가 클래스 2줄 + 단언 5개라 **별도 리뷰 없이 팀장 검증으로 마감**(D-080)
 - Scope: Frontend
 - FR: 없음(새 FR·AC·E 0건. 근거는 ADR-49 / `docs/ui/ui-rules.md` 2 / NFR-12 / ui-spec §공통 hover 표 ②·④)
 - AC: 없음(기존 AC 유지. 회귀로 지켜야 하는 것: FR-009-AC1·AC4(05-R 목록 표시·선택 동작 불변), FR-007(03 브레드크럼 이동 불변))

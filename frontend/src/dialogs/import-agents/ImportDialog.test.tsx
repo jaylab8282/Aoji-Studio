@@ -82,6 +82,13 @@ function submitButton() {
   return screen.getByRole("button", { name: /가져오기$/ });
 }
 
+/** 그 에이전트 행(`<tr>`) — 행 안의 체크박스에서 거슬러 올라간다. */
+function rowOf(name: string): HTMLTableRowElement {
+  const row = screen.getByRole("checkbox", { name }).closest("tr");
+  if (row === null) throw new Error(`행을 찾지 못했습니다: ${name}`);
+  return row;
+}
+
 describe("ImportDialog", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -505,5 +512,45 @@ describe("ImportDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "취소" }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("[ADR-49] 05-R 목록 행 — 비선택 행 className에 hover:·focus-visible: 문자열이 없고, 선택 행은 bg-selected를 유지한다", () => {
+    setRegistry([buildAgent({ name: "agent-02" }), buildAgent({ name: "agent-03" })], [buildWorkflow()]);
+    renderDialog();
+
+    check("agent-02");
+
+    const selectedRow = rowOf("agent-02");
+    const plainRow = rowOf("agent-03");
+    // 선택 표시는 그대로 남는다(hover가 아니라 선택 상태다).
+    expect(selectedRow).toHaveClass("bg-selected");
+    // 행에는 클릭 동작이 없으므로 hover·focus 표현을 주지 않는다(ADR-49 1).
+    expect(selectedRow.className).not.toMatch(/hover:|focus-visible:/);
+    expect(plainRow.className).not.toMatch(/hover:|focus-visible:/);
+    expect(plainRow).not.toHaveClass("bg-soft");
+    expect(plainRow).not.toHaveClass("bg-selected");
+  });
+
+  it("[ADR-49][FR-009-AC1] 05-R 행 자체에는 클릭 동작이 없다 — <tr>에 onClick·tabIndex·role이 없고, 행 본문(이름 칸) 클릭으로는 체크 상태가 바뀌지 않는다", () => {
+    setRegistry([buildAgent({ name: "agent-02", description: "빌드를 담당한다" })], [buildWorkflow()]);
+    renderDialog();
+
+    const row = rowOf("agent-02");
+    // 행을 클릭 영역으로 만들지 않는다(키보드 포커스·역할도 신설하지 않는다).
+    expect(row.getAttribute("role")).toBeNull();
+    expect(row.getAttribute("tabindex")).toBeNull();
+
+    const checkbox = screen.getByRole("checkbox", { name: "agent-02" });
+    expect(checkbox).not.toBeChecked();
+
+    // 이름 칸(행 본문) 클릭 → 행으로 버블링되지만 토글이 없다.
+    fireEvent.click(screen.getByText("agent-02"));
+    expect(checkbox).not.toBeChecked();
+    expect(submitButton()).toBeDisabled();
+
+    // 체크박스 클릭으로 바뀌는 기존 동작은 그대로다.
+    check("agent-02");
+    expect(checkbox).toBeChecked();
+    expect(screen.getByRole("button", { name: "선택한 1명 가져오기" })).toBeEnabled();
   });
 });
