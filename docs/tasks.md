@@ -605,9 +605,9 @@
 - 요구사항 의미 변경 여부: **없음.** FR-013-AC1·AC3·AC6 그대로. 로딩 중에는 애초에 호출이 일어나지 않았으므로 호출 가능한 순간의 동작이 하나도 바뀌지 않는다. 계약 변경 없음
 - Depends on: -
 
-## A-16 (architect 확정 요청) dev 프로필 허용 Origin이 문서보다 좁다 — 문서·구현 중 무엇이 맞는가
-- Status: todo
-- Scope: architect 판단 → 확정되면 backend 반영(또는 문서 정정)
+## A-16 (architect 확정 완료 2026-09-28 → ADR-47) dev 프로필 허용 Origin이 문서보다 좁다 — 문서·구현 중 무엇이 맞는가
+- Status: **done (확정 완료)** — **문서 정정으로 끝. 코드·테스트 변경 0건**(구현이 옳고 문서가 틀렸다)
+- Scope: architect 판단 → 문서 정정(backend 반영 없음)
 - FR: architecture §5 Origin 규칙, NFR-04
 - 출처: T-FIX-05·T-FIX-06 리뷰(`docs/reviews/T-FIX-05_T-FIX-06.md`) [Major · 선행 결함]
 - 증상(리뷰어 dev 실기동 실측, 팀장 코드 재확인):
@@ -621,6 +621,14 @@
   2. 아니면 "dev는 5173으로 **대체**"가 원래 의도였는지 → `architecture.md` §4.2·§5와 `conventions.md` §6 문구를 구현에 맞게 정정
   3. 1을 택하면 403 안내가 dev에서도 실제 접속 가능한 주소를 가리키는지 확인
 - 주의: 허용 목록을 넓히는 방향이므로 NFR-04·architecture §5 DoD("다른 Origin 차단")와 충돌하지 않는지 확인할 것. 요구사항 의미를 바꿔야 하면 `CONTRACT CHANGE`/에스컬레이션으로 보고
+- 확정 결과(ADR-47): **선택지 2 채택 — "dev는 5173으로 대체"가 원래 의도이고, 문서를 구현에 맞게 정정한다. `application-dev.yaml` 무수정.**
+  - 결정적 사실: **dev의 8080은 SPA를 제공하지 않는다.** 프론트 정적 파일은 이미지 빌드 단계에서만 `backend/src/main/resources/static/`에 복사되고(`Dockerfile:16`) 저장소에는 그 폴더가 없다(`backend/src/main/resources/`에는 `application*.yaml`·`schema.sql`뿐). 그래서 dev에서 8080을 브라우저로 열어도 앱이 뜨지 않고 **`Origin: http://127.0.0.1:8080`을 보내는 페이지가 존재할 수 없다** → ADR-41이 없애려던 함정("앱이 열려 조회는 되는데 POST만 403")이 dev의 8080에는 **성립하지 않는다**. 리뷰어가 본 403은 `curl`이 Origin 헤더를 손으로 붙인 경우이고 그것은 규칙대로다(§5 "브라우저 밖 클라이언트 차단")
+  - NFR-04·§5 DoD와의 정합: (2)는 허용 목록을 더 좁게 유지하므로 DoD 방향과 같다. (1)은 **어떤 페이지도 제공하지 않는 주소**를 허용 목록에 넣는 것이라 이득 0 · 노출 면적만 +1이다
+  - 403 안내(ADR-41) 확인 결과: dev `publicOrigin` = 8080이라 안내가 화면 없는 주소를 가리키지만 **사람이 그 문구를 보는 경로가 dev에 없다**(앱은 5173에서만 열리고 5173은 허용 → 403이 나지 않는다. 403을 받는 쪽은 화면이 없다). dev 전용 문구를 만들지 않는다. (1)을 택해도 8080은 여전히 화면이 없어 이 문제가 해결되지 않으므로 선택지 판단에 영향 없음
+  - 운영 영향: 컨테이너에 `SPRING_PROFILES_ACTIVE=dev`를 켜면 허용 목록이 5173 하나가 되어 4180 앱의 API가 전부 403 = **fail-closed(기능 정지, 보안 구멍 없음)**. 이 성질을 architecture §4.2 표에 적었다
+  - 코드 주석(`OriginFilter.java:44-45`)이 이미 "대체"라고 적혀 있어 정정 후 코드·주석·문서가 정렬된다
+- 사용자에게 보이는 변화: **없음**. 요구사항 의미 변경 없음, 계약 변경 없음. 갱신이 필요한 테스트 **0건**(`OriginFilterTest` 기존 기대값이 그대로 옳다)
+- 정정한 문서: `architecture.md` §4.2 표 2행 · §4.4(dev 8080이 SPA를 제공하지 않는다는 사실) · §5 "허용 목록 범위" · §5 403 문구 항 · §5 "dev 프로필 차이", `conventions.md` §6 Origin MUST
 - Depends on: -
 
 ## A-17 (architect 확정 완료 2026-09-25 → ADR-42) 07 안의 04-5 `설정 열기`가 눌러도 아무 일이 없다
@@ -655,8 +663,17 @@
 - 사용자에게 보이는 변화: **없음**(개발 머신에서만 뜨는 E2E 컨테이너의 호스트 공개 포트 하나)
 - Depends on: -
 
-## A-21 (architect 확정 요청) T-024 리뷰에서 나온 설계 판단 3건 — 미니맵 재측정 시점 · 캡처 뷰포트 문구 · 책상 pitch 토큰
-- Status: todo — **T-024·T-FIX-10을 막지 않는다**(문서 기준 위반 0건으로 판정됨). 사용자가 정한 순서상 A-16 처리 시점에 함께 판단하면 좋다
+## A-21 (architect 확정 완료 2026-09-28 → ADR-48) T-024 리뷰에서 나온 설계 판단 3건 — 미니맵 재측정 시점 · 캡처 뷰포트 문구 · 책상 pitch 토큰
+- Status: **done (확정 완료)** — **세 항목 모두 문서 정정으로 끝. 코드·토큰·테스트 변경 0건**
+- 확정 결과 요약(ADR-48)
+  1. **미니맵 재측정 시점 → 현행 5개 트리거를 ui-spec에 전수로 명문화하고 그대로 확정**(마운트 / 층 스크롤 영역 `scroll` / `window` `resize` / `registry.workflows` 변경 / `zoom` 변경). 필터·`live.lobby` 변화에서는 **마지막 측정값 유지가 확정 동작**이다. `ResizeObserver` 기각 — ① jsdom에 없어 단위로 고정할 수단이 가짜 전역 주입뿐이고 그것은 "브라우저가 그 상황에 콜백을 쏜다"는 핵심을 고정하지 못한다(T-FIX-10과 같은 판단) ② 더 중요하게, 미니맵 블록이 **필터 이전** `registry.workflows`를 그리므로(`WorkflowsScreen.tsx:129`) 테두리만 필터 기준으로 다시 재면 9개 블록에 테두리 100% 같은 **더 틀린 그림**이 된다. 검증 수단은 이미 있는 `e2e-12` + T-FIX-10 단위 테스트이고 새 테스트는 만들지 않는다
+     - 함께 판단한 "미니맵 블록을 필터 결과에 맞추기" → **하지 않는다로 확정**(요청·FR 근거 없음, 사용자에게 보이는 동작 추가). 나중에 요청이 오면 블록·테두리·`맞춤` 줌 계산을 한 묶음으로 다시 판단한다
+  2. **캡처 뷰포트 문구 → ADR-46 C가 이미 해소**(`conventions.md` §8 MUST가 "02·03은 1440×1024, 01은 캡처 직전 1440×1140으로 바꿔 찍고 되돌린다"로 정정됨). 새 판단 없음
+  3. **책상 pitch → (a) 현행 확정.** `--spacing-card` 변경은 **산술적으로 목표를 이루지 못한다** — pitch = 칸 폭 + 간격이므로 간격을 줄이면 pitch가 줄고, 가로는 이미 기준보다 11px **작아** 차이가 더 벌어진다(세로는 +17 → +11로 여전히 남는다). 두 축이 반대 방향이라 어떤 단일 간격 값도 기준을 동시에 만족시킬 수 없고, 기준에 맞추려면 스프라이트 크기·격자 규칙(`docs/ui/`) 개정 = architect 권한 밖이다. 게다가 이 토큰은 01·03과 공유돼 세 화면 대조가 함께 깨진다(ADR-43 선례). 사용자가 2026-09-28 현재 화면을 승인했고 현행 확정은 그 상태 유지라 **재승인 불필요**
+     - 실측 3건을 ui-spec SCR-02 "확정된 차이" 3항에 기재했다. **pitch 수치만 면제**이며, 좁은 pitch 때문에 이름 칩·상태 줄이 이웃 칸을 가리면 그것은 그대로 결함이다(T-FIX-07 [Minor 6] 실측이 유효하게 남는다)
+- 사용자에게 보이는 변화: **없음**(세 항목 모두 현행 확정·문서 정정). 계약 변경 없음
+- 정정한 문서: `ui-spec.md` SCR-02(미니맵 재측정 시점 신설 · 확정된 차이 3항 추가), `conventions.md` §7 MUST 2건 신설(미니맵 트리거 전수 · `--spacing-card` 변경 금지)
+- (아래는 확정 전 기록)
 - Scope: architect 판단 → 결정에 따라 Frontend·Tools 반영
 - 출처: `docs/reviews/T-024.md` Minor 3·8 + 이연 Minor 실측 결과(T-015 m5·m1)
 - 판단할 것
@@ -692,8 +709,23 @@
 - 하지 말 것: `docs/requirements_*`·`final_requirements_*`·`docs/ui/` 수정. `docs/ui/screens/*.png` 갱신(차이는 ui-spec 목록으로 처리)
 - Depends on: -
 
-## A-23 (architect 확정 요청) ADR-46 A의 hover 대상 전수와 "클릭 동작 없는 요소엔 hover 금지" MUST가 문자 그대로는 충돌한다
-- Status: todo — **T-025를 막지 않는다**(구현은 ui-spec 전수 목록을 따랐고 E2E·단위 전부 통과). 문서 내부 정합성 문제다
+## A-23 (architect 확정 완료 2026-09-28 → ADR-49) ADR-46 A의 hover 대상 전수와 "클릭 동작 없는 요소엔 hover 금지" MUST가 문자 그대로는 충돌한다
+- Status: **done (확정 완료)** — 8항목 중 **6항목은 문서 정정으로 끝**, **2항목(1·6)만 코드 변경 → T-026**
+- 해소 원칙: **"클릭 동작이 있는가"가 상위 기준이고 전수 목록이 그것에 맞게 좁혀진다.** 목록을 지키려고 없던 클릭 동작을 신설하지 않는다
+- 확정 결과(ADR-49)
+  1. **05-R 비선택 목록 행 → ⓑ 전수 목록에서 빼고 코드에서도 hover 제거**(→ T-026). 근거: ① `<tr>`에 `onClick`·`tabIndex`가 없고 클릭 대상은 체크박스·역할 드롭다운뿐 ② 그 hover(`bg/soft`)는 팝업 표면(`bg/card`) 위에서 채널당 **+1~2**로 ADR-46 A 자신이 "보이지 않는다"고 적은 폭이라 규격을 지켜도 얻는 것이 0(항목 7) ③ ⓐ는 새 클릭 동작·`tabIndex`·`role` 신설 + 요소 표 변경 + `<select>` 클릭 예외 처리가 필요하고 요청·FR 근거가 없다. **T-025의 `focusable: false` 판정은 뒤집히지 않는다**(항목 자체가 목록에서 사라진다). 부류 ②는 이제 사이드 탭 하나만 남는다
+  2. **04-6 `정상 파일은 수정 팝업에서 편집 →` → 부류 ④에서 뺀다**(코드 변경 0건). SCR-04-6 요소 표가 이 요소의 클릭 동작을 `없음(안내)`으로 확정했고 구현도 클릭 동작 없는 `<span>`이다 — 이름의 "링크"는 표기다. 실제 링크로 만들지 않는다(이동 목적지가 확정 문서에 없다). T-025의 판단이 옳다
+  3. **01 표 높이 `h-96` 유지 — 1.75px 잔존을 그대로 둔다**(코드 변경 0건). `h-80`은 본문 8줄이 되어 ADR-46 C의 근거("대략 10줄")에서 벗어나고 승인된 화면을 다시 바꿔 재승인이 필요하다. `ui-spec` SCR-01 확정된 차이 1항이 "01 문서 총 높이는 대조 대상 아님"으로 이미 확정했고 두 요소는 DOM 단언으로 검증된다 → 결함 아님
+  4. **04-7 점선 카드의 버튼 → ①에서 빼고 ③으로 옮긴다 + "한 요소가 ①·③에 동시에 해당하면 ③(variant)이 우선"을 명시**(코드 변경 0건. `EmptyWorkflowCard.tsx:24`가 `primary`라 구현이 옳다)
+  5. **conventions §7 :125에 ④ 자리 신설** — "④ 텍스트·브레드크럼 링크는 그 링크가 있는 화면 파일에 둘 수 있다"(표현이 밑줄뿐이라 값이 흩어질 여지가 없다). 화면 전용 클릭 영역은 4곳 → **3곳**(01 카드·02 칸·03 칸)
+  6. **상단바 브레드크럼 링크 → 부류 ④에 넣는다**(→ T-026). 항목 1·2와 방향이 반대인 이유: **여기는 클릭 동작이 실제로 있다**(`Breadcrumb.tsx:11,15`의 `<Link>`) → 한 줄 규칙·ui-rules 2·NFR-12가 적용되고, A-22 요청("모든 버튼")의 누락 지점이다. 표현은 밑줄뿐이라 새 색·토큰 0건이고 글자색은 바꾸지 않는다. 01·02·07 브레드크럼은 단순 문자열이라 대상 아님
+     - 함께 명문화: **"한 줄 규칙은 요약이고 실제 적용 대상은 전수 목록이 정한다. 어긋나면 목록을 고칠 신호이며, 예외는 'hover 표현이 없는 것(전수)'에 이유와 함께 적는다."**
+  7. (항목 1에 흡수) 제거로 해소. 함께 확정: **부류 ②의 `bg/soft`는 표면이 `bg/chrome`인 곳(사이드바)에서만 쓴다**
+  8. Suggestion 3건 — ① **전환은 `Button` 한 곳에만**(코드 변경 0건. 7개 파일로 퍼뜨리면 §7 :125가 막으려는 복제가 전환 축에서 다시 생기고, 승인된 상호작용 느낌이 바뀐다) ② **ADR-46 A 보강 2줄**(렌더 픽셀은 새 색이 맞다 = 주장 범위는 토큰·소스 수준 / `filter`는 자식 전체에 걸리지만 대비는 오른다) → ui-spec §공통에 기재 ③ **`워크플로우 보기 →`를 SCR-01 확정된 차이 3항에 추가**
+- 사용자에게 보이는 변화: **있음(두 곳, 모두 미세)** — 05-R 목록 행의 보이지 않던 hover 소멸(실질 시각 변화 ≈0), 03 브레드크럼 링크에 hover·focus 밑줄 추가. **새 문구 0 · 새 요소 0 · 새 색·토큰 0 · 클릭 동작·레이아웃 변화 0.** 둘 다 사용자가 승인한 A-22 요청 범위 안의 정정이라 별도 승인 대상으로 보지 않는다(최종 판단은 팀장)
+- 요구사항 의미 변경 여부: **없음.** 계약 변경 없음
+- 갱신이 필요한 테스트: `frontend/src/test/staticRules.test.ts`뿐(T-026 Done when 참조). `Minimap.test.tsx`·`e2e-13`·E2E 9배치는 **갱신 대상이 아니다**
+- 정정한 문서: `ui-spec.md` §공통(한 줄 규칙과 전수 목록의 관계 신설 · 표 ①·②·④ · hover 없는 것 전수 2항 추가 · 전환 · 구현 위치 · `brightness` 주장 범위) · SCR-01 확정된 차이 3항 · SCR-02(해당 없음) · SCR-05-R 목록 행 클릭 범위, `conventions.md` §7 MUST :125·:126·:127·:128 정정
 - Scope: architect 판단 → 필요하면 Frontend 소폭 반영
 - 출처: T-025 구현자 보고(2026-09-28), 팀장 확인
 - 판단할 것
@@ -804,9 +836,9 @@
 - 추가(T-024 + T-FIX-10 리뷰 Minor, `docs/reviews/T-024.md` — 팀장 배정):
   - **[Minor 1] Tools** `tools/e2e/tests/isolation.spec.ts:14-23` `HARNESS_FILES`에 `scripts/run-e2e.sh`·`scripts/check-port.sh`·`tests/ui-helpers.ts` 추가(또는 `*.spec.ts`·`node_modules` 제외 글롭으로 전환). 특히 `ui-helpers.ts`는 **fixture 경로를 계산하고 파일을 쓰는** 파일인데 주석의 제외 사유("spec은 금지 패턴을 단언 데이터로 갖는다")가 적용되지 않는다. 리뷰어가 세 파일에 금지 패턴을 직접 돌려 **실제 위반 0건**은 확인했다(사각만 남은 상태)
   - **[Minor 2] Frontend** `WorkflowsScreen.test.tsx`에 미니맵 `zoom` **호출처 배선** 단언 1건 추가 — 리뷰어 뮤테이션 M4(`zoom={zoom}` → `zoom={100}`)가 단위 43/43을 **전부 통과**시켰다. T-FIX-10 Done when이 "E2E만으로 두지 않는다"였고 실제 결함이 **prop 배선 누락**이었으므로 같은 축을 고정해야 한다. 위 ADR-42 호출처 회귀(probe M11)와 **같은 계열이라 함께 처리**한다
-  - **[Minor 4] Tools** `e2e-13.spec.ts` 01 캡처에 "fullPage라 사이드바 하단 `수집 상태` 카드가 프레임 밖"임을 주석·annotation으로 명시(다음 리뷰어가 요소 누락으로 오판하지 않게). 원인은 `AppShell`의 `min-h-screen` + `Sidebar`의 `justify-between`. 두 요소는 이미 같은 테스트가 단언하므로 **구현 누락이 아니다**
+  - **[Minor 4] Tools** `e2e-13.spec.ts` 01 캡처에 사이드바 하단 `수집 상태` 카드가 프레임 밖이라는 사실을 주석·annotation으로 명시(다음 리뷰어가 요소 누락으로 오판하지 않게). 두 요소는 이미 같은 테스트가 단언하므로 **구현 누락이 아니다**. **문구는 현행 사실로 적는다(2026-09-28 갱신)** — ADR-46 C로 캡처가 `fullPage` → **뷰포트 clip**으로 바뀌었고 T-025 실측에서 01 문서 높이 1158px · 카드 `bottom 1141.75px`(프레임 1140px)로 **1.75px만 프레임 밖**이다. 원인은 `AppShell`의 `min-h-screen` + `Sidebar`의 `justify-between`이고 표 높이 `h-96`은 **ADR-49 3에서 현행 유지로 확정**됐다(`ui-spec` SCR-01 확정된 차이 1항: 01 문서 총 높이는 대조 대상 아님)
   - **[Minor 5] Tools** `e2e-13.spec.ts` 03 테스트에 `동작 매핑` 범례와 패널 각주 2줄 `toBeVisible()` 3줄 추가 — 880px 캡처 프레임 밖이라도 DOM 단언은 가능하다(현재 `grep` 0건, 프론트 단위 테스트만 덮는다)
-  - **[Minor 6] Tools** `e2e-13.spec.ts:592-679` 번짐 실측에 **상태 줄**(`DeskSprite.tsx:66` `작업 중 · 부모 <라벨>`) rect를 추가 — 현재는 이름 칩만 재는데 같은 책상에서 **더 넓은 요소는 상태 줄**이고 span-1 4열(74.84px)에서 넘칠 개연성이 크다. 겹침이 실제로 나오면 그때 별건 태스크로 판단(`docs/ui/README.md` "요소 가림은 결함")
+  - **[Minor 6] Tools** `e2e-13.spec.ts:592-679` 번짐 실측에 **상태 줄**(`DeskSprite.tsx:66` `작업 중 · 부모 <라벨>`) rect를 추가 — 현재는 이름 칩만 재는데 같은 책상에서 **더 넓은 요소는 상태 줄**이고 span-1 4열(74.84px)에서 넘칠 개연성이 크다. 겹침이 실제로 나오면 그때 별건 태스크로 판단(`docs/ui/README.md` "요소 가림은 결함"). **ADR-48 C(2026-09-28)가 pitch 자체는 현행 확정했지만 이 실측은 유효하게 남는다** — 확정된 차이 3항은 pitch 수치만 면제하고 요소 가림은 면제하지 않는다
   - (Suggestion) `frontend/src/lib/origin.test.ts:12` 주석의 `E2E 4190` → "임의 포트"로 표현 정정(ADR-45로 E2E 포트는 4185. 테스트 데이터 자체는 임의 포트라 그대로도 옳다) / `e2e-08` 첫 테스트가 택한 차단 경로(403 vs 브라우저 CORS)를 배치 요약에 한 줄 고정 출력
 - 추가(T-FIX-04 리뷰, `docs/reviews/T-FIX-04.md`):
   - **[Minor 1] Helper** `helper/install.sh:138-150` 기동 확인이 **포트만** 본다 — 다른 인자로 이미 돌던 도우미가 같은 포트를 점유하면 신규 서비스가 기동 실패해도 `/health`가 `"ok":true`를 돌려 `설치 완료`로 끝난다. bootstrap 전 선점 확인 또는 실패 안내에 포트 충돌 언급
@@ -947,6 +979,35 @@
   - hover·focus 사람 확인 — 리뷰어가 실제 브라우저에서 사이드 탭(비선택/선택), 다섯 variant 버튼, 비활성 버튼, 드롭다운·입력창, 01 대표 카드, 02 책상 칸, 03 오피스 칸에 마우스를 올리고 Tab으로 이동해 ① 비선택 탭 hover가 선택 탭과 구분되는지 ② 비활성 버튼에 변화가 없는지 ③ 새 문구·새 색이 없는지를 확인한다
   - `cd frontend && npm run lint && npm run typecheck` 통과
 - Depends on: T-024
+
+## T-026 hover 전수 목록 정정 반영 — 05-R 목록 행 hover 제거 · 03 브레드크럼 링크 hover 추가 (A-23, ADR-49 1·6)
+- Status: todo
+- Scope: Frontend
+- FR: 없음(새 FR·AC·E 0건. 근거는 ADR-49 / `docs/ui/ui-rules.md` 2 / NFR-12 / ui-spec §공통 hover 표 ②·④)
+- AC: 없음(기존 AC 유지. 회귀로 지켜야 하는 것: FR-009-AC1·AC4(05-R 목록 표시·선택 동작 불변), FR-007(03 브레드크럼 이동 불변))
+- Errors: 없음
+- Screens: §공통 hover·focus 규칙, SCR-03(브레드크럼), SCR-05-R(목록 행)
+- Backend: 없음
+- Frontend
+  - `dialogs/import-agents/ImportAgentTable.tsx:80` — 비선택 행의 `hover:bg-soft`를 **제거**한다. 선택 행의 `bg-selected`(선택 표시)는 **그대로 유지**한다. `<tr>`에 `onClick`·`tabIndex`·`role`·`focus-visible:`을 **추가하지 않는다**(행을 클릭 영역으로 만들지 않는다 — ADR-49 1). 주석의 근거를 ADR-49로 고친다(행에 클릭 동작이 없어 hover를 주지 않는다)
+  - `screens/workflow-detail/Breadcrumb.tsx:11,15` — `홈`·`에이전트 워크플로우` 두 `<Link>`에 `hover:underline focus-visible:underline`을 더한다. 글자색(`text-text-secondary`)·구분자·순서·`to` 경로는 그대로다. 마지막 현재 위치 `<span>{name}`과 구분자 `<span>`에는 주지 않는다(이동 동작이 없다)
+  - `test/staticRules.test.ts` — `HOVER_FOCUS_FILES`에서 `src/dialogs/import-agents/ImportAgentTable.tsx`를 빼고 `src/screens/workflow-detail/Breadcrumb.tsx`를 넣는다(**개수 10 유지**). `SCREEN_HOVER_VALUES`에서 05-R 행 항목을 빼 **3개**로 줄이고(01 카드·02 칸·03 칸, 모두 `bg-selected`·`focusable: true`) `focusable` 필드는 남는 세 항목이 모두 `true`이므로 **필드와 분기를 지운다**. 테스트 이름·주석의 "화면 전용 클릭 영역 4곳"·"공용 컴포넌트 6개 + 화면 전용 4곳"을 "공용 컴포넌트 6개 + 화면 전용 클릭 영역 3곳 + ④ 링크 1곳"으로 고친다
+  - `dialogs/import-agents/ImportDialog.test.tsx` — 아래 Done when 단언 추가(`ImportAgentTable` 전용 테스트 파일은 없다)
+  - `screens/workflow-detail/Breadcrumb.test.tsx` — 아래 Done when 단언 추가
+- 배경: A-23 / ADR-49. 전수 목록이 요소의 실제 클릭 동작을 확인하지 않고 만들어져 ① 클릭 동작 없는 05-R 행에 hover가 들어가고(게다가 팝업 표면 위에서 채널당 +1~2로 보이지 않는다) ② 실제로 이동하는 03 브레드크럼 링크가 목록에서 빠졌다
+- Done when:
+  - 단위 `ImportDialog.test [ADR-49] 05-R 목록 행 — 비선택 행 className에 hover:·focus-visible: 문자열이 없고, 선택 행은 bg-selected를 유지한다`
+  - 단위 `ImportDialog.test [ADR-49][FR-009-AC1] 05-R 행 자체에는 클릭 동작이 없다 — <tr>에 onClick·tabIndex·role이 없고, 행 본문(이름 칸) 클릭으로는 체크 상태가 바뀌지 않는다`(체크박스 클릭으로 바뀌는 기존 동작은 그대로 통과해야 한다)
+  - 단위 `Breadcrumb.test [ADR-49] 홈·에이전트 워크플로우 링크에 hover:underline과 focus-visible:underline이 함께 있고, 글자색 클래스(text-text-secondary)와 href가 그대로다`
+  - 단위 `Breadcrumb.test [ADR-49] 현재 위치(워크플로우 이름)와 구분자에는 hover·focus 클래스가 없다`
+  - 정적 단언 `staticRules [ADR-46 A][ADR-49] hover:·focus-visible: 클래스는 공용 컴포넌트 6개 + 화면 전용 클릭 영역 3곳 + ④ 링크 1곳(03 브레드크럼)에만 있다` — 목록이 정확히 10개이고 `ImportAgentTable.tsx`가 **그 목록에 없다**
+  - 정적 단언 `staticRules [ADR-49] 화면 전용 클릭 영역 3곳의 hover 값이 bg-selected로 고정되고 같은 표현이 focus-visible:에도 있다`(뮤테이션 검출력 유지 — T-025 리뷰 M7b가 여전히 실패해야 한다. 05-R 대상 뮤테이션 M6·M7a는 대상이 사라져 무효이고, 그 자리는 위 `ImportDialog.test` hover 부재 단언이 대신한다)
+  - 회귀 — `cd frontend && npm test` 통과 수가 T-025 시점(65 files / **376 tests**)보다 **줄지 않는다**. 기존 테스트 삭제·skip·기대값 약화 0건. 특히 `Button.test`(ADR-29·ADR-46 A), `Sidebar.test`(선택 탭 vs hover 값), `FeaturedWorkflows.test`·`Floor.test`·`Office`(부류 ① 값·focus 동등성), `ImportDialog.test`의 기존 선택·역할·검색 단언이 그대로 통과한다
+  - `cd frontend && npm run lint && npm run typecheck` 통과
+  - E2E — **spec 수정 0건**으로 9배치가 그대로 통과한다(hover·focus는 정적 캡처에 나타나지 않고 DOM 구조·문구·이동이 바뀌지 않는다). `e2e-13` 캡처 4장은 픽셀 크기·내용이 T-025와 같아야 한다(`docs/ui/screens/*.png` 대조 결과도 T-025와 동일)
+  - 사람 확인 — 리뷰어가 실제 브라우저에서 ① 03 브레드크럼 `홈`·`에이전트 워크플로우`에 마우스를 올리고 Tab으로 이동해 밑줄이 생기고 글자색·배경은 그대로인지 ② 05-R 팝업 목록 행(워크플로우 밖 에이전트가 있는 임시 fixture 필요 — T-025 리뷰 NEEDS CONFIRMATION 1)에 마우스를 올려 배경 변화가 **없는지**, 체크박스·역할 드롭다운은 그대로 동작하는지 확인한다
+- 하지 않을 것: 05-R 행을 클릭 영역으로 만들기, 04-6 `정상 파일은 수정 팝업에서 편집 →`를 링크로 만들기(ADR-49 2), `EmptyWorkflowCard`·`FormatErrorList`·`TopBar`·`Office`·`Button`·`Sidebar`·`EventsTable` 수정, 01 표 높이 변경(ADR-49 3), 전환 클래스를 다른 파일에 추가(ADR-49 8), `docs/ui/` 수정
+- Depends on: T-025
 
 ---
 
