@@ -4,14 +4,17 @@
 //   - T-015 m5·m1 책상 가로·세로 pitch 실측 (토큰 값은 바꾸지 않는다 — architect 판단 영역)
 //   - T-015 m6 13자 이름 열 번짐 실측
 //   - D-032 04-4 변형(hook 미설정 03) 캡처를 공식 산출물에 포함
-//   - T-FIX-03 m4 캡처 뷰포트 1440×1024 고정 (`playwright.config.ts`는 고치지 않는다)
+//   - T-FIX-03 m4 기본 캡처 뷰포트 1440×1024 고정 (`playwright.config.ts`는 고치지 않는다)
+//   - T-024 Minor 4 01 문서 높이·사이드바 하단 `수집 상태` 카드의 프레임 내부 여부 실측 (ADR-46 C)
 //
 // 재생 줄 ↔ 화면 상태의 근거는 `tools/replay/scenarios/README.md`의 showcase.jsonl 22줄 대응표다.
 // 잘못된 상태를 캡처하면 대조가 무의미하므로 **캡처 전에 대응표대로의 상태를 단언**한다.
 //
-// 캡처 범위: 뷰포트는 1440×1024로 고정하고(레이아웃), 저장 파일은 `docs/ui/screens/`의 기준 이미지와
-// **같은 픽셀 크기로 clip**해 리뷰어가 그대로 겹쳐 볼 수 있게 한다. 기준 이미지 크기는 PNG 헤더에서
-// 읽어 대조하므로 이 spec에 크기를 임의로 적지 않는다.
+// 캡처 범위: **뷰포트 clip 한 가지 방식**이다(ADR-46 C, conventions.md §8 MUST). 02·03은 기본 뷰포트
+// 1440×1024로 찍고, 기준 프레임이 기본 뷰포트보다 높은 01만 캡처 직전 뷰포트 높이를 기준 프레임 높이로
+// 바꿨다가 되돌린다. 저장 파일은 `docs/ui/screens/`의 기준 이미지와 **같은 픽셀 크기로 clip**해 리뷰어가
+// 그대로 겹쳐 볼 수 있게 한다. 기준 이미지 크기는 PNG 헤더에서 읽어 대조하므로 이 spec에 크기를 임의로
+// 적지 않는다.
 //
 // 목킹 없음: 실제 컨테이너·실제 재생 도구·실제 fixture 파일만 쓴다(conventions.md §8).
 import { mkdirSync, readFileSync, statSync } from "node:fs";
@@ -42,6 +45,9 @@ import {
 /** `tools/replay/scenarios/README.md` showcase.jsonl 대응표의 줄 수. */
 const SHOWCASE_LINE_COUNT = 22;
 const SHOWCASE_SCENARIO = join(SCENARIOS_DIR, "showcase.jsonl");
+
+/** 사이드바 하단 `CollectorStatus` 카드 제목(lib/text.ts `COLLECTOR_STATUS_TITLE`). 프레임 내부 여부 실측용. */
+const COLLECTOR_CARD_TITLE = "수집 상태";
 
 /** 산출물 폴더(PNG는 커밋 대상). */
 const SCREENSHOT_DIR = join(E2E_DIR, "screenshots");
@@ -122,9 +128,15 @@ function logMeasurement(testInfo: { annotations: { type: string; description?: s
 }
 
 /**
- * 기준 이미지와 같은 픽셀 크기로 잘라 저장한다.
- * 뷰포트(1440×1024)보다 높은 프레임(01)만 `fullPage`로 잘라내고, 나머지는 뷰포트 안에서 자른다
- * (02는 `100dvh` 기반 레이아웃이라 fullPage 캡처가 높이 계산을 흔들 수 있어 뷰포트 캡처를 쓴다).
+ * 기준 이미지와 같은 픽셀 크기로 잘라 저장한다 — **뷰포트 clip 한 가지 방식**이다
+ * (ADR-46 C / conventions.md §8 MUST). 02·03은 기본 뷰포트(1440×1024) 안에서 자르고,
+ * 기준 프레임이 기본 뷰포트보다 높은 01만 캡처 직전 뷰포트 높이를 기준 프레임 높이로 바꾼 뒤 되돌린다.
+ * `fullPage` 캡처와 "문서 높이 ≥ 프레임 높이" 단언은 쓰지 않는다: 01 실시간 이벤트 표가 고정 높이(`h-96`)라
+ * 문서 높이가 콘텐츠에 따라 프레임 높이 아래로 내려갈 수 있고, `AppShell`의 `min-h-screen`이 뷰포트 높이만큼은
+ * 보장해 산출물 크기가 콘텐츠와 무관해진다.
+ *
+ * 뷰포트를 바꿔 찍는 화면(01)에서는 리뷰 판정 근거를 실측해 annotation에 남긴다(T-024 Minor 4):
+ * 문서 높이와 사이드바 하단 `수집 상태` 카드가 프레임 안에 들어왔는지.
  */
 async function captureFrame(
   page: Page,
@@ -133,42 +145,63 @@ async function captureFrame(
 ): Promise<PixelSize> {
   const viewport = page.viewportSize();
   expect(viewport, "뷰포트 크기를 읽을 수 없습니다").not.toBeNull();
-  // T-FIX-03 m4: 캡처 뷰포트는 기준 캡처와 같은 1440×1024여야 한다(playwright.config.ts에 고정돼 있다).
-  expect((viewport as PixelSize).width).toBe(1440);
-  expect((viewport as PixelSize).height).toBe(1024);
+  const baseViewport = viewport as PixelSize;
+  // T-FIX-03 m4: 기본 캡처 뷰포트는 기준 캡처와 같은 1440×1024여야 한다(playwright.config.ts에 고정돼 있다).
+  expect(baseViewport.width).toBe(1440);
+  expect(baseViewport.height).toBe(1024);
 
   const frame = pngSize(join(REFERENCE_DIR, options.referenceFileName));
   expect(frame.width, "기준 이미지 폭이 1440이 아닙니다").toBe(1440);
 
-  const documentHeight = await page.evaluate(() => document.documentElement.scrollHeight);
-  const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
-  const needsFullPage = frame.height > (viewport as PixelSize).height;
-  if (needsFullPage) {
-    expect(
-      documentHeight,
-      `기준 프레임 높이(${frame.height}px)보다 문서가 짧아 같은 범위를 캡처할 수 없습니다`,
-    ).toBeGreaterThanOrEqual(frame.height);
+  // 기준 프레임이 기본 뷰포트보다 높으면(01) 그 높이로 잠시 바꿔 찍는다.
+  const resized = frame.height > baseViewport.height;
+  if (resized) {
+    await page.setViewportSize({ width: frame.width, height: frame.height });
   }
 
-  mkdirSync(SCREENSHOT_DIR, { recursive: true });
-  const path = join(SCREENSHOT_DIR, options.fileName);
-  await page.screenshot({
-    path,
-    fullPage: needsFullPage,
-    clip: { x: 0, y: 0, width: frame.width, height: frame.height },
-  });
+  try {
+    const documentHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+    const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
 
-  const saved = pngSize(path);
-  expect(saved).toEqual(frame);
-  expect(statSync(path).size, "캡처 파일이 비었습니다").toBeGreaterThan(0);
-  logMeasurement(
-    testInfo,
-    `캡처 ${options.fileName}`,
-    `${saved.width}×${saved.height}px (기준 ${options.referenceFileName} ${frame.width}×${frame.height}px, ` +
-      `뷰포트 1440×1024, 문서 높이 ${documentHeight}px, 레이아웃 폭 ${clientWidth}px, ` +
-      `${needsFullPage ? "fullPage+clip" : "뷰포트 clip"})`,
-  );
-  return saved;
+    mkdirSync(SCREENSHOT_DIR, { recursive: true });
+    const path = join(SCREENSHOT_DIR, options.fileName);
+    await page.screenshot({ path, clip: { x: 0, y: 0, width: frame.width, height: frame.height } });
+
+    const saved = pngSize(path);
+    expect(saved).toEqual(frame);
+    expect(statSync(path).size, "캡처 파일이 비었습니다").toBeGreaterThan(0);
+    logMeasurement(
+      testInfo,
+      `캡처 ${options.fileName}`,
+      `${saved.width}×${saved.height}px (기준 ${options.referenceFileName} ${frame.width}×${frame.height}px, ` +
+        `뷰포트 ${frame.width}×${resized ? frame.height : baseViewport.height}, 문서 높이 ${documentHeight}px, ` +
+        `레이아웃 폭 ${clientWidth}px, 뷰포트 clip)`,
+    );
+
+    if (resized) {
+      // T-024 Minor 4 판정 근거: 사이드바 하단 `수집 상태` 카드가 프레임 안에 들어왔는가.
+      const collectorCard = sidebar(page).getByText(COLLECTOR_CARD_TITLE, { exact: true }).locator("..");
+      await expect(collectorCard).toBeVisible();
+      const box = await collectorCard.boundingBox();
+      expect(box, "`수집 상태` 카드 상자를 읽을 수 없습니다").not.toBeNull();
+      const { y, height } = box as { y: number; height: number };
+      const bottom = round2(y + height);
+      const insideFrame = y >= 0 && bottom <= frame.height;
+      logMeasurement(
+        testInfo,
+        `캡처 ${options.fileName} 사이드바 수집 상태 카드`,
+        `top ${round2(y)}px · bottom ${bottom}px · 프레임 높이 ${frame.height}px → ` +
+          `${insideFrame ? "프레임 안" : "프레임 밖(T-024 Minor 4 잔존)"}, 문서 높이 ${documentHeight}px ` +
+          `(${documentHeight <= frame.height ? "프레임 높이 이하" : "프레임 높이 초과"})`,
+      );
+    }
+
+    return saved;
+  } finally {
+    if (resized) {
+      await page.setViewportSize(baseViewport);
+    }
+  }
 }
 
 // ── 02 책상 격자 실측 (T-015 m5·m1·m6) ────────────────────────────────────────────

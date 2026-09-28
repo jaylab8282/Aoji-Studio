@@ -37,6 +37,19 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 const DISABLED_CLASSES =
   "bg-transparent text-text-faint border border-border-dashed border-dashed opacity-100";
 
+// ADR-46 A / conventions.md §7 MUST: hover·`:focus-visible` 표현은 variant별로 두 가지뿐이다.
+// 어두운 표면(`secondary`·`add`)은 배경 토큰을 `bg/selected`로 바꾸고, 상태 색 채움
+// (`primary`·`terminal`·`danger`)은 색 토큰을 교체하지 않고 `brightness-110` 한 단계만 준다.
+// `:focus-visible`에는 hover와 같은 표현을 쓰고 브라우저 기본 포커스 표시를 지우지 않는다.
+// 비활성에는 이 클래스를 붙이지 않는다 — 눌리지 않는 컨트롤의 피드백은 거짓 정보다(ui-rules.md 2).
+const VARIANT_HOVER_CLASSES: Record<ButtonVariant, string> = {
+  primary: "hover:brightness-110 focus-visible:brightness-110",
+  terminal: "hover:brightness-110 focus-visible:brightness-110",
+  secondary: "hover:bg-selected focus-visible:bg-selected",
+  add: "hover:bg-selected focus-visible:bg-selected",
+  danger: "hover:brightness-110 focus-visible:brightness-110",
+};
+
 const SIZE_CLASSES: Record<ButtonSize, string> = {
   md: "h-btn px-4",
   sm: "h-btn-sm px-3",
@@ -59,7 +72,7 @@ export function Button({
         type="button"
         disabled={isDisabled}
         aria-disabled={isDisabled}
-        className={`inline-flex items-center justify-center whitespace-nowrap rounded-control text-body font-medium transition-colors duration-200 ${fullWidth ? "flex-1" : ""} ${isDisabled ? DISABLED_CLASSES : VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]}`}
+        className={`inline-flex items-center justify-center whitespace-nowrap rounded-control text-body font-medium transition-colors duration-200 ${fullWidth ? "flex-1" : ""} ${isDisabled ? DISABLED_CLASSES : `${VARIANT_CLASSES[variant]} ${VARIANT_HOVER_CLASSES[variant]}`} ${SIZE_CLASSES[size]}`}
         {...rest}
       >
         {children}

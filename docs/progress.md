@@ -2,7 +2,11 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **A-22 진행 중**(2026-09-28). 사용자가 프론트 디자인 개선 4건을 요청 → 팀장이 확정 문서와 대조해 분류하고 **3건은 A-22(architect) → T-025 구현**, **1건은 `/planner`**로 보냈다
+- Current: **T-025 done · 커밋 완료**(2026-09-28). 사용자 요청 프론트 개선 4건 중 **3건 반영 완료**(hover·focus / 01 대표 카드 활동 줄 clamp / 01 이벤트 표 고정 높이)
+  - **사용자가 `/planner`에서 정리할 1건**: 워크플로우 `삭제` 조건을 **비활성+사유 대신 모달**로 — `FR-017-AC1`과 정면 충돌해 요구사항 변경이다. 영향 태스크: T-015·T-017·E2E-10(비활성 단언)
+  - 다음 순서(사용자 확정): **T-FIX-04 → A-16·A-21·A-23 → T-FIX-07 → Integration → Final Report**. **A-23**(T-025 리뷰에서 나온 설계 판단 7건)이 신설돼 architect 묶음이 셋이다
+  - 사람 확인: **H-1·H-2·H-4·H-5 통과**, **H-3만 남음**(선행 T-FIX-04)
+- (이전) Current: A-22 진행 중
   - 정지 지점 미지정(재확인 예정). 순서: **A-22 → T-025** → 그다음 기존 순서(T-FIX-04 → A-16·A-21 → T-FIX-07 → Integration → Final Report)
   - **사용자가 `/planner`에서 정리할 1건**: 워크플로우 `삭제` 조건을 **비활성+사유 대신 모달**로 — `FR-017-AC1`("1명 이상이면 비활성 + `팀원을 먼저 제거하세요`")과 정면 충돌해 요구사항 변경이다. 영향 태스크: T-015·T-017·E2E-10(비활성 단언)
   - T-024는 done·커밋 완료(`8615d86`). 사람 확인 H-1·H-2·H-4·H-5 통과, **H-3만 남음**(선행 T-FIX-04)
@@ -101,6 +105,9 @@
 - 2026-09-23 사용자 지시로 보류. T-017은 시작하지 않음
 
 ## Decisions
+- D-070 **T-025 Round 2 PASS 수용 · 커밋** — 팀장이 리뷰어 판정의 핵심을 독립 확인했다: ① 부류 ① 3곳이 모두 `hover:bg-selected focus-visible:bg-selected` 한 쌍(`grep`) ② `npm test` **376**(373 → +3, 새 단언만) ③ `run-e2e.sh` **99개 전부 PASS** ④ 캡처 4장 픽셀 크기 유지. 리뷰어가 **브라우저 Tab 실측으로 결함 해소를 수치로 증명**(`rgb(22,29,44)`·`rgba(0,0,0,0)` → 둘 다 `rgb(29,39,56)`)하고 **R1의 M7 뮤테이션이 이제 3건 실패**함을 재현한 것이 결정적이다 / T-025
+- D-071 **05-R 목록 행을 `focusable: false`로 둔 판단을 승인** — `<tr>`에 `tabIndex`·`onClick`이 없어 포커스를 받지 못하므로 `:focus-visible`은 **영원히 매치되지 않는다**. 붙이면 죽은 클래스를 규격 준수의 증거로 삼게 되고, `architecture.md:800`이 밝힌 이유("키보드 사용자가 같은 피드백을 받아야")로 보면 얻는 것이 0이다. **규정의 문자와 목적 둘 다 이 판단을 지지한다**(리뷰어 동의). A-23 1번이 "행 전체를 클릭 영역으로" 결정하면 플래그만 `true`로 바꾸면 된다 / T-025, A-23
+- D-072 리뷰어가 남긴 임시 fixture(`$TMPDIR/jaystudio-e2e-0enojC`)를 **팀장이 정리** — 안에 `danger` variant 측정용 `zz-review-tmp.json`이 있었고, 컨테이너 참조 0·macOS 색인 프로세스만 읽기로 열고 있어 삭제했다. 우리 자동화가 만든 임시 사본이므로 사용자 데이터 삭제가 아니다. 다음 리뷰 프롬프트에 "임시 fixture·임시 워크플로우까지 직접 정리"를 명시했고 **Round 2에서는 리뷰어가 실제로 스스로 정리**했다(`rm -rf` + 전역 검색 잔여 0 확인) / T-025
 - D-067 **A-22 확정(ADR-46) 수용 — 3건 모두 요구사항 변경 없이 해결**. 팀장이 핵심 근거를 독립 검증했다:
   - **hover 토큰 문제가 실제로 풀렸다**(D-066의 우려 해소): 팀장이 RGB를 직접 계산해 `bg/chrome`(18,24,38) → `bg/soft`(23,31,46) **+5·7·8** / `bg/soft` → `bg/selected`(29,39,56) **+6·8·10**은 **눈에 보이고**, `bg/card`(22,29,44) → `bg/soft`는 **+1·2·2로 안 보인다**는 architect 수치를 확인했다. 그래서 "선택 표시가 `bg/selected`인 요소(사이드 탭·05-R 행)만 hover를 `bg/soft`"로 두면 **기본 < hover < 선택** 순서가 성립하고 선택 탭의 초록 바·글자색이 보조 신호로 남는다 → **새 토큰 불필요, `/planner` 회송 불필요**
   - `docs/ui/`·요구사항 문서·코드 **변경 0건** 확인(`git status`). ADR-46 번호 유일, A-22·T-025 신설 확인, hover 규칙이 **ui-spec 공통 절 한 곳**에 모이고 "화면별 요소 표에는 hover를 적지 않는다"가 규칙으로 명시됨(중복·불일치 방지)
@@ -439,4 +446,15 @@
   - **architect가 E2E 회귀 위험을 먼저 찾아 규격을 바꿨다**: `e2e-13.spec.ts`의 01 캡처만 `fullPage: true` + **`documentHeight >= 1140` 단언**이라 표가 400px 짧아지면 깨질 수 있다 → 01 캡처를 **뷰포트 1440×1140 clip**으로 바꿔 02·03과 방식을 통일(`AppShell`의 `min-h-screen`이 최소 높이를 보장). **갱신 대상 테스트는 `captureFrame` 하나뿐**이고 `최근 [N]개` 단언 3곳·표 행 단언은 **수정 불필요**(N 불변, `toBeVisible()`은 스크롤로 가려진 행도 통과 → conventions에 `toBeInViewport` 금지 MUST로 고정)
   - **T-024 리뷰 Minor 4 해소 방향**(조건부): 뷰포트 1140 캡처면 사이드바 하단 `수집 상태` 카드가 프레임 안에 들어온다. T-025가 **문서 높이를 실측해 보고**하도록 Done when에 걸었다(악화 판정 포함)
   - 기존 hover 2곳(`FeaturedWorkflows.tsx:39`·`Floor.tsx:143`)은 **유지·코드 변경 0건** — 표면이 `bg/card`·`bg/inset`이고 선택 표시에 `bg/selected`를 쓰지 않아 부류 ①에 부합. `design-tokens.md`의 `쓰는 곳` 열이 **대표 용례이지 배타적 허용 목록이 아니라는 해석**을 ui-spec에 명문화(규정 밖 사용 오판 방지)
+- 2026-09-28 **T-025 개발 DONE**(frontend-developer): 공용 6파일(`Button`·`Sidebar`·`Select`·`SearchInput`·`TextInput`·`TextArea`) + 화면 전용 4곳 hover·focus, 01 대표 카드 활동 줄 `min-w-0 truncate` + `title`(같은 변수 = 마스킹된 값), 01 이벤트 표 `h-96`+`overflow-y-auto`+`thead sticky`+`role=region`·`aria-labelledby`(기존 제목 `useId()` 재사용 → 새 문구 0), `e2e-13.spec.ts` `captureFrame`을 뷰포트 clip 한 방식으로 통일
+  - 팀장 검증: `npm test` **373**(359 → +14)·lint·typecheck·build 통과 · `run-e2e.sh` **99개 전부 PASS** · 캡처 4장 픽셀 크기 일치
+- 2026-09-28 T-025 **Round 1 리뷰 NEEDS_FIX**(`docs/reviews/T-025.md`): **Major 1** — 01 대표 카드(`FeaturedWorkflows.tsx:42`)·02 책상 칸(`Floor.tsx:143`)에 **`focus-visible:` 누락**(같은 부류 ① 4곳 중 03 오피스 칸에는 있었다 = 내부 불일치). 리뷰어 브라우저 실측으로 Tab 포커스 시 배경 불변 확인. Minor 6 · Suggestion 3
+  - **원인 일부가 팀장 지시서였다**: `tasks.md`가 이 두 줄을 "현행 유지"로 적었고 `architecture.md:793`도 "코드 변경 0건"이라 했다. 다만 :793은 **`bg/selected` 토큰을 hover에 써도 되는가**라는 값 해석 문제였고 focus 동등성 면제가 아니다(같은 ADR `:800`이 별도 MUST) → **팀장이 tasks.md 문구를 정정**
+  - 리뷰어 확인 사항: conventions MUST 8건 전수 준수 / 마스킹 원문 경로 **구조적으로 없음**(서버→화면 추적 + 뮤테이션 검출) / `brightness-110`은 **우회 아님·유지 권고**(토큰이 단일 출처로 남아 색이 갈라질 가능성 구조적 0) / 비활성 버튼 6개 전수 변화 0 / "수정 없이 통과" 4곳 확인 / 01 캡처 기준 PNG 대조 = 확정된 차이 2항 밖 누락·추가 **0건** / 02·03 캡처는 **시각 문자열만** 차이(픽셀 diff 0.03~0.54%)
+  - Minor 2·3·5·6·7 + Suggestion 3건 → **A-23 신설**(architect), Minor 4(값 회귀 방어 공백) → fix round
+- 2026-09-28 T-025 **fix round 1 완료 → Round 2 PASS**(Blocker·Major·Minor **0건**). `focus-visible:bg-selected` 2줄 추가 + 단언 3개 신설(`FeaturedWorkflows.test`·`Floor.test`·`staticRules` 값 고정). `npm test` 373 → **376**, E2E 99개 유지
+  - **뮤테이션으로 구멍이 실제로 막힌 것을 리뷰어가 재현**: M7(4곳 hover 값 교체)이 R1 **0 failed/373** → R2 **3 failed/373** · 05-R 단독 교체도 **1 failed**로 검출 · `focus-visible:` 제거도 3건 검출 · 03 Office만 제거해도 `staticRules` 단독 검출
+  - **기존 단언 약화 0**: 세 테스트 파일이 `diff`상 **순수 추가**(삭제·변경 줄 0)이고 "hover 보유 파일 10곳" 단언은 **바이트 단위 동일**·M5로 동작 실증. 신규 `SCREEN_HOVER_VALUES`는 기존(집합)과 **직교하는 층**(값)을 추가한 것
+  - 팀장 검증: `npm test` **376**·lint·typecheck·build 통과 · `run-e2e.sh` **9배치 99개 전부 PASS** · 잔여물 0(사용자 운영 컨테이너 제외)
+- 2026-09-28 **T-025 커밋 완료.** 사용자 요청 개선 3건 반영 끝. 4번(삭제 조건 모달)은 `/planner` 대기
 

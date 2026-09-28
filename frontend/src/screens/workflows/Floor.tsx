@@ -140,7 +140,8 @@ export function Floor({ workflow, registryAgents, live, writable, matchedAgentNa
               <button
                 key={name}
                 type="button"
-                className="rounded-control p-1 hover:bg-selected"
+                // 부류 ①(ADR-46 A): hover 값은 그대로 두고 키보드 포커스에도 같은 표현을 준다(NFR-12, ui-rules 8).
+                className="rounded-control p-1 hover:bg-selected focus-visible:bg-selected"
                 onClick={() =>
                   navigate(`/workflows/${encodeURIComponent(workflow.name)}?agent=${encodeURIComponent(name)}`)
                 }

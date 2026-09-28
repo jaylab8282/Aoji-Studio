@@ -692,6 +692,22 @@
 - 하지 말 것: `docs/requirements_*`·`final_requirements_*`·`docs/ui/` 수정. `docs/ui/screens/*.png` 갱신(차이는 ui-spec 목록으로 처리)
 - Depends on: -
 
+## A-23 (architect 확정 요청) ADR-46 A의 hover 대상 전수와 "클릭 동작 없는 요소엔 hover 금지" MUST가 문자 그대로는 충돌한다
+- Status: todo — **T-025를 막지 않는다**(구현은 ui-spec 전수 목록을 따랐고 E2E·단위 전부 통과). 문서 내부 정합성 문제다
+- Scope: architect 판단 → 필요하면 Frontend 소폭 반영
+- 출처: T-025 구현자 보고(2026-09-28), 팀장 확인
+- 판단할 것
+  1. **05-R 비선택 목록 행** — `ui-spec` §공통 hover 부류 ②와 `conventions` §7 MUST가 hover 대상 **전수 목록에 포함**했고 T-025가 규격대로 `hover:bg-soft`를 줬다. 그런데 그 행은 **행 자체에 클릭 동작이 없다**(체크박스·역할 드롭다운만 클릭). 같은 conventions의 "클릭 동작이 없는 요소에는 hover를 주지 않는다"와 문자 그대로는 충돌한다. → ⓐ 행 전체가 체크박스 토글 영역이라는 뜻으로 hover를 유지할지(그럼 클릭 동작도 행에 주어야 정합) ⓑ 전수 목록에서 05-R 행을 빼고 코드에서도 제거할지 정해라
+  2. **04-6 `정상 파일은 수정 팝업에서 편집 →`** — `ui-spec` ④ 텍스트 링크 전수에 들어 있으나 구현(`components/ui/FormatErrorList.tsx:26`)은 **클릭 동작 없는 `<span>`**이다. T-025는 `hover:underline`을 주면 Done when ③(hover 보유 파일 = 공용 6 + 화면 전용 4)과 "클릭 동작 없는 요소 hover 금지"를 동시에 어기므로 **손대지 않았다**(타당 — 팀장 동의). → 전수 목록에서 빼거나, 이 문구를 실제 링크로 만들 것인지 정해라(후자는 사용자에게 보이는 동작 추가라 팀장이 승인을 받아야 한다)
+  3. (선택) **T-024 리뷰 Minor 4가 1.75px 차이로 잔존** — T-025 실측: 01 문서 높이 **1158px**(프레임 1140px), 사이드바 `수집 상태` 카드 `bottom 1141.75px`로 **1.75px만 프레임 밖**이다. ADR-46 C가 예측한 "조건부 해소" 범위 안이고 두 요소는 DOM 단언으로 별도 검증된다. 표 높이를 `h-96`에서 한 단계 낮추면(`h-80` 등) 해소되지만 그 값은 conventions MUST로 확정된 것이라 **architect 판단 영역**이다. 그대로 둘지 결정해라(그대로 둬도 결함은 아니다 — 기준 PNG 대조 목록에 "문서 총 높이는 대조 대상 아님"이 있다)
+  4. **①의 "04-7 점선 카드의 버튼"이 실제로는 `primary` variant**라 ③(`brightness-110`)을 받는다(`EmptyWorkflowCard.tsx:24`) — ①(`bg-selected`)과 ③이 한 요소에 동시에 걸린다. 구현은 옳다(① 표현을 주려면 화면 파일에 hover를 넣어야 하고 그건 `conventions:125` MUST와 T-025 Done when ③을 동시에 어긴다). → ① 전수에서 빼거나 "`Button` variant가 상태 색 채움이면 ③을 따른다"를 명시 (T-025 리뷰 Minor 2)
+  5. **④ 텍스트 링크가 `conventions.md:125`의 "화면 전용 예외 4곳"에 자리가 없다** — 01 `전체 보기 →`(`FeaturedWorkflows.tsx:73`)는 ④이지 그 4곳이 아니다(우연히 같은 파일이라 정적 검사는 통과). → :125에 "④ 텍스트 링크는 해당 링크가 있는 화면 파일에 둘 수 있다" 한 줄 추가 (T-025 리뷰 Minor 3)
+  6. **상단바 브레드크럼 링크가 ①~④ 전수 목록에 없다** — 실제 라우팅하는 `<a>`인데 hover가 없다(실측 확인). `ui-spec.md:161`의 "클릭·이동할 수 있는 요소는…" 한 줄 규칙과 어긋난다. **전수에 없으므로 구현 결함은 아니다.** → 전수에 넣을지, "한 줄 규칙은 요약이고 전수 목록이 우선한다"를 명시할지 (T-025 리뷰 Minor 5)
+  7. **05-R 목록 행 hover(`bg/soft`)가 팝업 표면(`bg/card`) 위에서 사실상 보이지 않는다** — 채널당 +1~2로, `architecture.md:789`가 선택지 (b)를 기각하며 스스로 "보이지 않는다"고 적은 폭이다. ②는 "선택과 구분"을 위해 `bg/soft`를 강제하지만 그 결과 "기본과 구분"이 사라진다. **위 항목 1과 함께 판단하라** (T-025 리뷰 Minor 6)
+  8. (Suggestion) **전환 일관성** — `transition-colors duration-200`이 `Button` 한 곳뿐이라 버튼만 부드럽고 사이드 탭·입력·카드·칸은 즉시 바뀐다. MUST 위반은 아니나(`:121`은 상한, `:128`은 형식 제약) "배경이 바뀌는 hover 대상에 모두 붙인다 / `Button`에만 둔다" 중 하나로 못 박으면 반복 질문이 사라진다 / **ADR-46 A 보강** — "렌더 픽셀은 새 색이 맞다(주장 범위는 토큰·소스 수준)", "filter는 자식 전체에 걸린다(대비 상승, 실측 문제없음)" 한 줄씩 / **`워크플로우 보기 →`를 SCR-01 확정된 차이 목록에 추가** — 기준 PNG 목업에는 없는데 `ui-spec.md:198` 요소 표는 요구한다(T-014·T-024 통과 상태, 요소 표가 우선이지만 `:109`가 "어긋나도 되는 항목은 목록에 적힌 것뿐"이라 못 박았다)
+- 하지 말 것: `docs/requirements_*`·`final_requirements_*`·`docs/ui/` 수정. 코드 수정(결정만 한다)
+- Depends on: -
+
 ## T-FIX-08 07의 04-5에서 `설정 열기` 미표시 (ADR-42)
 - Status: done — **리뷰 PASS**(`docs/reviews/T-FIX-08.md`, Blocker 0·Major 0·Minor 2 → T-FIX-07)
 - Scope: Frontend
@@ -900,7 +916,7 @@
 - Depends on: T-014, T-015, T-016, T-017, T-018, T-019, T-021, T-022, T-023, T-FIX-06
 
 ## T-025 UI 개선 3건 — hover·focus 표현 / 01 대표 카드 활동 줄 clamp / 01 실시간 이벤트 표 고정 높이 (A-22, ADR-46)
-- Status: todo
+- Status: **done** — **Round 2 리뷰 PASS**(`docs/reviews/T-025.md`, Blocker·Major·Minor **0건**, fix 1회). Round 1은 NEEDS_FIX(Major 1 = 01 대표 카드·02 책상 칸 `focus-visible` 누락 / Minor 4 = 화면 전용 4곳 hover **값** 회귀 방어 공백)였고 둘 다 해소됐다. 리뷰어가 실제 브라우저 Tab 실측으로 `rgb(22,29,44)`·`rgba(0,0,0,0)` → **둘 다 `rgb(29,39,56)`**(=`bg/selected`) 확인, 뮤테이션 M7이 R1 **0 failed** → R2 **3 failed**로 잡히는 것과 05-R 단독 교체도 **1 failed**로 검출되는 것까지 재현. 기존 단언 삭제·약화 0(세 테스트 파일 **순수 추가**), `npm test` 359 → **376**. 남은 Minor 5건·Suggestion 3건은 전부 **A-23**(architect) 소관
 - Scope: Frontend, Tools(E2E-13 캡처 방식·단언 갱신만)
 - FR: FR-005, FR-015 (**의미 변경 없음 — 새 AC·E 없음**), `docs/ui/ui-rules.md` 2·5·6·8
 - AC: 없음(기존 AC 유지. 회귀로 지켜야 하는 것: FR-005-AC3, FR-005-AC6, FR-005-AC8, FR-006-AC4, FR-015-AC2)
@@ -908,7 +924,7 @@
 - Screens: 공통(hover·focus 규칙), SCR-01, SCR-02, SCR-03, SCR-04-7, SCR-05-R, SCR-06, SCR-07 (hover는 공용 컴포넌트를 쓰는 전 화면에 걸린다)
 - Backend: 없음
 - Frontend
-  - **항목 1 (ADR-46 A, ui-spec §공통 "마우스 hover·키보드 `:focus-visible` 표현")** — 공용 컴포넌트에서만 구현한다: `components/ui/Button.tsx`(`secondary`·`add` → `hover:bg-selected focus-visible:bg-selected`, `primary`·`terminal`·`danger` → `hover:brightness-110 focus-visible:brightness-110`, **비활성일 때는 hover·focus 클래스를 붙이지 않는다**), `components/common/Sidebar.tsx`(비선택 탭 → `hover:bg-soft hover:text-text` + 같은 `focus-visible:`, 선택 탭은 변화 없음), `components/ui/Select.tsx`·`SearchInput.tsx`·`TextInput.tsx`·`TextArea.tsx`(`hover:bg-selected`). 화면 전용 클릭 영역만 그 화면에 둔다: `screens/home/FeaturedWorkflows.tsx:39`(현행 `hover:bg-selected` **유지**), `screens/workflows/Floor.tsx:143`(현행 유지), `screens/workflow-detail/Office.tsx` 비선택 칸, `dialogs/import-agents/ImportDialog.tsx` 비선택 목록 행. 텍스트 링크에는 `hover:underline`. 색 전환은 `transition-colors duration-200`만(이미 `Button`에 있다). `outline-none`을 쓰지 않는다
+  - **항목 1 (ADR-46 A, ui-spec §공통 "마우스 hover·키보드 `:focus-visible` 표현")** — 공용 컴포넌트에서만 구현한다: `components/ui/Button.tsx`(`secondary`·`add` → `hover:bg-selected focus-visible:bg-selected`, `primary`·`terminal`·`danger` → `hover:brightness-110 focus-visible:brightness-110`, **비활성일 때는 hover·focus 클래스를 붙이지 않는다**), `components/common/Sidebar.tsx`(비선택 탭 → `hover:bg-soft hover:text-text` + 같은 `focus-visible:`, 선택 탭은 변화 없음), `components/ui/Select.tsx`·`SearchInput.tsx`·`TextInput.tsx`·`TextArea.tsx`(`hover:bg-selected`). 화면 전용 클릭 영역만 그 화면에 둔다: `screens/home/FeaturedWorkflows.tsx:39`(**hover 값은 현행 `hover:bg-selected` 유지 + `focus-visible:bg-selected` 추가**), `screens/workflows/Floor.tsx:143`(같음) — **팀장 정정 2026-09-28(T-025 리뷰 Major 1)**: A-22가 이 두 줄을 "현행 유지"로 적고 `architecture.md:793`도 "코드 변경 0건"이라 했으나, :793은 **`bg/selected` 토큰을 hover에 써도 되는가**라는 값 해석 문제를 다룬 것이고 **focus 동등성을 면제한 것이 아니다**(같은 ADR `:800`이 `:focus-visible` 동등성을 NFR-12·ui-rules 8 근거로 별도 MUST로 세웠고, `ui-spec.md:165` 부류 ① 표현 열이 `hover:bg-selected focus-visible:bg-selected` 한 쌍으로 확정했다), `screens/workflow-detail/Office.tsx` 비선택 칸, `dialogs/import-agents/ImportAgentTable.tsx` 비선택 목록 행(**팀장 정정 2026-09-28**: A-22가 `ImportDialog.tsx`로 적었으나 목록 행 `<tr>`의 실제 위치는 같은 폴더의 `ImportAgentTable.tsx`다 — T-025 구현자 보고, 팀장 확인). 텍스트 링크에는 `hover:underline`. 색 전환은 `transition-colors duration-200`만(이미 `Button`에 있다). `outline-none`을 쓰지 않는다
   - **항목 2 (ADR-46 B, ui-spec SCR-01 "대표 카드 활동 줄")** — `screens/home/FeaturedWorkflows.tsx` 활동 줄에 `truncate` + 부모 flex 항목 `min-w-0` + `title={활동 줄 문자열}`. `lib/text.ts`의 `recentActivityLabel`·`lastActivityLabel`·`NO_ACTIVITY_TEXT`는 **바꾸지 않는다**(같은 문자열을 화면과 `title`에 함께 쓴다 = 이미 마스킹된 값). 글자 수 상수·`ellipsis.ts` 사용 금지
   - **항목 3 (ADR-46 C, ui-spec SCR-01 "실시간 이벤트 표 영역")** — `screens/home/EventsTable.tsx`: `<table>`을 `h-96 overflow-y-auto` 컨테이너로 감싸고 `tabIndex={0}` + `role="region"` + `aria-labelledby`(카드 제목 `실시간 이벤트`에 `id` 부여), `<thead>`에 `sticky top-0 bg-card`. 문구·열·행 렌더 로직·`recentEventsSubtitle(N)`은 그대로
 - Tools: `tools/e2e/tests/e2e-13.spec.ts` `captureFrame`을 **뷰포트 clip 한 가지 방식**으로 바꾼다 — `fullPage`·`needsFullPage`·"문서 높이 ≥ 프레임 높이" 단언 제거, 기준 프레임이 기본 뷰포트(1024)보다 높은 화면(01)만 캡처 직전 `page.setViewportSize({width:1440, height:frame.height})` 후 원래 뷰포트로 되돌린다. 02·03은 동작 변화 없음. 실측 annotation에 **문서 높이와 사이드바 하단 `수집 상태` 카드가 프레임 안인지**를 남긴다(A-22 / ADR-46 C, T-024 Minor 4 판정 근거)

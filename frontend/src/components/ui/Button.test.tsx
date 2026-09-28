@@ -2,6 +2,16 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Button, type ButtonVariant } from "./Button";
 
+/**
+ * 브라우저 기본 포커스 표시를 지우는 클래스(ADR-46 A 금지 대상).
+ * 문자열을 조립해 Tailwind가 이 테스트 문구에서 죽은 유틸리티를 만들지 않게 한다.
+ */
+const OUTLINE_RESET_CLASSES = [
+  `outline-${"none"}`,
+  `focus:outline-${"none"}`,
+  `focus-visible:outline-${"none"}`,
+];
+
 // ui-spec.md §공통 `Button`, conventions.md §7 MUST, ADR-29.
 // 비활성은 variant 표현을 대체하는 여섯 번째 표현이라 variant와 무관하게 모두 같은 모양이다.
 
@@ -102,6 +112,67 @@ describe("Button", () => {
       }
       expect(shape).not.toContain("text-text-faint");
       unmount();
+    }
+  });
+
+  it("[ADR-46 A] secondary·add → hover:bg-selected, primary·terminal·danger → hover:brightness-110, 다섯 variant 모두 focus-visible에 같은 표현", () => {
+    // ui-spec.md §공통 "마우스 hover·키보드 `:focus-visible` 표현" 표 ①·③.
+    const expression: Record<ButtonVariant, string> = {
+      primary: "brightness-110",
+      terminal: "brightness-110",
+      secondary: "bg-selected",
+      add: "bg-selected",
+      danger: "brightness-110",
+    };
+
+    for (const variant of ALL_VARIANTS) {
+      const { unmount } = render(<Button variant={variant}>실행</Button>);
+      const shape = classesOf("실행");
+      const mine = expression[variant];
+      const other = mine === "bg-selected" ? "brightness-110" : "bg-selected";
+
+      expect(shape, `${variant} hover`).toContain(`hover:${mine}`);
+      // `:focus-visible`은 hover와 같은 표현이다(키보드 사용자도 같은 피드백을 받는다).
+      expect(shape, `${variant} focus-visible`).toContain(`focus-visible:${mine}`);
+      // 다른 부류의 표현이 섞이지 않는다(값 규칙 고정: 새 색·임의값 없음).
+      expect(shape).not.toContain(`hover:${other}`);
+      expect(shape).not.toContain(`focus-visible:${other}`);
+      expect(shape.filter((cls) => cls.includes("["))).toEqual([]);
+      // 브라우저 기본 포커스 표시를 지우지 않는다.
+      expect(shape.filter((cls) => OUTLINE_RESET_CLASSES.includes(cls))).toEqual([]);
+      // 색 전환은 `transition-colors duration-200`만 쓴다.
+      expect(shape).toContain("transition-colors");
+      expect(shape).toContain("duration-200");
+      unmount();
+    }
+  });
+
+  it("[ADR-46 A] disabled·disabledReason → hover·focus 클래스 없음", () => {
+    // 눌리지 않는 컨트롤의 피드백은 거짓 정보다(ui-rules.md 2).
+    for (const variant of ALL_VARIANTS) {
+      const byDisabled = render(
+        <Button variant={variant} disabled>
+          실행
+        </Button>,
+      );
+      expect(screen.getByRole("button", { name: "실행" })).toBeDisabled();
+      expect(
+        classesOf("실행").filter((cls) => cls.startsWith("hover:") || cls.startsWith("focus-visible:")),
+        `${variant} disabled`,
+      ).toEqual([]);
+      byDisabled.unmount();
+
+      const byReason = render(
+        <Button variant={variant} disabledReason="작업 중에는 수정할 수 없습니다">
+          실행
+        </Button>,
+      );
+      expect(screen.getByRole("button", { name: "실행" })).toBeDisabled();
+      expect(
+        classesOf("실행").filter((cls) => cls.startsWith("hover:") || cls.startsWith("focus-visible:")),
+        `${variant} disabledReason`,
+      ).toEqual([]);
+      byReason.unmount();
     }
   });
 });

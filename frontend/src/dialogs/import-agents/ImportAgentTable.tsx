@@ -76,7 +76,8 @@ export function ImportAgentTable({
             rowName: agent.name,
           });
           return (
-            <tr key={agent.name} className={checked ? "bg-selected" : undefined}>
+            // 선택 행이 `bg-selected`이므로 비선택 행 hover는 `bg-soft`다(ADR-46 A ②). 선택 행에는 hover 표현이 없다.
+            <tr key={agent.name} className={checked ? "bg-selected" : "hover:bg-soft"}>
               <td className="py-1.5 pl-2">
                 <input
                   type="checkbox"

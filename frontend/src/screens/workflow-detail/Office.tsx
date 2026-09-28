@@ -130,7 +130,8 @@ function SeatCell({ seat, live, collectorDown, selectedName, onSelect }: SeatCel
       type="button"
       aria-pressed={selected}
       onClick={() => onSelect(seat.name)}
-      className={`${CELL_CLASSES} ${selected ? "border-running bg-running-soft" : "border-border bg-card-alt"}`}
+      // 비선택 칸의 hover·`:focus-visible`은 `bg-selected`, 선택된 칸에는 hover 표현이 없다(ADR-46 A ①).
+      className={`${CELL_CLASSES} ${selected ? "border-running bg-running-soft" : "border-border bg-card-alt hover:bg-selected focus-visible:bg-selected"}`}
     >
       <OfficeSprite
         name={seat.name}

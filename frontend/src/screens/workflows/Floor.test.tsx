@@ -103,6 +103,18 @@ describe("Floor", () => {
     expect(screen.queryByText("모두 대기")).not.toBeInTheDocument();
   });
 
+  it("[ADR-46 A] 책상 칸 hover·focus 표현이 같다: hover:bg-selected + focus-visible:bg-selected", () => {
+    renderFloor({});
+
+    const desk = screen.getByRole("button", { name: /dev-lead/ });
+    const classes = desk.className.split(/\s+/).filter(Boolean);
+    // 표면이 `bg/inset`이고 선택 표시에 `bg/selected`를 쓰지 않는 부류 ①이다(ADR-46 A).
+    expect(classes).toContain("hover:bg-selected");
+    // 키보드 포커스에도 같은 표현을 준다(conventions.md §7 MUST, NFR-12).
+    expect(classes).toContain("focus-visible:bg-selected");
+    expect(classes).not.toContain("hover:bg-soft");
+  });
+
   it("[FR-006-AC5] 모두 대기 → '모두 대기'", () => {
     renderFloor({});
     expect(screen.getByText("모두 대기")).toBeInTheDocument();
