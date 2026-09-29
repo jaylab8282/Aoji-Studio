@@ -42,10 +42,10 @@ test("[FR-001-AC3][FR-004-AC6][E2E-07] 정의 파일 추가 → 02 층에 책상
         agentFile(agent),
         agentFileContent({ name: agent, description: "추가 감지 확인", body: "본문." }),
       ),
-    async (deadlineMs) => {
-      await expect(spriteSvg(page, agent)).toBeVisible({ timeout: deadlineMs });
-    },
+    () => spriteSvg(page, agent).isVisible(),
   );
+  // 측정 뒤 상태 확인(예산 밖): 반영된 화면이 실제로 그 상태인지 web-first 단언으로 다시 본다.
+  await expect(spriteSvg(page, agent)).toBeVisible();
 });
 
 test("[FR-001-AC3][FR-004-AC6][E2E-07] 정의 파일 수정 → 02의 04-6 목록에 2초 이내에 반영된다", async ({
@@ -67,10 +67,10 @@ test("[FR-001-AC3][FR-004-AC6][E2E-07] 정의 파일 수정 → 02의 04-6 목�
     "정의 파일 수정",
     // frontmatter 닫는 구분자를 없애 형식 오류로 바꾼다 → 층에서 빠지고 04-6 목록에 올라간다(FR-002-AC2).
     () => writeFixtureFile(agentFile(agent), `---\nname: ${agent}\ndescription: 닫는 구분자 없음\n\n본문.\n`),
-    async (deadlineMs) => {
-      await expect(page.getByText(`${agent}.md`, { exact: true })).toBeVisible({ timeout: deadlineMs });
-    },
+    () => page.getByText(`${agent}.md`, { exact: true }).isVisible(),
   );
+  // 측정 뒤 상태 확인(예산 밖).
+  await expect(page.getByText(`${agent}.md`, { exact: true })).toBeVisible();
 
   // 같은 변경으로 책상은 사라지고 사유가 함께 표시된다(측정 대상은 위 한 번뿐이다).
   await expect(spriteSvg(page, agent)).toHaveCount(0);
@@ -94,10 +94,10 @@ test("[FR-001-AC3][FR-004-AC6][E2E-07] 정의 파일 삭제 → 02 층에서 책
     testInfo,
     "정의 파일 삭제",
     () => removeFixturePath(agentFile(agent)),
-    async (deadlineMs) => {
-      await expect(spriteSvg(page, agent)).toHaveCount(0, { timeout: deadlineMs });
-    },
+    async () => (await spriteSvg(page, agent).count()) === 0,
   );
+  // 측정 뒤 상태 확인(예산 밖).
+  await expect(spriteSvg(page, agent)).toHaveCount(0);
 
   // 구성 파일이 참조하던 name이 사라졌으므로 04-6에 깨진 참조로 표시된다(FR-002-AC5).
   await expect(page.getByText(`구성 파일 참조 깨짐 (${workflow})`, { exact: false }).first()).toBeVisible();
@@ -118,10 +118,10 @@ test("[FR-001-AC3][FR-004-AC6][E2E-07] 구성 파일 추가 → 02에 새 층이
         teamFile(workflow),
         teamFileContent({ name: workflow, description: "구성 파일 추가 감지" }),
       ),
-    async (deadlineMs) => {
-      await expect(floorName(page, workflow)).toBeVisible({ timeout: deadlineMs });
-    },
+    () => floorName(page, workflow).isVisible(),
   );
+  // 측정 뒤 상태 확인(예산 밖).
+  await expect(floorName(page, workflow)).toBeVisible();
 });
 
 test("[FR-001-AC3][FR-004-AC6][E2E-07] 구성 파일 수정 → 02 층의 팀장·책상이 2초 이내에 반영된다", async ({
@@ -148,10 +148,10 @@ test("[FR-001-AC3][FR-004-AC6][E2E-07] 구성 파일 수정 → 02 층의 팀장
         teamFile(workflow),
         teamFileContent({ name: workflow, description: "수정 후", lead: agent }),
       ),
-    async (deadlineMs) => {
-      await expect(spriteSvg(page, agent)).toBeVisible({ timeout: deadlineMs });
-    },
+    () => spriteSvg(page, agent).isVisible(),
   );
+  // 측정 뒤 상태 확인(예산 밖).
+  await expect(spriteSvg(page, agent)).toBeVisible();
 
   await expect(floorCard(page, workflow)).not.toContainText("팀장이 없습니다 · 팀장을 만들거나 가져오세요");
 });
@@ -168,8 +168,8 @@ test("[FR-001-AC3][FR-004-AC6][E2E-07] 구성 파일 삭제 → 02에서 층이 
     testInfo,
     "구성 파일 삭제",
     () => removeFixturePath(teamFile(workflow)),
-    async (deadlineMs) => {
-      await expect(floorName(page, workflow)).toHaveCount(0, { timeout: deadlineMs });
-    },
+    async () => (await floorName(page, workflow).count()) === 0,
   );
+  // 측정 뒤 상태 확인(예산 밖).
+  await expect(floorName(page, workflow)).toHaveCount(0);
 });

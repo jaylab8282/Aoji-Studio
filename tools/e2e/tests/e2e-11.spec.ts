@@ -277,6 +277,7 @@ test("[FR-014-AC2][FR-014-AC3][E2E-11] `설정 예시 복사` JSON(12종 스키�
   await grantClipboard(page);
   await gotoReady(page, "/settings");
   const hookRow = page.getByTestId("settings-row-hook");
+  const hookConfiguredText = `.claude/settings.json · ${HOOK_CONFIGURED_TEXT}`;
   await expect(hookRow).toContainText(HOOK_MISSING_TEXT);
 
   // 클립보드 값을 그대로 받는다(손으로 고치지 않는다 — FR-014-AC2의 "그대로").
@@ -304,12 +305,14 @@ test("[FR-014-AC2][FR-014-AC3][E2E-11] `설정 예시 복사` JSON(12종 스키�
     testInfo,
     "설정 예시 JSON을 settings.json에 그대로 쓰기 → 07 `hook 설정: 설정됨`",
     () => writeFixtureFile(settingsFile(), example),
-    async (deadlineMs) => {
-      await expect(hookRow).toContainText(`.claude/settings.json · ${HOOK_CONFIGURED_TEXT}`, {
-        timeout: deadlineMs,
-      });
-    },
+    // `toContainText`와 같은 판정(공백 정규화 후 부분 문자열)을 자체 대기 없는 조회로만 한다.
+    async () =>
+      (await hookRow.allTextContents()).some((text) =>
+        text.replace(/\s+/g, " ").trim().includes(hookConfiguredText),
+      ),
   );
+  // 측정 뒤 상태 확인(예산 밖): 반영된 화면이 실제로 그 상태인지 web-first 단언으로 다시 본다.
+  await expect(hookRow).toContainText(hookConfiguredText);
   expect(readFixtureFile(settingsFile()), "파일에 쓴 내용이 복사한 예시와 다릅니다").toBe(example);
   await expect(sidebar(page).getByText(SIDEBAR_HOOK_CONFIGURED_TEXT, { exact: true })).toBeVisible();
 

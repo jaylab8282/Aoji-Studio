@@ -14,8 +14,28 @@ import { expect, type Locator, type Page, type TestInfo } from "@playwright/test
 
 import { readE2eState } from "../lib/e2e-state";
 
-/** FR-001-AC3 "2초 이내". ADR-04(1초 폴링) + SSE 전달을 합친 기한이다. */
+/**
+ * FR-001-AC3 "2초 이내". ADR-04(1초 폴링) + SSE 전달 + React 렌더를 합친 기한이다.
+ * AC 원문은 "2초 이내에 **화면에** 반영된다"이므로 **React 렌더가 이 예산 안에 있다** —
+ * 예산을 제품 경로(파일 변경 → `/api/state`·SSE)에만 걸고 렌더 대기를 떼는 측정 분리는
+ * AC의 측정 지점을 바꾸는 것이라 하지 않는다(ADR-50 A). 이 값은 늘리지 않는다(conventions.md §8 MUST).
+ */
 export const FILE_CHANGE_DEADLINE_MS = 2000;
+
+/**
+ * FR-001-AC3 측정의 **관측 격자**. 예산에서 빼는 것은 Playwright의 재시도 격자(관측 지연)뿐이며
+ * 그것은 제품 경로도, "화면에 반영된 시점"도 아니다(화면은 이미 바뀌었고 테스트가 늦게 본 것이다).
+ * 기본 격자(`expect.poll`의 `[100, 250, 500, 1000]` 계열)는 우리 코드에 없는 상수라 통과·실패를
+ * 그 값이 가르게 된다 → 25ms로 우리가 고정한다(ADR-50 A). 남는 관측 오차(≤ 25ms + 1회 왕복)는
+ * 예산 **안에** 남겨 보수적으로 단언한다.
+ */
+export const REFLECTION_POLL_INTERVAL_MS = 25;
+
+/**
+ * 진단 상한. "10초 안에 아예 반영되지 않음"(기능 결함)과 "반영은 됐으나 2000ms 초과"(기한 초과)를
+ * **다른 실패 메시지**로 가르기 위한 상한이며, 예산이 아니다(예산은 `FILE_CHANGE_DEADLINE_MS`).
+ */
+export const REFLECTION_DIAGNOSTIC_TIMEOUT_MS = 10_000;
 
 /** 준비 단계(측정 대상이 아닌 fixture 반영)에서 쓰는 넉넉한 대기 기한. */
 export const SETUP_REFLECT_TIMEOUT_MS = 10_000;
@@ -181,26 +201,56 @@ export async function gotoReady(page: Page, path: string): Promise<void> {
 }
 
 /**
- * fixture 파일을 바꾸고 화면에 반영될 때까지 걸린 시간을 재서 기한 안인지 단언한다(FR-001-AC3).
- * `expect(...).toBeVisible/toHaveCount`의 폴링만 쓰고 고정 대기는 두지 않는다.
+ * fixture 파일을 바꾸고 **화면에 반영될 때까지** 걸린 시간을 재서 예산 안인지 단언한다(FR-001-AC3).
+ *
+ * `reflected`는 "지금 화면이 반영됐는가"만 답하는 술어다(`isVisible()`·`count()`·`allTextContents()`처럼
+ * 자체 대기가 없는 조회만 쓴다 — 술어 안에서 다시 폴링하면 격자가 두 겹이 된다). 반영 시점은
+ * `REFLECTION_POLL_INTERVAL_MS`(25ms) 격자로 잡고, 진단 상한까지 반영이 없으면 "기능 결함",
+ * 반영은 됐으나 예산을 넘겼으면 "기한 초과 + 실측 ms"로 **서로 다른 문구**로 실패한다(ADR-50 A).
+ * 고정 대기는 두지 않고, 통과 실행에서도 실측 ms를 annotation에 남겨 추세를 쌓는다.
  */
 export async function measureFileChangeReflection(
   testInfo: TestInfo,
   label: string,
   change: () => void,
-  expectation: (deadlineMs: number) => Promise<void>,
+  reflected: () => Promise<boolean>,
 ): Promise<number> {
   const startedAt = Date.now();
   change();
-  await expectation(FILE_CHANGE_DEADLINE_MS);
+  try {
+    await expect
+      .poll(reflected, {
+        intervals: [REFLECTION_POLL_INTERVAL_MS],
+        timeout: REFLECTION_DIAGNOSTIC_TIMEOUT_MS,
+        message: `${label}: ${REFLECTION_DIAGNOSTIC_TIMEOUT_MS}ms 안에 화면에 반영되지 않았습니다(기능 결함)`,
+      })
+      .toBe(true);
+  } catch (error) {
+    const waitedMs = Date.now() - startedAt;
+    testInfo.annotations.push({
+      type: "FR-001-AC3 반영 시간",
+      description: `${label}: 반영 확인 실패 (${waitedMs}ms 관측 · 진단 상한 ${REFLECTION_DIAGNOSTIC_TIMEOUT_MS}ms · 예산 ${FILE_CHANGE_DEADLINE_MS}ms)`,
+    });
+    process.stdout.write(
+      `[FR-001-AC3 반영 시간] ${label}: 미반영 (${waitedMs}ms 관측 · 진단 상한 ${REFLECTION_DIAGNOSTIC_TIMEOUT_MS}ms)\n`,
+    );
+    if (error instanceof Error) {
+      error.message = `${error.message}\n실측 대기 ${waitedMs}ms (예산 ${FILE_CHANGE_DEADLINE_MS}ms)`;
+    }
+    throw error;
+  }
   const elapsedMs = Date.now() - startedAt;
+  // 실측 수치를 테스트 주석과 실행 로그에 함께 남긴다(추세 기준선이 되는 산출물이다 — E2E-13 `logMeasurement`와 같은 형식).
   testInfo.annotations.push({
     type: "FR-001-AC3 반영 시간",
-    description: `${label}: ${elapsedMs}ms (기한 ${FILE_CHANGE_DEADLINE_MS}ms)`,
+    description: `${label}: ${elapsedMs}ms (기한 ${FILE_CHANGE_DEADLINE_MS}ms · 관측 격자 ${REFLECTION_POLL_INTERVAL_MS}ms)`,
   });
+  process.stdout.write(
+    `[FR-001-AC3 반영 시간] ${label}: ${elapsedMs}ms (기한 ${FILE_CHANGE_DEADLINE_MS}ms · 관측 격자 ${REFLECTION_POLL_INTERVAL_MS}ms)\n`,
+  );
   expect(
     elapsedMs,
-    `${label} 반영이 ${FILE_CHANGE_DEADLINE_MS}ms를 넘었습니다(${elapsedMs}ms)`,
+    `${label} 반영이 ${FILE_CHANGE_DEADLINE_MS}ms를 넘었습니다(실측 ${elapsedMs}ms)`,
   ).toBeLessThanOrEqual(FILE_CHANGE_DEADLINE_MS);
   return elapsedMs;
 }

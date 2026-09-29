@@ -771,6 +771,41 @@
 - 하지 말 것: `docs/requirements_*`·`final_requirements_*`·`docs/ui/` 수정, 코드 수정(결정만 한다)
 - Depends on: -
 
+## A-25 (architect 확정 요청) ADR-50 A의 정량 근거가 실제 Playwright 상수와 어긋난다 — flaky 원인 판정을 다시 세워라
+- Status: todo — **다음 작업 세션**. 출처 `docs/reviews/T-FIX-11.md` 범위 밖 A [Major]
+- Scope: architect 판단 → 문서 정정(코드 변경은 없을 것으로 본다)
+- 확정된 사실 (리뷰어 판정 + **팀장이 `coreBundle.js`를 직접 읽어 독립 확인**, 다시 조사하지 않아도 된다)
+  - `docs/architecture.md:921` ADR-50 A는 flaky 원인을 관측 격자로 지목하며 그 크기를 "`expect.poll`의 기본 `[100, 250, 500, 1000]` 계열"로 잡고 **"실여유 ~150ms"**라고 적었다
+  - 그러나 **변경 전 코드는 `expect.poll`을 쓰지 않았다** — web-first 단언(`toBeVisible`/`toHaveCount`에 `{ timeout: deadlineMs }`)이었다
+  - web-first 격자는 `playwright-core/lib/coreBundle.js:23989` `retryWithProgressAndBackoff`의 `backoffScale = [20, 50, 100, 100, 500]`이고 바로 아래 `while (backoffScale.at(-1) > timeout / 5) pop()`이 걸린다 → `timeout: 2000`이면 `2000/5 = 400`이라 `500`이 pop되고, `retryWithProgressAndTimeouts`가 `timeouts = [0, ...timeouts]`를 쓰므로 실효 격자는 `[0, 20, 50, 100, 100, 100, …]` = **최대 관측 지연 100ms**(backoff 이전 즉시 1회 검사도 있다)
+  - 따라서 변경 전 최악값 ≈ 1,028ms(ADR-04 max) + 렌더 수십 ms + ≤100ms ≈ **1.15s**, 실여유 ≈ **850ms**. T-FIX-11이 회복한 여유는 100 → 25ms = **약 75ms**다
+  - **함의: T-FIX-07에서 관측된 flaky는 관측 격자로 설명되지 않는다.** 설명하려면 전체 스위트 부하에서 **제품 경로 + 렌더가 실제로 ~1.9s를 넘었다**고 봐야 한다
+- 판단할 것
+  1. ADR-50 A의 "원인 판정" 절과 `docs/conventions.md` §8 신설 MUST의 "이유" 문장에서 **"실여유 ~150ms" 산술을 실제 상수로 정정**하고, 결론 범위를 **"격자 고정은 잡음 제거이고 flaky 원인 규명은 열려 있다"**로 좁힌다(T-FIX-11을 되돌리라는 뜻이 아니다 — 25ms < 100ms는 단조 개선이고 실패 문구 분리·실측 ms 기록이 본체다)
+  2. **flaky 원인을 다시 판정해라.** 제품 경로가 부하에서 2000ms를 넘을 수 있다면 그것은 **FR-001-AC3 자체의 위험**이지 테스트 문제가 아니다. T-FIX-11이 남긴 실측 ms 기준선(최대 1029ms, 실여유 971ms)을 판정 도구로 명시하고, 어떤 값이 나오면 무엇을 하는지(예: ADR-04이 남긴 여지인 폴링 간격 500ms 축소) **발동 조건을 수치로** 적어라
+  3. 부하 재현이 원인 규명에 필요한지 다시 판단해라. 필요하다고 보면 **팀장이 사용자에게 다시 물어야 하는 항목**으로 표시해라(D-045·E-009. 2026-09-29에는 "코드 판정만으로 진행"으로 결정됐고, 그 결정은 이 정정 이전의 근거 위에서 내려졌다 — 상황이 바뀌었음을 팀장이 사용자에게 알린다)
+- 하지 말 것: `docs/requirements_*`·`final_requirements_*`·`docs/ui/` 수정, 코드 수정, T-FIX-11 되돌리기, FR-001-AC3 예산·측정 지점 변경(그건 요구사항 변경이다)
+- Depends on: -
+
+## T-FIX-14 `replayStep`도 같은 술어 형태로 바꾼다 (T-FIX-11 리뷰 범위 밖 B)
+- Status: todo — **다음 작업 세션**. 출처 `docs/reviews/T-FIX-11.md` 범위 밖 B [Minor], 리뷰어 판정 = (b) 후속으로 미뤄도 된다
+- Scope: Tools (`tools/e2e/` 전용 — 제품 코드 0건)
+- FR: FR-004-AC6 (**의미 변경 없음** — 예산·측정 지점 유지)
+- AC: FR-004-AC6
+- Errors: -
+- Screens: - (테스트 도구)
+- Backend: 없음 / Frontend: 없음
+- Tools: `tools/e2e/tests/e2e-04.spec.ts` — 지역 함수 `replayStep`(`:155-175`)의 4번째 인자를 `expectation: (deadlineMs) => Promise<void>` → `reflected: () => Promise<boolean>` 술어로 바꾸고, 내부를 T-FIX-11의 `measureFileChangeReflection`과 같은 형태(`expect.poll` + `REFLECTION_POLL_INTERVAL_MS` + 별도 `REPLAY_DIAGNOSTIC_TIMEOUT_MS` + 실패 문구 2종 분리)로 맞춘다. 호출 **28곳** 기계적 치환, 기존 web-first 단언은 측정 뒤 상태 확인으로 **그대로 남긴다**
+- 배경: ADR-50 A가 결함이라 판정한 구조(기한을 Playwright timeout에 그대로 넘김)가 이 함수에 남아 있다. 위험도는 낮다 — 리뷰어가 코드로 확인한 대로 hook 경로에는 **폴링 위상이 없어**(`HookCollectController` → `LiveStateService` 동기 `@EventListener` → `SseHub` `@Async` 즉시 방송, 백엔드에 `throttle|debounce|coalesc|Flux.interval|sample(` 0건) 실여유가 ~1.9s다. 고치는 이유는 ① 진단 분리가 FR-004-AC6 실패에는 아직 없다 ② 같은 파일에 두 관용구가 공존해 드리프트 위험이 있다
+- Done when:
+  - `grep`으로 `e2e-04.spec.ts`에 `deadlineMs`를 `expect(...)`의 `timeout`으로 넘기는 호출이 **0건**이다(현재 28곳)
+  - 실패가 2종으로 갈린다 — 진단 상한까지 미반영 = "기능 결함" 문구, 반영됐으나 초과 = 실측 ms 문구. 검출력 2종을 **스크래치 사본에서만** 확인하고 원본 md5 전후 대조로 복구를 증명한다
+  - `FR-004-AC6 반영 시간` annotation의 실측 ms가 `--reporter=list` 출력에 남고(T-FIX-11이 쓴 `logMeasurement` 형식과 같게), **28단계 실측 ms를 보고에 그대로 적는다**(FR-004-AC6 기준선 신설)
+  - `STATE_REFLECT_DEADLINE_MS` 값 **불변**, `retries: 0` 유지, 기존 테스트 삭제·skip·기대값 약화 **0건**, 테스트 개수 `e2e-04` 8개 유지
+  - 배치 5 단독 1회 + 전체 `./scripts/run-e2e.sh` 1회 통과, 통과 수 **106 유지**
+- 하지 않을 것: 예산 증액, `retries` 도입, 렌더 대기를 예산에서 떼기, 제품 코드·`docs/` 수정, 부하 재현 실행
+- Depends on: -
+
 ## T-FIX-08 07의 04-5에서 `설정 열기` 미표시 (ADR-42)
 - Status: done — **리뷰 PASS**(`docs/reviews/T-FIX-08.md`, Blocker 0·Major 0·Minor 2 → T-FIX-07)
 - Scope: Frontend
@@ -836,7 +871,7 @@
 - 하지 않을 것: `--spacing-card` 등 design token 값 변경(**책상 pitch 문제는 별건**이고 architect 판단 영역이다), ui-spec 수정(계산식은 이미 확정돼 있다)
 
 ## T-FIX-11 FR-001-AC3 E2E 측정의 관측 격자를 고정한다 (A-24 1, ADR-50 A)
-- Status: todo
+- Status: **done** — 리뷰 **PASS**(`docs/reviews/T-FIX-11.md`, Round 1, Blocker·Major·Minor **0건 (태스크 내)**). Done when 7항 충족. 배치 5 단독 3회 = 9 passed ×3, 전체 `run-e2e.sh` exit 0·**106 유지**, 검출력 2종 실패 문구 분리 확인·원본 md5 복구. **실측 ms 기준선**(추세 판정용): 배치 5 = (1027, 914)/(1027, 931)/(1000, 939) · 전체 9건 = 809·552·589·922·582·591·1029·940·998, **최대 1029ms**. 리뷰에서 나온 **범위 밖 2건은 A-25(Major, architect)·T-FIX-14(Minor, Tools)로 분리**
 - Scope: Tools (`tools/e2e/` 전용 — 제품 코드 변경 0건)
 - FR: FR-001-AC3 (**의미 변경 없음** — 예산 2000ms·측정 지점 "화면 반영" 유지)
 - AC: FR-001-AC3

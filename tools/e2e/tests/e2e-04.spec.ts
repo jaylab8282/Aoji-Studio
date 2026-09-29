@@ -653,7 +653,8 @@ test("[FR-007-E1][FR-004-AC6][FR-001-AC3][E2E-04] 후반부 — running 상태�
     const collectorBanner = page.getByRole("status").filter({ hasText: "hook 이벤트 수신 없음" });
 
     // 시작 상태: 배너 없음, 두 캐릭터 모두 작업 중.
-    await expect(collectorBanner).toHaveCount(0);
+    // 측정 대상이 아닌 준비 상태 확인이므로 기본값(5000)에 숨기지 않고 기한을 명시한다(ADR-50 A).
+    await expect(collectorBanner).toHaveCount(0, { timeout: SETUP_REFLECT_TIMEOUT_MS });
     await expect(panelRowValue(page, "상태")).toHaveText("작업 중");
     await expect(spriteBox(page, "ops-member").getByText("Bash", { exact: true })).toBeVisible();
     for (const name of runningAgents) {
@@ -665,10 +666,10 @@ test("[FR-007-E1][FR-004-AC6][FR-001-AC3][E2E-04] 후반부 — running 상태�
       testInfo,
       "settings.json hook 제거 → 03 04-4 배너",
       () => writeFixtureFile(settingsFile(), "{}\n"),
-      async (deadlineMs) => {
-        await expect(collectorBanner).toBeVisible({ timeout: deadlineMs });
-      },
+      () => collectorBanner.isVisible(),
     );
+    // 측정 뒤 상태 확인(예산 밖): 반영된 화면이 실제로 그 상태인지 web-first 단언으로 다시 본다.
+    await expect(collectorBanner).toBeVisible();
     // 배너 첫 줄 = `hook 이벤트 수신 없음 · 마지막 수신 <yyyy-mm-dd hh:mm>`(ui-spec.md SCR-04-4).
     // 이번에는 수신 이력이 있으므로 `없음`이 아니라 시각이 들어간다.
     await expect(collectorBanner.locator("p").first()).toHaveText(
@@ -682,7 +683,10 @@ test("[FR-007-E1][FR-004-AC6][FR-001-AC3][E2E-04] 후반부 — running 상태�
     for (const name of runningAgents) {
       expect(await spriteShirtFill(page, name), `${name} 셔츠 색`).toBe(PIXEL_FILL.shirtIdle);
       expect(await spriteScreenFill(page, name), `${name} 모니터 색`).toBe(PIXEL_FILL.screenIdle);
-      await expect(spriteBox(page, name).getByText("대기", { exact: true })).toHaveCount(2);
+      // 측정 대상이 아닌 사후 상태 확인이므로 기본값(5000)에 숨기지 않고 기한을 명시한다(ADR-50 A).
+      await expect(spriteBox(page, name).getByText("대기", { exact: true })).toHaveCount(2, {
+        timeout: SETUP_REFLECT_TIMEOUT_MS,
+      });
     }
     await expect(panelRowValue(page, "상태")).toHaveText("대기");
     await expect(panelRowValue(page, "현재 도구")).toHaveText("-");
@@ -710,10 +714,10 @@ test("[FR-007-E1][FR-004-AC6][FR-001-AC3][E2E-04] 후반부 — running 상태�
       testInfo,
       "settings.json hook 복구 → 03 04-4 배너 사라짐",
       () => writeFixtureFile(settingsFile(), configured),
-      async (deadlineMs) => {
-        await expect(collectorBanner).toHaveCount(0, { timeout: deadlineMs });
-      },
+      async () => (await collectorBanner.count()) === 0,
     );
+    // 측정 뒤 상태 확인(예산 밖).
+    await expect(collectorBanner).toHaveCount(0);
     expect(readFixtureFile(settingsFile()), "fixture settings.json이 복구되지 않았습니다").toBe(
       configured,
     );
