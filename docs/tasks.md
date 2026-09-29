@@ -740,10 +740,27 @@
 - 하지 말 것: `docs/requirements_*`·`final_requirements_*`·`docs/ui/` 수정. 코드 수정(결정만 한다)
 - Depends on: -
 
-## A-24 (architect 확정 요청) T-FIX-07 리뷰에서 나온 4건 — E2E flaky · 상태 줄 가림 · api-spec 주석
-- Status: todo — **다음 작업 세션에서 처리**(T-FIX-07을 막지 않는다). 출처 `docs/reviews/T-FIX-07.md`
-- Scope: architect 판단 → 결정에 따라 Tools·Frontend 반영
-- 판단할 것
+## A-24 (architect 확정 완료 2026-09-29 → ADR-50) T-FIX-07 리뷰에서 나온 4건 — E2E flaky · 상태 줄 가림 · api-spec 주석
+- Status: **done (확정 완료)** — 4항목 중 **1·2·4②는 코드 변경(→ T-FIX-11·T-FIX-12·T-FIX-13)**, **3·4①·4③은 문서 정정 또는 현행 유지(코드 변경 0건)**
+- 전제(팀장 확정, 다시 논의하지 않는다): **부하 재현 없이 코드 판정으로 확정**(2026-09-29 사용자 결정, E-009 해결) · **2번을 "실측 겹침 0건"으로 닫지 않는다**(D-083) · **`retries: 0` 유지 · `2000` 단순 증액 금지**
+- 확정 결과(ADR-50)
+  1. **E2E flaky — 예산 2000ms·`retries: 0`을 유지하고 "관측 격자"를 우리 코드에서 고정한다**(→ **T-FIX-11**).
+     - **FR-001-AC3 의미 판정**: 원문(`final_requirements_function.md:162`)은 "2초 이내에 **화면에 반영**"이므로 예산은 **사용자가 화면에서 보기까지**에 걸렸다. → 리뷰어 권고 ①(**측정 분리** = 렌더 대기를 예산에서 뗀다)은 **AC 의미 변경 = 요구사항 변경**이라 **확정하지 않고 기각**한다. 채택을 원하면 팀장이 `/planner`로 에스컬레이션해야 한다. **렌더 대기는 예산 안에 남는다.**
+     - 예산에서 빼는 것은 **Playwright 관측 지연(재시도 격자)뿐**이다 — 화면은 이미 바뀌었고 테스트가 늦게 본 것이라 "화면 반영 시점"이 아니다. 렌더를 빼는 것과 다른 일이다.
+     - 원인: 제품 경로는 이미 실측돼 있다(ADR-04: 파일 변경 → SSE p95 **1,016~1,025ms**, max 1,028ms) → **제품 경로만으로는 2000ms를 넘을 수 없다.** 남는 항은 우리 코드에 없는 Playwright 내부 재시도 격자뿐이고, 반영이 ~1.03s에 와도 다음 관측이 1.85s 근처면 **실여유 ~150ms**다. **통과·실패를 가르는 값이 우리가 통제하지 않는 상수라는 것 자체가 결함**이다.
+     - 처방: `measureFileChangeReflection`을 술어 폴링으로 바꾸고 `REFLECTION_POLL_INTERVAL_MS = 25`(관측 격자)·`REFLECTION_DIAGNOSTIC_TIMEOUT_MS = 10_000`(진단 상한)을 신설, `FILE_CHANGE_DEADLINE_MS = 2000` 단언은 그대로. "아예 반영 안 됨"과 "2000ms 초과"를 다른 메시지로 구분하고 실측 ms를 남긴다. 리뷰어 권고 ④(`e2e-04:656`·`:685` 기한 명시)도 채택.
+     - 기각: 권고 ②(**시작점 결정화**) — 서버에 폴링 tick 신호가 **없고**(`FolderPoller`는 변경 시에만 방송, `revision`·`scannedAt`도 변경 시에만 갱신, heartbeat는 15초) 만들면 제품·계약 변경이다. 예산을 "폴링 주기 + X"로 재정의하는 것도 AC 문장 변경이다 / 기한 증액 / `retries` / E2E만 `jaystudio.poll-interval-ms` 축소(운영 기본값 1000ms 검증을 잃는다)
+  2. **상태 줄 가림 — span-1 열 폭 clamp + 툴팁으로 확정**(→ **T-FIX-12**). `DeskSprite` 루트·책상 칸이 칸 폭을 받고(`w-full min-w-0`) 이름 칩·상태 글자를 CSS 한 줄 clamp, 부모 접미가 있으면 `Tooltip`으로 전체 문구. **DOM 텍스트는 자르지 않으므로** `e2e-04:699,:729`·`e2e-13:509,:555`의 `exact: true` 단언이 그대로 통과한다. 근거: FR-006-AC10(name·상태 글자를 **함께 표시**) + **FR-006-AC4가 긴 글자 처리를 이미 "말줄임 + 마우스 올리면 전체"로 확정**했다(새 시각 언어 0건) + ADR-48 C가 "겹치면 pitch가 아니라 글자 처리로 별건 판단" 예고.
+     - 기각: **span-1에서 접미 생략**(층 크기에 따라 같은 데이터가 사라지고 툴팁도 없어 정보 손실) / **`--spacing-card` 재검토**(ADR-48 C가 산술로 이미 닫았고 01·03 공유 토큰이며 사용자 승인이 필요하다 — **승인 없이 가능한 처방이 기준을 충족하므로 권고도 하지 않는다**)
+     - 검증을 투영 → 실측으로: **span-1 층에 부모 접미 책상을 나란히 두 개 실제로 놓는 재생 층**을 추가한다(`showcase.jsonl`은 고치지 않고 새 시나리오 파일). T-FIX-12 Done when에 명시
+  3. **`api-spec.yaml` `HookPayload.permission_mode` 설명 한 줄 추가 — 반영 완료(코드 변경 0건).** **계약 변경 아님**: `description`만 늘고 필드·타입·`required`·enum·상태 코드·서버 동작(무시)이 모두 그대로이며, 프론트가 이 스키마를 소비하지 않고(생산자는 Claude Code·`tools/replay`) `ui-spec` 데이터 출처 열에 없다. 필드는 **지우지 않는다**(FR-003-AC9·확정 문서가 공통 입력 필드로 명시)
+  4. **Suggestion 3건** — ① `docs/ui/README.md` 인용 정정: 원문은 "요소 누락, 배치 차이, 흐름 불일치는 결함이다. **1~2px 간격 차이는 결함이 아니다**"이고 "요소 가림"은 원문에 없다 → `ui-spec.md:235,274,305`·`conventions.md:111`·`architecture.md` ADR-48 C의 인용을 **원문 낱말 + 해석 근거(가림은 "요소 누락"에 해당, 1차 근거 FR-006-AC10, 1~2px 면제는 간격 차이에만)**로 고쳤다(문서만, `docs/ui/` 무수정) ② `helper/jaystudio-helper.mjs:284` `destroy()` 후 `readBody` promise가 resolve·reject 되지 않는 것이 의도임을 주석에 명시(→ **T-FIX-13**, 동작 변경 0건) ③ `WorkflowsHeader.test.tsx`의 className `toBe` **유지(기각, 코드 변경 0건)** — 기준값을 `Button` 자신이 렌더하므로(`referenceButtonClassName`) `Button` 내부에 클래스가 늘어도 깨지지 않고, 판정 축만 비교하려면 테스트가 클래스 문자열을 다시 들고 있어야 해서 **T-FIX-09 리뷰 Suggestion(결합 제거)과 정면으로 어긋난다**. `enabled !== disabled`를 먼저 단언하므로 공허해질 수도 없다
+- 사용자에게 보이는 변화: **있음(한 곳, 좁다)** — span-1 층에서 **부모 접미가 붙은** 책상의 상태 줄이 칸 폭에서 잘리고 마우스를 올리면 전체가 보인다. 접미가 없는 상태는 표시 그대로. **새 문구 0 · 새 요소 0 · 새 색·토큰 0 · 레이아웃 이동 0.** FR-006-AC4가 확정한 방식을 같은 컴포넌트에 적용하는 **결함 수정**이라 별도 승인 대상으로 보지 않는다(최종 판단은 팀장). 1·3·4는 사용자에게 보이는 변화 **없음**
+- 요구사항 의미 변경 여부: **없음**(예산 2000ms·측정 지점 "화면 반영" 유지, 상태 글자 문구·데이터 불변). **계약 변경 없음**(`api-spec.yaml`은 설명만, `realtime-spec.md` 무수정, `ui-spec` 데이터 출처 열 무변경)
+- 정정한 문서: `architecture.md`(ADR-50 신설 · ADR-48 C 인용 정정), `conventions.md` §7 MUST 1건 신설(책상 글자 clamp)·§7 :111 인용 정정·§8 MUST 1건 신설(FR-001-AC3 측정 규칙), `ui-spec.md` §공통 `DeskSprite` 행·SCR-02 책상 행·확정된 차이 3항·인용 3곳, `api-spec.yaml` `HookPayload.permission_mode`
+- Scope: architect 판단 → Tools(T-FIX-11) · Frontend+Tools(T-FIX-12) · Helper 주석(T-FIX-13)
+- 출처: `docs/reviews/T-FIX-07.md`(Major 1 · Minor 2·3 · Suggestion 1~3), D-081·D-082·D-083
+- (원래 요청) 판단할 것
   1. **[Major] E2E flaky — `tools/e2e/tests/e2e-04.spec.ts:714`의 2000ms 창**(`ui-helpers.ts:18` `FILE_CHANGE_DEADLINE_MS`). 팀장의 전체 실행에서 배치 5가 **1 failed / 8 passed**로 깨졌고 이후 두 번 연속 통과해 **재현되지 않았다**(트레이스 유실). 리뷰어 코드 판정: 그 2초 하나가 **파일 쓰기 → 백엔드 1초 폴링(ADR-04) → SSE → React 렌더 → Playwright 폴링** 전체를 덮어 **폴링 위상만으로 최대 ~1000ms**를 먹는다(실여유 절반 미만). **T-FIX-07이 원인이 아니다**(배치 5 = `e2e-04`+`e2e-15`이고 두 spec·`ui-helpers.ts`·`lib/*`·`playwright.config.ts`·fixture 전부 diff 0건) — **선행 취약점**
      - 고칠 방향(리뷰어 권고, 기한 증액은 마지막): ① **측정 분리** — FR-001-AC3 2초 예산은 *제품 경로*(파일 쓰기 → `/api/state` 반영 / SSE 프레임 도착)에만 걸고 브라우저 렌더 대기는 별도 기한으로 뗀다 ② **시작점 결정화** — 서버가 알리는 폴링 tick 기준으로 재거나 예산을 "폴링 주기 + X"로 명문화해 주기와의 동전던지기를 없앤다 ③ `2000` 단순 증액 금지(FR-001-AC3 단언을 조용히 완화한다), `retries: 0` 유지(retries는 은폐) ④ `e2e-04:656`·`:685`의 맨 `toHaveCount`에 명시 기한
      - **확정 전에 재현을 시도할지도 판단해라**: 배치 5만 부하 조건에서 `--reporter=list` 출력과 `test-results/`를 보존하고 `measureFileChangeReflection` annotation의 실측 ms를 읽는 방법이 가장 빠르다(리뷰어는 시도하지 않았다). **부하 유발은 사용자 허락이 필요하다**(D-045)
@@ -817,6 +834,76 @@
   - `npm test`·`lint`·`typecheck`·`build` 통과, 기존 테스트 **삭제·skip·기대값 약화 0건**, 통과 수 감소 없음
   - 01·03은 이 변경과 무관해야 한다(`Minimap`은 02 전용). 02 나머지 요소 회귀 없음
 - 하지 않을 것: `--spacing-card` 등 design token 값 변경(**책상 pitch 문제는 별건**이고 architect 판단 영역이다), ui-spec 수정(계산식은 이미 확정돼 있다)
+
+## T-FIX-11 FR-001-AC3 E2E 측정의 관측 격자를 고정한다 (A-24 1, ADR-50 A)
+- Status: todo
+- Scope: Tools (`tools/e2e/` 전용 — 제품 코드 변경 0건)
+- FR: FR-001-AC3 (**의미 변경 없음** — 예산 2000ms·측정 지점 "화면 반영" 유지)
+- AC: FR-001-AC3
+- Errors: -
+- Screens: - (테스트 도구)
+- Backend: 없음
+- Frontend: 없음
+- Tools:
+  - `tools/e2e/tests/ui-helpers.ts` — `FILE_CHANGE_DEADLINE_MS`는 **`2000` 그대로 두고**(값 변경 금지) 주석에 "AC 원문은 *화면에 반영*이므로 React 렌더가 이 예산 안에 있다"를 적는다. 신설 상수 **`REFLECTION_POLL_INTERVAL_MS = 25`**(관측 격자)·**`REFLECTION_DIAGNOSTIC_TIMEOUT_MS = 10_000`**(진단 상한). `measureFileChangeReflection`의 네 번째 인자를 `expectation: (deadlineMs) => Promise<void>` → **`reflected: () => Promise<boolean>`**(술어)로 바꾸고 내부를 `expect.poll(reflected, { intervals: [REFLECTION_POLL_INTERVAL_MS], timeout: REFLECTION_DIAGNOSTIC_TIMEOUT_MS })` → `elapsedMs` 측정 → annotation → `expect(elapsedMs).toBeLessThanOrEqual(FILE_CHANGE_DEADLINE_MS)` 순서로 둔다. 실패 문구는 두 종류로 나눈다: 진단 상한까지 반영 없음 = "…이 10000ms 안에 화면에 반영되지 않았습니다(기능 결함)", 반영은 됐으나 초과 = "…반영이 2000ms를 넘었습니다(실측 <n>ms)"
+  - 호출 지점 **9곳**을 술어 형태로 고친다: `e2e-04.spec.ts:664`·`:709`, `e2e-07.spec.ts:37`·`:65`·`:93`·`:113`·`:143`·`:167`, `e2e-11.spec.ts:303`. 각 지점의 기존 web-first 단언(`toBeVisible`·`toHaveCount`·`toContainText`)은 **측정 뒤 상태 확인으로 그대로 남긴다**(단언 수 감소 0건)
+  - `e2e-04.spec.ts:656`(`toHaveCount(0)`)·`:685`(`toHaveCount(2)`)에 **`{ timeout: SETUP_REFLECT_TIMEOUT_MS }`를 명시**하고 "측정 대상이 아닌 준비·사후 상태 확인"이라는 주석 한 줄을 붙인다(기본값 5000에 숨지 않는다)
+  - `playwright.config.ts` `retries: 0` **유지**, `compose.e2e.yaml`에 `jaystudio.poll-interval-ms`·`JAYSTUDIO_POLL_*` 주입 **금지**(운영 기본값 1000ms로 측정한다)
+- 배경: T-FIX-07 리뷰 Major / D-081·D-082. 2000ms 창이 폴링 위상·SSE·렌더·**Playwright 재시도 격자**를 모두 덮는데, 제품 경로는 ADR-04에서 이미 p95 1,016~1,025ms·max 1,028ms로 실측돼 있어 2000ms를 넘을 수 없다 → 통과·실패를 가르던 값은 우리가 통제하지 않는 관측 격자다. **재현은 하지 않는다**(2026-09-29 사용자 결정 E-009: 코드 판정만으로 진행)
+- Done when:
+  - 정적 확인 — `ui-helpers.ts`에 `FILE_CHANGE_DEADLINE_MS = 2000`이 그대로 있고, `playwright.config.ts`에 `retries: 0`이 그대로 있고, `compose.e2e.yaml`·`run-e2e.sh`·`globalSetup.ts`에 폴링 간격을 바꾸는 환경변수·프로퍼티가 **0건**이다(conventions §8 MUST)
+  - `grep`으로 `measureFileChangeReflection` 호출 9곳 전부가 술어 형태이고, `deadlineMs`를 `expect(...)`의 `timeout`으로 넘기는 호출이 **0건**이다
+  - 배치 5(`E2E_FIXTURE` 기본 배치: `e2e-04`+`e2e-15`) **단독 3회 연속 통과**. 각 실행의 `--reporter=list` 출력에 `FR-001-AC3 반영 시간` annotation 실측 ms가 남고 **모두 2000ms 이하**다(값을 T-FIX-11 보고에 그대로 적는다 — 이후 추세 기준선이 된다)
+  - 전체 `cd tools/e2e && ./scripts/run-e2e.sh` 1회 통과, 통과 수 **106 유지**(감소·skip 0)
+  - 검출력(스크래치 사본에서만, 원본 md5 전후 대조) — ① 예산을 `1`로 낮추면 "**반영이 1ms를 넘었습니다(실측 <n>ms)**" 문구로 FAIL ② 술어가 항상 `false`면 "**10000ms 안에 화면에 반영되지 않았습니다**" 문구로 FAIL. 두 실패가 **서로 다른 문구**임을 확인한다(지금은 둘 다 같은 timeout 문구로 나와 트레이스 없이는 구분되지 않는다)
+  - 기존 테스트 삭제·skip·기대값 약화 **0건**. `e2e-07`·`e2e-11`의 `[FR-001-AC3]` 테스트 이름·ID 태그 불변
+- 하지 않을 것: `FILE_CHANGE_DEADLINE_MS` 증액, `retries` 도입, E2E 폴링 간격 축소, 렌더 대기를 예산에서 떼는 측정 분리(**AC 의미 변경 — ADR-50 A가 기각**), 제품 코드·`docs/` 수정, 부하 재현 실행
+- Depends on: -
+
+## T-FIX-12 02 책상 이름·상태 글자를 칸 폭에서 자르고, span-1 부모 접미 겹침을 실측으로 검증한다 (A-24 2, ADR-50 B)
+- Status: todo
+- Scope: Frontend + Tools
+- FR: FR-006-AC10, FR-006-AC4(확정된 긴 글자 처리 방식을 상태 줄에 적용), FR-006-AC1·AC3(문구·데이터 불변)
+- AC: FR-006-AC10, FR-006-AC4
+- Errors: -
+- Screens: SCR-02
+- Backend: 없음
+- Frontend:
+  - `components/pixel/DeskSprite.tsx` — 루트 `w-fit` → **`w-full min-w-0`**, 이름 칩·상태 글자 **각 요소 자신**에 CSS 한 줄 clamp(`min-w-0 w-full truncate text-center`), `parentLabel !== null`일 때 상태 글자 요소에 **네이티브 `title`**로 전체 문구를 준다(ADR-46 B 선례 `FeaturedWorkflows.tsx:54`. 공용 `Tooltip` 래퍼는 폭 제약이 없어 clamp 기준을 없애므로 이 자리에 쓰지 않는다 — 이름 칩의 기존 `Tooltip`은 문자열 말줄임 방식이라 그대로 둔다). `agentStatusWithParent()` 결과 문자열은 **그대로**(DOM 텍스트 자르기 금지), 이름 칩 12자 말줄임은 `ellipsis.ts` 유지(FR-006-AC4)
+  - `screens/workflows/Floor.tsx` — 책상 칸 `<button>`이 그리드 칸 폭을 받도록 `w-full min-w-0` 추가. `justify-items-center`·hover·focus 클래스는 **그대로**(ADR-46 A 회귀 0, 스프라이트 좌우 위치 불변)
+  - `components/pixel/DeskSprite.test.tsx`, 필요하면 `screens/workflows/Floor.test.tsx`
+- Tools:
+  - 새 재생 시나리오 파일 `tools/replay/scenarios/<새 이름>.jsonl` + `tools/replay/scenarios/README.md`에 대응표 절 추가. **`showcase.jsonl`은 수정하지 않는다**(22줄 대응표·줄 수 단언·기준 캡처가 걸려 있다)
+  - `tools/e2e/tests/e2e-13.spec.ts` — 기존 캡처·단언 뒤에 span-1 실측 층을 추가
+- 배경: T-FIX-07 리뷰 Minor / D-083. span-3 실측 96.67px(`작업 중 · 부모 dev-lead`)이 span-1 열 폭 74.84px에 놓이면 좌우 각 10.92px 번지고 나란한 두 책상이면 **21.83px 글자-위-글자 가림**이며 접미는 잘리지 않는다. ADR-48 C가 "겹치면 pitch가 아니라 글자 처리로 판단" 예고, ADR-50 B가 clamp + 툴팁으로 확정
+- Done when:
+  - 단위 `DeskSprite.test [FR-006-AC10][ADR-50 B] 부모 접미가 있는 상태 줄 — 한 줄 clamp가 걸리고 전체 문구가 title로 나오며 DOM 텍스트는 '작업 중 · 부모 [세션 1]' 그대로`
+  - 단위 `DeskSprite.test [ADR-50 B] 루트가 칸 폭을 받는다 — w-full·min-w-0이 있고 w-fit이 없다`
+  - 단위 `Floor.test [ADR-50 B] 책상 칸 <button>이 w-full min-w-0이고 hover:bg-selected·focus-visible:bg-selected는 그대로다`
+  - 단위 회귀 — `DeskSprite.test`의 기존 3개(팀장 배지·**12자 말줄임 + title**(FR-006-AC4)·부모 접미 문구)가 **그대로 통과**한다. 삭제·skip·약화 0
+  - **E2E 실측(투영 금지)** `e2e-13`에 새 재생으로 **span-1 층(4열)에 부모 접미가 붙은 책상을 나란히 두 개 실제로 놓고** 다음을 모두 단언한다: ① 두 책상의 상태 줄이 `/^작업 중 · 부모 .+$/`를 만족한다(접미가 실제로 붙었음을 먼저 고정) ② 두 책상이 **같은 행의 인접 열**이다(`centerX` 차이 = 열 pitch 1칸) ③ `statusOverlaps()`가 `[]` ④ 두 상태 줄의 폭이 각각 **열 폭 + 1px 이하** ⑤ 부모 라벨이 **13자 이상**인 경우도 ③·④를 만족한다 ⑥ `logMeasurement` 문구에 "투영"이 아니라 실측 폭·열 폭·겹침 건수를 남긴다. 기존 "투영된 겹침" 로그 줄은 실측 결과를 가리키도록 문구를 고친다
+  - 검출력(스크래치 사본에서만, 원본 md5 전후 대조) — clamp를 되돌리면(루트 `w-fit` 복원 **또는** `truncate` 제거) 위 ③ 또는 ④가 **FAIL**하고 로그에 실제 겹침 px이 찍힌다
+  - 기준 캡처 불변 — `e2e-13`의 01·02·03 캡처와 화면 대조 결과, `showcase.jsonl` 22줄 단언이 **변하지 않는다**(새 재생은 캡처·기존 단언 **뒤**에 실행한다)
+  - 선택자 회귀 — 부모 접미가 붙은 책상에는 `title`을 가진 `<span>`이 **둘**(이름 칩·상태 줄)이 되므로 `e2e-13:783`의 `../span[@title]`처럼 책상 안 `title` 요소를 세는 선택자가 strict 위반으로 깨지지 않는다(그 단언이 도는 상태에 접미가 없음을 확인하거나 선택자를 이름 칩으로 좁힌다)
+  - 같은 배치·전체 실행 모두 통과 — 새 재생이 남기는 live 상태가 뒤 테스트를 깨지 않는다(배치 단독 실행 + `./scripts/run-e2e.sh` 전체 1회). E2E 통과 수 감소 0
+  - `cd frontend && npm test && npm run lint && npm run typecheck && npm run build` 통과, 통과 수 감소 0
+- 하지 않을 것: `--spacing-card` 등 공유 토큰 변경, DOM 텍스트 자르기(글자 수 상수), span-1에서 부모 접미 생략, 새 색·토큰·문구 신설, `docs/ui/` 수정, `showcase.jsonl` 수정, 03 `OfficeSprite` 변경(3열이라 겹침 실측 0건이고 이 태스크 범위 밖)
+- Depends on: -
+
+## T-FIX-13 도우미 `readBody` promise를 버린다는 것을 주석에 명시한다 (A-24 4②, ADR-50 D2)
+- Status: todo
+- Scope: Helper (주석만)
+- FR: FR-013(동작 불변), NFR-05
+- AC: 없음(기존 AC 유지)
+- Errors: 없음(`INVALID_BODY`·`BODY_TOO_LARGE` 경로 불변)
+- Screens: -
+- Backend: 없음
+- Frontend: 없음
+- Helper: `helper/jaystudio-helper.mjs:284` 부근 — `destroy()` 뒤 `readBody` promise가 `'end'`·`'error'` 양쪽 `!tooLarge` 가드 때문에 resolve·reject 어느 쪽도 되지 않는다는 것이 **의도**임을 주석에 적는다(>1MiB에서 소켓을 끊고 응답하지 않는 경로이며 api-spec에 그 응답이 없다)
+- Done when:
+  - `git diff`가 **주석 줄만**이다(실행 코드·문자열·상수 변경 0건)
+  - `cd helper && npm test` 통과 수 **40 유지**
+  - 리뷰 확인 — 주석이 "promise를 버린다(resolve·reject 없음)"와 그 이유(소켓을 끊었으므로 응답하지 않는다)를 모두 적는다
 - Depends on: -
 
 ## T-FIX-07 T-FIX-05·T-FIX-06 리뷰 Minor 묶음

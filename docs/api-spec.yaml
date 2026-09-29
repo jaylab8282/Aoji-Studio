@@ -835,7 +835,7 @@ components:
         session_id: { type: string }
         cwd: { type: string }
         hook_event_name: { type: string }
-        permission_mode: { type: string }
+        permission_mode: { type: string, description: "backend는 저장·사용하지 않음(`HookPayload.java` record에 없어 무시된다). 스키마에 남기는 이유는 Claude Code http hook이 실제로 보내는 공통 입력 필드이기 때문이다(FR-003-AC9, final_requirements_architecture.md 공통 입력 필드). ADR-50 C" }
         transcript_path: { type: string, description: 저장하지 않음 }
         agent_id: { type: string, description: 서브에이전트 안에서만 }
         agent_type: { type: string, description: "`--agent` 세션 또는 서브에이전트" }
