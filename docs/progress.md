@@ -1,8 +1,12 @@
 # Progress
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
-- Phase: integration
-- Current: **Integration 진행 중**(2026-10-01). **정지 지점(사용자 확정) = Integration → Final Report까지 = 프로젝트 마감**
+- Phase: done
+- Current: **완료 (2026-10-01).** Integration 통과 · `reviewer` scope final **PASS** · **Final Report 보고 완료**. 남은 태스크 0건
+  - 최종 수치: 유닛 **742**(backend 279 · frontend 389 · helper 40 · replay 34) · E2E **107**(9배치, exit 0, 실패·스킵·flaky 0) · 요구사항 추적 **152/152**(갭 0) · 사람 확인 **H-1~H-5 5/5**
+  - 사람에게 남는 것: **실제 상시 운영·배포**, 토큰 유실·재설치 시 복구 절차(README §6), 맥북 교체·권한 초기화 시 macOS 자동화 권한 재허용
+  - 다음 버전 작업 시 먼저 볼 것: **삭제 조건 모달**(D-073으로 이번 릴리즈 제외) · Minor 백로그 7건(가독성·정리성) · `conventions.md` §8 MUST ⑤와 ADR-51 §4의 **휴면 상태**(F1·F2 실패 시 재개)
+- (앞선 Current) **Integration 진행 중**(2026-10-01). **정지 지점(사용자 확정) = Integration → Final Report까지 = 프로젝트 마감**
   - 진입 조건 충족: tasks.md `todo`·`in_progress`·`blocked` **0건**, 작업 트리 깨끗, 사람 확인 H-1~H-5 **5/5 통과**
   - 순서: ① 전체 테스트·린트·빌드(팀장 직접) ② 실제 스택 기동 + 전체 E2E(107) + 가짜 구현이 architecture.md 허용 범위인지 확인 ③ `reviewer` **scope final** ④ Final Report
   - **M·ADR-51 §4 구간 판정은 하지 않는다**(사용자 결정 D-096 — conventions §8 MUST ⑤ 휴면). F1·F2 실패가 실제로 나야 판정표를 돌린다
@@ -641,3 +645,69 @@
   - **운영 compose를 실제 `JayStudio` 폴더에 붙여 기동하지는 않았다** — 그 경로는 **사람 확인 H-1~H-5가 이미 덮었고**(사용자가 실제 스택을 띄워 hook 전이·터미널 열기·외부 접속 차단을 확인했다), 자동 구간에서 실제 `.claude`·`.jaystudio`를 건드리지 않는다는 `CLAUDE.md` 절대 제약과 충돌할 수 있어 재기동하지 않았다. E2E는 **같은 Dockerfile로 빌드한 실제 컨테이너**를 fixture에 붙여 돌았다
   - 자원: 실행 후 컨테이너 0개·포트 4185·4191·4192 선점 0건. Docker Desktop은 팀장이 기동(사용자에게 사전 고지), 4181 사용자 도우미 미접촉
 - 2026-10-01 **`reviewer` scope final 실행.** 중점: ① AC·E ID 추적(미검증 항목이 있으면 Blocker·Major) ② api-spec·realtime-spec 계약 일치 ③ architecture·conventions MUST 준수(보안·Secret 포함) ④ 미완성 코드 ⑤ ui-spec 일치 ⑥ **성능·측정은 판정 대상에서 제외**(D-096) ⑦ Final Report 재료(남은 사람 확인 항목·열려 있는 Minor 전수·실행 방법 문서 일치)
+
+## Final Report (2026-10-01)
+
+### 1. AC·E ID별 검증 결과
+- **자동 테스트 통과: 152 / 152 (100%)** — `final_requirements_function.md`의 FR-001~FR-017이 정의한 모든 AC·Error ID가 `tasks.md` 추적 매트릭스와 **실제 테스트 코드 태그** 양쪽에 존재한다. 리뷰어 3자 대조 + **팀장 독립 스크립트 재검증**으로 확인했고 **갭 0건**(매트릭스에만 있는 ID 0 · 테스트에만 있는 ID 0)
+- **사람 확인 필요: 0건** — architecture.md §8.3의 사람 확인 항목 **H-1~H-5가 5/5 통과**(사용자 확인 2026-09-25·09-27·09-28). §8.3 전 항목이 닫혔다
+- **미충족: 0건**
+
+### 2. 완료되지 않은 FR
+**없다.** FR-001~FR-017 전부 구현·검증됐다.
+- 단 하나의 범위 축소: **FR-017 삭제 확인 UI의 "삭제 조건 모달"**은 사용자 결정으로 **이번 릴리즈에서 제외**했다(D-073, 2026-09-28 — "다음에 버전 업그레이드 작업할 때 같이 논의하자"). 확정 동작은 **FR-017-AC1(비활성 + 사유 표시)**이고 그대로 구현·검증됐다 → **FR 미완이 아니다**
+
+### 3. 팀장이 스스로 내린 결정 — **107건**(progress.md Decisions 전수). 성격별 요약
+- **리뷰 이슈 담당 배정·수정 순서·분할**: 가장 많다. 리뷰 Major·Minor를 태스크로 분리(T-FIX-01~14), architect 확정 요청으로 승격(A-15~A-25), 범위 밖 항목 이관
+- **설계 문서 사실 오류 정정 요청**: ADR-50이 **세 번** 사실관계를 틀렸고(A 정량 근거 · B 가림 서술 · D2 promise 서술) 세 번 모두 **리뷰어가 코드를 읽어** 잡았다. 팀장이 architect에 정정을 요청하고 **폐기 서술을 인용 보존**시켰다(D-091·D-092·D-094·D-097)
+- **증명 방식 판정**: "투영·재구현으로 실측을 대신하지 않는다"를 반복 적용(D-083 · T-FIX-12 투영→실측 전환 · **D-098** T-FIX-14에서 코드 대조 수용을 거부하고 실제 파일 재증명 지시)
+- **작은 변경의 리뷰 생략**: 변경 규모가 2줄 수준이면 별도 리뷰 없이 팀장 검증으로 마감(D-080 선례 → D-093·D-098)
+- **팀장 과실 기록**: `replayStep` 호출 24곳과 측정 단계 28개를 혼동해 architect에 틀린 수치 정정을 지시했다(**D-095-정정**). 되돌리고 "둘을 같은 수로 맞추지 마라"를 문서에 명문화했다
+- 그 밖: 라이브러리·의존성 승인, 태스크 순서 조정, 문서 간 표기 불일치 정정 요청
+
+### 4. 에스컬레이션 — **11건 전부 resolved**
+신설 화면 문구 승인(E-005·E-006), 확정 UI 기준 변경 승인(E-007·E-008), 설계 제안 수용(E-003·E-004),
+부하 재현 가부(E-009·E-010), 성능 측정 중단(E-011) 등. **open 0건**
+
+### 5. 남은 이슈 (Minor 포함)
+- **Blocker 0 · Major 0**
+- **Minor 7건 — 전부 가독성·정리성**이고 기능·계약·보안 영향 없음: TopBar 긴 hostPath 2줄 접힘 / ADR-33 정적 검사 잔여 사각(실사례 0건) / 중첩 `<main>`(01·02·03) · `App.tsx` 낡은 주석 / T-004·005·007·008·010 리뷰의 테스트 코드 정리성 4건
+- **[결함 아님 · 기록]** E2E flaky **1회 관측 · 원인 미규명 · 재발 시 자동 진단**(ADR-51). T-FIX-11이 실패 문구를 2종으로 분리하고 통과 시에도 실측 ms를 남기므로 재발하면 그 실행 출력만으로 규명한다. 사용자 결정으로 재현·폴링 축소는 하지 않는다(E-010)
+- **휴면 항목**: `conventions.md` §8 MUST ⑤와 `ADR-51 §4` 발동 조건표 — 사용자 결정 D-096으로 **보고 의무 정지**. **F1·F2 실패가 1회라도 나면 재개**된다. 2000ms 단언과 `retries: 0`은 코드에 그대로 있다
+
+### 6. 사람이 직접 확인할 항목
+H-1~H-5가 닫혔으므로 **기능 검증으로 남은 것은 없다.** 운영 영역만 남는다.
+1. **실제 상시 운영·배포** — 지금까지는 사용자가 1회성으로 컨테이너를 띄워 확인했다. 장기 운영은 사용자 몫
+2. **토큰 유실·재설치 시 복구** — 수집 토큰·도우미 토큰은 **서버·도우미가 자동 생성**하므로 사용자가 직접 설정할 Secret 값은 **없다**. 다만 토큰 파일이 유실되거나 재설치하면 도우미·웹 토큰이 어긋날 수 있고 그 복구는 README §6 절차로 사람이 한다
+3. **macOS 자동화 권한 재허용** — 설치 시 1회(README §5). H-3으로 확인됐으나 맥북 교체나 `tccutil reset` 후에는 다시 필요하다
+
+### 7. 실행 방법 (팀장이 실제로 실행해 확인한 명령 그대로)
+```
+# 설치 (최초 1회)
+cd frontend && npm install
+cd tools/e2e && npm install && npx playwright install chromium
+
+# 전체 기동
+cp .env.example .env            # JAYSTUDIO_HOST_PATH를 채운다
+docker compose up -d --build
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:4180/   # → 200
+docker compose down -v
+
+# 테스트
+cd backend && ./gradlew cleanTest test      # 279
+cd frontend && npm test                     # 389
+cd helper && npm test                       # 40
+cd tools/replay && npm test                 # 34
+
+# 린트·타입체크·빌드
+cd frontend && npm run lint && npm run typecheck && npm run build
+cd backend && ./gradlew build -x test
+
+# 전체 E2E (9배치 107)
+cd tools/e2e && ./scripts/run-e2e.sh
+```
+`README.md`·`CLAUDE.md`의 명령 문자열이 실제 스크립트·설정과 **불일치 0건**임을 리뷰어가 대조 확인했다.
+
+### 8. 산출물 규모
+커밋 **76** · 리뷰 문서 **38** · 태스크 **51**(T-001~T-026 · T-FIX-01~14 · A-15~A-25) ·
+결정 **107** · 에스컬레이션 **11**(전부 resolved) · 테스트 **849**(유닛 742 + E2E 107)
