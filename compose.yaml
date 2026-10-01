@@ -4,7 +4,9 @@ services:
       context: .
       dockerfile: Dockerfile
     image: jaystudio:local
-    platform: linux/arm64
+    # 기본은 linux/arm64(Apple Silicon 확정 구성). x86_64 머신은 .env에서
+    # JAYSTUDIO_PLATFORM=linux/amd64로 바꾼다. 베이스 이미지는 모두 멀티아치다.
+    platform: ${JAYSTUDIO_PLATFORM:-linux/arm64}
     user: "1000:1000"
     restart: unless-stopped
     environment:
@@ -13,6 +15,8 @@ services:
       JAYSTUDIO_PUBLIC_PORT: ${JAYSTUDIO_PORT:?JAYSTUDIO_PORT를 .env에 설정하세요}
       JAYSTUDIO_MOUNT_PATH: /workspace
       JAYSTUDIO_DATA_PATH: /data
+      # 브라우저가 호출할 열기 도우미 주소. 도우미를 기본 4181이 아닌 포트로 설치했을 때만 바꾼다.
+      JAYSTUDIO_HELPER_URL: ${JAYSTUDIO_HELPER_URL:-http://127.0.0.1:4181}
     ports:
       - "127.0.0.1:${JAYSTUDIO_PORT:?JAYSTUDIO_PORT를 .env에 설정하세요}:4180"
     volumes:

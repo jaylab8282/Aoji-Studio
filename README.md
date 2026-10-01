@@ -1,6 +1,7 @@
 # Jay Studio
 
-맥북에서 Docker 컨테이너로 돌리는 **개인용 Claude Code 에이전트 관제 웹**. `127.0.0.1`에서만 접근한다.
+Docker 컨테이너로 돌리는 **개인용 Claude Code 에이전트 관제 웹**. `127.0.0.1`에서만 접근한다.
+확정 환경은 macOS(Apple Silicon)이고, 터미널 열기 버튼을 뺀 나머지는 다른 OS에서도 돈다(아래 [지원 환경](#지원-환경)).
 
 ## 1. 이게 뭔가
 
@@ -10,7 +11,7 @@ Claude Code의 hook 이벤트를 받아 **에이전트마다 지금 무슨 상�
 
 - **웹은 에이전트를 실행하지 않는다.** 작업 지시는 사용자가 터미널에서 팀장 에이전트에게 직접 한다.
   웹의 버튼은 맥북 기본 터미널을 **열어 주는 것**까지만 한다(`claude` 또는 `claude --agent <팀장>`).
-- 로그인이 없다. 대신 맥북 밖이나 다른 로컬 웹페이지에서는 조작할 수 없게 막는다(Origin + 토큰).
+- 로그인이 없다. 대신 이 기기 밖이나 다른 로컬 웹페이지에서는 조작할 수 없게 막는다(Origin + 토큰).
 - 파일이 원본이다. 웹은 `JayStudio/` 폴더를 읽고 쓰며, `.claude/settings.json`은 쓰지 않는다
   (hook 설정은 07 화면의 예시를 사용자가 복사해 넣는다).
 
@@ -21,21 +22,39 @@ Claude Code의 hook 이벤트를 받아 **에이전트마다 지금 무슨 상�
 ## 2. 설치
 
 ### 요구 사항
-- Docker Desktop (macOS, Apple Silicon), `docker compose` v2 이상
-- Node 24, 로컬 JDK 21 이상 (Gradle toolchain이 JDK 25를 `~/.gradle/jdks/`에 자동 설치)
+- Docker Desktop, `docker compose` v2 이상
+- (직접 빌드·테스트할 때만) Node 24, 로컬 JDK 21 이상 — Gradle toolchain이 JDK 25를 `~/.gradle/jdks/`에 자동 설치
+
+### 지원 환경
+
+| | 웹 (01~07 관제·정의 파일 편집) | 터미널 열기 버튼 (02·03·07) |
+|---|---|---|
+| **macOS** (Apple Silicon) | ✅ | ✅ |
+| **Windows** (x86_64) | ✅ `.env`에 `JAYSTUDIO_PLATFORM=linux/amd64` <sup>*미검증*</sup> | ❌ |
+
+웹 본체는 전부 컨테이너 안에 있어 OS를 타지 않는다. 이미지 아키텍처만 `.env`에서 맞추면 된다.
+
+**열기 도우미는 macOS 전용이다.** 컨테이너가 호스트 앱을 띄울 수 없어 터미널 열기는 맥북에서 도는
+별도 프로세스가 맡는데, 이 프로세스가 `osascript`로 Terminal.app을 띄우고 **launchd**로 자동 실행된다.
+다른 OS에서 쓰려면 터미널 실행과 자동 실행 등록을 그 OS 방식으로 새로 구현해야 한다.
+도우미 없이도 웹의 나머지 기능은 그대로 동작하고, 버튼은 `명령 복사`로 대체된다.
+
+<sup>*Windows는 코드·락파일 기준으로는 문제가 없으나(네이티브 의존 `linux-x64` 변종 모두 포함) 실제로
+띄워 본 적이 없다. 확인한 뒤 이 표시를 지우면 된다.*</sup>
 
 ### 웹 띄우기
 ```bash
 cp .env.example .env
-# .env의 JAYSTUDIO_HOST_PATH=<맥북의 JayStudio 폴더 절대 경로> 를 채운다.
+# .env의 JAYSTUDIO_HOST_PATH=<JayStudio 폴더 절대 경로> 를 채운다.
+# x86_64 머신이면 .env에서 JAYSTUDIO_PLATFORM=linux/amd64 주석도 푼다.
 docker compose up -d --build
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:4180/   # 200
 ```
 포트(`JAYSTUDIO_PORT`, 기본 4180)와 마운트 경로는 `.env`에만 둔다. 값이 없으면 기동이 실패한다.
 내리려면 `docker compose down`.
 
-### 열기 도우미 설치 (터미널 열기 버튼을 쓸 때만)
-컨테이너는 맥북 앱을 실행할 수 없으므로, 터미널을 여는 일은 호스트에서 도는 작은 Node 프로세스가 한다.
+### 열기 도우미 설치 — **macOS 전용**, 터미널 열기 버튼을 쓸 때만
+컨테이너는 호스트 앱을 실행할 수 없으므로, 터미널을 여는 일은 맥북에서 도는 작은 Node 프로세스가 한다.
 ```bash
 cd helper
 ./install.sh --project-dir /Users/<사용자>/Desktop/JayStudio

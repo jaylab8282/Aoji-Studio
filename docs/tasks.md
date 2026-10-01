@@ -14,7 +14,7 @@
 - Screens: -
 - Backend: Gradle Kotlin DSL + toolchain(JDK 25 자동 설치), Spring Boot 4.1.x 앱 골격, `AppProperties`(필수 env 검증: `JAYSTUDIO_HOST_PATH`, `JAYSTUDIO_PUBLIC_PORT` 누락·빈값 → 기동 실패), `application.yaml`(디버그 꺼짐, `include-stacktrace=never`), `application-dev.yaml`(`server.address=127.0.0.1`, 8080), 정적 SPA 제공(`StaticSpaConfig`: 알 수 없는 경로 → `index.html`), `.gitignore`
 - Frontend: Vite 8 + React 19.3 + TS(strict) + Tailwind 4.3 골격, `styles/theme.css` `@theme` 토큰(ui-spec 공통 매핑 전체), self-host 폰트, Vite `server.host='127.0.0.1'` + `/api`·`/hooks` 프록시, React Router v7 라우트 4개(빈 화면이 아니라 T-013 셸까지 연결), Vitest 설정
-- Tools: `Dockerfile`(멀티스테이지, `linux/arm64`, `USER 1000`), `compose.yaml`(`127.0.0.1:${JAYSTUDIO_PORT:?}:4180`, `${JAYSTUDIO_HOST_PATH:?}:/workspace`, `jaystudio-data:/data`, env), `.env.example`, `README.md` 실행 방법, `CLAUDE.md` Commands(scaffolder)
+- Tools: `Dockerfile`(멀티스테이지, `linux/arm64` 기본 — 2026-10-01부터 `JAYSTUDIO_PLATFORM`으로 재정의 가능, `USER 1000`), `compose.yaml`(`127.0.0.1:${JAYSTUDIO_PORT:?}:4180`, `${JAYSTUDIO_HOST_PATH:?}:/workspace`, `jaystudio-data:/data`, env), `.env.example`, `README.md` 실행 방법, `CLAUDE.md` Commands(scaffolder)
 - Done when:
   - FR-014-E1 — 통합 `AppStartupTest [FR-014-E1] JAYSTUDIO_HOST_PATH 없음 → 컨텍스트 기동 실패`, `[NFR-05] JAYSTUDIO_PUBLIC_PORT 빈값 → 기동 실패`
   - NFR-04·NFR-06 — 단위 `ComposeFileTest`(compose.yaml 파싱: `ports`가 `127.0.0.1:`로 시작, `docker.sock` 없음, `privileged` 없음, `user: "1000:1000"`), E2E-14 `check-port.sh`(T-024)

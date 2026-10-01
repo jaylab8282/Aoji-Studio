@@ -105,7 +105,8 @@ Jay_Studio/
 
 | 항목 | 값 |
 |---|---|
-| 이미지 | `jaystudio:local`, `linux/arm64`, 멀티스테이지(Node 24로 프론트 빌드 → Gradle로 bootJar → `eclipse-temurin:25-jre` 실행) |
+| 이미지 | `jaystudio:local`, 멀티스테이지(Node 24로 프론트 빌드 → Gradle로 bootJar → `eclipse-temurin:25-jre` 실행) |
+| 아키텍처 | compose `platform: ${JAYSTUDIO_PLATFORM:-linux/arm64}`. **기본값은 `linux/arm64`**(확정 구성인 Apple Silicon 맥북). 고정이 아니라 기본값이며, x86_64 머신은 `.env`에 `JAYSTUDIO_PLATFORM=linux/amd64`를 넣어 바꾼다. 베이스 이미지 3종(`node:24-bookworm-slim`·`eclipse-temurin:21-jdk`·`eclipse-temurin:25-jre`)이 모두 멀티아치라 `Dockerfile` 수정 없이 성립한다 |
 | 실행 사용자 | uid/gid `1000:1000` (`USER 1000`), root 아님 |
 | 포트 | compose `ports: ["127.0.0.1:${JAYSTUDIO_PORT}:4180"]`. 호스트 IP 생략·`0.0.0.0` 금지 |
 | 마운트 | `${JAYSTUDIO_HOST_PATH}:/workspace` (rw) 하나. `docker.sock` 없음 |
@@ -121,11 +122,12 @@ Jay_Studio/
 | `JAYSTUDIO_PUBLIC_PORT` | 필수 | `4180` | 수집 주소·허용 Origin 계산. 없으면 기동 실패(NFR-05) |
 | `JAYSTUDIO_MOUNT_PATH` | 선택 | `/workspace` | 컨테이너 안 마운트 경로 |
 | `JAYSTUDIO_DATA_PATH` | 선택 | `/data` | SQLite 위치 |
-| `JAYSTUDIO_HELPER_URL` | 선택 | `http://127.0.0.1:4181` | 브라우저가 호출할 도우미 주소(E2E에서 dry-run 도우미 포트로 바꿈, ADR-12) |
+| `JAYSTUDIO_HELPER_URL` | 선택 | `http://127.0.0.1:4181` | 브라우저가 호출할 도우미 주소(E2E에서 dry-run 도우미 포트로 바꿈, ADR-12). 운영 compose가 `JAYSTUDIO_HELPER_URL: ${JAYSTUDIO_HELPER_URL:-http://127.0.0.1:4181}`로 `.env` 값을 컨테이너에 넘긴다. 기본값은 코드 기본값과 같아 미설정 시 동작은 같다 |
 | `JAYSTUDIO_ALLOWED_ORIGINS` | 선택 | `http://127.0.0.1:${JAYSTUDIO_PUBLIC_PORT}` | 허용 Origin. **dev 프로필은 이 목록을 `http://127.0.0.1:5173` 하나로 대체한다(추가가 아니다 — ADR-47)**. `localhost`·`[::1]` 표기는 넣지 않는다(ADR-41) |
 | `SPRING_PROFILES_ACTIVE` | 선택 | 없음(운영) / `dev` | dev는 허용 Origin을 Vite 하나로 대체하고 CORS 응답 헤더를 켠다. 디버그 로깅 기본 꺼짐. **컨테이너 이미지에서는 쓰지 않는다**(compose·Dockerfile에 설정 0건. 켜면 4180 Origin이 막혀 앱 전체가 403이 된다 — fail-closed, ADR-47) |
+| `JAYSTUDIO_PLATFORM` | 선택 | `linux/arm64` | 이미지 아키텍처. **compose 전용**(Server 프로세스에 전달되지 않는다). x86_64 머신에서만 `linux/amd64`로 바꾼다 — 4.1 아키텍처 행 참조 |
 
-`.env.example`에는 `JAYSTUDIO_HOST_PATH=`, `JAYSTUDIO_PORT=4180`만 두고 값은 비운다. compose는 `${JAYSTUDIO_HOST_PATH:?...}` 문법으로 누락 시 실패한다.
+`.env.example`에는 필수 항목 `JAYSTUDIO_HOST_PATH=`, `JAYSTUDIO_PORT=4180`을 두고 `JAYSTUDIO_HOST_PATH` 값은 비운다. 선택 항목(`JAYSTUDIO_PLATFORM`·`JAYSTUDIO_HELPER_URL`)은 주석 처리해 둔다 — 주석을 풀지 않으면 위 표의 기본값이 그대로 적용된다. compose는 `${JAYSTUDIO_HOST_PATH:?...}` 문법으로 누락 시 실패한다.
 
 ### 4.3 포트·바인딩
 
