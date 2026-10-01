@@ -771,9 +771,18 @@
 - 하지 말 것: `docs/requirements_*`·`final_requirements_*`·`docs/ui/` 수정, 코드 수정(결정만 한다)
 - Depends on: -
 
-## A-25 (architect 확정 요청) ADR-50 A의 정량 근거가 실제 Playwright 상수와 어긋난다 — flaky 원인 판정을 다시 세워라
-- Status: todo — **다음 작업 세션**. 출처 `docs/reviews/T-FIX-11.md` 범위 밖 A [Major]
-- Scope: architect 판단 → 문서 정정(코드 변경은 없을 것으로 본다)
+## A-25 (architect 확정 완료 2026-10-01 → ADR-51 + ADR-50 A·B 제자리 정정) ADR-50 A의 정량 근거가 실제 Playwright 상수와 어긋난다 — flaky 원인 판정을 다시 세워라
+- Status: **done (확정 완료)** — **ADR-51 신설 + ADR-50 A·B 제자리 정정. 코드·테스트 변경 0건**(`CONTRACT CHANGE: no`). 판단할 것 1·2·4·5·6 전부에 답이 나왔다. flaky 원인은 **미규명으로 확정**하고 "덫에 걸리게 둔다"를 유지하며 폴링 500ms 카드의 **발동 조건을 수치표(ADR-51 §4)로 확정**했다. 팀장 검증·수용 근거는 progress.md **D-094**. 파생 코드 태스크 **0건**(발동 조건 충족 시 쓸 폴링 축소는 조건부라 지금 태스크를 만들지 않았다 — 범위만 ADR-51 §5 (a))
+- Scope: architect 판단 → 문서 정정(**코드 변경 0건으로 확정**)
+- 확정 결과 (2026-10-01, **코드 변경 0건 · 계약 변경 0건 · 신설 화면 문구 0건**)
+  1. **ADR-50 A 정량 근거 정정 — 제자리 + 폐기 서술 인용 보존.** 변경 전 코드는 `expect.poll`이 아니라 web-first 단언이었고 실효 격자는 **≤100ms**, 실여유는 **≈850ms**였다(~150ms가 아니다). T-FIX-11이 회복한 여유는 100 → 25ms = **약 75ms**. ADR-50 A "원인 판정"·"얻는 것 ①"을 정정하고 결론 범위를 **"격자 고정 = 측정 잡음 제거, flaky 원인 규명은 열려 있다"**로 좁혔다. `conventions.md` §8 MUST 이유 문장도 같이 정정. **T-FIX-11은 되돌리지 않는다**(25 < 100은 단조 개선, 본체는 실패 문구 2종 분리 + 실측 ms 기록). `ui-helpers.ts:26-31` 주석은 **새 코드 기준으로 정확**하므로 Tools 수정 지시 없음 → **ADR-51 §1**
+  2. **flaky 원인 재판정 = 미규명.** 관측 격자 단독 원인·T-FIX-07 변경·배치 오염은 기각. 남는 유력 가설은 **전체 스위트 부하에서 제품 경로 + 렌더가 ~1.9s를 넘었다**이고, 그것이 참이면 테스트 결함이 아니라 **FR-001-AC3 자체의 여유 부족**이다(예산 2000ms 중 폴링 위상 상한 1000ms가 절반을 선점). 설계 상한 ≈**1,150ms**, 기준선 최대 **1029ms**(실여유 971ms, D-088). **발동 조건을 수치로 확정**: 정상 `M ≤ 1200ms` / 관찰 `1200 < M ≤ 1600ms`(최근 5회 중 2회면 발동) / **발동** `M > 1600ms` 또는 한 실행에 1200ms 초과 2개 이상 또는 **F2("2000ms를 넘었습니다") 1회** / **조사** F1("10000ms 안에 미반영") 또는 `M > 3000ms`. 발동하면 ADR-04이 남긴 **폴링 1000 → 500ms** 카드를 새 T-FIX로 쓴다(실여유 ≈1,350ms). 판정 입력 M 기록 의무는 `conventions.md` §8 MUST ⑤로 신설 → **ADR-51 §2·§4·§5**
+  3. **부하 재현·폴링 축소 보류는 그대로**(사용자 결정 E-010, D-090. 다시 논의하지 않는다). 덫 = T-FIX-11의 자동 진단. 보고 문구는 **"1회 실패 관측 · 원인 미규명 · 재발 시 자동 진단"** → **ADR-51 §3**
+  4. **ADR-50 B 배경 정정.** "21.83px 글자-위-글자 가림"은 **줄바꿈을 빼고 계산한 투영값**이고 발현된 적이 없다. 실제로는 **이름 칩 = 번짐**(공백 없어 min-content 81.91px > 열 폭 74.84px), **상태 줄 = 두 줄 접힘**(공백 있어 min-content가 낱말 폭까지 줄고 `w-fit`이 칸 안쪽 폭 ≈66.8px으로 좁혀진다)이었다. **처방(clamp + `title`)과 결론은 유지** — ① 접힘은 배치 차이 ② 칩 번짐은 실재 ③ 부모 라벨의 낱말 하나가 칸 안쪽 폭을 넘으면 가림도 실제 발생. 정정 반영: `architecture.md` ADR-50 B 배경 · `ui-spec.md:274` · `conventions.md` §7 MUST 이유 · 아래 T-FIX-12 배경
+  5. **ADR-50 B 가시 변화 서술을 실측으로 갱신 — "레이아웃 이동 0건"은 틀렸다.** 가시 변화 **3건**으로 다시 적었다: ① span-1 부모 접미 상태 줄의 CSS 말줄임 + `title`(두 줄 → 한 줄 포함) ② **팀장 배지 앵커 변경**(책상 상판 → 그리드 칸 왼쪽. 배지왼쪽−상판왼쪽이 카드1 −6 → **−36px = 기준 PNG와 완전 일치**, 카드2 차 11 → 3px, 카드3 5 → 3px. 절대 이동량은 카드별 30/8/2px로 달랐다 — 변경 전 기준이 `w-fit` = 그 책상 글자 폭에 종속됐기 때문. 변경 후 세 카드 모두 배지 왼쪽 = 칸 왼쪽 끝 0px 고정) ③ **hover·focus 배경 면적이 칸 전체로 확대**(클래스·색·토큰 불변). **되돌리지 않는다** — ②는 기준 PNG의 배치 모델에 가까워진 개선이다. 그 밖은 픽셀 동일(02 전/후 diff 4영역 2,366px = 시각 표기 2 + 배지 2)
+  6. **`conventions.md` §7 MUST의 "그 요소 자신"에 "칸 폭을 받는" 한정을 명문화.** clamp는 **루트 flex 컨테이너의 직계 자식 줄 요소**(이름 칩 줄 `<div>`·상태 줄 `<span>` — 둘 다 flex item이라 block화돼 `width`·`overflow`가 적용된다)에 건다. 안쪽 글자 요소에 걸지 않는다 — `Tooltip`이 만드는 `<span>`은 flex item이 아닌 **non-replaced inline 박스라 CSS가 `overflow`를 적용하지 않고** `nowrap`만 먹어 번진다. `inline-block` 우회도 금지(기준선이 마진 박스 하단으로 바뀌어 세로 2px 이동)
+- 코드 변경을 제안하지 않은 이유: 틀린 것은 **ADR 본문의 정량·사실 서술**뿐이다. T-FIX-11의 `ui-helpers.ts` 주석은 `expect.poll`(= 새 코드)을 서술하므로 문자 그대로 정확하고, T-FIX-12의 clamp + `title` 구현은 정정된 근거 ①~③을 모두 닫는다. 발동 조건표가 충족될 때 쓸 폴링 축소 태스크는 **조건부**이므로 지금 신설하지 않는다(ADR-51 §5 (a)에 범위만 적어 둔다)
+- 정정한 문서: `architecture.md`(**ADR-51 신설** · ADR-50 A "원인 판정"·"얻는 것 ①" · ADR-50 B 배경·가시 변화 · ADR-50 사후 정정 이력), `conventions.md`(§7 MUST 1건 = 이유 정정 + "칸 폭을 받는" 한정 / §8 MUST 1건 = 이유 정정 + **⑤ 신설**), `ui-spec.md:274`, `tasks.md`(이 절 · T-FIX-12 배경 · T-FIX-14 수치 정정)
 - 확정된 사실 (리뷰어 판정 + **팀장이 `coreBundle.js`를 직접 읽어 독립 확인**, 다시 조사하지 않아도 된다)
   - `docs/architecture.md:921` ADR-50 A는 flaky 원인을 관측 격자로 지목하며 그 크기를 "`expect.poll`의 기본 `[100, 250, 500, 1000]` 계열"로 잡고 **"실여유 ~150ms"**라고 적었다
   - 그러나 **변경 전 코드는 `expect.poll`을 쓰지 않았다** — web-first 단언(`toBeVisible`/`toHaveCount`에 `{ timeout: deadlineMs }`)이었다
@@ -801,14 +810,14 @@
 - Errors: -
 - Screens: - (테스트 도구)
 - Backend: 없음 / Frontend: 없음
-- Tools: `tools/e2e/tests/e2e-04.spec.ts` — 지역 함수 `replayStep`(`:155-175`)의 4번째 인자를 `expectation: (deadlineMs) => Promise<void>` → `reflected: () => Promise<boolean>` 술어로 바꾸고, 내부를 T-FIX-11의 `measureFileChangeReflection`과 같은 형태(`expect.poll` + `REFLECTION_POLL_INTERVAL_MS` + 별도 `REPLAY_DIAGNOSTIC_TIMEOUT_MS` + 실패 문구 2종 분리)로 맞춘다. 호출 **28곳** 기계적 치환, 기존 web-first 단언은 측정 뒤 상태 확인으로 **그대로 남긴다**
+- Tools: `tools/e2e/tests/e2e-04.spec.ts` — 지역 함수 `replayStep`(`:155-175`)의 4번째 인자를 `expectation: (deadlineMs) => Promise<void>` → `reflected: () => Promise<boolean>` 술어로 바꾸고, 내부를 T-FIX-11의 `measureFileChangeReflection`과 같은 형태(`expect.poll` + `REFLECTION_POLL_INTERVAL_MS` + 별도 `REPLAY_DIAGNOSTIC_TIMEOUT_MS` + 실패 문구 2종 분리)로 맞춘다. 호출 **24곳** 기계적 치환(팀장 실측 2026-10-01 · architect 재확인: `grep -c "timeout: deadlineMs"` = 24, `replayStep(` 25건 = 정의 1 + 호출 24. 옛 기록의 "28곳"은 틀렸다), 기존 web-first 단언은 측정 뒤 상태 확인으로 **그대로 남긴다**
 - 배경: ADR-50 A가 결함이라 판정한 구조(기한을 Playwright timeout에 그대로 넘김)가 이 함수에 남아 있다. 위험도는 낮다 — 리뷰어가 코드로 확인한 대로 hook 경로에는 **폴링 위상이 없어**(`HookCollectController` → `LiveStateService` 동기 `@EventListener` → `SseHub` `@Async` 즉시 방송, 백엔드에 `throttle|debounce|coalesc|Flux.interval|sample(` 0건) 실여유가 ~1.9s다. 고치는 이유는 ① 진단 분리가 FR-004-AC6 실패에는 아직 없다 ② 같은 파일에 두 관용구가 공존해 드리프트 위험이 있다
 - Done when:
-  - `grep`으로 `e2e-04.spec.ts`에 `deadlineMs`를 `expect(...)`의 `timeout`으로 넘기는 호출이 **0건**이다(현재 28곳)
+  - `grep`으로 `e2e-04.spec.ts`에 `deadlineMs`를 `expect(...)`의 `timeout`으로 넘기는 호출이 **0건**이다(현재 **24곳** — 팀장 실측 2026-10-01 · architect 재확인)
   - 실패가 2종으로 갈린다 — 진단 상한까지 미반영 = "기능 결함" 문구, 반영됐으나 초과 = 실측 ms 문구. 검출력 2종을 **스크래치 사본에서만** 확인하고 원본 md5 전후 대조로 복구를 증명한다
-  - `FR-004-AC6 반영 시간` annotation의 실측 ms가 `--reporter=list` 출력에 남고(T-FIX-11이 쓴 `logMeasurement` 형식과 같게), **28단계 실측 ms를 보고에 그대로 적는다**(FR-004-AC6 기준선 신설)
+  - `FR-004-AC6 반영 시간` annotation의 실측 ms가 `--reporter=list` 출력에 남고(T-FIX-11이 쓴 `logMeasurement` 형식과 같게), **24단계 실측 ms를 보고에 그대로 적는다**(FR-004-AC6 기준선 신설. 위와 같은 수치 정정 — 같은 호출 수를 가리키는 세 번째 자리다)
   - `STATE_REFLECT_DEADLINE_MS` 값 **불변**, `retries: 0` 유지, 기존 테스트 삭제·skip·기대값 약화 **0건**, 테스트 개수 `e2e-04` 8개 유지
-  - 배치 5 단독 1회 + 전체 `./scripts/run-e2e.sh` 1회 통과, 통과 수 **106 유지**
+  - 배치 5 단독 1회 + 전체 `./scripts/run-e2e.sh` 1회 통과, 통과 수 **107 유지**(이 태스크 정의가 T-FIX-12보다 먼저 쓰여 **106**으로 적혀 있었다 — T-FIX-12가 `e2e-13`에 span-1 실측을 +1해 106 → **107**이 됐다. 팀장 확인, 2026-10-01 정정)
   - **[T-FIX-12 리뷰 Minor 5 — 곁다리로 함께 처리]** `tools/e2e/tests/e2e-13.spec.ts:92`의 `REVIEW_SCREENSHOT_DIR`가 `docs/reviews/screens/T-FIX-12`로 **태스크 ID가 하드코딩**돼 있어 T-FIX-12가 끝난 뒤에도 매 실행이 그 폴더를 다시 쓴다. 상수 이름·경로를 태스크 중립(`02-span1-clamp`)으로 바꾸거나 산출물을 `tools/e2e/screenshots/`로 옮겨라. 규칙 위반은 아니므로 **동작·단언 변경 0건**이어야 한다
 - 하지 않을 것: 예산 증액, `retries` 도입, 렌더 대기를 예산에서 떼기, 제품 코드·`docs/` 설계 문서 수정, 부하 재현 실행
 - Depends on: -
@@ -917,7 +926,11 @@
 - Tools:
   - 새 재생 시나리오 파일 `tools/replay/scenarios/<새 이름>.jsonl` + `tools/replay/scenarios/README.md`에 대응표 절 추가. **`showcase.jsonl`은 수정하지 않는다**(22줄 대응표·줄 수 단언·기준 캡처가 걸려 있다)
   - `tools/e2e/tests/e2e-13.spec.ts` — 기존 캡처·단언 뒤에 span-1 실측 층을 추가
-- 배경: T-FIX-07 리뷰 Minor / D-083. span-3 실측 96.67px(`작업 중 · 부모 dev-lead`)이 span-1 열 폭 74.84px에 놓이면 좌우 각 10.92px 번지고 나란한 두 책상이면 **21.83px 글자-위-글자 가림**이며 접미는 잘리지 않는다. ADR-48 C가 "겹치면 pitch가 아니라 글자 처리로 판단" 예고, ADR-50 B가 clamp + 툴팁으로 확정
+- 배경(**2026-10-01 정정 — A-25 4, T-FIX-12 리뷰 Minor 1. 처방·결론은 유지**): T-FIX-07 리뷰 Minor / D-083.
+  - **폐기한 서술(원문, 지우지 않고 남긴다)**: "span-3 실측 96.67px(`작업 중 · 부모 dev-lead`)이 span-1 열 폭 74.84px에 놓이면 좌우 각 10.92px 번지고 나란한 두 책상이면 **21.83px 글자-위-글자 가림**이며 접미는 잘리지 않는다."
+  - **틀린 곳**: 줄바꿈을 빼고 계산한 **투영값**이고 발현된 적이 없다. 변경 전 루트는 `w-fit`, 상태 줄에 `nowrap`이 없었고 상태 문구에는 **공백이 있어** min-content = 가장 긴 낱말 → `fit-content`가 칸 안쪽 폭(≈66.8px)으로 줄어 **상태 줄은 두 줄로 접혔다.**
+  - **실제로 일어난 일**: **이름 칩은 칸 밖으로 번졌고**(공백 없어 min-content 81.91px > 74.84px, T-024 m6) **상태 줄은 접혔다**(행 리듬을 깨는 배치 차이). 부모 라벨의 낱말 하나가 칸 안쪽 폭을 넘으면 상태 줄의 가로 가림도 실제로 발생한다. **접미는 잘리지 않는다**(이름 칩만 `ellipsis.ts` 12자)는 사실은 유효하다.
+  - clamp + `title`은 이 셋을 모두 닫으므로 **처방과 Done when은 그대로**다. ADR-48 C가 "겹치면 pitch가 아니라 글자 처리로 판단" 예고, ADR-50 B가 clamp + `title`로 확정
 - Done when:
   - 단위 `DeskSprite.test [FR-006-AC10][ADR-50 B] 부모 접미가 있는 상태 줄 — 한 줄 clamp가 걸리고 전체 문구가 title로 나오며 DOM 텍스트는 '작업 중 · 부모 [세션 1]' 그대로`
   - 단위 `DeskSprite.test [ADR-50 B] 루트가 칸 폭을 받는다 — w-full·min-w-0이 있고 w-fit이 없다`
