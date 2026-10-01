@@ -22,6 +22,7 @@ import { COMPOSE_SERVICE, E2E_DIR, composeEnv, readE2eState } from "../lib/e2e-s
 import { replayScenarioLines, scenarioLines } from "../lib/replay";
 import {
   PIXEL_FILL,
+  REFLECTION_POLL_INTERVAL_MS,
   SETUP_REFLECT_TIMEOUT_MS,
   fixturePath,
   gotoReady,
@@ -40,6 +41,15 @@ const SCENARIO_LINE_COUNT = 28;
 
 /** FR-004-AC6 "상태가 바뀌면 새로고침 없이 2초 이내에 01·02·03에 반영된다". */
 const STATE_REFLECT_DEADLINE_MS = 2000;
+
+/**
+ * 진단 상한. "끝까지 반영되지 않음"(기능 결함)과 "반영은 됐으나 2000ms 초과"(기한 초과)를
+ * **다른 실패 메시지**로 가르기 위한 상한이며, 예산이 아니다(예산은 `STATE_REFLECT_DEADLINE_MS`).
+ * `ui-helpers.ts`의 `REFLECTION_DIAGNOSTIC_TIMEOUT_MS`(10_000)와 같은 근거로 고른 값이다 — hook
+ * 경로에는 폴링 위상이 없어(T-FIX-14 배경) 실여유가 ~1.9s뿐이라 예산(2000ms)보다 넉넉히 큰 상한이면
+ * 되고, 다른 spec과 같은 상한을 쓰면 두 진단 문구의 "끝까지"가 같은 시간을 가리켜 혼동이 없다.
+ */
+const REPLAY_DIAGNOSTIC_TIMEOUT_MS = 10_000;
 
 /**
  * `frontend/src/components/pixel/palette.ts`의 고정 팔레트 값(pixel-sprites.md 공통 색) 중
@@ -150,27 +160,92 @@ function containerLogs(): string {
 /**
  * 시나리오 한 줄을 재생하고, 그 줄이 만들어야 하는 화면 변화가 기한(FR-004-AC6 2초) 안에 나타나는지
  * 실제 경과 시간을 재서 단언한다. 고정 대기(`waitForTimeout`)는 쓰지 않는다 —
- * 기준 시각은 수집 POST가 2xx로 끝난 시점이고, 대기는 `expect` 폴링뿐이다.
+ * 기준 시각은 수집 POST가 2xx로 끝난 시점이고, 대기는 `expect.poll`뿐이다.
+ *
+ * `reflected`는 "지금 화면이 반영됐는가"만 답하는 술어다(`isVisible()`·`count()`·`allTextContents()`처럼
+ * 자체 대기가 없는 조회만 쓴다 — 술어 안에서 다시 폴링하면 격자가 두 겹이 된다). 반영 시점은
+ * `REFLECTION_POLL_INTERVAL_MS`(ui-helpers, 25ms) 격자로 잡고, 진단 상한까지 반영이 없으면
+ * "기능 결함", 반영은 됐으나 예산을 넘겼으면 "기한 초과 + 실측 ms"로 **서로 다른 문구**로 실패한다
+ * (ADR-50 A. ui-helpers.ts `measureFileChangeReflection`과 같은 형태 — T-FIX-14).
  */
 async function replayStep(
   testInfo: TestInfo,
   line: number,
   label: string,
-  expectation: (deadlineMs: number) => Promise<void>,
+  reflected: () => Promise<boolean>,
 ): Promise<number> {
   replayScenarioLines({ from: line, to: line });
   const sentAt = Date.now();
-  await expectation(STATE_REFLECT_DEADLINE_MS);
+  try {
+    await expect
+      .poll(reflected, {
+        intervals: [REFLECTION_POLL_INTERVAL_MS],
+        timeout: REPLAY_DIAGNOSTIC_TIMEOUT_MS,
+        message: `${line}줄 ${label}: ${REPLAY_DIAGNOSTIC_TIMEOUT_MS}ms 안에 화면에 반영되지 않았습니다(기능 결함)`,
+      })
+      .toBe(true);
+  } catch (error) {
+    const waitedMs = Date.now() - sentAt;
+    testInfo.annotations.push({
+      type: "FR-004-AC6 반영 시간",
+      description: `${line}줄 ${label}: 반영 확인 실패 (${waitedMs}ms 관측 · 진단 상한 ${REPLAY_DIAGNOSTIC_TIMEOUT_MS}ms · 예산 ${STATE_REFLECT_DEADLINE_MS}ms)`,
+    });
+    process.stdout.write(
+      `[FR-004-AC6 반영 시간] ${line}줄 ${label}: 미반영 (${waitedMs}ms 관측 · 진단 상한 ${REPLAY_DIAGNOSTIC_TIMEOUT_MS}ms)\n`,
+    );
+    if (error instanceof Error) {
+      error.message = `${error.message}\n실측 대기 ${waitedMs}ms (예산 ${STATE_REFLECT_DEADLINE_MS}ms)`;
+    }
+    throw error;
+  }
   const elapsedMs = Date.now() - sentAt;
+  // 실측 수치를 테스트 주석과 실행 로그에 함께 남긴다(FR-004-AC6 기준선이 되는 산출물이다).
   testInfo.annotations.push({
     type: "FR-004-AC6 반영 시간",
-    description: `${line}줄 ${label}: ${elapsedMs}ms (기한 ${STATE_REFLECT_DEADLINE_MS}ms)`,
+    description: `${line}줄 ${label}: ${elapsedMs}ms (기한 ${STATE_REFLECT_DEADLINE_MS}ms · 관측 격자 ${REFLECTION_POLL_INTERVAL_MS}ms)`,
   });
+  process.stdout.write(
+    `[FR-004-AC6 반영 시간] ${line}줄 ${label}: ${elapsedMs}ms (기한 ${STATE_REFLECT_DEADLINE_MS}ms · 관측 격자 ${REFLECTION_POLL_INTERVAL_MS}ms)\n`,
+  );
   expect(
     elapsedMs,
-    `${line}줄 ${label} 반영이 ${STATE_REFLECT_DEADLINE_MS}ms를 넘었습니다(${elapsedMs}ms)`,
+    `${line}줄 ${label} 반영이 ${STATE_REFLECT_DEADLINE_MS}ms를 넘었습니다(실측 ${elapsedMs}ms)`,
   ).toBeLessThanOrEqual(STATE_REFLECT_DEADLINE_MS);
   return elapsedMs;
+}
+
+// ── `reflected` 술어용 비대기 조회 (ui-helpers 규칙과 같다: isVisible·count·allTextContents만 쓴다) ──
+
+/**
+ * 단일 요소 텍스트(공백 정규화). Playwright `normalizeWhiteSpace`와 같은 규칙·같은 순서다
+ * (출처: `node_modules/playwright-core/lib/coreBundle.js:515` —
+ * `text.replace(/[​­]/g, "").trim().replace(/\s+/g, " ")`): zero-width space·soft
+ * hyphen을 먼저 지우고 `trim()`한 뒤 공백을 접는다. 순서가 다르면(예: 공백부터 접으면) 그 두
+ * 문자가 낀 텍스트에서 `toHaveText`와 다른 결과가 나올 수 있다.
+ */
+async function soleText(locator: Locator): Promise<string> {
+  const [first] = await locator.allTextContents();
+  return (first ?? "").replace(/[​­]/g, "").trim().replace(/\s+/g, " ");
+}
+
+/** 옛 `toBeVisible` 기한부 단언 대응: 자체 대기 없는 가시성 조회. */
+function isShown(locator: Locator): Promise<boolean> {
+  return locator.isVisible();
+}
+
+/** 옛 `toHaveCount` 기한부 단언 대응. */
+async function hasCount(locator: Locator, count: number): Promise<boolean> {
+  return (await locator.count()) === count;
+}
+
+/** 옛 `toHaveText` 기한부 단언 대응(단일 요소, 공백 정규화 비교). */
+async function hasExactText(locator: Locator, expected: string): Promise<boolean> {
+  return (await soleText(locator)) === expected;
+}
+
+/** 옛 `toContainText` 기한부 단언 대응(단일 요소, 부분 일치). */
+async function hasSubstring(locator: Locator, expected: string): Promise<boolean> {
+  return (await soleText(locator)).includes(expected);
 }
 
 // 재생은 누적되므로 앞 단계가 실패하면 뒤 단계의 전제가 깨진다. serial로 두어 원인 하나를 그대로 보고한다.
@@ -211,9 +286,8 @@ test("[FR-004-AC1][FR-004-AC2][FR-004-AC6][FR-003-AC4][FR-007-AC2][FR-007-AC5][F
   await expect(page.locator("main").first().getByText("에이전트 2 · 스킬 1", { exact: true })).toBeVisible();
 
   // 1줄 SessionStart → 대기. 이벤트를 받았으므로 04-4 배너가 사라지는 것이 관찰 가능한 변화다.
-  await replayStep(testInfo, 1, "SessionStart → 대기", async (deadlineMs) => {
-    await expect(collectorBanner).toHaveCount(0, { timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 1, "SessionStart → 대기", () => hasCount(collectorBanner, 0));
+  await expect(collectorBanner).toHaveCount(0);
   await expect(panelRowValue(page, "상태")).toHaveText("대기");
   await expect(panelRowValue(page, "현재 도구")).toHaveText("-");
   // FR-007-AC5: 세션 시작 = 가장 최근 SessionStart 시각(hh:mm:ss), 작업 폴더 = 마지막 이벤트의 cwd.
@@ -226,11 +300,10 @@ test("[FR-004-AC1][FR-004-AC2][FR-004-AC6][FR-003-AC4][FR-007-AC2][FR-007-AC5][F
   await expect(spriteBox(page, "dev-lead").getByText("대기", { exact: true })).toHaveCount(2);
 
   // 2줄 PreToolUse(Edit) → 작업 중 + 말풍선 `타이핑 · Edit`(FR-007-AC2).
-  await replayStep(testInfo, 2, "PreToolUse(Edit) → 작업 중", async (deadlineMs) => {
-    await expect(spriteBox(page, "dev-lead").getByText("타이핑 · Edit", { exact: true })).toBeVisible({
-      timeout: deadlineMs,
-    });
-  });
+  await replayStep(testInfo, 2, "PreToolUse(Edit) → 작업 중", () =>
+    isShown(spriteBox(page, "dev-lead").getByText("타이핑 · Edit", { exact: true })),
+  );
+  await expect(spriteBox(page, "dev-lead").getByText("타이핑 · Edit", { exact: true })).toBeVisible();
   await expect(panelRowValue(page, "상태")).toHaveText("작업 중");
   await expect(panelRowValue(page, "현재 도구")).toHaveText("Edit · .claude/agents/dev-lead.md");
   await expect(spriteBox(page, "dev-lead").getByText("작업 중", { exact: true })).toBeVisible();
@@ -246,16 +319,16 @@ test("[FR-004-AC1][FR-004-AC2][FR-004-AC6][FR-003-AC4][FR-007-AC2][FR-007-AC5][F
     [5, "PermissionDenied → 작업 중", "권한 거부 · Edit"],
   ];
   for (const [line, label, title] of runningRows) {
-    await replayStep(testInfo, line, label, async (deadlineMs) => {
-      await expect(recentEventItems(page).first()).toContainText(title, { timeout: deadlineMs });
-    });
+    await replayStep(testInfo, line, label, () => hasSubstring(recentEventItems(page).first(), title));
+    await expect(recentEventItems(page).first()).toContainText(title);
     await expect(panelRowValue(page, "상태")).toHaveText("작업 중");
   }
 
   // 6줄 PreToolUse(AskUserQuestion) → 권한·입력 대기 + 주황 말풍선 `권한 요청`.
-  await replayStep(testInfo, 6, "PreToolUse(AskUserQuestion) → 권한·입력 대기", async (deadlineMs) => {
-    await expect(panelRowValue(page, "상태")).toHaveText("권한·입력 대기", { timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 6, "PreToolUse(AskUserQuestion) → 권한·입력 대기", () =>
+    hasExactText(panelRowValue(page, "상태"), "권한·입력 대기"),
+  );
+  await expect(panelRowValue(page, "상태")).toHaveText("권한·입력 대기");
   await expect(panelRowValue(page, "현재 도구")).toHaveText("AskUserQuestion · 이 방향으로 진행할까요?");
   await expect(spriteBox(page, "dev-lead").getByText("권한 요청", { exact: true })).toBeVisible();
   await expect(spriteBox(page, "dev-lead").getByText("권한 대기", { exact: true })).toBeVisible();
@@ -270,16 +343,14 @@ test("[FR-004-AC1][FR-004-AC2][FR-004-AC6][FR-003-AC4][FR-007-AC2][FR-007-AC5][F
     [9, "Notification(그 외) → 상태 변경 없음", "알림 · idle_timeout"],
   ];
   for (const [line, label, title] of waitingRows) {
-    await replayStep(testInfo, line, label, async (deadlineMs) => {
-      await expect(recentEventItems(page).first()).toContainText(title, { timeout: deadlineMs });
-    });
+    await replayStep(testInfo, line, label, () => hasSubstring(recentEventItems(page).first(), title));
+    await expect(recentEventItems(page).first()).toContainText(title);
     await expect(panelRowValue(page, "상태")).toHaveText("권한·입력 대기");
   }
 
   // 10줄 Stop → 대기(세션은 유지되므로 세션 시작 값은 남는다).
-  await replayStep(testInfo, 10, "Stop → 대기(세션 유지)", async (deadlineMs) => {
-    await expect(panelRowValue(page, "상태")).toHaveText("대기", { timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 10, "Stop → 대기(세션 유지)", () => hasExactText(panelRowValue(page, "상태"), "대기"));
+  await expect(panelRowValue(page, "상태")).toHaveText("대기");
   await expect(panelRowValue(page, "현재 도구")).toHaveText("-");
   await expect(panelRowValue(page, "세션 시작")).toHaveText(/^\d{2}:\d{2}:\d{2}$/);
   await expect(spriteBox(page, "dev-lead").getByText("대기", { exact: true })).toHaveCount(2);
@@ -301,11 +372,12 @@ test("[FR-004-AC2][FR-004-AC4][FR-004-AC6][FR-007-AC3][FR-007-AC5][E2E-04] state
 
   // 11줄 SubagentStart(agent_type=dev-member, 정의 있음) → 그 에이전트 캐릭터가 작업 중 + `· 부모 dev-lead`
   // (FR-004-AC4: agent_type이 정상 정의 파일이면 그 에이전트의 세션으로 합친다).
-  await replayStep(testInfo, 11, "SubagentStart(정의 있음) → 작업 중 · 부모", async (deadlineMs) => {
-    await expect(
-      spriteBox(page, "dev-member").getByText("작업 중 · 부모 dev-lead", { exact: true }),
-    ).toBeVisible({ timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 11, "SubagentStart(정의 있음) → 작업 중 · 부모", () =>
+    isShown(spriteBox(page, "dev-member").getByText("작업 중 · 부모 dev-lead", { exact: true })),
+  );
+  await expect(
+    spriteBox(page, "dev-member").getByText("작업 중 · 부모 dev-lead", { exact: true }),
+  ).toBeVisible();
   expect(await spriteShirtFill(page, "dev-member")).toBe(PIXEL_FILL.shirtRunning);
   // 말풍선: running + 도구 없음 → `작업 중`(FR-007-AC2).
   await expect(spriteBox(page, "dev-member").getByText("작업 중", { exact: true })).toBeVisible();
@@ -313,9 +385,8 @@ test("[FR-004-AC2][FR-004-AC4][FR-004-AC6][FR-007-AC3][FR-007-AC5][E2E-04] state
   await expect(panelRowValue(page, "서브에이전트")).toHaveText("1");
 
   // 12줄 SubagentStart(agent_type=Explore, 정의 없음) → 부모 칸 바로 다음 칸에 작은 캐릭터(FR-007-AC3).
-  await replayStep(testInfo, 12, "SubagentStart(정의 없음) → 작은 캐릭터", async (deadlineMs) => {
-    await expect(spriteSvg(page, "Explore")).toBeVisible({ timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 12, "SubagentStart(정의 없음) → 작은 캐릭터", () => isShown(spriteSvg(page, "Explore")));
+  await expect(spriteSvg(page, "Explore")).toBeVisible();
   await expect(
     spriteBox(page, "Explore").getByText("작업 중 · 부모 dev-lead", { exact: true }),
   ).toBeVisible();
@@ -324,18 +395,16 @@ test("[FR-004-AC2][FR-004-AC4][FR-004-AC6][FR-007-AC3][FR-007-AC5][E2E-04] state
   await expect(panelRowValue(page, "서브에이전트")).toHaveText("2");
 
   // 13줄 SubagentStop → 그 서브에이전트 세션 제거 → dev-member는 다시 대기(부모 접미 없음).
-  await replayStep(testInfo, 13, "SubagentStop → 제거", async (deadlineMs) => {
-    await expect(spriteBox(page, "dev-member").getByText("대기", { exact: true })).toHaveCount(2, {
-      timeout: deadlineMs,
-    });
-  });
+  await replayStep(testInfo, 13, "SubagentStop → 제거", () =>
+    hasCount(spriteBox(page, "dev-member").getByText("대기", { exact: true }), 2),
+  );
+  await expect(spriteBox(page, "dev-member").getByText("대기", { exact: true })).toHaveCount(2);
   expect(await spriteShirtFill(page, "dev-member")).toBe(PIXEL_FILL.shirtIdle);
   await expect(panelRowValue(page, "서브에이전트")).toHaveText("1");
 
   // 14줄 SessionEnd → 같은 session_id의 서브 레코드(Explore)까지 함께 제거 + dev-lead 세션도 사라진다.
-  await replayStep(testInfo, 14, "SessionEnd → 제거", async (deadlineMs) => {
-    await expect(spriteSvg(page, "Explore")).toHaveCount(0, { timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 14, "SessionEnd → 제거", () => hasCount(spriteSvg(page, "Explore"), 0));
+  await expect(spriteSvg(page, "Explore")).toHaveCount(0);
   expect(await officeSpriteNames(page)).toEqual(["dev-lead", "dev-member"]);
   await expect(panelRowValue(page, "상태")).toHaveText("대기");
   await expect(panelRowValue(page, "세션 시작")).toHaveText("-");
@@ -352,24 +421,27 @@ test("[FR-004-AC3][FR-004-AC6][FR-007-AC2][FR-007-AC3][FR-006-AC5][E2E-04] state
   await expect(page.getByRole("heading", { level: 3, name: "dev-member", exact: true })).toBeVisible();
 
   // 15줄 세션 A의 SubagentStart → 작업 중(부모는 SessionStart가 없던 세션이라 로비 세션 `[세션 1]`).
-  await replayStep(testInfo, 15, "세션 A SubagentStart → 작업 중", async (deadlineMs) => {
-    await expect(
-      spriteBox(page, "dev-member").getByText("작업 중 · 부모 [세션 1]", { exact: true }),
-    ).toBeVisible({ timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 15, "세션 A SubagentStart → 작업 중", () =>
+    isShown(spriteBox(page, "dev-member").getByText("작업 중 · 부모 [세션 1]", { exact: true })),
+  );
+  await expect(
+    spriteBox(page, "dev-member").getByText("작업 중 · 부모 [세션 1]", { exact: true }),
+  ).toBeVisible();
   await expect(panelRowValue(page, "상태")).toHaveText("작업 중");
 
   // 16줄 세션 B의 SubagentStart → 둘 다 작업 중(동률이면 최신 세션을 보여준다).
-  await replayStep(testInfo, 16, "세션 B SubagentStart → 작업 중", async (deadlineMs) => {
-    await expect(
-      spriteBox(page, "dev-member").getByText("작업 중 · 부모 [세션 2]", { exact: true }),
-    ).toBeVisible({ timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 16, "세션 B SubagentStart → 작업 중", () =>
+    isShown(spriteBox(page, "dev-member").getByText("작업 중 · 부모 [세션 2]", { exact: true })),
+  );
+  await expect(
+    spriteBox(page, "dev-member").getByText("작업 중 · 부모 [세션 2]", { exact: true }),
+  ).toBeVisible();
 
   // 17줄 세션 B만 AskUserQuestion → 집계는 권한·입력 대기(FR-004-AC3 최우선).
-  await replayStep(testInfo, 17, "세션 B AskUserQuestion → 권한·입력 대기 우선", async (deadlineMs) => {
-    await expect(panelRowValue(page, "상태")).toHaveText("권한·입력 대기", { timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 17, "세션 B AskUserQuestion → 권한·입력 대기 우선", () =>
+    hasExactText(panelRowValue(page, "상태"), "권한·입력 대기"),
+  );
+  await expect(panelRowValue(page, "상태")).toHaveText("권한·입력 대기");
   await expect(panelRowValue(page, "현재 도구")).toHaveText("AskUserQuestion · 승인할까요?");
   await expect(spriteBox(page, "dev-member").getByText("권한 요청", { exact: true })).toBeVisible();
   await expect(
@@ -393,25 +465,28 @@ test("[FR-004-AC3][FR-004-AC6][FR-007-AC3][FR-006-AC5][E2E-04] states.jsonl 18~2
   await gotoReady(page, `/workflows/${OPS_TEAM}?agent=ops-lead`);
   await expect(page.getByRole("heading", { level: 3, name: "ops-lead", exact: true })).toBeVisible();
 
-  await replayStep(testInfo, 18, "세션 A SubagentStart → 작업 중", async (deadlineMs) => {
-    await expect(
-      spriteBox(page, "ops-lead").getByText("작업 중 · 부모 [세션 3]", { exact: true }),
-    ).toBeVisible({ timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 18, "세션 A SubagentStart → 작업 중", () =>
+    isShown(spriteBox(page, "ops-lead").getByText("작업 중 · 부모 [세션 3]", { exact: true })),
+  );
+  await expect(
+    spriteBox(page, "ops-lead").getByText("작업 중 · 부모 [세션 3]", { exact: true }),
+  ).toBeVisible();
   await expect(panelRowValue(page, "상태")).toHaveText("작업 중");
 
-  await replayStep(testInfo, 19, "세션 B SubagentStart → 작업 중", async (deadlineMs) => {
-    await expect(
-      spriteBox(page, "ops-lead").getByText("작업 중 · 부모 [세션 4]", { exact: true }),
-    ).toBeVisible({ timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 19, "세션 B SubagentStart → 작업 중", () =>
+    isShown(spriteBox(page, "ops-lead").getByText("작업 중 · 부모 [세션 4]", { exact: true })),
+  );
+  await expect(
+    spriteBox(page, "ops-lead").getByText("작업 중 · 부모 [세션 4]", { exact: true }),
+  ).toBeVisible();
 
   // 20줄 세션 B만 Stop → 세션 B는 대기, 표시는 여전히 작업 중이고 보여주는 세션이 A로 돌아간다.
-  await replayStep(testInfo, 20, "세션 B Stop → 작업 중 우선", async (deadlineMs) => {
-    await expect(
-      spriteBox(page, "ops-lead").getByText("작업 중 · 부모 [세션 3]", { exact: true }),
-    ).toBeVisible({ timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 20, "세션 B Stop → 작업 중 우선", () =>
+    isShown(spriteBox(page, "ops-lead").getByText("작업 중 · 부모 [세션 3]", { exact: true })),
+  );
+  await expect(
+    spriteBox(page, "ops-lead").getByText("작업 중 · 부모 [세션 3]", { exact: true }),
+  ).toBeVisible();
   await expect(panelRowValue(page, "상태")).toHaveText("작업 중");
   await expect(recentEventItems(page).first()).toContainText("응답 종료");
 
@@ -432,30 +507,26 @@ test("[FR-003-AC5][FR-006-AC9][FR-004-AC6][FR-004-E1][E2E-04] states.jsonl 21~24
     await expect(lobby.getByText(`${label} · 대기`, { exact: true })).toBeVisible();
   }
 
-  await replayStep(testInfo, 21, "SessionStart(agent_type 없음) → [세션 5] 대기", async (deadlineMs) => {
-    await expect(lobby.getByText("[세션 5] · 대기", { exact: true })).toBeVisible({
-      timeout: deadlineMs,
-    });
-  });
+  await replayStep(testInfo, 21, "SessionStart(agent_type 없음) → [세션 5] 대기", () =>
+    isShown(lobby.getByText("[세션 5] · 대기", { exact: true })),
+  );
+  await expect(lobby.getByText("[세션 5] · 대기", { exact: true })).toBeVisible();
 
-  await replayStep(testInfo, 22, "UserPromptSubmit → [세션 5] 작업 중", async (deadlineMs) => {
-    await expect(lobby.getByText("[세션 5] · 작업 중", { exact: true })).toBeVisible({
-      timeout: deadlineMs,
-    });
-  });
+  await replayStep(testInfo, 22, "UserPromptSubmit → [세션 5] 작업 중", () =>
+    isShown(lobby.getByText("[세션 5] · 작업 중", { exact: true })),
+  );
+  await expect(lobby.getByText("[세션 5] · 작업 중", { exact: true })).toBeVisible();
 
-  await replayStep(testInfo, 23, "SessionStart(agent_type 없음) → [세션 6] 대기", async (deadlineMs) => {
-    await expect(lobby.getByText("[세션 6] · 대기", { exact: true })).toBeVisible({
-      timeout: deadlineMs,
-    });
-  });
+  await replayStep(testInfo, 23, "SessionStart(agent_type 없음) → [세션 6] 대기", () =>
+    isShown(lobby.getByText("[세션 6] · 대기", { exact: true })),
+  );
+  await expect(lobby.getByText("[세션 6] · 대기", { exact: true })).toBeVisible();
 
   // 로비 waiting은 짧은 표기 `입력 대기`다(ui-spec SCR-02 로비 행, ADR-26).
-  await replayStep(testInfo, 24, "PermissionRequest → [세션 6] 입력 대기", async (deadlineMs) => {
-    await expect(lobby.getByText("[세션 6] · 입력 대기", { exact: true })).toBeVisible({
-      timeout: deadlineMs,
-    });
-  });
+  await replayStep(testInfo, 24, "PermissionRequest → [세션 6] 입력 대기", () =>
+    isShown(lobby.getByText("[세션 6] · 입력 대기", { exact: true })),
+  );
+  await expect(lobby.getByText("[세션 6] · 입력 대기", { exact: true })).toBeVisible();
   await expect(lobby.getByText("[세션 5] · 작업 중", { exact: true })).toBeVisible();
   await expect(lobby.getByText("실행 중인 메인 세션 없음", { exact: true })).toHaveCount(0);
 });
@@ -470,17 +541,19 @@ test("[FR-003-AC4][FR-003-AC10][FR-003-E2][FR-004-AC6][FR-004-AC7][FR-005-AC1][F
 
   // 25줄 정의 없는 서브에이전트(부모가 로비 세션) → 03에는 안 보이지만 이벤트는 저장·표시된다(FR-003-E2).
   // 워크플로우 열은 `-`다(FR-005-AC7).
-  await replayStep(testInfo, 25, "SubagentStart(정의 없음, 로비 부모) → 실시간 이벤트", async (deadlineMs) => {
-    await expect(firstRowCells.nth(2)).toHaveText("UnknownAgent", { timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 25, "SubagentStart(정의 없음, 로비 부모) → 실시간 이벤트", () =>
+    hasExactText(firstRowCells.nth(2), "UnknownAgent"),
+  );
+  await expect(firstRowCells.nth(2)).toHaveText("UnknownAgent");
   await expect(firstRowCells.nth(1)).toHaveText("-");
   await expect(firstRowCells.nth(3)).toHaveText("서브에이전트 시작");
   await expect(firstRowCells.nth(4)).toHaveText("UnknownAgent");
 
   // 26줄 SessionStart(ops-member) → agent_type으로 에이전트를 식별하고(FR-003-AC4) 요약은 cwd다(FR-003-AC10).
-  await replayStep(testInfo, 26, "SessionStart(ops-member) → 실시간 이벤트", async (deadlineMs) => {
-    await expect(firstRowCells.nth(3)).toHaveText("세션 시작", { timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 26, "SessionStart(ops-member) → 실시간 이벤트", () =>
+    hasExactText(firstRowCells.nth(3), "세션 시작"),
+  );
+  await expect(firstRowCells.nth(3)).toHaveText("세션 시작");
   await expect(firstRowCells.nth(1)).toHaveText(OPS_TEAM);
   await expect(firstRowCells.nth(2)).toHaveText("ops-member");
   await expect(firstRowCells.nth(4)).toHaveText("/workspace");
@@ -489,16 +562,18 @@ test("[FR-003-AC4][FR-003-AC10][FR-003-E2][FR-004-AC6][FR-004-AC7][FR-005-AC1][F
   // 27줄 PreToolUse Bash(민감 값 포함) → 요약이 마스킹된 채로만 보인다(FR-015-AC1, FR-005-AC8).
   const maskedSummary =
     "export TOKEN=•••••••• && curl -H 'Authorization: •••••••• ••••••••' https://example.com";
-  await replayStep(testInfo, 27, "PreToolUse(Bash, 민감 값) → 마스킹된 요약", async (deadlineMs) => {
-    await expect(firstRowCells.nth(4)).toHaveText(maskedSummary, { timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 27, "PreToolUse(Bash, 민감 값) → 마스킹된 요약", () =>
+    hasExactText(firstRowCells.nth(4), maskedSummary),
+  );
+  await expect(firstRowCells.nth(4)).toHaveText(maskedSummary);
   await expect(firstRowCells.nth(3)).toHaveText("도구 실행 · Bash");
 
   // 28줄 SessionStart 없이 온 PreToolUse(freelancer) → 세션을 새로 만들어 작업 중으로 처리하고(FR-004-E1),
   // 워크플로우 밖 에이전트이므로 로비에 `name · 상태`로 표시한다(FR-004-AC7).
-  await replayStep(testInfo, 28, "순서 어긋난 PreToolUse(freelancer) → 작업 중", async (deadlineMs) => {
-    await expect(firstRowCells.nth(2)).toHaveText("freelancer", { timeout: deadlineMs });
-  });
+  await replayStep(testInfo, 28, "순서 어긋난 PreToolUse(freelancer) → 작업 중", () =>
+    hasExactText(firstRowCells.nth(2), "freelancer"),
+  );
+  await expect(firstRowCells.nth(2)).toHaveText("freelancer");
   await expect(firstRowCells.nth(1)).toHaveText("-");
   await expect(firstRowCells.nth(3)).toHaveText("도구 실행 · Grep");
   await expect(firstRowCells.nth(4)).toHaveText("TODO");

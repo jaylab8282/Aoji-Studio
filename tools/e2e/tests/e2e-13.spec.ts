@@ -89,8 +89,12 @@ function panelFootnoteTerminal(lead: string): string {
 
 /** 산출물 폴더(PNG는 커밋 대상). */
 const SCREENSHOT_DIR = join(E2E_DIR, "screenshots");
-/** 리뷰 대조용 산출물 폴더(T-FIX-12 — span-1 열 clamp 상태는 공식 캡처 시점의 화면이 아니라 따로 남긴다). */
-const REVIEW_SCREENSHOT_DIR = join(PROJECT_ROOT, "docs", "reviews", "screens", "T-FIX-12");
+/**
+ * span-1 열 clamp 상태 리뷰 대조용 산출물 폴더. 공식 캡처 시점의 화면이 아니라 따로 남긴다
+ * (T-FIX-14 리뷰 Minor 정리 — 폴더가 태스크 ID로 고정돼 있으면 그 태스크가 끝난 뒤에도 매 실행이
+ * 같은 폴더를 다시 쓰게 되므로, 이름을 태스크 중립으로 바꾸고 `SCREENSHOT_DIR` 아래로 옮긴다).
+ */
+const SPAN1_CLAMP_SCREENSHOT_DIR = join(SCREENSHOT_DIR, "02-span1-clamp");
 /** 확정 기준 이미지 폴더(읽기만 한다). */
 const REFERENCE_DIR = join(PROJECT_ROOT, "docs", "ui", "screens");
 
@@ -937,13 +941,13 @@ test("[E2E-13][T-015 m6][FR-006-AC4] 13자 이름을 가장 좁은 열(span-1 4�
 });
 
 /**
- * 층 카드 한 장을 리뷰 대조용으로 남긴다(`docs/reviews/screens/T-FIX-12/`). 공식 기준 캡처
+ * 층 카드 한 장을 리뷰 대조용으로 남긴다(`screenshots/02-span1-clamp/`). 공식 기준 캡처
  * (`screenshots/02-workflows.png`)는 이 재생 **전**의 화면이라 span-1 clamp 상태가 찍히지 않으므로
  * 리뷰어가 볼 수 있게 따로 남긴다. 기준 이미지 폴더(`docs/ui/`)는 읽지도 쓰지도 않는다.
  */
 async function captureFloorCard(page: Page, workflowName: string, fileName: string): Promise<void> {
-  mkdirSync(REVIEW_SCREENSHOT_DIR, { recursive: true });
-  const path = join(REVIEW_SCREENSHOT_DIR, fileName);
+  mkdirSync(SPAN1_CLAMP_SCREENSHOT_DIR, { recursive: true });
+  const path = join(SPAN1_CLAMP_SCREENSHOT_DIR, fileName);
   await floorCardByName(page, workflowName).screenshot({ path });
   expect(statSync(path).size, "리뷰 캡처 파일이 비었습니다").toBeGreaterThan(0);
 }

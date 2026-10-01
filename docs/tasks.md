@@ -803,7 +803,7 @@
 - Depends on: -
 
 ## T-FIX-14 `replayStep`도 같은 술어 형태로 바꾼다 (T-FIX-11 리뷰 범위 밖 B)
-- Status: todo — **다음 작업 세션**. 출처 `docs/reviews/T-FIX-11.md` 범위 밖 B [Minor], 리뷰어 판정 = (b) 후속으로 미뤄도 된다
+- Status: **done** — 리뷰 **PASS**(`docs/reviews/T-FIX-14.md`, **fix 1회**: Round 1 NEEDS_FIX Major 1 → 재증명 후 팀장 검증 마감). Done when 전항 충족. `deadlineMs` **0건**(수정 전 24) · `e2e-04` test **8개 유지** · `STATE_REFLECT_DEADLINE_MS = 2000`·`retries: 0` 불변 · **단언 수 감소 0건**(제거된 `expect` 24줄 전부 바로 뒤에 **동일 matcher로 재삽입** — 팀장이 diff 전수 확인) · 전체 `run-e2e.sh` **9배치 107 통과** · 배치 5 단독 9 passed(수정 후 재확인). **28단계 실측 ms 전부 보고됨.** Major(검출력을 재구현 하네스로 증명)는 **실제 파일 사본 + 단일 테스트 1회 실행**으로 재증명해 두 실패 문구를 리포터 출력에서 캡처했고 스크래치 삭제·원본 md5 복구를 확인했다(D-098). Minor(`soleText` 공백 정규화)는 Playwright `normalizeWhiteSpace`와 **순서까지 축자 일치**로 수정. 곁다리(T-FIX-12 리뷰 Minor 5) 완료
 - Scope: Tools (`tools/e2e/` 전용 — 제품 코드 0건)
 - FR: FR-004-AC6 (**의미 변경 없음** — 예산·측정 지점 유지)
 - AC: FR-004-AC6
@@ -815,7 +815,9 @@
 - Done when:
   - `grep`으로 `e2e-04.spec.ts`에 `deadlineMs`를 `expect(...)`의 `timeout`으로 넘기는 호출이 **0건**이다(현재 **24곳** — 팀장 실측 2026-10-01 · architect 재확인)
   - 실패가 2종으로 갈린다 — 진단 상한까지 미반영 = "기능 결함" 문구, 반영됐으나 초과 = 실측 ms 문구. 검출력 2종을 **스크래치 사본에서만** 확인하고 원본 md5 전후 대조로 복구를 증명한다
-  - `FR-004-AC6 반영 시간` annotation의 실측 ms가 `--reporter=list` 출력에 남고(T-FIX-11이 쓴 `logMeasurement` 형식과 같게), **24단계 실측 ms를 보고에 그대로 적는다**(FR-004-AC6 기준선 신설. 위와 같은 수치 정정 — 같은 호출 수를 가리키는 세 번째 자리다)
+  - `FR-004-AC6 반영 시간` annotation의 실측 ms가 `--reporter=list` 출력에 남고(T-FIX-11이 쓴 `logMeasurement` 형식과 같게), **28단계 실측 ms를 보고에 그대로 적는다**(FR-004-AC6 기준선 신설)
+    - **24(호출부) ≠ 28(측정 단계)** — 호출부는 24곳이지만 그중 **2곳이 반복문 안**(`runningRows` 3원소 `:316-322` · `waitingRows` 3원소 `:340-346`)이라 각 3회 실행된다 → `24 − 2 + 6 = **28**`이고 이는 같은 파일 `SCENARIO_LINE_COUNT = 28`(`:40`)과 일치한다. **Tools 지시문·위 `grep` 항의 "24곳"은 호출부 수로서 맞다. 이 줄의 "28단계"는 측정 단계 수다. 둘을 같은 수로 맞추지 마라.**
+    - 이 줄은 2026-10-01에 한 번 "24단계"로 잘못 바뀌었다 — **원인은 architect의 판단이 아니라 팀장 지시 오류**다(팀장이 호출부 24곳만 재고 측정 단계도 같은 수라고 단정했다). 되돌림 근거: `docs/progress.md` **D-095-정정**(개발자 보고 + 팀장 재확인 + 리뷰어 코드 확정)
   - `STATE_REFLECT_DEADLINE_MS` 값 **불변**, `retries: 0` 유지, 기존 테스트 삭제·skip·기대값 약화 **0건**, 테스트 개수 `e2e-04` 8개 유지
   - 배치 5 단독 1회 + 전체 `./scripts/run-e2e.sh` 1회 통과, 통과 수 **107 유지**(이 태스크 정의가 T-FIX-12보다 먼저 쓰여 **106**으로 적혀 있었다 — T-FIX-12가 `e2e-13`에 span-1 실측을 +1해 106 → **107**이 됐다. 팀장 확인, 2026-10-01 정정)
   - **[T-FIX-12 리뷰 Minor 5 — 곁다리로 함께 처리]** `tools/e2e/tests/e2e-13.spec.ts:92`의 `REVIEW_SCREENSHOT_DIR`가 `docs/reviews/screens/T-FIX-12`로 **태스크 ID가 하드코딩**돼 있어 T-FIX-12가 끝난 뒤에도 매 실행이 그 폴더를 다시 쓴다. 상수 이름·경로를 태스크 중립(`02-span1-clamp`)으로 바꾸거나 산출물을 `tools/e2e/screenshots/`로 옮겨라. 규칙 위반은 아니므로 **동작·단언 변경 0건**이어야 한다
