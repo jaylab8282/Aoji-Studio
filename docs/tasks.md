@@ -754,7 +754,7 @@
      - 기각: **span-1에서 접미 생략**(층 크기에 따라 같은 데이터가 사라지고 툴팁도 없어 정보 손실) / **`--spacing-card` 재검토**(ADR-48 C가 산술로 이미 닫았고 01·03 공유 토큰이며 사용자 승인이 필요하다 — **승인 없이 가능한 처방이 기준을 충족하므로 권고도 하지 않는다**)
      - 검증을 투영 → 실측으로: **span-1 층에 부모 접미 책상을 나란히 두 개 실제로 놓는 재생 층**을 추가한다(`showcase.jsonl`은 고치지 않고 새 시나리오 파일). T-FIX-12 Done when에 명시
   3. **`api-spec.yaml` `HookPayload.permission_mode` 설명 한 줄 추가 — 반영 완료(코드 변경 0건).** **계약 변경 아님**: `description`만 늘고 필드·타입·`required`·enum·상태 코드·서버 동작(무시)이 모두 그대로이며, 프론트가 이 스키마를 소비하지 않고(생산자는 Claude Code·`tools/replay`) `ui-spec` 데이터 출처 열에 없다. 필드는 **지우지 않는다**(FR-003-AC9·확정 문서가 공통 입력 필드로 명시)
-  4. **Suggestion 3건** — ① `docs/ui/README.md` 인용 정정: 원문은 "요소 누락, 배치 차이, 흐름 불일치는 결함이다. **1~2px 간격 차이는 결함이 아니다**"이고 "요소 가림"은 원문에 없다 → `ui-spec.md:235,274,305`·`conventions.md:111`·`architecture.md` ADR-48 C의 인용을 **원문 낱말 + 해석 근거(가림은 "요소 누락"에 해당, 1차 근거 FR-006-AC10, 1~2px 면제는 간격 차이에만)**로 고쳤다(문서만, `docs/ui/` 무수정) ② `helper/jaystudio-helper.mjs:284` `destroy()` 후 `readBody` promise가 resolve·reject 되지 않는 것이 의도임을 주석에 명시(→ **T-FIX-13**, 동작 변경 0건) ③ `WorkflowsHeader.test.tsx`의 className `toBe` **유지(기각, 코드 변경 0건)** — 기준값을 `Button` 자신이 렌더하므로(`referenceButtonClassName`) `Button` 내부에 클래스가 늘어도 깨지지 않고, 판정 축만 비교하려면 테스트가 클래스 문자열을 다시 들고 있어야 해서 **T-FIX-09 리뷰 Suggestion(결합 제거)과 정면으로 어긋난다**. `enabled !== disabled`를 먼저 단언하므로 공허해질 수도 없다
+  4. **Suggestion 3건** — ① `docs/ui/README.md` 인용 정정: 원문은 "요소 누락, 배치 차이, 흐름 불일치는 결함이다. **1~2px 간격 차이는 결함이 아니다**"이고 "요소 가림"은 원문에 없다 → `ui-spec.md:235,274,305`·`conventions.md:111`·`architecture.md` ADR-48 C의 인용을 **원문 낱말 + 해석 근거(가림은 "요소 누락"에 해당, 1차 근거 FR-006-AC10, 1~2px 면제는 간격 차이에만)**로 고쳤다(문서만, `docs/ui/` 무수정) ② `helper/jaystudio-helper.mjs:284` `destroy()` 후 `readBody` promise가 resolve·reject 되지 않는 것이 의도임을 주석에 명시(→ **T-FIX-13**, 동작 변경 0건) — **이 서술은 2026-10-01 폐기됐다(틀린 전제)**: promise는 최초 상한 초과 시점에 `reject`로 정착하고 `/open`이 **400 `INVALID_BODY`를 이미 보낸다**. 정정된 전제·주석 확정 문장은 **ADR-50 D2**와 아래 T-FIX-13 절. 주석 자체는 (a)로 유지(내용만 교체), 동작·계약 변경 0건은 그대로 ③ `WorkflowsHeader.test.tsx`의 className `toBe` **유지(기각, 코드 변경 0건)** — 기준값을 `Button` 자신이 렌더하므로(`referenceButtonClassName`) `Button` 내부에 클래스가 늘어도 깨지지 않고, 판정 축만 비교하려면 테스트가 클래스 문자열을 다시 들고 있어야 해서 **T-FIX-09 리뷰 Suggestion(결합 제거)과 정면으로 어긋난다**. `enabled !== disabled`를 먼저 단언하므로 공허해질 수도 없다
 - 사용자에게 보이는 변화: **있음(한 곳, 좁다)** — span-1 층에서 **부모 접미가 붙은** 책상의 상태 줄이 칸 폭에서 잘리고 마우스를 올리면 전체가 보인다. 접미가 없는 상태는 표시 그대로. **새 문구 0 · 새 요소 0 · 새 색·토큰 0 · 레이아웃 이동 0.** FR-006-AC4가 확정한 방식을 같은 컴포넌트에 적용하는 **결함 수정**이라 별도 승인 대상으로 보지 않는다(최종 판단은 팀장). 1·3·4는 사용자에게 보이는 변화 **없음**
 - 요구사항 의미 변경 여부: **없음**(예산 2000ms·측정 지점 "화면 반영" 유지, 상태 글자 문구·데이터 불변). **계약 변경 없음**(`api-spec.yaml`은 설명만, `realtime-spec.md` 무수정, `ui-spec` 데이터 출처 열 무변경)
 - 정정한 문서: `architecture.md`(ADR-50 신설 · ADR-48 C 인용 정정), `conventions.md` §7 MUST 1건 신설(책상 글자 clamp)·§7 :111 인용 정정·§8 MUST 1건 신설(FR-001-AC3 측정 규칙), `ui-spec.md` §공통 `DeskSprite` 행·SCR-02 책상 행·확정된 차이 3항·인용 3곳, `api-spec.yaml` `HookPayload.permission_mode`
@@ -932,8 +932,8 @@
 - 하지 않을 것: `--spacing-card` 등 공유 토큰 변경, DOM 텍스트 자르기(글자 수 상수), span-1에서 부모 접미 생략, 새 색·토큰·문구 신설, `docs/ui/` 수정, `showcase.jsonl` 수정, 03 `OfficeSprite` 변경(3열이라 겹침 실측 0건이고 이 태스크 범위 밖)
 - Depends on: -
 
-## T-FIX-13 도우미 `readBody` promise를 버린다는 것을 주석에 명시한다 (A-24 4②, ADR-50 D2)
-- Status: todo
+## T-FIX-13 도우미 `readBody`의 "정착 시점 vs 소켓 종료 시점" 순서 불변식을 주석에 적는다 (A-24 4②, ADR-50 D2 — 2026-10-01 전제 정정)
+- Status: **done** — 리뷰 **PASS**(`docs/reviews/T-FIX-13.md`, **Round 2**, fix 1회, Blocker 0 · Major 0 · Minor 1 → 팀장이 같은 라운드에서 닫음). Done when 3항 충족. `git diff` **+6/−0 전부 주석**(비주석 추가·삭제 0건) · helper **40 유지** · `node --check` OK · 폐기 문구 5개 **grep 0건**. **Round 1은 NEEDS_FIX(Major 1)였고 원인은 코드가 아니라 ADR-50 D2의 전제**였다(D-091) → architect가 ADR-50 D2·이 절을 정정(D-092, `CONTRACT CHANGE: no`) 후 재작성. 리뷰어가 새 주석을 **코드로 다시 판정**해 일치 확인(정착 시점 동기 실행 · `destroy()` 도달 조건 · `/open`이 400을 실제로 보내고 기존 테스트가 **raw 소켓으로** 수신을 단언 · `api-spec.yaml:466`에 400 기정의 · 기존 JSDoc과 모순 없음). Minor(가드 설명이 `'error'` 위에만 있던 것)는 문구에 `'error'`·`'end'` 두 핸들러를 명시해 닫았고 **3차 리뷰 없이 팀장 검증으로 마감**(D-080 선례)
 - Scope: Helper (주석만)
 - FR: FR-013(동작 불변), NFR-05
 - AC: 없음(기존 AC 유지)
@@ -941,11 +941,15 @@
 - Screens: -
 - Backend: 없음
 - Frontend: 없음
-- Helper: `helper/jaystudio-helper.mjs:284` 부근 — `destroy()` 뒤 `readBody` promise가 `'end'`·`'error'` 양쪽 `!tooLarge` 가드 때문에 resolve·reject 어느 쪽도 되지 않는다는 것이 **의도**임을 주석에 적는다(>1MiB에서 소켓을 끊고 응답하지 않는 경로이며 api-spec에 그 응답이 없다)
+- **전제 정정(2026-10-01, T-FIX-13 리뷰 Major)**: 이 태스크의 원래 지시("`destroy()` 뒤 promise가 resolve·reject 어느 쪽도 되지 않는다 = 의도 / 응답은 api-spec에 없다")는 **코드와 다르다**. 최초 상한 초과(4096B) 시점에 `tooLarge = true`와 `reject`가 동기적으로 함께 실행돼 promise가 **그때 정착**하고, `/open`이 그 reject를 받아 **400 `INVALID_BODY`를 이미 보낸 뒤**에야 `destroy()` 분기에 도달한다. 근거·판정 전문은 ADR-50 D2. 이미 들어간 주석 4줄(`jaystudio-helper.mjs:284-287`)은 **폐기하고 아래 내용으로 다시 쓴다**
+- Helper: `helper/jaystudio-helper.mjs` `readBody()` — 틀린 주석을 지우고 **두 자리에** 다음을 적는다(문장은 ADR-50 D2 "주석이 담아야 할 내용" 확정판을 따르고 그 밖의 내용은 넣지 않는다)
+  1. `destroy()` 분기: 여기 도달하는 것은 `tooLarge`가 이미 true가 된 뒤의 `data`뿐이고, 최초 상한 초과 시점에 promise가 `reject`로 정착해 `/open`이 **api-spec `/open`에 정의된 400 `INVALID_BODY`를 이미 보냈다** → `destroy()`는 응답 경로가 아니라 **버리는 본문이 소켓을 오래 붙잡지 못하게 하는 자원 보호 조치**다
+  2. `'error'`·`'end'`의 `!tooLarge` 가드: `tooLarge`면 promise는 **이미 정착돼 있으므로** 이 가드는 **재정착(무효 호출) 방어**이며 promise를 버리는 장치가 아니다
+  - 함수 상단 기존 JSDoc은 **옳으므로 바꾸지 않는다**
 - Done when:
   - `git diff`가 **주석 줄만**이다(실행 코드·문자열·상수 변경 0건)
   - `cd helper && npm test` 통과 수 **40 유지**
-  - 리뷰 확인 — 주석이 "promise를 버린다(resolve·reject 없음)"와 그 이유(소켓을 끊었으므로 응답하지 않는다)를 모두 적는다
+  - 리뷰 확인 — 주석이 ① promise는 **최초 상한 초과 시점에 reject로 정착하고 400 `INVALID_BODY`가 이미 나갔다** ② `!tooLarge` 가드는 **재정착 방어**다 ③ `destroy()`는 **별개의 자원 보호 조치**다 를 모두 적고, 폐기 문구("promise를 버린다 / 의도적 pending / resolve·reject 어느 쪽도 되지 않는다 / 응답을 보내지 않는다 / api-spec에 응답이 없다")가 **0건**이다
 - Depends on: -
 
 ## T-FIX-07 T-FIX-05·T-FIX-06 리뷰 Minor 묶음

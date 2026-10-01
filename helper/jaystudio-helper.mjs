@@ -281,6 +281,10 @@ function readBody(request) {
         // 남은 본문은 버린다(읽어서 흘려보내야 응답이 클라이언트에 도착한다).
         // 2차 상한을 넘으면 더 기다리지 않고 소켓을 끊는다.
         if (size > MAX_DISCARDED_BODY_BYTES) {
+          // 여기 도달하는 것은 tooLarge가 이미 true가 된 뒤의 data뿐이다. 최초 상한 초과 시점에
+          // promise는 reject로 정착했고 /open은 이미 400 INVALID_BODY를 보냈다(api-spec `/open`에
+          // 정의된 응답이다). 그래서 destroy()는 응답 경로가 아니라, 버리는 본문이 소켓을 오래
+          // 붙잡지 못하게 하는 자원 보호 조치다.
           request.destroy();
         }
         return;
@@ -293,6 +297,8 @@ function readBody(request) {
       }
       chunks.push(chunk);
     });
+    // 아래 'error'·'end' 두 핸들러의 !tooLarge 가드 — tooLarge면 promise는 이미 정착돼
+    // 있다. 이 가드는 재정착(무효 호출) 방어이며, promise를 버리는 장치가 아니다.
     request.on('error', (error) => {
       if (!tooLarge) {
         reject(error);

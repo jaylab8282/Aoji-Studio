@@ -2,7 +2,14 @@
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
 - Phase: build
-- Current: **T-FIX-11 done·커밋 · T-FIX-12 진행 중**(2026-09-29). 이번 세션 정지 지점(사용자 확정) = **A-24 확정 → 파생 수정 태스크 리뷰 PASS·커밋까지**. Integration·Final Report는 **다음 세션**
+- Current: **T-FIX-12 done·커밋(`8262129`) · T-FIX-13 done·커밋 = 이번 세션 정지 지점 달성**(2026-10-01). 이번 세션 정지 지점(사용자 확정 2026-10-01) = **T-FIX-13 구현·리뷰·커밋까지**(= 이전 세션이 정한 "A-24 파생 태스크 전부" 마감) → **달성**
+  - **A-24 파생 코드 태스크 3개(T-FIX-11·T-FIX-12·T-FIX-13) 전부 done·커밋.** A-24는 이제 완전히 닫혔다
+  - **다음 세션 시작점**: **A-25**(architect — ADR-50 A 정량 근거 재판정 + T-FIX-12 리뷰 Minor 1·2 + ADR-50 B 서술 정정) → **T-FIX-14**(Tools — `replayStep` 술어화 + T-FIX-12 리뷰 Minor 5) → **Integration**(전체 테스트·린트·빌드 + 실제 스택 기동 E2E + reviewer scope final) → **Final Report**
+  - 남은 `todo`는 **A-25 · T-FIX-14 둘뿐**이다. 사람 확인 H-1~H-5 **5/5 통과**, 남은 사람 확인 없음. Final Report에는 **실제 배포·실제 Secret 설정만** 남는다
+  - **Integration 전에 알아 둘 것**: 이번 세션은 비용 때문에 **E2E를 한 번도 돌리지 않았다**(T-FIX-12 커밋분의 E2E **107**은 이전 세션 실측치를 신뢰한 값이고, T-FIX-13은 주석뿐이라 영향 0). Integration에서 `./scripts/run-e2e.sh` 전체를 돌려 **107**을 실제로 재확인해야 한다
+  - 진입 시 상태: T-FIX-12가 **리뷰 PASS까지 끝났는데 커밋이 안 된 채** 중단돼 있었다(작업 트리 미커밋 12파일 + 신규 3경로). 팀장이 재검증(frontend **389**·replay **34**·lint·typecheck·build 통과, 기준 캡처 4장 픽셀 크기 HEAD와 동일, diff에 Backend·설계 문서·`docs/ui/`·`showcase.jsonl` 무수정) 후 커밋했다. **E2E는 이전 세션 실측(107)을 신뢰하고 재실행하지 않았다**(Docker 비용, 코드 무변경)
+  - 남은 `todo`: **T-FIX-13**(이번 세션) · **A-25**(architect) · **T-FIX-14**(Tools). 사람 확인 H-1~H-5 **5/5 통과**
+- (이전) Current: **T-FIX-11 done·커밋 · T-FIX-12 진행 중**(2026-09-29). 이번 세션 정지 지점(사용자 확정) = **A-24 확정 → 파생 수정 태스크 리뷰 PASS·커밋까지**. Integration·Final Report는 **다음 세션**
   - **E-009 해결**: A-24 1번의 부하 재현을 **하지 않는다**(사용자 결정 2026-09-29, "코드 판정만으로 진행"). D-045의 대기 항목이 닫혔고, flaky 원인은 리뷰어의 코드 판정(`e2e-04:714` 2000ms 창)을 근거로 설계한다
   - 진입 시점 상태: `todo`는 **A-24 하나**뿐(T-001~T-026·T-FIX-01~10 전부 done), 사람 확인 H-1~H-5 **5/5 통과**
 - (이전) Current: **T-FIX-04 done · 커밋 완료**(2026-09-28). 이번 세션 정지 지점 **달성**
@@ -114,6 +121,19 @@
 - 2026-09-23 사용자 지시로 보류. T-017은 시작하지 않음
 
 ## Decisions
+- D-093 **T-FIX-13 Round 2 PASS 수용. Minor(가드 설명 범위)는 보류하지 않고 같은 라운드에서 닫았다** / T-FIX-13. 리뷰어가 Minor로 내리고 "원하면 보류 가능"이라 했지만, **이 태스크의 존재 이유가 바로 그 오독**(전문가 두 명이 같은 불변식을 거꾸로 읽었다)이므로 모호함을 남기지 않았다. 같은 개발자에게 **맥락을 유지해 이어서**(SendMessage) 지시해 줄 추가 없이 문구에 `'error'`·`'end'` 두 핸들러를 명시하게 했다 — ADR-50 D2가 지정한 자리가 애초에 "`'error'`·`'end'`의 가드"이므로 **새 내용 추가가 아니라 지정 범위를 문구에 드러낸 것**이고, 그래서 architect 재확인 없이 팀장 권한으로 처리했다. 변경 규모가 주석 2줄이라 **3차 리뷰 없이 팀장 검증으로 마감**(D-080 선례)
+  - 팀장 최종 검증: `git diff -U0`의 **비주석 추가·삭제 0건**(+6/−0 전부 `//`) · helper **40 pass / 0 fail / 0 skip** · `node --check` OK · 폐기 문구 5개 **grep exit=1(0건)** · 두 주석이 코드 사실과 일치
+  - 리뷰어가 Round 2에서 **문서를 믿지 않고 코드로 재판정**한 점을 수용 근거로 본다: `/open`이 400을 실제로 보내고 기존 테스트가 **raw 소켓 레벨로** 끊기기 전 `HTTP/1.1 400`·`"code":"INVALID_BODY"` 수신을 단언하는 것까지 확인했고, `api-spec.yaml:466`에 400이 기정의임도 직접 봤다. 기존 JSDoc의 "api-spec에 **연결 종료** 응답이 없다"와 새 주석의 "**400**은 정의된 응답이다"가 **같은 층위가 아니라 모순이 아님**도 판정했다
+- D-092 **architect의 ADR-50 D2 정정 수용 — 재판정 (a)(주석 유지·내용 교체). 계약 변경 아님** / T-FIX-13, A-24, ADR-50. `CONTRACT CHANGE: no`를 팀장이 독립 확인했다: `git diff --name-only`로 `api-spec.yaml`·`realtime-spec.md`·`ui-spec.md`·`docs/ui/`·`final_requirements_*`·`requirements_*` **전부 무수정**, 변경은 `architecture.md`·`tasks.md` 둘뿐, T-FIX-13의 `Status:` 줄과 `A-25`·`T-FIX-14` 절 **무수정**(팀장 소유·다음 세션 영역을 지켰다)
+  - 정정 내용이 팀장이 코드에서 읽은 사실과 **일치**한다(정착 시점·`destroy()` 도달 조건·가드의 성격·400이 실제로 나간다·기존 JSDoc이 옳았다 6항). 폐기한 2026-09-29 원문을 **인용으로 보존**해 추적 가능하게 뒀고, 오류의 발원지(`docs/reviews/T-FIX-07.md:34`·`:48`의 전제를 코드 검증 없이 옮긴 것)와 "개발자 무책"을 ADR 본문에 명기했다
+  - **(a)를 수용한 근거**: 기존 JSDoc은 **외부 동작**(즉시 거부 / 나중 소켓 종료)만 적고 `tooLarge`가 "promise 정착 시점 vs 소켓 종료 시점"을 분리하는 **순서 불변식**은 적지 않는다. 그 공백에서 숙련된 독자 **두 명이 연달아 불변식을 거꾸로 읽었다**(T-FIX-07 리뷰어 → ADR-50 작성자) = 오독 위험이 실증됐다. architect가 "이는 위험이 아니라 가독성 근거"라고 스스로 한계를 밝힌 점도 수용 사유다. 금지 문구 5개를 명시해 같은 오독이 다시 들어올 경로를 막았다
+  - **ADR-50 나머지 항목 점검 결과 추가 오류 0건**이고, 팀장이 그중 둘을 교차 확인했다: C — `HookPayload.java` record 필드 **9개에 `permission_mode` 없음** + `frontend/src` 전체 **0건** / D1 — `docs/ui/README.md:18` 원문이 ADR 인용과 **문자 단위 일치**. D3는 architect의 코드 인용(`WorkflowsHeader.test.tsx:78-88`·`:141`)이 T-025·T-FIX-07에서 팀장이 이미 확인한 구조와 같다. **새 A-항목 0건** → A-25·T-FIX-14 범위는 그대로다
+  - ADR-50 끝에 **사후 정정 이력**이 신설됐다(A→A-25 / B→A-25 / D2→이번 / C·D1·D3 참 확인). ADR 하나가 두 번 틀린 기록이 남는다
+- D-091 **T-FIX-13 Round 1 NEEDS_FIX 수용 — 코드가 아니라 ADR-50 D2가 틀렸다. architect에 문서 정정 요청** / T-FIX-13, A-24, ADR-50. 개발자가 추가한 주석 4줄(`destroy()` 뒤 `readBody` promise가 resolve·reject 어느 쪽도 되지 않는다 / 응답을 보내지 않는다)이 **둘 다 사실이 아님**을 리뷰어가 코드·기존 테스트·api-spec으로 판정하고 **팀장이 독립 재확인**했다: `tooLarge = true`와 `reject(BODY_TOO_LARGE)`가 같은 블록에서 동기 실행되므로 `destroy()` 분기에 도달하는 시점에 promise는 **이미 reject로 정착**돼 있고, 호출부가 그 reject를 받아 **400 `INVALID_BODY`를 보내며** 기존 테스트(`helper.test.mjs:372-415`)가 >1MiB 시나리오에서 클라이언트가 그 400을 **실제로 받는다**고 단언하며 통과 중이다. `!tooLarge` 가드는 "버리는" 장치가 아니라 **재정착 방어**다. 함수 상단 기존 JSDoc은 **원래부터 옳았고** 새 주석이 그것과 모순된다
+  - **개발자 과실 아님** — T-FIX-13 지시를 충실히 옮겼다. 틀린 전제가 `docs/architecture.md` ADR-50 D2와 `docs/tasks.md` T-FIX-13 정의(`Helper:`·`Done when` ③)에 있다
+  - 처분: 주석 4줄 **커밋하지 않고 미커밋 유지** → architect에 ADR-50 D2 + tasks.md 정의 정정 요청(**계약 변경 아님**: api-spec·realtime-spec·ui-spec 무관, 요구사항 의미·사용자에게 보이는 동작 불변 → 팀장 권한). 정정된 전제로 **(a) 주석 재작성**인지 **(b) 코드 변경 0건 종결**인지는 architect 판정에 맡겼다
+  - **ADR-50의 두 번째 사실관계 오류다**(첫 번째 = A의 정량 근거, D-087 → A-25). 그래서 architect에 **C·D1·D3도 같은 종류의 오류를 들고 있는지 코드로 점검**하라고 함께 지시했다(A는 A-25 소관이라 제외)
+  - 리뷰 문서: `docs/reviews/T-FIX-13.md`. Done when ①(주석만)·②(helper 40 유지)는 **충족**, ③(주석 내용)만 불충족
 - D-090 **flaky 대처 = "덫에 걸리게 둔다"(사용자 결정 E-010, 2026-09-29)** / T-FIX-11, A-25. 팀장이 D-087의 정정된 그림(원인 미규명·재발 가능·테스트 문제인지 제품이 실제로 느렸던 것인지 미확정)을 사용자에게 **용어를 걷어내고 설명**하고 선택지 3개를 제시했다: ① 덫에 걸리게 둔다 ② 폴링 1초 → 0.5초로 여유 0.85 → 1.4초 확보 ③ 지금 부하 추적. 사용자가 **①**을 택했다.
   - 따라서 **부하 유발 실행 금지**(E-009의 "코드 판정만으로 진행"이 정정 이후에도 유지됐다), **폴링 축소도 지금은 안 한다**(ADR-04의 여지로 남겨 두고 A-25가 발동 조건만 수치로 정한다)
   - 이 결정이 성립하는 근거를 팀장이 사용자에게 함께 보고했다: ⓐ T-FIX-11이 **비용 0의 자동 진단**을 이미 깔았다(실패 문구 2종 분리 + 통과 시에도 매번 실측 ms) ⓑ 이후 4회 이상 전부 통과해 재현 가능성이 낮다 ⓒ 실패는 **도커 9배치 연속 실행이라는 테스트 환경 부하**에서 났고 실사용(맥북·컨테이너 1개·사용자 1명)은 그 경쟁 상태가 아니다
@@ -525,4 +545,21 @@
   - `isolation.spec.ts`에 **"목록 완전성" 테스트**가 생겨 하네스 파일이 조용히 목록에서 빠지는 경로가 사라졌다(리뷰어가 같은 규칙으로 직접 트리를 훑어 11개 일치 확인)
   - Helper 포트 선점 확인이 **bootstrap 전**에 들어가 재시작 루프가 시작되지도 않는다. 기존 성공 경로 테스트를 실제 launchd 순서로 바로잡은 것이 부수 수확(그 스텁이 원래 **결함 시나리오와 구분 불가**였다)
 - 2026-09-28 **이번 세션 종료.** 정지 지점(T-FIX-07 리뷰) 달성. 다음 작업 시작점은 **A-24 → Integration → Final Report**
-
+- 2026-09-29 **T-FIX-11 done·커밋**(`f2c9449`). A-24 1 / ADR-50 A. `measureFileChangeReflection`을 술어 폴링으로 바꾸고 관측 격자 `REFLECTION_POLL_INTERVAL_MS = 25`·진단 상한 `REFLECTION_DIAGNOSTIC_TIMEOUT_MS = 10_000` 신설. `FILE_CHANGE_DEADLINE_MS = 2000` 단언·`retries: 0` 그대로. 실패 문구를 "아예 미반영"과 "2000ms 초과"로 분리하고 통과 시에도 실측 ms를 남긴다 → 리뷰 PASS(Round 1, Blocker·Major·Minor 0). 실측 기준선은 D-088, 리뷰가 ADR-50 A의 정량 근거를 무너뜨린 건은 D-087 → **A-25 신설**, 범위 밖 B는 **T-FIX-14**(D-089)
+- 2026-10-01 **세션 재개.** 중단 시점 복구: T-FIX-12가 리뷰 PASS·미커밋 상태였다 → 팀장 재검증 후 **커밋 `8262129`**. 사용자가 이번 세션 정지 지점을 **T-FIX-13까지**로 확정
+- 2026-10-01 **T-FIX-12 done·커밋**(`8262129`). A-24 2 / ADR-50 B. `DeskSprite` 루트 `w-fit` → `w-full min-w-0`, 이름 칩·상태 글자에 각각 CSS 한 줄 clamp, 부모 접미가 있는 상태 줄은 네이티브 `title`로 전체 문구(DOM 텍스트 불변). `Floor` 책상 칸 `<button>`에 `w-full min-w-0`. 새 재생 `span1-status-clamp.jsonl`로 span-1 4열 인접 두 책상에 부모 접미를 **실제로** 놓고 `e2e-13`이 겹침 0·글자 폭 ≤ 열 폭을 실측 단언 → **투영 → 실측 전환 성립**
+  - 리뷰 **PASS**(`docs/reviews/T-FIX-12.md`, Round 1, fix 0회, Blocker 0 · Major 0 · Minor 5(전부 문서·기록 성격) · NEEDS CONFIRMATION 3). 리뷰어가 테스트 코드가 아니라 **그 실행이 남긴 캡처 PNG를 직접 픽셀 측정**해 교차 확인(상태 글자 64px ≤ 열 폭 75px, 사이 12px, 겹침 0, 13자 라벨도 동일)
+  - 최우선 쟁점(개발자 자기보고 = 팀장 배지 −36px 이동)은 리뷰어 픽셀 실측으로 **기준 쪽으로 붙은 것**임이 확인됐다(카드1 기준 −36 / 변경 전 −6 / 변경 후 **−36**). 배지가 더 이상 글자 폭에 흔들리지 않고 **칸 왼쪽 기준 0px**이 돼 기준 PNG의 배치 모델과 같아졌다 → Major 아님. 다만 ADR-50 B의 "레이아웃 이동 0건" 서술이 사실과 달라 **A-25로 문서 정정 이관**(Minor 2)
+  - 수치: frontend 384 → **389** · replay 31 → **34** · E2E 106 → **107**, lint·typecheck·build 통과, 삭제·skip·약화 **0**. 기준 캡처 4장 픽셀 크기 불변, `showcase.jsonl`·`docs/ui/`·Backend·설계 문서 무수정
+  - 리뷰 Minor 이관: **1·2 → A-25**(architect) · **5 → T-FIX-14**(Tools)
+- 2026-10-01 **T-FIX-13 시작**(Scope: Helper, 주석만). ADR-50 D2 — `readBody()`의 2차 상한 `destroy()` 뒤 promise가 resolve·reject 어느 쪽도 되지 않는 것이 **의도**임을 주석에 명시한다(소켓을 끊었으므로 응답하지 않고, api-spec `/open`에 그 응답이 없다). `git diff`가 주석 줄만이어야 하고 helper 테스트 **40 유지**가 조건
+  - **⚠ 이 줄이 인용한 지시(ADR-50 D2 원문)는 틀렸다 — 2026-10-01 정정됨(D-091·D-092).** 실제로는 최초 상한 초과(4096B) 시점에 promise가 reject로 정착하고 `/open`이 400 `INVALID_BODY`를 이미 보낸 뒤에 `destroy()`에 도달한다. 당시 지시를 그대로 남기되 틀렸음을 여기 표시한다(추적용)
+- 2026-10-01 **T-FIX-13 Round 1 리뷰 NEEDS_FIX**(`docs/reviews/T-FIX-13.md`, Blocker 0 · **Major 1** · Minor 0). 주석 4줄이 코드 동작과 다르다 → 원인은 **ADR-50 D2의 전제**(D-091). 팀장 검증: diff가 주석 줄만(비주석 추가·삭제 0건) · helper **40 유지** · `node --check` OK · api-spec `/open` 응답은 `204/400/403/415/500`로 연결 종료 응답 없음(주석의 근거 주장은 맞지만 **이 경로엔 불필요한 전제**)
+- 2026-10-01 **architect에 ADR-50 D2 정정 요청**(fix round 1). 범위: `docs/architecture.md` ADR-50 D2 + `docs/tasks.md` T-FIX-13 정의((a) 주석 재작성 / (b) 코드 변경 0건 종결 중 판정) + ADR-50 **C·D1·D3**의 코드 의존 주장 점검. 제약: 계약 변경 금지(api-spec·realtime-spec·ui-spec 무수정), 코드·테스트 무수정, `A-25`·`T-FIX-14` 절 무수정, T-FIX-13의 `Status:` 줄은 팀장 소유
+- 2026-10-01 **architect ADR-50 D2 정정 완료**(`CONTRACT CHANGE: no`, 사용자 승인 필요 0건, 신설 문구 0건). 판정 **(a)** = 주석은 유지하고 내용만 교체. 변경 문서 2건(`architecture.md` ADR-50 D2 전면 재작성 + 사후 정정 이력 신설 / `tasks.md` T-FIX-13 제목·`전제 정정` 항·`Helper:`·`Done when` ③ 교체 + A-24 4② 폐기 표시). 상세 수용 근거는 D-092
+- 2026-10-01 **T-FIX-13 fix round 1 착수**(backend-developer). 틀린 주석 4줄 폐기 → ADR-50 D2 확정 문장으로 두 자리(`destroy()` 분기 · `'error'`·`'end'` 가드)에 재작성. 금지 문구 5개 0건 + `git diff` 주석 줄만 + helper **40 유지**가 조건
+- 2026-10-01 **T-FIX-13 fix round 1 결과 → Round 2 리뷰 PASS**(`docs/reviews/T-FIX-13.md` Round 2, Blocker 0 · Major 0 · Minor 1). Round 1 Major(주석이 코드와 다름)가 닫혔음을 리뷰어가 **코드로 재판정**해 확인
+- 2026-10-01 **T-FIX-13 done·커밋.** Minor 1건(가드 설명이 `'error'` 위에만 있던 것)은 같은 개발자에게 이어서 지시해 문구에 두 핸들러를 명시하고 **팀장 검증으로 마감**(D-093). 최종: `git diff` +6/−0 전부 주석 · helper **40 유지** · 폐기 문구 0건 · 실행 코드 변경 0건
+- 2026-10-01 **이번 세션 정지 지점 달성.** T-FIX-12 커밋 + T-FIX-13 구현·리뷰·커밋 완료 → **A-24 파생 코드 태스크 3개(T-FIX-11·T-FIX-12·T-FIX-13) 전부 done**. 남은 `todo`는 **A-25 · T-FIX-14**뿐이고 다음 세션은 거기서 시작해 **Integration → Final Report**로 간다
+  - 이번 세션에 **E2E·Docker는 한 번도 실행하지 않았다**(변경이 프론트 clamp 커밋분 재검증 + helper 주석뿐이라 비용 대비 효용이 없었다). Integration에서 `./scripts/run-e2e.sh` 전체로 **107**을 실제 재확인하는 것이 남은 숙제다
+  - 서브에이전트 5회 실행(backend-developer 2 + reviewer 2 + architect 1), 백그라운드 프로세스 0개, 정리 대상 PID 없음
