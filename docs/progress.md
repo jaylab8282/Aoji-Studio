@@ -1,8 +1,12 @@
 # Progress
 - Project: Jay_Studio
 - Approved Versions: function v1, architecture v1
-- Phase: build
-- Current: **A-25 done·커밋(`99d67d5`) · T-FIX-14 done·커밋 = 이번 세션 정지 지점 달성**(2026-10-01). **tasks.md의 `todo`가 0이 됐다**
+- Phase: integration
+- Current: **Integration 진행 중**(2026-10-01). **정지 지점(사용자 확정) = Integration → Final Report까지 = 프로젝트 마감**
+  - 진입 조건 충족: tasks.md `todo`·`in_progress`·`blocked` **0건**, 작업 트리 깨끗, 사람 확인 H-1~H-5 **5/5 통과**
+  - 순서: ① 전체 테스트·린트·빌드(팀장 직접) ② 실제 스택 기동 + 전체 E2E(107) + 가짜 구현이 architecture.md 허용 범위인지 확인 ③ `reviewer` **scope final** ④ Final Report
+  - **M·ADR-51 §4 구간 판정은 하지 않는다**(사용자 결정 D-096 — conventions §8 MUST ⑤ 휴면). F1·F2 실패가 실제로 나야 판정표를 돌린다
+- (앞선 Current) **A-25 done·커밋(`99d67d5`) · T-FIX-14 done·커밋 = 정지 지점 달성**(2026-10-01). **tasks.md의 `todo`가 0이 됐다**
   - **다음 세션 시작점 = Integration** → Final Report. 남은 태스크 없음, 사람 확인 H-1~H-5 **5/5 통과**
   - Integration에서 할 일: 전체 테스트·린트·빌드 + 실제 스택 기동 E2E + `reviewer` **scope final**. **M·ADR-51 §4 구간 판정은 하지 않는다**(사용자 결정 D-096 — conventions §8 MUST ⑤ 휴면). F1·F2 실패가 실제로 나면 그때만 판정표를 돌린다
   - Final Report에 남을 사람 확인: **실제 배포·실제 Secret 설정만**. 그리고 **ADR-51 §4 휴면 상태**를 적는다
@@ -627,3 +631,13 @@
 - 2026-10-01 **이번 세션 정지 지점 달성(A-25 → T-FIX-14).** tasks.md `todo` **0건**, `in_progress`·`blocked` **0건**. 다음 세션은 **Integration → Final Report**
   - 이번 세션 서브에이전트 10회 실행(backend-developer 2 · frontend-developer 1(+이어서 2회) · reviewer 3 · architect 3). 커밋 4개: `8262129`(T-FIX-12) · `26d0d9b`(T-FIX-13) · `99d67d5`(A-25/ADR-51) · T-FIX-14
   - **사용자에게 남는 환경 사항 1건**: 개발자가 Docker Desktop을 띄운 뒤 **계속 켜져 있다**(끄는 것도 환경 조작이라 팀장이 임의로 하지 않았다). 사용자 처분 대기
+- 2026-10-01 **Integration — 팀장이 직접 실행한 전체 검증**(모두 통과)
+  - 유닛 **742** = backend **279**(`cleanTest test`로 캐시 무효화 후 실제 실행, failures·errors·skipped 0) · frontend **389**(65 files) · helper **40** · replay **34**. 실패·스킵 **0건**
+  - `npm run lint`·`npm run typecheck`·`npm run build`(frontend) · `./gradlew build -x test`(backend) 전부 통과
+  - **전체 E2E `./scripts/run-e2e.sh` → 9배치 전부 PASS · 합계 107 passed · exit 0 · failed·skipped·flaky 0건.** 배치별 48·16·4·3·9·12·1·7·7 = **107**로 기준선과 정확히 일치
+    - 배치 1·3·4의 통과 수는 `isolation.spec.ts`가 파일마다 테스트를 생성해 **정적 집계가 불가**하다(정적 `test(` 합계는 87). 그래서 **로그를 남기며 한 번 더 실행**해 배치별 수치를 확정했다(두 번 연속 전 배치 PASS = 안정성도 함께 확인)
+  - **가짜 구현 범위 확인**: 제품 코드(`backend/src/main`·`frontend/src` 테스트 제외·`helper/`)에 TODO·FIXME·stub·목·하드코딩 가짜 데이터 **0건**. 매칭된 것은 전부 `.test.*` 파일이거나 "테스트가 이 빈을 `@MockitoBean`으로 교체한다"는 **javadoc 설명**이었다. 허용된 가짜는 **dry-run 도우미(E2E 전용)와 단위 테스트의 `openTerminal` 주입**뿐이고 `architecture.md:288`·`:331`이 명시한 범위다
+  - 운영 `docker compose config` 파싱 OK
+  - **운영 compose를 실제 `JayStudio` 폴더에 붙여 기동하지는 않았다** — 그 경로는 **사람 확인 H-1~H-5가 이미 덮었고**(사용자가 실제 스택을 띄워 hook 전이·터미널 열기·외부 접속 차단을 확인했다), 자동 구간에서 실제 `.claude`·`.jaystudio`를 건드리지 않는다는 `CLAUDE.md` 절대 제약과 충돌할 수 있어 재기동하지 않았다. E2E는 **같은 Dockerfile로 빌드한 실제 컨테이너**를 fixture에 붙여 돌았다
+  - 자원: 실행 후 컨테이너 0개·포트 4185·4191·4192 선점 0건. Docker Desktop은 팀장이 기동(사용자에게 사전 고지), 4181 사용자 도우미 미접촉
+- 2026-10-01 **`reviewer` scope final 실행.** 중점: ① AC·E ID 추적(미검증 항목이 있으면 Blocker·Major) ② api-spec·realtime-spec 계약 일치 ③ architecture·conventions MUST 준수(보안·Secret 포함) ④ 미완성 코드 ⑤ ui-spec 일치 ⑥ **성능·측정은 판정 대상에서 제외**(D-096) ⑦ Final Report 재료(남은 사람 확인 항목·열려 있는 Minor 전수·실행 방법 문서 일치)
