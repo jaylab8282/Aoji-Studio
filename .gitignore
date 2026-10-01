@@ -37,3 +37,10 @@ tools/replay/node_modules/
 .idea/
 .vscode/
 *.iml
+
+# 설계·진행 문서 (사용자 결정 2026-10-01 — 저장소에 올리지 않는다)
+# 파일은 로컬에 그대로 둔다. 요구사항·설계·태스크·결정 이력·리뷰 38건이 여기 있고
+# develop-tech-lead는 docs/progress.md·docs/tasks.md로 작업을 재개한다.
+# 주의: tools/e2e/tests/e2e-13.spec.ts가 docs/ui/screens/*.png을 기준 이미지로 읽는다
+#       → 이 폴더가 없는 곳에서 클론하면 E2E 배치 8(7개)이 실패한다(107 → 100).
+docs/
