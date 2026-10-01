@@ -141,7 +141,10 @@ export function Floor({ workflow, registryAgents, live, writable, matchedAgentNa
                 key={name}
                 type="button"
                 // 부류 ①(ADR-46 A): hover 값은 그대로 두고 키보드 포커스에도 같은 표현을 준다(NFR-12, ui-rules 8).
-                className="rounded-control p-1 hover:bg-selected focus-visible:bg-selected"
+                // `w-full min-w-0`은 칸 폭을 `DeskSprite`의 글자 clamp 기준으로 내려준다(ADR-50 B,
+                // conventions.md §7 MUST). `justify-items-center` + `items-center`가 그대로라 스프라이트
+                // 좌우 위치는 변하지 않는다.
+                className="w-full min-w-0 rounded-control p-1 hover:bg-selected focus-visible:bg-selected"
                 onClick={() =>
                   navigate(`/workflows/${encodeURIComponent(workflow.name)}?agent=${encodeURIComponent(name)}`)
                 }

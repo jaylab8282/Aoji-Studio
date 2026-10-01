@@ -1,0 +1,8 @@
+{"session_id":"sess-span1-parent","cwd":"/workspace/JayStudio","hook_event_name":"SessionStart","agent_type":"video-lead","permission_mode":"default","source":"startup"}
+{"session_id":"sess-span1-parent","cwd":"/workspace/JayStudio","hook_event_name":"SubagentStart","agent_id":"sub-span1-video-02","agent_type":"video-02","permission_mode":"default"}
+{"session_id":"sess-span1-parent","cwd":"/workspace/JayStudio","hook_event_name":"SubagentStart","agent_id":"sub-span1-video-03","agent_type":"video-03","permission_mode":"default"}
+{"session_id":"sess-span1-parent","cwd":"/workspace/JayStudio","hook_event_name":"SubagentStop","agent_id":"sub-span1-video-02","agent_type":"video-02","permission_mode":"default"}
+{"session_id":"sess-span1-parent","cwd":"/workspace/JayStudio","hook_event_name":"SubagentStop","agent_id":"sub-span1-video-03","agent_type":"video-03","permission_mode":"default"}
+{"session_id":"sess-span1-long","cwd":"/workspace/JayStudio","hook_event_name":"SessionStart","agent_type":"vid-parentxyz","permission_mode":"default","source":"startup"}
+{"session_id":"sess-span1-long","cwd":"/workspace/JayStudio","hook_event_name":"SubagentStart","agent_id":"sub-span1-long-video-02","agent_type":"video-02","permission_mode":"default"}
+{"session_id":"sess-span1-long","cwd":"/workspace/JayStudio","hook_event_name":"SubagentStart","agent_id":"sub-span1-long-video-03","agent_type":"video-03","permission_mode":"default"}

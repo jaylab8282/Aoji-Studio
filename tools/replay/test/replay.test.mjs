@@ -50,7 +50,7 @@ function makeTempScenario(lines) {
 // FR-003-AC9: 시나리오 파일 내용 검증
 // ---------------------------------------------------------------------------
 
-for (const fileName of ["states.jsonl", "showcase.jsonl"]) {
+for (const fileName of ["states.jsonl", "showcase.jsonl", "span1-status-clamp.jsonl"]) {
   test(`[FR-003-AC9] ${fileName}의 hook_event_name이 12종 안에만 있음`, () => {
     const events = readJsonl(fileName);
     assert.ok(events.length > 0, `${fileName}에 이벤트가 있어야 한다`);

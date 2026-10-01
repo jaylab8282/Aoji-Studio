@@ -787,7 +787,10 @@
      - 부하 유발 실행 **금지**. 원인은 T-FIX-11이 깔아 둔 자동 진단(실패 문구 2종 분리 + 통과 시에도 매번 실측 ms 기록)으로 **재발 시 규명**한다
      - **폴링 간격 0.5초 축소도 지금은 하지 않는다**(선택지로 제시했으나 사용자가 고르지 않았다). ADR-04이 남긴 여지로 **남겨 두고**, 어떤 실측값이 나오면 그 카드를 쓸지 **발동 조건만 수치로 확정**해라(위 2번)
      - Final Report 문구도 이 결정에 맞춰라: "**1회 실패 관측 · 원인 미규명 · 재발 시 자동 진단**"으로 적고 "flaky 해결됨"으로 적지 않는다
-- 하지 말 것: `docs/requirements_*`·`final_requirements_*`·`docs/ui/` 수정, 코드 수정, T-FIX-11 되돌리기, FR-001-AC3 예산·측정 지점 변경(그건 요구사항 변경이다)
+  4. **[T-FIX-12 리뷰 Minor 1] ADR-50 B의 "21.83px 글자-위-글자 가림"도 투영이었다 — 정정해라.** 리뷰어가 CSS 의미로 독립 검증했다: 변경 전 루트는 `w-fit`이고 상태 줄에 `nowrap`이 없었으며 상태 문구에는 **공백이 있어** min-content = 가장 긴 낱말(≤ 66.8px)이었다 → `fit-content`가 칸 폭으로 줄고 **글자가 두 줄로 접혔다**(가로 가림은 발현된 적 없다). 같은 산술에서 **이름 칩**은 공백이 없어 min-content = 81.91px이라 13자 이름일 때 **실제로 칸 밖으로 번졌다**(T-024 m6이 잰 현상). 즉 **"번짐"은 이름 칩에서, "접힘"은 상태 줄에서** 일어났다. 정정 대상: `architecture.md` ADR-50 B 배경 · `ui-spec.md:274` 확정된 차이 3항 · `conventions.md` §7 MUST 이유 · `tasks.md` T-FIX-12 배경. **처방(clamp + `title`)과 결론은 유지한다** — ① 두 줄 접힘은 행 리듬을 깨는 배치 차이 ② 이름 칩 번짐은 실재 ③ 부모 라벨의 낱말 하나가 칸 폭을 넘으면 가림도 실제 발생
+  5. **[T-FIX-12 리뷰 Minor 2] ADR-50 B의 "레이아웃 이동 0건 / 가시 변화 한 곳" 서술을 실측으로 갱신해라.** 루트가 `w-fit` → `w-full`이 되면서 **팀장 배지 기준이 책상 상판 → 그리드 칸 왼쪽으로 바뀌어 이동**했다(실측 span-3 30px · span-1 8.2px 왼쪽). **되돌리지 않는다** — 기준 PNG 대조가 오히려 개선됐다(카드1 −36px로 기준과 **완전 일치**, 카드2·3은 차 11px·5px → 3px, 세 카드 모두 배지 왼쪽 = 칸 왼쪽 끝 0px로 고정돼 더 이상 글자 폭에 흔들리지 않는다). 가시 변화 목록에 **배지 앵커 변경**과 **hover·focus 배경 면적이 칸 전체로 넓어짐**(클래스·색 불변)을 추가해라
+  6. **[T-FIX-12 리뷰 Suggestion 2]** `conventions.md` §7 MUST의 "그 요소 자신"에 ADR-50 B 본문의 한정("**칸 폭을 받는** 그 요소")을 옮겨 적어라 — inline 래퍼(`Tooltip`의 `<span>`) 때문에 줄 블록에 clamp를 걸어야 했던 이번 해석 논쟁이 사라진다(리뷰어가 CSS 명세로 타당 판정했다: non-replaced inline 박스에는 `overflow`가 적용되지 않는다)
+- 하지 말 것: `docs/requirements_*`·`final_requirements_*`·`docs/ui/` 수정, 코드 수정, T-FIX-11·T-FIX-12 되돌리기, FR-001-AC3 예산·측정 지점 변경(그건 요구사항 변경이다), ADR-50 B의 처방(clamp + `title`) 변경
 - Depends on: -
 
 ## T-FIX-14 `replayStep`도 같은 술어 형태로 바꾼다 (T-FIX-11 리뷰 범위 밖 B)
@@ -806,7 +809,8 @@
   - `FR-004-AC6 반영 시간` annotation의 실측 ms가 `--reporter=list` 출력에 남고(T-FIX-11이 쓴 `logMeasurement` 형식과 같게), **28단계 실측 ms를 보고에 그대로 적는다**(FR-004-AC6 기준선 신설)
   - `STATE_REFLECT_DEADLINE_MS` 값 **불변**, `retries: 0` 유지, 기존 테스트 삭제·skip·기대값 약화 **0건**, 테스트 개수 `e2e-04` 8개 유지
   - 배치 5 단독 1회 + 전체 `./scripts/run-e2e.sh` 1회 통과, 통과 수 **106 유지**
-- 하지 않을 것: 예산 증액, `retries` 도입, 렌더 대기를 예산에서 떼기, 제품 코드·`docs/` 수정, 부하 재현 실행
+  - **[T-FIX-12 리뷰 Minor 5 — 곁다리로 함께 처리]** `tools/e2e/tests/e2e-13.spec.ts:92`의 `REVIEW_SCREENSHOT_DIR`가 `docs/reviews/screens/T-FIX-12`로 **태스크 ID가 하드코딩**돼 있어 T-FIX-12가 끝난 뒤에도 매 실행이 그 폴더를 다시 쓴다. 상수 이름·경로를 태스크 중립(`02-span1-clamp`)으로 바꾸거나 산출물을 `tools/e2e/screenshots/`로 옮겨라. 규칙 위반은 아니므로 **동작·단언 변경 0건**이어야 한다
+- 하지 않을 것: 예산 증액, `retries` 도입, 렌더 대기를 예산에서 떼기, 제품 코드·`docs/` 설계 문서 수정, 부하 재현 실행
 - Depends on: -
 
 ## T-FIX-08 07의 04-5에서 `설정 열기` 미표시 (ADR-42)
@@ -899,7 +903,7 @@
 - Depends on: -
 
 ## T-FIX-12 02 책상 이름·상태 글자를 칸 폭에서 자르고, span-1 부모 접미 겹침을 실측으로 검증한다 (A-24 2, ADR-50 B)
-- Status: in_progress (2026-09-29)
+- Status: **done** — 리뷰 **PASS**(`docs/reviews/T-FIX-12.md`, Round 1, Blocker 0 · Major 0 · Minor 5(전부 문서·기록 성격)). Done when 10항 충족. frontend **389**(384 → +5) · replay **34**(31 → +3) · E2E **107**(106 → +1), lint·typecheck·build 통과, 삭제·skip·약화 0. **투영 → 실측 전환 성립**: 새 재생 `span1-status-clamp.jsonl`이 span-1 4열 인접 두 열에 부모 접미 책상을 실제로 놓았고, 리뷰어가 **그 실행이 남긴 캡처를 직접 픽셀 측정**해 교차 확인(상태 글자 64px ≤ 열 폭 75px, 사이 12px, **겹침 0**, 13자 라벨도 동일). 검출력 양방향 확인. **Minor 1·2는 A-25(architect)로, Minor 5는 T-FIX-14(Tools)로 이관**
 - Scope: Frontend + Tools
 - FR: FR-006-AC10, FR-006-AC4(확정된 긴 글자 처리 방식을 상태 줄에 적용), FR-006-AC1·AC3(문구·데이터 불변)
 - AC: FR-006-AC10, FR-006-AC4

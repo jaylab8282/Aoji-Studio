@@ -82,6 +82,29 @@ JSONL 파일은 JSON 표준상 줄 안에 주석을 넣을 수 없다. 이 문�
 - `dev-team`은 `dev-lead` + `dev-02`~`dev-08`(7명)으로 인원 8명 — FR-006-AC2 "인원 7 이상 →
   span 3" 층 카드 시연.
 
+## span1-status-clamp.jsonl — 02 span-1 열 상태 줄 clamp 실측용 (`project-showcase`와 짝, ADR-50 B)
+
+`showcase.jsonl`이 만드는 상태에는 **span-1 층(4열)에 부모 접미(`· 부모 <라벨>`)가 붙은 책상이
+나란히 두 개 있는 경우가 없다**(그래서 T-024까지의 겹침 실측은 0건이었고 가림 여부는 투영값으로만
+남았다 — D-083). 이 시나리오는 가장 좁은 열에 그 상태를 **실제로** 만들어 `e2e-13`이 clamp 결과를
+실측으로 단언하게 한다(T-FIX-12). `showcase.jsonl`은 22줄 대응표·줄 수 단언·기준 캡처가 걸려 있어
+고치지 않고 이 파일을 따로 둔다.
+
+| 줄 | 이벤트 | 대상 | 화면 대응 |
+|---|---|---|---|
+| 1 | SessionStart | sess-span1-parent (agent_type=video-lead) | 부모 세션 = 정의 있는 팀장 `video-lead`(10자 라벨). 02 video-team 팀장 책상 `대기` |
+| 2 | SubagentStart(agent_type=video-02, 정의 있음) | sess-span1-parent | video-team 2번째 열 책상 → `작업 중 · 부모 video-lead` |
+| 3 | SubagentStart(agent_type=video-03, 정의 있음) | sess-span1-parent | video-team 3번째 열 책상 → `작업 중 · 부모 video-lead`. **2·3줄로 span-1 인접 두 열에 접미가 붙은 책상이 나란히 생긴다**(실측 ①~④) |
+| 4~5 | SubagentStop | sub-span1-video-02 · sub-span1-video-03 | 위 두 서브 레코드 제거(AC2 표 11행) — 13자 라벨 측정 전에 부모가 겹치지 않게 비운다 |
+| 6 | SessionStart | sess-span1-long (agent_type=vid-parentxyz) | 부모 세션 = **13자 이름** 에이전트. `e2e-13`이 같은 이름의 정의 파일을 video-team에 임시로 만들고 측정 후 지운다 |
+| 7~8 | SubagentStart(agent_type=video-02 · video-03) | sess-span1-long | 같은 두 책상 → `작업 중 · 부모 vid-parentxyz`(라벨 13자). 5명이 되어 열 순서는 `video-lead · vid-parentxyz · video-02 · video-03` + 다음 줄 `video-04`이므로 두 책상은 여전히 첫 줄 인접 열이다(실측 ⑤) |
+
+- 이 시나리오는 `e2e-13`이 **기준 캡처(01·02·03)와 기존 단언을 모두 끝낸 뒤** 1~3줄 → 4~8줄 순서로
+  나눠 재생한다. 캡처 상태를 바꾸지 않으려고 순서를 그렇게 고정했다.
+- `vid-parentxyz`(13자)는 FR-006-AC4 경계(12자 초과 → 12자 + `…`)를 넘는 이름이고, 부모 접미는
+  잘리지 않으므로 상태 줄이 가장 길어지는 경우다. 이름 그대로 `e2e-13`이 정의 파일을 만들어 넣으므로
+  fixture 원본(`tools/fixtures/project-showcase`)은 수정하지 않는다.
+
 ## fixture의 `.claude/settings.json`은 E2E에서 그대로 쓰면 `hook 설정 안 됨`이다 (D-052)
 
 `tools/fixtures/project-configured`·`project-showcase`의 `.claude/settings.json`은 hook url을

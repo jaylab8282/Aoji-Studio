@@ -115,6 +115,21 @@ describe("Floor", () => {
     expect(classes).not.toContain("hover:bg-soft");
   });
 
+  it("[ADR-50 B] 책상 칸 <button>이 w-full min-w-0이고 hover:bg-selected·focus-visible:bg-selected는 그대로다", () => {
+    renderFloor({});
+
+    const desk = screen.getByRole("button", { name: /dev-lead/ });
+    const classes = desk.className.split(/\s+/).filter(Boolean);
+    // 칸 폭을 받아야 `DeskSprite`의 글자 clamp 기준 폭이 생긴다(conventions.md §7 MUST).
+    expect(classes).toContain("w-full");
+    expect(classes).toContain("min-w-0");
+    // hover·focus 표현은 그대로다(ADR-46 A 회귀 0).
+    expect(classes).toContain("hover:bg-selected");
+    expect(classes).toContain("focus-visible:bg-selected");
+    // 칸 안 가운데 정렬도 그대로다 — 스프라이트 좌우 위치가 변하지 않는 근거다.
+    expect(desk.parentElement?.className).toContain("justify-items-center");
+  });
+
   it("[FR-006-AC5] 모두 대기 → '모두 대기'", () => {
     renderFloor({});
     expect(screen.getByText("모두 대기")).toBeInTheDocument();
