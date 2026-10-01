@@ -1,0 +1,39 @@
+# 환경 변수·토큰 (conventions.md §1)
+.env
+*-token
+
+# Backend (Gradle)
+backend/build/
+backend/.gradle/
+backend/src/main/resources/static/
+
+# Frontend (Vite)
+**/node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# Helper
+helper/node_modules/
+
+# Tools / E2E
+tools/e2e/test-results/
+tools/e2e/playwright-report/
+tools/e2e/node_modules/
+tools/e2e/.e2e-state.json
+tools/e2e/.helper-dry-run.log
+tools/e2e/.other-origin-server.log
+!tools/e2e/screenshots/*.png
+tools/replay/node_modules/
+
+# SQLite
+*.db
+*.db-wal
+*.db-shm
+*.db.corrupt-*
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.iml
