@@ -37,8 +37,8 @@ Docker 컨테이너로 돌리는 **개인용 Claude Code 에이전트 관제 웹
 필수 1) 관제폴더 지정 및 .env 셋업
 현재 .claude가 있는 작업폴더에 깃 클론 합니다.
 .env.example에 아래 내용을 수정하여 .env로 파일 이름을 변경한다.
-## .env의 JAYSTUDIO_HOST_PATH=<JayStudio 폴더 절대 경로> 를 채운다.
-## 윈도우(x86_64) 머신이면 .env에서 JAYSTUDIO_PLATFORM=linux/amd64 주석도 푼다. (맥북이면 패스)
+> .env의 JAYSTUDIO_HOST_PATH=<JayStudio 폴더 절대 경로> 를 채운다.
+>  윈도우(x86_64) 머신이면 .env에서 JAYSTUDIO_PLATFORM=linux/amd64 주석도 푼다. (맥북이면 패스)
 
 ```bash
 cp .env.example .env
