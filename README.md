@@ -9,7 +9,7 @@
 
 ### 지원 환경
 |✅| **macOS** (Apple Silicon) <br> 
-|✅| **Windows** (x86_64) | ✅ `.env`에 `JAYSTUDIO_PLATFORM=linux/amd64` 주석해제<br>
+|✅| **Windows** (x86_64) | ✅ `.env`에 `JAYSTUDIO_PLATFORM=linux/amd64` 주석해제(윈도우일 경우)<br>
 웹 본체는 전부 컨테이너 안에 있어 OS를 타지 않는다. 이미지 아키텍처만 `.env`에서 맞추면 된다.
 
 
