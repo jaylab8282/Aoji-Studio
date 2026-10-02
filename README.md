@@ -8,8 +8,8 @@
 다음 버전에 반영 예정입니다. 
 
 ### 지원 환경
-| **macOS** (Apple Silicon) | ✅ | ✅ |
-| **Windows** (x86_64) | ✅ `.env`에 `JAYSTUDIO_PLATFORM=linux/amd64` 주석해제
+|✅| **macOS** (Apple Silicon) <br> 
+|✅| **Windows** (x86_64) | ✅ `.env`에 `JAYSTUDIO_PLATFORM=linux/amd64` 주석해제<br>
 웹 본체는 전부 컨테이너 안에 있어 OS를 타지 않는다. 이미지 아키텍처만 `.env`에서 맞추면 된다.
 
 
@@ -54,8 +54,8 @@ docker compose up -d --build
 
 
 필수 3) Hook 설정 
-https://l27.0.0.1:4180 접속
-실시간 에이전트 관제에 필요한 것으로, 
+https://l27.0.0.1:4180 접속 <br>
+실시간 에이전트 관제에 필요한 것으로, <br>
 hook 설정은 브라우저의 설정 탭 예시를 사용자가 복사해 파일을 만든다.
 
 
@@ -66,10 +66,10 @@ hook 설정은 브라우저의 설정 탭 예시를 사용자가 복사해 파�
 cd helper
 ./install.sh --project-dir /Users/<사용자>/Desktop/JayStudio
 ```
-첫 열기에서 macOS 자동화 권한 대화상자가 한 번 뜬다 — **허용**해야 동작한다.
+첫 열기에서 macOS 자동화 권한 대화상자가 한 번 뜬다 — **허용**해야 동작한다. <br>
 제거는 `./uninstall.sh`.
 
-> 되돌리는 방법, 예행 연습(`--dry-run`), 설치 확인 명령, 실패했을 때의 화면, 토큰 파일 취급은
+> 되돌리는 방법, 예행 연습(`--dry-run`), 설치 확인 명령, 실패했을 때의 화면, 토큰 파일 취급은 <br>
 > **[Detail_Readme.md](Detail_Readme.md)**에 있다. 처음 설치한다면 그쪽을 보고 하는 편이 안전하다.
 
 
