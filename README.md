@@ -96,9 +96,9 @@ cd helper
 `run-e2e.sh`는 fixture 복사 → 컨테이너 기동 → dry-run 도우미(4191)·다른 Origin 서버(4192) 준비 →
 실행 → 정리까지 스스로 한다. 사전 준비 명령은 없다. 공개 포트는 `127.0.0.1:4185`다.
 
-##########################################################
+
 ## 4. 저장소 구조
-##########################################################
+
 ```text
 backend/    Spring Boot 4.1.x · Java 25 · Gradle Kotlin DSL
 frontend/   React 19.3 · TS · Vite 8 · Tailwind 4.3 · React Router v7
