@@ -49,8 +49,9 @@ nano .env
 ```bash
 docker compose up -d --build
 ```
-내리려면 `docker compose down`.
-볼륨까지 깔끔하게 지우려면 `docker compose down -v`.
+> 내리려면 `docker compose down`.
+> 볼륨까지 깔끔하게 지우려면 `docker compose down -v`.
+
 
 필수 3) Hook 설정 
 https://l27.0.0.1:4180 접속
