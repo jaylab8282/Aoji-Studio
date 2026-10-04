@@ -9,7 +9,7 @@
 
 ### 지원 환경
 |✅| **macOS** (Apple Silicon) <br> 
-|✅| **Windows** (x86_64) | ✅ `.env`에 `JAYSTUDIO_PLATFORM=linux/amd64` 주석해제(윈도우일 경우)<br>
+|✅| **Windows** (x86_64) | ✅ `.env`에 `AOJISTUDIO_PLATFORM=linux/amd64` 주석해제(윈도우일 경우)<br>
 웹 본체는 전부 컨테이너 안에 있어 OS를 타지 않는다. 이미지 아키텍처만 `.env`에서 맞추면 된다.
 
 
@@ -25,7 +25,7 @@ Docker 컨테이너로 돌리는 **개인용 Claude Code 에이전트 관제 웹
 4. **웹은 에이전트를 실행하지 않는다.** 작업 지시는 사용자가 클로드 코드 터미널에서 팀장 에이전트에게 직접 한다.
    웹의 버튼은 맥북 기본 터미널을 **열어 주는 것**까지만 한다(`claude` 또는 `claude --agent <팀장>`).
 5. 로그인이 없다. 대신 이 기기 밖에서 조작할 수 없게 막는다.(Origin + 토큰).
-6. 웹은 `JayStudio/` 폴더를 읽고 쓰며, `.claude/settings.json`은 쓰지 않는다.
+6. 웹은 `AojiStudio/` 폴더를 읽고 쓰며, `.claude/settings.json`은 쓰지 않는다.
   (hook 설정은 07 화면의 예시를 사용자가 복사해 넣는다).
 
 화면은 **01** 홈 · **02** 워크플로우 층 뷰 · **03** 워크플로우 상세(픽셀 오피스) ·
@@ -37,8 +37,8 @@ Docker 컨테이너로 돌리는 **개인용 Claude Code 에이전트 관제 웹
 필수 1) 관제폴더 지정 및 .env 셋업
 현재 .claude가 있는 작업폴더에 깃 클론 합니다.
 .env.example에 아래 내용을 수정하여 .env로 파일 이름을 변경한다.
-> .env의 JAYSTUDIO_HOST_PATH=<JayStudio 폴더 절대 경로> 를 채운다. <br>
->  윈도우(x86_64) 머신이면 .env에서 JAYSTUDIO_PLATFORM=linux/amd64 주석도 푼다. (맥북이면 패스)
+> .env의 AOJISTUDIO_HOST_PATH=<AojiStudio 폴더 절대 경로> 를 채운다. <br>
+>  윈도우(x86_64) 머신이면 .env에서 AOJISTUDIO_PLATFORM=linux/amd64 주석도 푼다. (맥북이면 패스)
 
 ```bash
 cp .env.example .env
@@ -47,14 +47,15 @@ nano .env
 
 필수 2) 도커 컨테이너 실행
 ```bash
-docker compose up -d --build
+docker compose up -d --build --remove-orphans
 ```
-> 내리려면 `docker compose down`.
-> 볼륨까지 깔끔하게 지우려면 `docker compose down -v`.
+> 내리려면 `docker compose down --remove-orphans`.
+> `docker compose down -v`는 이벤트 볼륨(`aojistudio-data`)까지 지우므로 쓰지 않는다.
+> v1.0.0에서 올리는 중이라면 **[UPGRADE-v1.0.1.md](UPGRADE-v1.0.1.md)**를 먼저 본다(이름 변경·옛 이름 호환·이벤트 이관).
 
 
 필수 3) Hook 설정 
-https://l27.0.0.1:4180 접속 <br>
+http://127.0.0.1:4180 접속 <br>
 실시간 에이전트 관제에 필요한 것으로, <br>
 hook 설정은 브라우저의 설정 탭 예시를 사용자가 복사해 파일을 만든다.
 
@@ -64,7 +65,7 @@ hook 설정은 브라우저의 설정 탭 예시를 사용자가 복사해 파�
 컨테이너는 호스트 앱을 실행할 수 없으므로, 터미널을 여는 일은 맥북에서 도는 작은 Node 프로세스가 한다.
 ```bash
 cd helper
-./install.sh --project-dir /Users/<사용자>/Desktop/JayStudio
+./install.sh --project-dir /Users/<사용자>/Desktop/AojiStudio
 ```
 첫 열기에서 macOS 자동화 권한 대화상자가 한 번 뜬다 — **허용**해야 동작한다. <br>
 제거는 `./uninstall.sh`.
@@ -78,11 +79,11 @@ cd helper
 각 줄은 **저장소 루트에서** 시작한다. 주석의 숫자는 통과해야 하는 테스트 수다(줄면 뭔가 빠진 것이다).
 
 ```bash
-# 유닛 — 합 742
-(cd backend && ./gradlew test)                 # 279
-(cd frontend && npm install && npm test)       # 389
-(cd helper && npm test)                        # 40
-(cd tools/replay && npm test)                  # 34
+# 유닛 — 합 839
+(cd backend && ./gradlew test)                 # 343
+(cd frontend && npm install && npm test)       # 394
+(cd helper && npm test)                        # 64
+(cd tools/replay && npm test)                  # 38
 
 # 린트 · 타입체크 · 빌드
 (cd frontend && npm run lint && npm run typecheck && npm run build)
@@ -90,11 +91,12 @@ cd helper
 
 # E2E — 실제 컨테이너, 목킹 없음
 (cd tools/e2e && npm install && npx playwright install chromium)   # 사전 1회
-(cd tools/e2e && ./scripts/run-e2e.sh)         # 9배치 107
+(cd tools/e2e && ./scripts/run-e2e.sh)         # 13배치 131 (표준 9 + v1.0.x 호환 4)
 ```
 
 `run-e2e.sh`는 fixture 복사 → 컨테이너 기동 → dry-run 도우미(4191)·다른 Origin 서버(4192) 준비 →
 실행 → 정리까지 스스로 한다. 사전 준비 명령은 없다. 공개 포트는 `127.0.0.1:4185`다.
+x86_64 머신은 `E2E_PLATFORM=linux/amd64`를 앞에 붙인다. 운영 `compose.yaml`의 빌드·기동 확인은 `tools/e2e/scripts/check-compose-build.sh`다(`-p`만 바꿔 `down -v` 하지 않는다).
 
 
 ## 4. 저장소 구조
