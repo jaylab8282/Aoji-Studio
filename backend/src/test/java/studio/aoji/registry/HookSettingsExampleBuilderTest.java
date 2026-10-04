@@ -26,8 +26,8 @@ class HookSettingsExampleBuilderTest {
     private final HookSettingsExampleBuilder builder = new HookSettingsExampleBuilder(objectMapper);
 
     @Test
-    @DisplayName("[FR-014-AC2][FR-003-AC8][FR-003-AC9] JSON 파싱 가능, 키 12개 정확히,"
-            + " 각 type http · url = collectUrl · headers.X-JayStudio-Collect-Token = 토큰 · timeout 3")
+    @DisplayName("[FR-014-AC2][ADR-54] 12개 이벤트, 각 항목 headers 키 = [\"X-AojiStudio-Collect-Token\"] 하나, timeout 3"
+            + " (type http · url = collectUrl · [FR-003-AC8][FR-003-AC9])")
     void buildProducesParsableJsonWithExactTwelveEventsAndFields() {
         String json = builder.build(COLLECT_URL, COLLECT_TOKEN);
 
@@ -63,8 +63,10 @@ class HookSettingsExampleBuilderTest {
             JsonNode hook = hookList.get(0);
             assertThat(hook.get("type").asString()).isEqualTo("http");
             assertThat(hook.get("url").asString()).isEqualTo(COLLECT_URL);
-            assertThat(hook.get("headers").get("X-JayStudio-Collect-Token").asString())
+            assertThat(hook.get("headers").get("X-AojiStudio-Collect-Token").asString())
                     .isEqualTo(COLLECT_TOKEN);
+            assertThat(new ArrayList<>(hook.get("headers").propertyNames()))
+                    .containsExactly("X-AojiStudio-Collect-Token");
             assertThat(hook.get("timeout").asInt()).isEqualTo(3);
         }
     }
@@ -107,7 +109,7 @@ class HookSettingsExampleBuilderTest {
         for (int i = 0; i < events.size(); i++) {
             String comma = i < events.size() - 1 ? "," : "";
             expectedLines.add("    \"" + events.get(i) + "\": [{ \"hooks\": [{ \"type\": \"http\", \"url\": \""
-                    + COLLECT_URL + "\", \"headers\": { \"X-JayStudio-Collect-Token\": \"" + COLLECT_TOKEN
+                    + COLLECT_URL + "\", \"headers\": { \"X-AojiStudio-Collect-Token\": \"" + COLLECT_TOKEN
                     + "\" }, \"timeout\": 3 }] }]" + comma);
         }
         expectedLines.add("  }");

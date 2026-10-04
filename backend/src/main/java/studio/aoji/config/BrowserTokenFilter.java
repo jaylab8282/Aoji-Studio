@@ -70,7 +70,7 @@ public class BrowserTokenFilter implements Filter {
                 return;
             }
         } else if (isMutating) {
-            if (!matches(request.getHeader("X-JayStudio-Browser-Token"))) {
+            if (!matches(request.getHeader("X-AojiStudio-Browser-Token"))) {
                 writeUnauthorized(response);
                 return;
             }

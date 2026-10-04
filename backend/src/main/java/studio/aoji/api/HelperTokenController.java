@@ -34,7 +34,7 @@ public class HelperTokenController {
 
     @GetMapping("/api/helper/token")
     public HelperTokenResponse getToken(
-            @RequestHeader(value = "X-JayStudio-Browser-Token", required = false) String browserToken) {
+            @RequestHeader(value = "X-AojiStudio-Browser-Token", required = false) String browserToken) {
         if (!browserTokenFilter.matches(browserToken)) {
             throw ApiException.unauthorizedToken();
         }

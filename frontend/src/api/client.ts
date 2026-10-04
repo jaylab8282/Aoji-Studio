@@ -9,7 +9,7 @@
 import { UNKNOWN_ERROR_MESSAGE } from "../lib/text";
 import type { ApiErrorBody, ApiErrorCode } from "./types";
 
-const BROWSER_TOKEN_HEADER = "X-JayStudio-Browser-Token";
+const BROWSER_TOKEN_HEADER = "X-AojiStudio-Browser-Token";
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode;

@@ -76,6 +76,25 @@ describe("client", () => {
     expect(postCalls).toBe(1);
   });
 
+  it("[client.test] [ADR-52] 변경 요청 헤더 이름", async () => {
+    const { apiPost } = await import("./client");
+    const token = "b".repeat(64);
+    let receivedHeaders: Record<string, string> | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).includes("/api/auth/browser-token")) return jsonResponse({ token });
+        receivedHeaders = init?.headers as Record<string, string> | undefined;
+        return jsonResponse({ ok: true });
+      }),
+    );
+
+    await apiPost("/api/workflows", { name: "x" });
+
+    expect(receivedHeaders?.["X-AojiStudio-Browser-Token"]).toBe(token);
+    expect(receivedHeaders?.["X-JayStudio-Browser-Token"]).toBeUndefined();
+  });
+
   it("[client.test] localStorage 미사용", async () => {
     const { apiGet } = await import("./client");
     const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
@@ -104,7 +123,7 @@ describe("client", () => {
 
     await apiGet("/api/state");
 
-    expect(receivedHeaders?.["X-JayStudio-Browser-Token"]).toBeUndefined();
+    expect(receivedHeaders?.["X-AojiStudio-Browser-Token"]).toBeUndefined();
   });
 
   it("[client.test] 네트워크 오류는 '서버에 연결할 수 없습니다 · 다시 시도하세요'로 변환한다", async () => {

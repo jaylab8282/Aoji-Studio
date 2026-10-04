@@ -74,7 +74,7 @@ class RegistryControllerTest {
         long start1 = System.nanoTime();
         MvcResult first = mockMvc.perform(post("/api/registry/rescan")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", browserToken))
+                        .header("X-AojiStudio-Browser-Token", browserToken))
                 .andExpect(status().isOk())
                 .andReturn();
         double elapsed1Millis = (System.nanoTime() - start1) / 1_000_000.0;
@@ -91,7 +91,7 @@ class RegistryControllerTest {
         long start2 = System.nanoTime();
         MvcResult second = mockMvc.perform(post("/api/registry/rescan")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", browserToken))
+                        .header("X-AojiStudio-Browser-Token", browserToken))
                 .andExpect(status().isOk())
                 .andReturn();
         double elapsed2Millis = (System.nanoTime() - start2) / 1_000_000.0;

@@ -200,7 +200,7 @@ describe("api/helper (FR-013)", () => {
     const calls = stubFetch();
     expect(await getHelperToken()).toEqual({ kind: "token", token: HELPER_TOKEN });
     // 서버(HelperTokenController)가 이 GET에서도 브라우저 토큰을 직접 검사한다(api-spec `security: browserToken`).
-    expect(calls[0]?.headers["X-JayStudio-Browser-Token"]).toBe(BROWSER_TOKEN);
+    expect(calls[0]?.headers["X-AojiStudio-Browser-Token"]).toBe(BROWSER_TOKEN);
 
     stubFetch({ token: () => jsonResponse({ token: null }) });
     expect(await getHelperToken()).toEqual({ kind: "no-token" });

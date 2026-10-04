@@ -122,7 +122,7 @@ class AgentUpdateTest {
     private void createWorkflow(String name) throws Exception {
         mockMvc.perform(post("/api/workflows")
                 .header("Origin", ALLOWED_ORIGIN)
-                .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("name", name))));
     }
@@ -137,7 +137,7 @@ class AgentUpdateTest {
 
         MvcResult result = mockMvc.perform(post("/api/agents")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andReturn();
@@ -171,7 +171,7 @@ class AgentUpdateTest {
     private MvcResult putAgent(String currentName, Map<String, Object> body) throws Exception {
         return mockMvc.perform(put("/api/agents/" + currentName)
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andReturn();

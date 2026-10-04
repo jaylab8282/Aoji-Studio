@@ -74,7 +74,7 @@ class HelperTokenControllerTest {
 
         mockMvc.perform(get("/api/helper/token")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", browserToken))
+                        .header("X-AojiStudio-Browser-Token", browserToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value(helperToken));
     }
@@ -86,7 +86,7 @@ class HelperTokenControllerTest {
 
         mockMvc.perform(get("/api/helper/token")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", browserToken))
+                        .header("X-AojiStudio-Browser-Token", browserToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value(org.hamcrest.Matchers.nullValue()));
     }

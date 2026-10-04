@@ -107,13 +107,13 @@ final class LegacyTestSupport {
     }
 
     static HttpResponse<String> helperToken(ConfigurableApplicationContext ctx) throws Exception {
-        return get(ctx, "/api/helper/token", "X-JayStudio-Browser-Token", browserToken(ctx));
+        return get(ctx, "/api/helper/token", "X-AojiStudio-Browser-Token", browserToken(ctx));
     }
 
     static HttpResponse<String> postWorkflow(ConfigurableApplicationContext ctx, String name) throws Exception {
         HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port(ctx) + "/api/workflows"))
                 .header("Origin", ORIGIN)
-                .header("X-JayStudio-Browser-Token", browserToken(ctx))
+                .header("X-AojiStudio-Browser-Token", browserToken(ctx))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString("{\"name\":\"" + name + "\"}"))
                 .build();

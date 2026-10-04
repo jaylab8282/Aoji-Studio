@@ -106,7 +106,7 @@ class AgentCreateTest {
     private void createWorkflow(String name) throws Exception {
         mockMvc.perform(post("/api/workflows")
                 .header("Origin", ALLOWED_ORIGIN)
-                .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("name", name))));
     }
@@ -129,7 +129,7 @@ class AgentCreateTest {
     private MvcResult create(Map<String, Object> body) throws Exception {
         return mockMvc.perform(post("/api/agents")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andReturn();
@@ -143,7 +143,7 @@ class AgentCreateTest {
 
         mockMvc.perform(post("/api/agents")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isBadRequest())
@@ -218,7 +218,7 @@ class AgentCreateTest {
 
         mockMvc.perform(post("/api/agents")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isBadRequest())
@@ -283,7 +283,7 @@ class AgentCreateTest {
 
         mockMvc.perform(post("/api/agents")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isBadRequest())
@@ -298,7 +298,7 @@ class AgentCreateTest {
 
         mockMvc.perform(post("/api/agents")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isBadRequest())
@@ -315,7 +315,7 @@ class AgentCreateTest {
 
         mockMvc.perform(post("/api/agents")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(baseRequest("readonly-agent", "읽기전용에이전트팀"))))
                 .andExpect(status().isForbidden())
@@ -335,7 +335,7 @@ class AgentCreateTest {
 
         mockMvc.perform(post("/api/agents")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isBadRequest())

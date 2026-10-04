@@ -31,7 +31,7 @@ public class DevCorsConfig implements WebMvcConfigurer {
         }
         registry.addMapping("/api/**")
                 .allowedOrigins(origins)
-                .allowedHeaders("Content-Type", "X-JayStudio-Browser-Token")
+                .allowedHeaders("Content-Type", "X-AojiStudio-Browser-Token")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
     }
 }

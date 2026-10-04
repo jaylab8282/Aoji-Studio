@@ -33,7 +33,7 @@ public class HookSettingsExampleBuilder {
             "SubagentStart",
             "SubagentStop");
 
-    private static final String HEADER_NAME = "X-JayStudio-Collect-Token";
+    private static final String HEADER_NAME = "X-AojiStudio-Collect-Token";
 
     private final ObjectMapper objectMapper;
 
@@ -43,7 +43,7 @@ public class HookSettingsExampleBuilder {
 
     /**
      * {@code collectUrl}·{@code collectToken}을 넣은 hook 설정 예시를 만든다. 12개 이벤트 각각
-     * {@code type: "http"}, {@code url: collectUrl}, {@code headers.X-JayStudio-Collect-Token: collectToken},
+     * {@code type: "http"}, {@code url: collectUrl}, {@code headers.X-AojiStudio-Collect-Token: collectToken},
      * {@code timeout: 3}인 항목 하나씩을 등록한다(FR-003-AC8). 결과는 architecture.md §7.1과 같은 줄
      * 구성 · 들여쓰기 2칸의 JSON 문자열이다.
      */

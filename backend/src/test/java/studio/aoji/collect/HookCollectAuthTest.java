@@ -73,7 +73,7 @@ class HookCollectAuthTest {
         // [FR-003-AC2] 토큰 불일치 → 401
         mockMvc.perform(post("/hooks/events")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("X-JayStudio-Collect-Token", "0".repeat(64))
+                        .header("X-AojiStudio-Collect-Token", "0".repeat(64))
                         .content("{}"))
                 .andExpect(status().isUnauthorized());
         assertThat(countEvents()).isZero();
@@ -84,7 +84,7 @@ class HookCollectAuthTest {
         // [FR-003-AC2] Content-Type text/plain → 415 저장 0건
         mockMvc.perform(post("/hooks/events")
                         .contentType(MediaType.TEXT_PLAIN)
-                        .header("X-JayStudio-Collect-Token", validToken())
+                        .header("X-AojiStudio-Collect-Token", validToken())
                         .content("{}"))
                 .andExpect(status().isUnsupportedMediaType());
         assertThat(countEvents()).isZero();
@@ -95,7 +95,7 @@ class HookCollectAuthTest {
         // [FR-003-AC2] 유효 → 204
         mockMvc.perform(post("/hooks/events")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("X-JayStudio-Collect-Token", validToken())
+                        .header("X-AojiStudio-Collect-Token", validToken())
                         .content("{}"))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));

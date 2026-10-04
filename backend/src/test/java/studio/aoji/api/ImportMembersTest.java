@@ -124,7 +124,7 @@ class ImportMembersTest {
         body.put("name", name);
         return mockMvc.perform(post("/api/workflows")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andReturn();
@@ -144,7 +144,7 @@ class ImportMembersTest {
     private MvcResult importMembers(String workflow, String bodyJson) throws Exception {
         return mockMvc.perform(post("/api/workflows/{workflow}/members", workflow)
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bodyJson))
                 .andReturn();
@@ -190,7 +190,7 @@ class ImportMembersTest {
 
         mockMvc.perform(post("/api/workflows/{workflow}/members", "이미팀장있음팀")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(memberInputsJson(List.of(memberInput("lead-candidate-2", "lead")))))
                 .andExpect(status().isConflict())
@@ -209,7 +209,7 @@ class ImportMembersTest {
 
         mockMvc.perform(post("/api/workflows/{workflow}/members", "리드팀")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(memberInputsJson(List.of(
                                 memberInput("lead-a", "lead"), memberInput("lead-b", "lead")))))
@@ -259,7 +259,7 @@ class ImportMembersTest {
 
         mockMvc.perform(post("/api/workflows/{workflow}/members", "쓰기실패팀")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(memberInputsJson(List.of(memberInput("write-fail-target", "member")))))
                 .andExpect(status().isInternalServerError())
@@ -278,7 +278,7 @@ class ImportMembersTest {
 
         mockMvc.perform(post("/api/workflows/{workflow}/members", "없는워크플로우")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(memberInputsJson(List.of(memberInput("any-agent", "member")))))
                 .andExpect(status().isNotFound())
@@ -292,7 +292,7 @@ class ImportMembersTest {
 
         mockMvc.perform(post("/api/workflows/{workflow}/members", "빈목록팀")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(memberInputsJson(List.of())))
                 .andExpect(status().isBadRequest())
@@ -310,7 +310,7 @@ class ImportMembersTest {
 
         mockMvc.perform(post("/api/workflows/{workflow}/members", "읽기전용팀")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(memberInputsJson(List.of(memberInput("readonly-target", "member")))))
                 .andExpect(status().isForbidden())

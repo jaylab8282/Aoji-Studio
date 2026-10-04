@@ -93,7 +93,7 @@ class HookCollectMaskingTest {
 
         mockMvc.perform(post("/hooks/events")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("X-JayStudio-Collect-Token", validToken())
+                        .header("X-AojiStudio-Collect-Token", validToken())
                         .content(body))
                 .andExpect(status().isNoContent());
 
@@ -145,7 +145,7 @@ class HookCollectMaskingTest {
 
         mockMvc.perform(post("/hooks/events")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("X-JayStudio-Collect-Token", validToken())
+                        .header("X-AojiStudio-Collect-Token", validToken())
                         .content(body))
                 .andExpect(status().isNoContent());
 

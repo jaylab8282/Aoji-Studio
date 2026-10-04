@@ -114,7 +114,7 @@ class WorkflowControllerTest {
         }
         return mockMvc.perform(post("/api/workflows")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", token)
+                        .header("X-AojiStudio-Browser-Token", token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andReturn();
@@ -168,7 +168,7 @@ class WorkflowControllerTest {
 
         mockMvc.perform(post("/api/workflows")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("name", "개발부서"))))
                 .andExpect(status().isBadRequest())
@@ -184,7 +184,7 @@ class WorkflowControllerTest {
 
         mockMvc.perform(post("/api/workflows")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("name", "dev"))))
                 .andExpect(status().isBadRequest())
@@ -210,7 +210,7 @@ class WorkflowControllerTest {
         // [FR-008-AC2][FR-008-E2] '개발/부서' → 400 fields.name 사유
         mockMvc.perform(post("/api/workflows")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("name", "개발/부서"))))
                 .andExpect(status().isBadRequest())
@@ -227,7 +227,7 @@ class WorkflowControllerTest {
 
         mockMvc.perform(post("/api/workflows")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("name", "쓰기실패대상"))))
                 .andExpect(status().isInternalServerError())
@@ -246,7 +246,7 @@ class WorkflowControllerTest {
 
         mockMvc.perform(delete("/api/workflows/{workflow}", "깨진참조팀")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken()))
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("WORKFLOW_NOT_EMPTY"));
 
@@ -261,7 +261,7 @@ class WorkflowControllerTest {
 
         mockMvc.perform(delete("/api/workflows/{workflow}", "삭제대상빈팀")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken()))
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken()))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
 
@@ -289,7 +289,7 @@ class WorkflowControllerTest {
 
         mockMvc.perform(delete("/api/workflows/{workflow}", "삭제확인중")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken()))
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("WORKFLOW_NOT_EMPTY"))
                 .andExpect(jsonPath("$.message").value("팀원이 있어 삭제할 수 없습니다"));
@@ -306,7 +306,7 @@ class WorkflowControllerTest {
 
         mockMvc.perform(delete("/api/workflows/{workflow}", "삭제권한없음")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken()))
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken()))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("IO_FAILED"));
 
@@ -319,7 +319,7 @@ class WorkflowControllerTest {
     void deleteMissingWorkflowIsNotFound() throws Exception {
         mockMvc.perform(delete("/api/workflows/{workflow}", "없는워크플로우")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken()))
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("WORKFLOW_NOT_FOUND"));
     }
@@ -333,7 +333,7 @@ class WorkflowControllerTest {
 
         mockMvc.perform(post("/api/workflows")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("name", "읽기전용시도"))))
                 .andExpect(status().isForbidden())

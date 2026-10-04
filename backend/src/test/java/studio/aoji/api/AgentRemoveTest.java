@@ -137,7 +137,7 @@ class AgentRemoveTest {
     private void createWorkflow(String name) throws Exception {
         mockMvc.perform(post("/api/workflows")
                 .header("Origin", ALLOWED_ORIGIN)
-                .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("name", name))));
     }
@@ -152,7 +152,7 @@ class AgentRemoveTest {
 
         MvcResult result = mockMvc.perform(post("/api/agents")
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken())
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andReturn();
@@ -174,7 +174,7 @@ class AgentRemoveTest {
     private MvcResult deleteAgent(String name) throws Exception {
         return mockMvc.perform(delete("/api/agents/" + name)
                         .header("Origin", ALLOWED_ORIGIN)
-                        .header("X-JayStudio-Browser-Token", issuedBrowserToken()))
+                        .header("X-AojiStudio-Browser-Token", issuedBrowserToken()))
                 .andReturn();
     }
 
