@@ -94,7 +94,7 @@ function hookSettingsJson(): string {
   const hook = {
     type: "http",
     url: `${state.baseUrl}/hooks/events`,
-    headers: { "X-JayStudio-Collect-Token": state.collectToken },
+    headers: { "X-AojiStudio-Collect-Token": state.collectToken },
     timeout: 3,
   };
   const hooks: Record<string, unknown> = {};
@@ -266,7 +266,7 @@ test("[FR-004-AC1][FR-004-AC2][FR-004-AC6][FR-003-AC4][FR-007-AC2][FR-007-AC5][F
   await gotoReady(page, `/workflows/${DEV_TEAM}`);
 
   // 수집 주소가 맞는 hook 설정이 인식됐다(FR-014-AC3). 이후 04-4 판정은 everReceived만 남는다.
-  const sidebar = page.locator("aside").filter({ hasText: "Jay Studio" });
+  const sidebar = page.locator("aside").filter({ hasText: "Aoji Studio" });
   await expect(sidebar.getByText("hook 설정됨", { exact: true })).toBeVisible({
     timeout: SETUP_REFLECT_TIMEOUT_MS,
   });
@@ -779,7 +779,7 @@ test("[FR-007-E1][FR-004-AC6][FR-001-AC3][E2E-04] 후반부 — running 상태�
       expect(await spriteShirtFill(page, name), `02 ${name} 셔츠 색`).toBe(PIXEL_FILL.shirtRunning);
     }
     await expect(floorCardByName(page, OPS_TEAM).getByText("실행 중 2명", { exact: true })).toBeVisible();
-    const sidebar = page.locator("aside").filter({ hasText: "Jay Studio" });
+    const sidebar = page.locator("aside").filter({ hasText: "Aoji Studio" });
     await expect(sidebar.getByText("hook 설정 안 됨", { exact: true })).toBeVisible();
 
     // 복구 = "03 실제 상태 복귀": 새 이벤트 없이 같은 스냅샷에서 배너가 사라지고 실제 상태가 다시 보인다.

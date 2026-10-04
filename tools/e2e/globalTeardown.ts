@@ -35,6 +35,28 @@ export default async function globalTeardown(): Promise<void> {
 
   const problems: string[] = [];
 
+  // E2E-R2-06: 표준 배치(새 이름만 쓰는 배치)의 컨테이너 로그에 `[legacy]` 줄이 0건이어야 한다.
+  // down -v 전에 읽는다(컨테이너가 사라지면 로그도 사라진다).
+  if (typeof state.fixtureDir === "string") {
+    try {
+      const logs = execFileSync(
+        "docker",
+        ["compose", "-f", COMPOSE_FILE, "logs", "--no-color", "--no-log-prefix"],
+        { cwd: E2E_DIR, env: composeEnv(state.fixtureDir), encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+      );
+      const legacyLines = logs.split("\n").filter((line) => line.includes("[legacy]"));
+      if (logs.trim() === "") {
+        problems.push("E2E-R2-06: 컨테이너 로그가 비어 있어 [legacy] 0건을 판정할 수 없습니다");
+      } else if (legacyLines.length > 0) {
+        problems.push(`E2E-R2-06: 표준 배치 로그에 [legacy] ${legacyLines.length}줄: ${legacyLines[0]}`);
+      } else {
+        log(`E2E-R2-06 통과 — 컨테이너 로그 ${logs.split("\n").length}줄에 [legacy] 0건`);
+      }
+    } catch (error) {
+      problems.push(`E2E-R2-06: 컨테이너 로그 읽기 실패: ${message(error)}`);
+    }
+  }
+
   for (const pid of [state.helperPid, state.originServerPid]) {
     if (typeof pid === "number") {
       try {

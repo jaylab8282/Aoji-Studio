@@ -56,7 +56,7 @@ export function replayScenarioLines(options: {
 
   const state = readE2eState();
   const slice = lines.slice(options.from - 1, options.to);
-  const scratchDir = mkdtempSync(join(tmpdir(), "jaystudio-e2e-replay-"));
+  const scratchDir = mkdtempSync(join(tmpdir(), "aojistudio-e2e-replay-"));
   const slicePath = join(scratchDir, "slice.jsonl");
   writeFileSync(slicePath, `${slice.join("\n")}\n`, "utf8");
 

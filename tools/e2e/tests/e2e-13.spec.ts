@@ -82,7 +82,7 @@ const OFFICE_LEGEND_ITEMS = [
 ];
 
 /** 03 선택 패널 각주 2줄(`docs/ui-spec.md` SCR-03 요소 표 원문. 두 번째 줄은 `workflow.lead`로 끝난다). */
-const PANEL_FOOTNOTE_TRASH = "제거 = 휴지통(.jaystudio/trash/)으로 이동 · 원문 로그 보기 없음";
+const PANEL_FOOTNOTE_TRASH = "제거 = 휴지통(.aojistudio/trash/)으로 이동 · 원문 로그 보기 없음";
 function panelFootnoteTerminal(lead: string): string {
   return `작업 지시는 상단 팀장 호출로 연 터미널에서 직접 한다 · claude --agent ${lead}`;
 }
@@ -139,7 +139,7 @@ function hookSettingsJson(): string {
   const hook = {
     type: "http",
     url: `${state.baseUrl}/hooks/events`,
-    headers: { "X-JayStudio-Collect-Token": state.collectToken },
+    headers: { "X-AojiStudio-Collect-Token": state.collectToken },
     timeout: 3,
   };
   const hooks: Record<string, unknown> = {};
@@ -436,7 +436,7 @@ const STATUS_LINE_PATTERN = /^(작업 중|권한 대기|대기)( · 부모 .+)?$
 // ── 화면 조회 도우미 ──────────────────────────────────────────────────────────────
 
 function sidebar(page: Page): Locator {
-  return page.locator("aside").filter({ hasText: "Jay Studio" });
+  return page.locator("aside").filter({ hasText: "Aoji Studio" });
 }
 
 function floorCardByName(page: Page, workflowName: string): Locator {

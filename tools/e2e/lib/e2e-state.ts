@@ -7,13 +7,13 @@ import { fileURLToPath } from "node:url";
 
 /** `tools/e2e` 절대 경로. */
 export const E2E_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
-/** 프로젝트 루트(`Jay_Studio`) 절대 경로. */
+/** 프로젝트 루트(`AojiStudio`) 절대 경로. */
 export const PROJECT_ROOT = resolve(E2E_DIR, "..", "..");
 /** fixture 원본 폴더(복사 원본. 테스트는 이 폴더를 수정하지 않는다). */
 export const FIXTURES_DIR = join(PROJECT_ROOT, "tools", "fixtures");
 
 export const COMPOSE_FILE = join(E2E_DIR, "compose.e2e.yaml");
-export const COMPOSE_SERVICE = "jaystudio-e2e";
+export const COMPOSE_SERVICE = "aojistudio-e2e";
 export const CONTAINER_PORT = "4180";
 
 export const STATE_FILE = join(E2E_DIR, ".e2e-state.json");
@@ -25,7 +25,7 @@ export const HELPER_URL = "http://127.0.0.1:4191";
 /** E2E-08이 쓰는 "다른 Origin" 정적 페이지. 127.0.0.1에만 바인딩한다(NFR-04). */
 export const OTHER_ORIGIN_URL = "http://127.0.0.1:4192";
 
-export const HELPER_SCRIPT = join(PROJECT_ROOT, "helper", "jaystudio-helper.mjs");
+export const HELPER_SCRIPT = join(PROJECT_ROOT, "helper", "aojistudio-helper.mjs");
 export const ORIGIN_SERVER_SCRIPT = join(E2E_DIR, "lib", "other-origin-server.mjs");
 
 /** `E2E_FIXTURE`를 주지 않았을 때 쓰는 fixture. */

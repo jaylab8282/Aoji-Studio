@@ -51,7 +51,7 @@ const HOOK_EVENT_NAMES = [
   "SubagentStop",
 ];
 
-const COLLECT_TOKEN_HEADER = "X-JayStudio-Collect-Token";
+const COLLECT_TOKEN_HEADER = "X-AojiStudio-Collect-Token";
 
 /** `설정 예시 복사`가 주는 JSON 구조(architecture.md §7.1, `HookSettingsExampleBuilder`). */
 type HookSettingsExample = {
@@ -108,7 +108,7 @@ function settingsFile(): string {
 
 /** 사이드바(`Sidebar`) — `CollectorStatus`의 hook 설정 표시를 읽는다. */
 function sidebar(page: Page) {
-  return page.locator("aside").filter({ hasText: "Jay Studio" });
+  return page.locator("aside").filter({ hasText: "Aoji Studio" });
 }
 
 /** fixture의 정의 파일 수(서버 `agentCount`와 같아야 한다). */
@@ -212,10 +212,10 @@ test("[FR-014-AC4][FR-013-AC5][E2E-11] 07 카드 3개의 값 행이 실제 값�
     `${state.baseUrl}/hooks/events`,
   );
   await expect(page.getByTestId("settings-row-teams")).toContainText(
-    ".jaystudio/teams/*.json · 팀장·팀원 목록",
+    ".aojistudio/teams/*.json · 팀장·팀원 목록",
   );
   await expect(page.getByTestId("settings-row-trash")).toContainText(
-    ".jaystudio/trash/ · 제거한 에이전트 보관",
+    ".aojistudio/trash/ · 제거한 에이전트 보관",
   );
   await expect(page.getByTestId("settings-row-retention")).toContainText("30일");
   await expect(

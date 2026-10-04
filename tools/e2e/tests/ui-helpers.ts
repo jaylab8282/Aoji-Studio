@@ -67,12 +67,12 @@ export function agentFile(name: string): string {
 
 /** 워크플로우 구성 파일 경로(architecture.md §6.2). */
 export function teamFile(workflowName: string): string {
-  return fixturePath(".jaystudio", "teams", `${workflowName}.json`);
+  return fixturePath(".aojistudio", "teams", `${workflowName}.json`);
 }
 
 /** 휴지통 폴더 경로(architecture.md §6.4). */
 export function trashDir(): string {
-  return fixturePath(".jaystudio", "trash");
+  return fixturePath(".aojistudio", "trash");
 }
 
 export function writeFixtureFile(path: string, content: string): void {

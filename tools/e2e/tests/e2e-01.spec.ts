@@ -84,7 +84,7 @@ test("[FR-003-AC6][E2E-01] 사이드 탭 하단 수집 상태 = hook 설정 안 
   page,
 }) => {
   await gotoReady(page, "/");
-  const sidebar = page.locator("aside").filter({ hasText: "Jay Studio" });
+  const sidebar = page.locator("aside").filter({ hasText: "Aoji Studio" });
 
   await expect(sidebar.getByText("수집 상태", { exact: true })).toBeVisible();
   await expect(sidebar.getByText("hook 설정 안 됨", { exact: true })).toBeVisible();

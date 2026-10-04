@@ -1,28 +1,29 @@
 # E2E 전용 compose 오버레이 (architecture.md §8.1).
 # 실행 전 반드시 fixture 폴더를 임시 폴더로 복사하고 E2E_FIXTURE_DIR로 지정한다.
-# 실제 JayStudio/.claude·.jaystudio는 절대 마운트하지 않는다(Automation Policy).
+# 실제 AojiStudio/.claude·.aojistudio는 절대 마운트하지 않는다(Automation Policy).
 services:
-  jaystudio-e2e:
+  aojistudio-e2e:
     build:
       context: ../..
       dockerfile: Dockerfile
-    image: jaystudio:e2e
-    platform: linux/arm64
+    image: aojistudio:e2e
+    platform: ${E2E_PLATFORM:-linux/arm64}
     user: "1000:1000"
     restart: "no"
     environment:
       TZ: Asia/Seoul
-      JAYSTUDIO_HOST_PATH: ${E2E_FIXTURE_DIR:?E2E_FIXTURE_DIR(mktemp -d로 만든 fixture 임시 폴더)를 지정하세요}
-      JAYSTUDIO_PUBLIC_PORT: "4185"
-      JAYSTUDIO_MOUNT_PATH: /workspace
-      JAYSTUDIO_DATA_PATH: /data
-      JAYSTUDIO_HELPER_URL: http://127.0.0.1:4191
-      JAYSTUDIO_ALLOWED_ORIGINS: http://127.0.0.1:4185
+      AOJISTUDIO_HOST_PATH: ${E2E_FIXTURE_DIR:?E2E_FIXTURE_DIR(mktemp -d로 만든 fixture 임시 폴더)를 지정하세요}
+      AOJISTUDIO_PUBLIC_PORT: "4185"
+      AOJISTUDIO_MOUNT_PATH: /workspace
+      AOJISTUDIO_DATA_PATH: /data
+      AOJISTUDIO_HELPER_URL: http://127.0.0.1:4191
+      AOJISTUDIO_ALLOWED_ORIGINS: http://127.0.0.1:4185
     ports:
       - "127.0.0.1:4185:4180"
     volumes:
-      - ${E2E_FIXTURE_DIR:?E2E_FIXTURE_DIR를 지정하세요}:/workspace
-      - jaystudio-e2e-data:/data
+      - ${E2E_FIXTURE_DIR:?E2E_FIXTURE_DIR를 지정하세요}:/workspace:${E2E_MOUNT_MODE:-rw}
+      - aojistudio-e2e-data:/data
 
+# 볼륨에 name:을 고정하지 않는다 — down -v가 -p 접두 볼륨만 지우게 한다(D-109).
 volumes:
-  jaystudio-e2e-data:
+  aojistudio-e2e-data:

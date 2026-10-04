@@ -46,12 +46,13 @@ run_batch() {
 
 # 배치 1 — project-basic. E2E-01이 "처음 실행"(워크플로우 0개·이벤트 0건)을 단언하므로
 # 파일 이름 순서상 맨 앞에서 돌아 fixture 사본이 아직 깨끗한 상태를 본다.
-run_batch "배치 1 — project-basic (E2E-01·E2E-02·E2E-08·E2E-14 + health·격리)" project-basic \
+run_batch "배치 1 — project-basic (E2E-01·E2E-02·E2E-08·E2E-14 + health·compose-volume·격리)" project-basic \
   tests/e2e-01.spec.ts \
   tests/e2e-02.spec.ts \
   tests/e2e-08.spec.ts \
   tests/e2e-14.spec.ts \
   tests/health.spec.ts \
+  tests/compose-volume.spec.ts \
   tests/isolation.spec.ts
 
 # 배치 2 — project-configured. 세 spec 모두 자기가 쓸 정의 파일·구성 파일을 직접 만들어

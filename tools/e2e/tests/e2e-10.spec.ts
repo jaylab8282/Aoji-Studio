@@ -73,7 +73,7 @@ test("[FR-017-AC1][FR-017-AC2][FR-017-AC3][FR-017-AC4][FR-007-E2][E2E-10] 인원
     confirm.getByRole("heading", { name: `${workflow} 워크플로우를 삭제할까요?`, exact: true }),
   ).toBeVisible();
   await expect(
-    confirm.getByText(`구성 파일 .jaystudio/teams/${workflow}.json이 삭제됩니다`, { exact: true }),
+    confirm.getByText(`구성 파일 .aojistudio/teams/${workflow}.json이 삭제됩니다`, { exact: true }),
   ).toBeVisible();
   const deleteButton = confirm.getByRole("button", { name: "삭제 (이름 일치 시 활성)", exact: true });
   await expect(deleteButton).toBeDisabled();
@@ -86,7 +86,7 @@ test("[FR-017-AC1][FR-017-AC2][FR-017-AC3][FR-017-AC4][FR-007-E2][E2E-10] 인원
   // FR-017-AC4: 팝업이 닫히고 02에서 층이 사라진다. 구성 파일은 지워지고 휴지통으로 가지 않는다.
   await expect(confirm).toHaveCount(0);
   await expect(floorName(page, workflow)).toHaveCount(0);
-  expect(listFixtureDir(fixturePath(".jaystudio", "teams"))).not.toContain(`${workflow}.json`);
+  expect(listFixtureDir(fixturePath(".aojistudio", "teams"))).not.toContain(`${workflow}.json`);
   expect(listFixtureDir(trashDir())).not.toContain(`${workflow}.json`);
 
   // FR-007-E2: 열려 있던 03 탭은 본문 전체가 안내로 바뀐다(SSE registry 갱신).

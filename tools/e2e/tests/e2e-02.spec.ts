@@ -39,7 +39,7 @@ test("[FR-008-AC2][FR-008-AC3][FR-008-AC4][FR-006-AC3][E2E-02] 05-L 구성 확�
   const dialog = page.getByRole("dialog", { name: "워크플로우 추가" });
   await expect(dialog.getByRole("heading", { name: "워크플로우 추가", exact: true })).toBeVisible();
   await expect(
-    dialog.getByText("구성 파일 .jaystudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다.", {
+    dialog.getByText("구성 파일 .aojistudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다.", {
       exact: true,
     }),
   ).toBeVisible();
@@ -122,7 +122,7 @@ test("[FR-008-AC1][FR-008-E1][E2E-02] 대소문자만 다른 같은 이름 → 4
   await expect(dialog).toBeVisible();
   // 파일이 새로 만들어지지 않았다(대소문자만 다른 이름도 같은 이름이다).
   // macOS 파일 시스템은 대소문자를 구분하지 않으므로 존재 검사 대신 폴더 목록을 대소문자 그대로 본다.
-  const teamFileNames = listFixtureDir(fixturePath(".jaystudio", "teams"));
+  const teamFileNames = listFixtureDir(fixturePath(".aojistudio", "teams"));
   expect(teamFileNames).toContain(`${WORKFLOW}.json`);
   expect(teamFileNames).not.toContain(`${duplicateWithOtherCase}.json`);
 });

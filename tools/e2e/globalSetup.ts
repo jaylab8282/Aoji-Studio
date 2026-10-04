@@ -212,7 +212,7 @@ type Fixture = { name: string; dir: string; owned: boolean };
 
 /**
  * fixture 임시 사본을 만든다. `E2E_FIXTURE_DIR`가 있으면 그 폴더를 그대로 쓴다(수동 실행 호환).
- * 사본은 원본 그대로다 — `.jaystudio/`·`.claude/`가 없는 fixture에 폴더를 만들어 주지 않는다(E2E-06 검증 대상).
+ * 사본은 원본 그대로다 — `.aojistudio/`·`.claude/`가 없는 fixture에 폴더를 만들어 주지 않는다(E2E-06 검증 대상).
  */
 function prepareFixture(): Fixture {
   const provided = process.env.E2E_FIXTURE_DIR;
@@ -233,7 +233,7 @@ function prepareFixture(): Fixture {
   if (!existsSync(source)) {
     throw new Error(`fixture를 찾을 수 없습니다: ${source}`);
   }
-  const dir = mkdtempSync(join(realpathSync(tmpdir()), "jaystudio-e2e-"));
+  const dir = mkdtempSync(join(realpathSync(tmpdir()), "aojistudio-e2e-"));
   // 숨은 항목까지 그대로 복사한다(`<source>/.` 형식).
   execFileSync("cp", ["-R", `${source}/.`, dir], { stdio: "inherit" });
   return { name, dir, owned: true };
@@ -241,16 +241,16 @@ function prepareFixture(): Fixture {
 
 /**
  * 수집·도우미 토큰을 고정 placeholder 값으로 만든다(architecture.md §6.3).
- * 고정값이라 실제 `.jaystudio/`의 난수 토큰과 같아질 수 없다. 토큰 파일이 이미 있으면 덮어쓴다.
+ * 고정값이라 실제 `.aojistudio/`의 난수 토큰과 같아질 수 없다. 토큰 파일이 이미 있으면 덮어쓴다.
  */
 function writePlaceholderTokens(fixtureDir: string): {
   collectTokenFile: string;
   helperTokenFile: string;
 } {
-  const jaystudioDir = join(fixtureDir, ".jaystudio");
-  mkdirSync(jaystudioDir, { recursive: true });
-  const collectTokenFile = join(jaystudioDir, "collect-token");
-  const helperTokenFile = join(jaystudioDir, "helper-token");
+  const aojistudioDir = join(fixtureDir, ".aojistudio");
+  mkdirSync(aojistudioDir, { recursive: true });
+  const collectTokenFile = join(aojistudioDir, "collect-token");
+  const helperTokenFile = join(aojistudioDir, "helper-token");
   for (const [path, token] of [
     [collectTokenFile, COLLECT_TOKEN_PLACEHOLDER],
     [helperTokenFile, HELPER_TOKEN_PLACEHOLDER],

@@ -169,7 +169,7 @@ test("[FR-003-AC2][E2E-08] 토큰 없는·틀린 POST /hooks/events → 401 빈 
   expect(await noToken.text()).toBe("");
 
   const wrongToken = await request.post(`${state.baseUrl}/hooks/events`, {
-    headers: { "Content-Type": "application/json", "X-JayStudio-Collect-Token": "f".repeat(64) },
+    headers: { "Content-Type": "application/json", "X-AojiStudio-Collect-Token": "f".repeat(64) },
     data: payload,
   });
   expect(wrongToken.status()).toBe(401);

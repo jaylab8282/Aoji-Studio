@@ -24,7 +24,7 @@
 //     "2초 안에 응답하지 않으면"·FR-013-AC10 "응답하지 않으면"에 그대로 해당한다. 프론트 판정 코드도
 //     연결 거부와 타임아웃을 구분하지 않는다(`frontend/src/api/helper.ts` `fetchWithTimeout`: 예외·타임아웃
 //     모두 `null` → `no-response`). ui-spec.md SCR-02 에러 열도 `도우미 무응답(2초)`로 적는다.
-// (b) "잘못된 토큰 파일": 도우미는 토큰 파일을 **기동 시 1회만** 읽는다(`helper/jaystudio-helper.mjs`의
+// (b) "잘못된 토큰 파일": 도우미는 토큰 파일을 **기동 시 1회만** 읽는다(`helper/aojistudio-helper.mjs`의
 //     `main()` → `ensureTokenFile`). 반면 서버는 요청마다 파일을 읽어 브라우저에 준다
 //     (`backend/.../api/HelperTokenController.java`의 `getToken`). 그래서 토큰 파일만 바꾸면
 //     **브라우저가 보내는 토큰이 도우미의 토큰과 달라져** 도우미가 403 `UNAUTHORIZED_TOKEN`을 낸다.

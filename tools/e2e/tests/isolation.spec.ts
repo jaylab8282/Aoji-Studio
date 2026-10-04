@@ -2,6 +2,7 @@
 // ① 하네스 소스가 실제 에이전트 폴더 경로를 참조하지 않는지 문자열로 검사한다.
 // ② 실제로 띄운 컨테이너가 임시 fixture 사본만 마운트했는지 런타임으로 확인한다.
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFileSync, readdirSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -31,7 +32,10 @@ const HARNESS_FILES = [
   join("lib", "harness-utils.ts"),
   join("lib", "other-origin-server.mjs"),
   join("lib", "replay.ts"),
+  join("scripts", "check-compose-build.sh"),
+  join("scripts", "check-compose-env.sh"),
   join("scripts", "check-port.sh"),
+  join("scripts", "check-volume-migration.sh"),
   join("scripts", "run-e2e.sh"),
   join("tests", "ui-helpers.ts"),
 ];
@@ -44,15 +48,18 @@ const SOURCE_EXTENSIONS = [".ts", ".mjs", ".yaml", ".yml", ".sh"];
 /** 하네스 코드에 나타나면 안 되는 경로 표기(주석은 제외하고 검사한다). */
 const FORBIDDEN_PATH_PATTERNS = [
   /\/Users\//,
-  /Desktop\/JayStudio/,
-  /JayStudio\/\.claude/,
-  /JayStudio\/\.jaystudio/,
+  /Desktop\/AojiStudio/,
+  /Desktop\/JayStudio/, // LEGACY v1.0.x
+  /AojiStudio\/\.claude/,
+  /AojiStudio\/\.aojistudio/,
+  /JayStudio\/\.claude/, // LEGACY v1.0.x
+  /JayStudio\/\.jaystudio/, // LEGACY v1.0.x
   /homedir\(/,
   /process\.env\.HOME/,
   /(^|[^\w])~\//,
 ];
 
-/** `.claude`·`.jaystudio`를 코드에서 언급할 때 같은 줄에 있어야 하는 fixture 근거. */
+/** `.claude`·`.aojistudio`를 코드에서 언급할 때 같은 줄에 있어야 하는 fixture 근거. */
 const FIXTURE_CONTEXT = /fixture/i;
 
 /**
@@ -65,6 +72,20 @@ function canonicalPath(path: string): string {
   return withoutVmPrefix.startsWith("/private/")
     ? withoutVmPrefix.slice("/private".length)
     : withoutVmPrefix;
+}
+
+/**
+ * bind 소스가 fixture 폴더인지. Docker Desktop(WSL2)은 호스트 경로를 보고하지 않고
+ * `/run/desktop/mnt/host/wsl/docker-desktop-bind-mounts/<배포판>/<호스트 경로의 sha256>`을 보고한다.
+ * 이 경우 마지막 마디가 fixture 경로(원본·canonical 표기 둘 중 하나)의 sha256과 같은지로 판정한다.
+ */
+function bindSourceIsFixture(source: string, fixtureDir: string, rawFixtureDir: string): boolean {
+  const bindMountsDir = /\/docker-desktop-bind-mounts\/[^/]+\/([0-9a-f]{64})$/.exec(source);
+  if (bindMountsDir !== null) {
+    const hashOf = (path: string) => createHash("sha256").update(path).digest("hex");
+    return [fixtureDir, rawFixtureDir].some((path) => hashOf(path) === bindMountsDir[1]);
+  }
+  return canonicalPath(source) === fixtureDir;
 }
 
 function readHarnessCode(relativePath: string): string {
@@ -116,7 +137,7 @@ test("[FR-003-AC1][격리] HARNESS_FILES가 하네스 소스 전부를 덮는다
 });
 
 for (const relativePath of HARNESS_FILES) {
-  test(`[FR-003-AC1][격리] ${relativePath}에 실제 JayStudio 경로·홈 경로 문자열이 없다`, () => {
+  test(`[FR-003-AC1][격리] ${relativePath}에 실제 AojiStudio 경로·홈 경로 문자열이 없다`, () => {
     const code = readHarnessCode(relativePath);
     for (const pattern of FORBIDDEN_PATH_PATTERNS) {
       expect(code, `${relativePath}이 금지 경로 패턴 ${pattern}을 담고 있습니다`).not.toMatch(
@@ -125,10 +146,10 @@ for (const relativePath of HARNESS_FILES) {
     }
   });
 
-  test(`[FR-003-AC1][격리] ${relativePath}의 .claude·.jaystudio 참조는 fixture 경로와 함께만 나온다`, () => {
+  test(`[FR-003-AC1][격리] ${relativePath}의 .claude·.aojistudio 참조는 fixture 경로와 함께만 나온다`, () => {
     const suspicious = readHarnessCode(relativePath)
       .split("\n")
-      .filter((line) => /\.claude|\.jaystudio/.test(line))
+      .filter((line) => /\.claude|\.aojistudio|\.jaystudio/.test(line)) // LEGACY v1.0.x
       .filter((line) => !FIXTURE_CONTEXT.test(line));
     expect(suspicious).toEqual([]);
   });
@@ -159,7 +180,7 @@ test("[FR-003-AC1][격리] 기동된 컨테이너의 bind 마운트는 임시 fi
   const studioRoot = canonicalPath(resolve(PROJECT_ROOT, ".."));
   const fixtureDir = canonicalPath(realpathSync(state.fixtureDir));
 
-  // 임시 폴더 안이어야 하고, 저장소(JayStudio) 안이면 안 된다.
+  // 임시 폴더 안이어야 하고, 저장소(AojiStudio) 안이면 안 된다.
   if (state.fixtureOwned) {
     expect(fixtureDir.startsWith(canonicalPath(realpathSync(tmpdir())))).toBe(true);
   }
@@ -180,7 +201,10 @@ test("[FR-003-AC1][격리] 기동된 컨테이너의 bind 마운트는 임시 fi
 
   const binds = mounts.filter((mount) => mount.Type === "bind");
   expect(binds.map((bind) => bind.Destination)).toEqual(["/workspace"]);
-  expect(canonicalPath((binds[0] as { Source: string }).Source)).toBe(fixtureDir);
+  expect(
+    bindSourceIsFixture((binds[0] as { Source: string }).Source, fixtureDir, state.fixtureDir),
+    `bind 소스가 fixture 사본이 아닙니다: ${(binds[0] as { Source: string }).Source}`,
+  ).toBe(true);
   for (const mount of mounts) {
     expect(canonicalPath(mount.Source).startsWith(studioRoot)).toBe(false);
     expect(mount.Source).not.toContain("docker.sock");

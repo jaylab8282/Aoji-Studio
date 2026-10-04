@@ -325,7 +325,7 @@ test("[FR-012-AC1][FR-012-AC2][FR-012-AC3][FR-007-AC7][E2E-03] 03 `제거` → 0
     confirm.getByRole("heading", { name: `${lead}을(를) ${workflow}에서 제거할까요?`, exact: true }),
   ).toBeVisible();
   await expect(
-    confirm.getByText("정의 파일이 .jaystudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).", {
+    confirm.getByText("정의 파일이 .aojistudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).", {
       exact: true,
     }),
   ).toBeVisible();
@@ -375,7 +375,7 @@ test("[FR-012-AC4][E2E-03] 휴지통에 같은 이름이 있어도 덮어쓰지 
   await removeAgentFromPanel(page, agent);
   const firstTrashNames = listFixtureDir(trashDir()).filter((name) => name.startsWith(`${agent}.`));
   expect(firstTrashNames).toHaveLength(1);
-  const firstTrashFile = fixturePath(".jaystudio", "trash", firstTrashNames[0] as string);
+  const firstTrashFile = fixturePath(".aojistudio", "trash", firstTrashNames[0] as string);
   const firstTrashContent = readFixtureFile(firstTrashFile);
   expect(firstTrashContent).toContain("첫 번째 본문.");
 
@@ -392,7 +392,7 @@ test("[FR-012-AC4][E2E-03] 휴지통에 같은 이름이 있어도 덮어쓰지 
   expect(trashNames).toHaveLength(2);
   // 먼저 옮긴 파일은 덮어써지지 않았다.
   expect(readFixtureFile(firstTrashFile)).toBe(firstTrashContent);
-  const contents = trashNames.map((name) => readFixtureFile(fixturePath(".jaystudio", "trash", name)));
+  const contents = trashNames.map((name) => readFixtureFile(fixturePath(".aojistudio", "trash", name)));
   expect(contents.some((content) => content.includes("첫 번째 본문."))).toBe(true);
   expect(contents.some((content) => content.includes("두 번째 본문."))).toBe(true);
 });
@@ -409,7 +409,7 @@ test("[FR-012-E1][E2E-03] 휴지통 이동이 실패하면 사유를 보여주�
   });
   const beforeContent = readFixtureFile(agentFile(agent));
 
-  // `.jaystudio/trash`를 폴더가 아닌 일반 파일로 두면 휴지통 폴더를 만들 수 없어 이동이 실패한다.
+  // `.aojistudio/trash`를 폴더가 아닌 일반 파일로 두면 휴지통 폴더를 만들 수 없어 이동이 실패한다.
   removeFixturePath(trashDir());
   writeFixtureFile(trashDir(), "E2E-03 FR-012-E1: 휴지통 폴더를 만들 수 없게 막는 일반 파일\n");
 
