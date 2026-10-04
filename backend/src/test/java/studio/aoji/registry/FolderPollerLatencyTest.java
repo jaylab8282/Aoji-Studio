@@ -34,7 +34,7 @@ import studio.aoji.config.BrowserTokenFilter;
  * NFR-02). 정의 파일·구성 파일 각각 추가·수정·삭제를 100회씩(6종류 × 100 = 600회) 측정해 종류별
  * p95 &lt; 1.5s를 검증하고 수치를 로그로 남긴다(REPORT에 tech-lead가 종류별 p95를 옮겨 적는다).
  *
- * <p>{@code jaystudio.poll-interval-ms}를 50ms로 낮춰 주입한다 — 600회를 실제 1초 간격으로 측정하면
+ * <p>{@code aojistudio.poll-interval-ms}를 50ms로 낮춰 주입한다 — 600회를 실제 1초 간격으로 측정하면
  * 반복당 최대 1초까지 대기해 전체 실행이 수백 초가 될 수 있다(ADR-04 "실행 시간이 과도하면 반복
  * 횟수를 줄이지 않고 폴링 간격을 테스트 프로퍼티로 낮춘다"). 폴링 로직 자체(스냅샷 비교·재스캔·방송)는
  * 간격과 무관하게 동일하므로 반복 횟수·검증 신뢰는 그대로 유지된다. 실제 운영값인 1000ms 간격으로도
@@ -64,13 +64,13 @@ class FolderPollerLatencyTest {
         Files.createDirectories(mountRoot.resolve(".claude").resolve("agents"));
         Files.createDirectories(mountRoot.resolve(".jaystudio").resolve("teams"));
 
-        registry.add("jaystudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
-        registry.add("jaystudio.public-port", () -> "4180");
-        registry.add("jaystudio.mount-path", () -> mountRoot.toString());
-        registry.add("jaystudio.data-path", () -> dataDir.toString());
+        registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
+        registry.add("aojistudio.public-port", () -> "4180");
+        registry.add("aojistudio.mount-path", () -> mountRoot.toString());
+        registry.add("aojistudio.data-path", () -> dataDir.toString());
         registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + dataDir.resolve("events.db"));
         registry.add("server.shutdown", () -> "immediate");
-        registry.add("jaystudio.poll-interval-ms", () -> "50");
+        registry.add("aojistudio.poll-interval-ms", () -> "50");
     }
 
     @BeforeEach

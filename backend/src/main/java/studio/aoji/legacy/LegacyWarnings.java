@@ -58,6 +58,11 @@ public class LegacyWarnings {
         startup("env", legacyName + " 무시(" + newName + " 우선, 값이 다름)", legacyName + "를 지우세요");
     }
 
+    /** env · 새 변수와 옛 변수가 같은 값으로 함께 설정된 경우. 이름만 받는다. */
+    public void envDuplicate(String legacyName, String newName) {
+        startup("env", legacyName + " 도 설정됨(" + newName + "와 같은 값, " + newName + " 사용)", legacyName + "를 지우세요");
+    }
+
     /** data-dir · 이동 완료. teams·trash는 파일 개수. */
     public void dataDirMoved(int teams, int trash, boolean collectToken, boolean helperToken) {
         StringBuilder moved = new StringBuilder("teams ").append(teams).append(", trash ").append(trash);

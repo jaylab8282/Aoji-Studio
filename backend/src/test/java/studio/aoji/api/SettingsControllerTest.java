@@ -49,10 +49,10 @@ class SettingsControllerTest {
 
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry registry) {
-        registry.add("jaystudio.host-path", () -> HOST_PATH);
-        registry.add("jaystudio.public-port", () -> "4180");
-        registry.add("jaystudio.mount-path", () -> mountRoot.toString());
-        registry.add("jaystudio.data-path", () -> dataDir.toString());
+        registry.add("aojistudio.host-path", () -> HOST_PATH);
+        registry.add("aojistudio.public-port", () -> "4180");
+        registry.add("aojistudio.mount-path", () -> mountRoot.toString());
+        registry.add("aojistudio.data-path", () -> dataDir.toString());
         registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + dataDir.resolve("events.db"));
     }
 
@@ -87,9 +87,9 @@ class SettingsControllerTest {
 
     @Test
     void hostPathEqualsEnvValueAndResponseExcludesContainerMountPath() throws Exception {
-        // [FR-014-AC4][D-021] hostPath == JAYSTUDIO_HOST_PATH env 값. api-spec Settings에서
+        // [FR-014-AC4][D-021] hostPath == AOJISTUDIO_HOST_PATH env 값. api-spec Settings에서
         // mountPath 필드가 제거되었으므로(D-021) 응답 본문 전체에 컨테이너 마운트 경로
-        // (jaystudio.mount-path 값)가 없어야 하고, mountPath 키 자체도 없어야 한다.
+        // (aojistudio.mount-path 값)가 없어야 하고, mountPath 키 자체도 없어야 한다.
         MvcResult result = mockMvc.perform(get("/api/settings").header("Origin", ALLOWED_ORIGIN))
                 .andExpect(status().isOk())
                 .andReturn();

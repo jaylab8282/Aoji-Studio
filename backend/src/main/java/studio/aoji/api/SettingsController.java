@@ -21,7 +21,7 @@ import studio.aoji.stream.SnapshotAssembler;
  * <p>이 컨트롤러는 {@code .claude/settings.json}을 쓰지 않는다 — 읽기는 {@link RegistryService#current()}
  * 가 스캔 시점에 이미 읽어 둔 {@link RegistrySnapshot#hookConfigured()}를 그대로 쓴다(FR-014-AC1).
  *
- * <p>컨테이너 마운트 절대 경로({@code JAYSTUDIO_MOUNT_PATH} 값, {@code AppProperties.getMountPath()})는
+ * <p>컨테이너 마운트 절대 경로({@code AOJISTUDIO_MOUNT_PATH} 값, {@code AppProperties.getMountPath()})는
  * 응답 어디에도 넣지 않는다(D-021, conventions.md §5) — api-spec {@code Settings}에는 {@code mountPath}
  * 필드가 없다.
  */

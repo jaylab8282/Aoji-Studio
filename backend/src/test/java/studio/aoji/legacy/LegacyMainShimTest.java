@@ -59,10 +59,10 @@ class LegacyMainShimTest {
                 }
             }, () -> JayStudioApplication.main(new String[] {
                 "--server.port=0",
-                "--jaystudio.host-path=/Users/someone/Desktop/AojiStudio",
-                "--jaystudio.public-port=4180",
-                "--jaystudio.mount-path=" + mount,
-                "--jaystudio.data-path=" + data,
+                "--aojistudio.host-path=/Users/someone/Desktop/AojiStudio",
+                "--aojistudio.public-port=4180",
+                "--aojistudio.mount-path=" + mount,
+                "--aojistudio.data-path=" + data,
                 "--spring.main.banner-mode=off"
             }));
 

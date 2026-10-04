@@ -57,13 +57,13 @@ class FolderPollerRealPollIntervalLatencyTest {
     static void props(DynamicPropertyRegistry registry) throws IOException {
         Files.createDirectories(mountRoot.resolve(".claude").resolve("agents"));
 
-        registry.add("jaystudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
-        registry.add("jaystudio.public-port", () -> "4180");
-        registry.add("jaystudio.mount-path", () -> mountRoot.toString());
-        registry.add("jaystudio.data-path", () -> dataDir.toString());
+        registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
+        registry.add("aojistudio.public-port", () -> "4180");
+        registry.add("aojistudio.mount-path", () -> mountRoot.toString());
+        registry.add("aojistudio.data-path", () -> dataDir.toString());
         registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + dataDir.resolve("events.db"));
         registry.add("server.shutdown", () -> "immediate");
-        // jaystudio.poll-interval-ms를 일부러 주지 않는다 — @Scheduled 기본값(1000, ADR-04 결정)을 그대로 쓴다.
+        // aojistudio.poll-interval-ms를 일부러 주지 않는다 — @Scheduled 기본값(1000, ADR-04 결정)을 그대로 쓴다.
     }
 
     @Test

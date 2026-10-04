@@ -63,10 +63,10 @@ class LiveStateServiceTest {
         writeAgent("qa", "QA 에이전트");
         writeAgent("outsider", "워크플로우 밖 에이전트");
 
-        registry.add("jaystudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
-        registry.add("jaystudio.public-port", () -> "4180");
-        registry.add("jaystudio.mount-path", () -> mountRoot.toString());
-        registry.add("jaystudio.data-path", () -> dataDir.toString());
+        registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
+        registry.add("aojistudio.public-port", () -> "4180");
+        registry.add("aojistudio.mount-path", () -> mountRoot.toString());
+        registry.add("aojistudio.data-path", () -> dataDir.toString());
         registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + dataDir.resolve("events.db"));
     }
 

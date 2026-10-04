@@ -31,7 +31,7 @@ import studio.aoji.stream.SseHub;
  * T-004). {@link #lastSnapshot}은 Spring Boot 기본 단일 스레드 스케줄러(추가 {@code TaskScheduler}
  * 빈 없음, {@code SseHub} heartbeat와 동일 전제)에서만 접근하므로 별도 동기화가 필요 없다.
  *
- * <p>폴링 간격은 {@code jaystudio.poll-interval-ms}(기본 1000, ADR-04 결정값)로 둔다. 운영 기본값은
+ * <p>폴링 간격은 {@code aojistudio.poll-interval-ms}(기본 1000, ADR-04 결정값)로 둔다. 운영 기본값은
  * 항상 1000ms이며, 통합 테스트만 이 프로퍼티를 낮춰 주입해 대량 반복 측정 시간을 줄인다
  * (FolderPollerLatencyTest). 최소 한 종류는 실제 1000ms 간격으로도 측정한다
  * (FolderPollerRealPollIntervalLatencyTest, ADR-04 측정 의무).
@@ -69,7 +69,7 @@ public class FolderPoller {
         lastSnapshot = captureSnapshot();
     }
 
-    @Scheduled(fixedDelayString = "${jaystudio.poll-interval-ms:1000}")
+    @Scheduled(fixedDelayString = "${aojistudio.poll-interval-ms:1000}")
     void poll() {
         try {
             Map<String, FileStat> snapshot = captureSnapshot();

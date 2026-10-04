@@ -5,11 +5,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * 필수 환경 변수 검증. {@code JAYSTUDIO_HOST_PATH}, {@code JAYSTUDIO_PUBLIC_PORT}가
+ * 필수 환경 변수 검증. {@code AOJISTUDIO_HOST_PATH}, {@code AOJISTUDIO_PUBLIC_PORT}가
  * 없거나 빈 문자열이면 기동을 실패시킨다 (architecture.md §4.2, FR-014-E1, NFR-05).
  */
 @Component
-@ConfigurationProperties(prefix = "jaystudio")
+@ConfigurationProperties(prefix = "aojistudio")
 public class AppProperties {
 
     private String hostPath = "";
@@ -21,8 +21,13 @@ public class AppProperties {
 
     @PostConstruct
     void validate() {
-        requireNonBlank("JAYSTUDIO_HOST_PATH", hostPath);
-        requireNonBlank("JAYSTUDIO_PUBLIC_PORT", publicPort);
+        requireNonBlank("AOJISTUDIO_HOST_PATH", hostPath);
+        requireNonBlank("AOJISTUDIO_PUBLIC_PORT", publicPort);
+    }
+
+    /** 빈 문자열은 설정 안 됨으로 본다(ADR-56) - 기본값을 유지한다. */
+    private static String orDefault(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 
     private static void requireNonBlank(String envName, String value) {
@@ -45,7 +50,7 @@ public class AppProperties {
      * {@code SnapshotAssembler}의 {@code Config}와 {@code OriginFilter}의 403 {@code FORBIDDEN_ORIGIN}
      * 안내 문구가 같은 값을 쓰도록 한 곳에서 계산한다(architecture.md §5, ADR-41).
      * 게터 이름({@code getPublicOrigin})을 쓰지 않는 이유: 파생 값이므로
-     * {@code jaystudio.public-origin} 설정으로 오해하지 않게 한다.
+     * {@code aojistudio.public-origin} 설정으로 오해하지 않게 한다.
      */
     public String publicOrigin() {
         return "http://127.0.0.1:" + publicPort;
@@ -64,7 +69,7 @@ public class AppProperties {
     }
 
     public void setMountPath(String mountPath) {
-        this.mountPath = mountPath;
+        this.mountPath = orDefault(mountPath, this.mountPath);
     }
 
     public String getDataPath() {
@@ -72,7 +77,7 @@ public class AppProperties {
     }
 
     public void setDataPath(String dataPath) {
-        this.dataPath = dataPath;
+        this.dataPath = orDefault(dataPath, this.dataPath);
     }
 
     public String getHelperUrl() {
@@ -80,7 +85,7 @@ public class AppProperties {
     }
 
     public void setHelperUrl(String helperUrl) {
-        this.helperUrl = helperUrl;
+        this.helperUrl = orDefault(helperUrl, this.helperUrl);
     }
 
     public String getAllowedOrigins() {

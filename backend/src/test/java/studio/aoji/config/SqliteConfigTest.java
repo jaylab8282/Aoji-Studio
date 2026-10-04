@@ -41,12 +41,12 @@ class SqliteConfigTest {
 
         @DynamicPropertySource
         static void props(DynamicPropertyRegistry registry) {
-            registry.add("jaystudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
-            registry.add("jaystudio.public-port", () -> "4180");
-            registry.add("jaystudio.mount-path", () -> mountRoot.toString());
-            // jaystudio.data-path가 해석되는 시점(=Environment 준비 시점, 컨텍스트 기동보다 먼저)에
+            registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
+            registry.add("aojistudio.public-port", () -> "4180");
+            registry.add("aojistudio.mount-path", () -> mountRoot.toString());
+            // aojistudio.data-path가 해석되는 시점(=Environment 준비 시점, 컨텍스트 기동보다 먼저)에
             // 손상된 events.db를 미리 써 둔다.
-            registry.add("jaystudio.data-path", () -> {
+            registry.add("aojistudio.data-path", () -> {
                 writeGarbageFile(dataDir.resolve("events.db"));
                 return dataDir.toString();
             });
@@ -82,10 +82,10 @@ class SqliteConfigTest {
 
         @DynamicPropertySource
         static void props(DynamicPropertyRegistry registry) {
-            registry.add("jaystudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
-            registry.add("jaystudio.public-port", () -> "4180");
-            registry.add("jaystudio.mount-path", () -> mountRoot.toString());
-            registry.add("jaystudio.data-path", () -> {
+            registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
+            registry.add("aojistudio.public-port", () -> "4180");
+            registry.add("aojistudio.mount-path", () -> mountRoot.toString());
+            registry.add("aojistudio.data-path", () -> {
                 writeHealthyDatabaseWithOneRow(dataDir.resolve("events.db"));
                 return dataDir.toString();
             });

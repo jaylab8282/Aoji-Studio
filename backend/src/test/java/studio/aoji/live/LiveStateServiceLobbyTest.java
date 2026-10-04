@@ -42,10 +42,10 @@ class LiveStateServiceLobbyTest {
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry registry) throws IOException {
         Files.createDirectories(mountRoot.resolve(".claude").resolve("agents"));
-        registry.add("jaystudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
-        registry.add("jaystudio.public-port", () -> "4180");
-        registry.add("jaystudio.mount-path", () -> mountRoot.toString());
-        registry.add("jaystudio.data-path", () -> dataDir.toString());
+        registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
+        registry.add("aojistudio.public-port", () -> "4180");
+        registry.add("aojistudio.mount-path", () -> mountRoot.toString());
+        registry.add("aojistudio.data-path", () -> dataDir.toString());
         registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + dataDir.resolve("events.db"));
     }
 

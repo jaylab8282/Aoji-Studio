@@ -32,37 +32,52 @@ class AppStartupTest {
                         "spring.datasource.driver-class-name=org.sqlite.JDBC",
                         "spring.sql.init.mode=always",
                         "spring.sql.init.schema-locations=classpath:schema.sql",
-                        "jaystudio.data-path=" + dataDir,
+                        "aojistudio.data-path=" + dataDir,
                         "spring.datasource.url=jdbc:sqlite:" + dataDir.resolve("events.db"));
     }
 
     @Test
-    @DisplayName("[FR-014-E1] JAYSTUDIO_HOST_PATH 없음 → 컨텍스트 기동 실패")
+    @DisplayName("[FR-014-E1] AOJISTUDIO_HOST_PATH·JAYSTUDIO_HOST_PATH 둘 다 없음 → 기동 실패, 메시지에 AOJISTUDIO_HOST_PATH")
     void hostPathMissingFailsStartup() {
         contextRunner()
-                .withPropertyValues("jaystudio.public-port=4180")
+                .withPropertyValues("aojistudio.public-port=4180")
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure())
                             .rootCause()
                             .isInstanceOf(IllegalStateException.class)
-                            .hasMessageContaining("JAYSTUDIO_HOST_PATH");
+                            .hasMessageContaining("AOJISTUDIO_HOST_PATH");
                 });
     }
 
     @Test
-    @DisplayName("[NFR-05] JAYSTUDIO_PUBLIC_PORT 빈값 → 기동 실패")
+    @DisplayName("[NFR-05] AOJISTUDIO_PUBLIC_PORT 빈값 + 옛 이름 없음 → 기동 실패")
     void publicPortBlankFailsStartup() {
         contextRunner()
                 .withPropertyValues(
-                        "jaystudio.host-path=/Users/jaybee/Desktop/JayStudio",
-                        "jaystudio.public-port=")
+                        "aojistudio.host-path=/Users/jaybee/Desktop/JayStudio",
+                        "aojistudio.public-port=")
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure())
                             .rootCause()
                             .isInstanceOf(IllegalStateException.class)
-                            .hasMessageContaining("JAYSTUDIO_PUBLIC_PORT");
+                            .hasMessageContaining("AOJISTUDIO_PUBLIC_PORT");
+                });
+    }
+
+    @Test
+    @DisplayName("[ADR-56] 옛 프로퍼티 키 jaystudio.* 는 받지 않는다 → 기동 실패")
+    void legacyPropertyKeysAreNotAccepted() {
+        contextRunner()
+                .withPropertyValues(
+                        "jaystudio.host-path=/Users/someone/Desktop/AojiStudio",
+                        "jaystudio.public-port=4180")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .rootCause()
+                            .hasMessageContaining("AOJISTUDIO_HOST_PATH");
                 });
     }
 
@@ -71,8 +86,8 @@ class AppStartupTest {
     void allRequiredPropertiesPresentStartsSuccessfully() {
         contextRunner()
                 .withPropertyValues(
-                        "jaystudio.host-path=/Users/jaybee/Desktop/JayStudio",
-                        "jaystudio.public-port=4180")
+                        "aojistudio.host-path=/Users/jaybee/Desktop/JayStudio",
+                        "aojistudio.public-port=4180")
                 .run(context -> assertThat(context).hasNotFailed());
     }
 

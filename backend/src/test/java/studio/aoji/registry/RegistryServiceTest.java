@@ -46,9 +46,9 @@ class RegistryServiceTest {
         return new ApplicationContextRunner()
                 .withUserConfiguration(TestConfig.class)
                 .withPropertyValues(
-                        "jaystudio.host-path=/Users/jaybee/Desktop/JayStudio",
-                        "jaystudio.public-port=4180",
-                        "jaystudio.mount-path=" + mountRoot);
+                        "aojistudio.host-path=/Users/jaybee/Desktop/JayStudio",
+                        "aojistudio.public-port=4180",
+                        "aojistudio.mount-path=" + mountRoot);
     }
 
     @Test

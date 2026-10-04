@@ -4,6 +4,6 @@ server:
   address: 127.0.0.1
   port: 8080
 
-jaystudio:
+aojistudio:
   # dev 프로필은 Vite(5173)에서 오는 요청도 허용한다(architecture.md §4.2).
-  allowed-origins: ${JAYSTUDIO_ALLOWED_ORIGINS:http://127.0.0.1:5173}
+  allowed-origins: http://127.0.0.1:5173

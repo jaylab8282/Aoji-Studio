@@ -103,6 +103,7 @@ class LegacyWarningsTest {
         Map<String, Runnable> byMethod = new LinkedHashMap<>();
         byMethod.put("envInUse", () -> warnings.envInUse("JAYSTUDIO_HOST_PATH", "AOJISTUDIO_HOST_PATH"));
         byMethod.put("envIgnored", () -> warnings.envIgnored("JAYSTUDIO_PUBLIC_PORT", "AOJISTUDIO_PUBLIC_PORT"));
+        byMethod.put("envDuplicate", () -> warnings.envDuplicate("JAYSTUDIO_DATA_PATH", "AOJISTUDIO_DATA_PATH"));
         byMethod.put("collectHeaderUsed", warnings::collectHeaderUsed);
         byMethod.put("collectHeaderIgnored", warnings::collectHeaderIgnored);
         byMethod.put("dataDirMoved", () -> warnings.dataDirMoved(3, 2, true, true));
