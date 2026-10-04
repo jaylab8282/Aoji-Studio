@@ -105,11 +105,11 @@ class AgentRemoveTest {
     }
 
     private Path teamsDir() {
-        return mountRoot.resolve(".jaystudio").resolve("teams");
+        return mountRoot.resolve(".aojistudio").resolve("teams");
     }
 
     private Path trashDir() {
-        return mountRoot.resolve(".jaystudio").resolve("trash");
+        return mountRoot.resolve(".aojistudio").resolve("trash");
     }
 
     private Path definitionFile(String name) {
@@ -130,7 +130,7 @@ class AgentRemoveTest {
     }
 
     private String collectToken() throws IOException {
-        return Files.readString(mountRoot.resolve(".jaystudio").resolve("collect-token"), StandardCharsets.UTF_8)
+        return Files.readString(mountRoot.resolve(".aojistudio").resolve("collect-token"), StandardCharsets.UTF_8)
                 .strip();
     }
 
@@ -189,7 +189,7 @@ class AgentRemoveTest {
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
         JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
         String trashPath = body.get("trashPath").asString();
-        assertThat(trashPath).matches("\\.jaystudio/trash/remove-agent\\.\\d{8}-\\d{6}\\.md");
+        assertThat(trashPath).matches("\\.aojistudio/trash/remove-agent\\.\\d{8}-\\d{6}\\.md");
         assertThat(body.get("removedFromWorkflow").asString()).isEqualTo("제거팀");
 
         assertThat(Files.exists(definitionFile("remove-agent"))).isFalse();

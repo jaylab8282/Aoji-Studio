@@ -3,7 +3,7 @@ package studio.aoji.registry;
 import java.util.List;
 
 /**
- * {@code .jaystudio/teams/*.json} 스캔 결과 (FR-002-AC5·AC6, FR-006-AC11 준비).
+ * {@code <데이터 폴더>/teams/*.json} 스캔 결과 (FR-002-AC5·AC6, FR-006-AC11 준비).
  *
  * @param workflows 정상 구성 파일만
  * @param formatErrors workflow·broken-ref 형식 오류 목록

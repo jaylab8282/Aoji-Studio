@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
 import studio.aoji.config.AppProperties;
 
 /**
- * {@code .jaystudio/collect-token} 읽기·생성 (architecture.md §6.3, ADR-16, NFR-05).
+ * {@code .aojistudio/collect-token} 읽기·생성 (architecture.md §6.3, ADR-16, NFR-05).
  * 실제 파일시스템(임시 폴더)만 쓰고 mock을 두지 않는다.
  */
 class CollectTokenStoreTest {
@@ -57,8 +57,8 @@ class CollectTokenStoreTest {
     @Test
     @DisplayName("[NFR-05] 기존 토큰 있으면 읽기 전용에서도 기동")
     void existingTokenAllowsStartupOnReadOnlyMount() throws IOException {
-        Path jaystudioDir = Files.createDirectories(mountRoot.resolve(".jaystudio"));
-        Files.writeString(jaystudioDir.resolve("collect-token"), "a".repeat(64), StandardCharsets.UTF_8);
+        Path dataDir = Files.createDirectories(mountRoot.resolve(".aojistudio"));
+        Files.writeString(dataDir.resolve("collect-token"), "a".repeat(64), StandardCharsets.UTF_8);
         Files.setPosixFilePermissions(mountRoot, PosixFilePermissions.fromString("r-xr-xr-x"));
 
         contextRunner().run(context -> {
@@ -71,8 +71,8 @@ class CollectTokenStoreTest {
     @Test
     @DisplayName("[NFR-05] 0바이트 토큰 → 기동 실패")
     void emptyTokenFileFailsStartup() throws IOException {
-        Path jaystudioDir = Files.createDirectories(mountRoot.resolve(".jaystudio"));
-        Files.createFile(jaystudioDir.resolve("collect-token"));
+        Path dataDir = Files.createDirectories(mountRoot.resolve(".aojistudio"));
+        Files.createFile(dataDir.resolve("collect-token"));
 
         contextRunner().run(context -> {
             assertThat(context).hasFailed();
@@ -88,7 +88,7 @@ class CollectTokenStoreTest {
     void createsTokenFileWhenMissing() {
         contextRunner().run(context -> {
             assertThat(context).hasNotFailed();
-            Path tokenFile = mountRoot.resolve(".jaystudio").resolve("collect-token");
+            Path tokenFile = mountRoot.resolve(".aojistudio").resolve("collect-token");
             assertThat(tokenFile).exists();
             String content = Files.readString(tokenFile, StandardCharsets.UTF_8);
             assertThat(content).hasSize(64);
@@ -113,8 +113,24 @@ class CollectTokenStoreTest {
     @EnableConfigurationProperties(AppProperties.class)
     static class TestConfig {
         @Bean
-        CollectTokenStore collectTokenStore(AppProperties appProperties) {
-            return new CollectTokenStore(appProperties);
+        studio.aoji.registry.ProjectFolderScanner projectFolderScanner() {
+            return new studio.aoji.registry.ProjectFolderScanner(new studio.aoji.registry.AgentDefinitionParser());
+        }
+
+        @Bean
+        studio.aoji.legacy.LegacyWarnings legacyWarnings() {
+            return new studio.aoji.legacy.LegacyWarnings(java.time.Clock.systemUTC(), line -> { });
+        }
+
+        @Bean
+        studio.aoji.files.DataDirectory dataDirectory(AppProperties appProperties,
+                studio.aoji.registry.ProjectFolderScanner scanner, studio.aoji.legacy.LegacyWarnings warnings) {
+            return new studio.aoji.files.DataDirectory(appProperties, scanner, warnings);
+        }
+
+        @Bean
+        CollectTokenStore collectTokenStore(studio.aoji.files.DataDirectory dataDirectory) {
+            return new CollectTokenStore(dataDirectory);
         }
     }
 }

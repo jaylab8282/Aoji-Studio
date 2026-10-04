@@ -28,7 +28,7 @@ class RegistryServiceTest {
     @BeforeEach
     void createAgentsDir() throws IOException {
         Files.createDirectories(mountRoot.resolve(".claude").resolve("agents"));
-        Files.createDirectories(mountRoot.resolve(".jaystudio").resolve("teams"));
+        Files.createDirectories(mountRoot.resolve(".aojistudio").resolve("teams"));
     }
 
     private void writeAgent(String fileName, String name) throws IOException {
@@ -39,7 +39,7 @@ class RegistryServiceTest {
     }
 
     private void writeTeam(String fileName, String json) throws IOException {
-        Files.writeString(mountRoot.resolve(".jaystudio").resolve("teams").resolve(fileName), json, StandardCharsets.UTF_8);
+        Files.writeString(mountRoot.resolve(".aojistudio").resolve("teams").resolve(fileName), json, StandardCharsets.UTF_8);
     }
 
     private ApplicationContextRunner contextRunner() {
@@ -228,9 +228,21 @@ class RegistryServiceTest {
         }
 
         @Bean
+        studio.aoji.legacy.LegacyWarnings legacyWarnings() {
+            return new studio.aoji.legacy.LegacyWarnings(java.time.Clock.systemUTC(), line -> { });
+        }
+
+        @Bean
+        studio.aoji.files.DataDirectory dataDirectory(
+                AppProperties appProperties, ProjectFolderScanner scanner, studio.aoji.legacy.LegacyWarnings warnings) {
+            return new studio.aoji.files.DataDirectory(appProperties, scanner, warnings);
+        }
+
+        @Bean
         WorkflowConfigStore workflowConfigStore(
-                ObjectMapper objectMapper, studio.aoji.files.AtomicFileWriter atomicFileWriter) {
-            return new WorkflowConfigStore(objectMapper, atomicFileWriter);
+                ObjectMapper objectMapper, studio.aoji.files.AtomicFileWriter atomicFileWriter,
+                studio.aoji.files.DataDirectory dataDirectory) {
+            return new WorkflowConfigStore(objectMapper, atomicFileWriter, dataDirectory);
         }
 
         @Bean
@@ -249,8 +261,10 @@ class RegistryServiceTest {
                 ProjectFolderScanner scanner,
                 WorkflowConfigStore workflowConfigStore,
                 HookConfigDetector hookConfigDetector,
-                studio.aoji.files.PathGuard pathGuard) {
-            return new RegistryService(appProperties, scanner, workflowConfigStore, hookConfigDetector, pathGuard);
+                studio.aoji.files.PathGuard pathGuard,
+                studio.aoji.files.DataDirectory dataDirectory) {
+            return new RegistryService(
+                    appProperties, scanner, workflowConfigStore, hookConfigDetector, pathGuard, dataDirectory);
         }
     }
 }

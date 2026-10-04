@@ -66,9 +66,9 @@ class HelperTokenControllerTest {
     @Test
     void allowedOriginWithBrowserTokenReturnsFileContent() throws Exception {
         // [FR-013-AC8] 허용 Origin + 브라우저 토큰 → 200 token
-        Path jaystudioDir = Files.createDirectories(mountRoot.resolve(".jaystudio"));
+        Path dataDir = Files.createDirectories(mountRoot.resolve(".aojistudio"));
         String helperToken = "h".repeat(64);
-        Files.writeString(jaystudioDir.resolve("helper-token"), helperToken, StandardCharsets.UTF_8);
+        Files.writeString(dataDir.resolve("helper-token"), helperToken, StandardCharsets.UTF_8);
 
         String browserToken = issuedBrowserToken();
 

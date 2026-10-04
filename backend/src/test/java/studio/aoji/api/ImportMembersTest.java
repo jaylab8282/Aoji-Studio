@@ -82,7 +82,7 @@ class ImportMembersTest {
     }
 
     private Path teamsDir() {
-        return mountRoot.resolve(".jaystudio").resolve("teams");
+        return mountRoot.resolve(".aojistudio").resolve("teams");
     }
 
     private Path agentsDir() {

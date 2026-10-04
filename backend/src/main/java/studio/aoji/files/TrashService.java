@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 정의 파일을 휴지통으로 옮긴다 (architecture.md §3.1, §6.4, ADR-08 "제거", FR-012-AC2·AC4,
- * tasks.md T-011). {@code .jaystudio/trash/}는 읽기 API만으로는 만들지 않고, 이 클래스가 처음 옮길 때
+ * tasks.md T-011). {@code <데이터 폴더>/trash/}는 읽기 API만으로는 만들지 않고, 이 클래스가 처음 옮길 때
  * 만든다(FR-001-AC6과 같은 원칙 — 쓰기 시점에만 디렉터리를 만든다).
  *
  * <p>대상 파일명은 {@code <name>.<yyyyMMdd-HHmmss>.md}(서버 TZ {@code Asia/Seoul}, {@link
@@ -23,14 +23,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class TrashService {
 
-    private static final String JAYSTUDIO_SEGMENT = ".jaystudio";
-    private static final String TRASH_SEGMENT = "trash";
+    private static final String TRASH_SEGMENT = DataDirectory.TRASH;
     private static final DateTimeFormatter SUFFIX_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
     private final Clock clock;
+    private final DataDirectory dataDirectory;
 
-    public TrashService(Clock clock) {
+    public TrashService(Clock clock, DataDirectory dataDirectory) {
         this.clock = clock;
+        this.dataDirectory = dataDirectory;
     }
 
     /**
@@ -38,7 +39,7 @@ public class TrashService {
      * 값이어야 한다(파일명 조립에만 쓴다). 같은 마운트 안이므로 {@code ATOMIC_MOVE}로 옮긴다.
      */
     public MoveResult move(PathGuard pathGuard, Path sourceFile, String name) throws IOException {
-        Path trashDir = pathGuard.resolve(JAYSTUDIO_SEGMENT, TRASH_SEGMENT);
+        Path trashDir = pathGuard.resolve(dataDirectory.name(), TRASH_SEGMENT);
         Files.createDirectories(trashDir);
 
         String timestamp = SUFFIX_FORMAT.format(LocalDateTime.now(clock));
@@ -47,7 +48,7 @@ public class TrashService {
 
         Files.move(sourceFile, target, StandardCopyOption.ATOMIC_MOVE);
 
-        String relativePath = JAYSTUDIO_SEGMENT + "/" + TRASH_SEGMENT + "/" + target.getFileName();
+        String relativePath = dataDirectory.relative(TRASH_SEGMENT, target.getFileName().toString());
         return new MoveResult(relativePath, target);
     }
 
@@ -57,13 +58,13 @@ public class TrashService {
     }
 
     private Path uniqueTarget(PathGuard pathGuard, String name, String timestamp) {
-        Path base = pathGuard.resolve(JAYSTUDIO_SEGMENT, TRASH_SEGMENT, name + "." + timestamp + ".md");
+        Path base = pathGuard.resolve(dataDirectory.name(), TRASH_SEGMENT, name + "." + timestamp + ".md");
         if (!Files.exists(base)) {
             return base;
         }
         for (int suffix = 1; ; suffix++) {
             Path candidate =
-                    pathGuard.resolve(JAYSTUDIO_SEGMENT, TRASH_SEGMENT, name + "." + timestamp + "-" + suffix + ".md");
+                    pathGuard.resolve(dataDirectory.name(), TRASH_SEGMENT, name + "." + timestamp + "-" + suffix + ".md");
             if (!Files.exists(candidate)) {
                 return candidate;
             }

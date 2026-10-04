@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import studio.aoji.collect.CollectTokenStore;
+import studio.aoji.files.DataDirectory;
 import studio.aoji.registry.HookSettingsExampleBuilder;
 import studio.aoji.registry.RegistryService;
 import studio.aoji.registry.RegistrySnapshot;
@@ -30,8 +31,6 @@ import studio.aoji.stream.SnapshotAssembler;
 public class SettingsController {
 
     private static final String TERMINAL_APP = "macOS 기본 터미널";
-    private static final String TEAMS_PATH = ".jaystudio/teams/*.json";
-    private static final String TRASH_PATH = ".jaystudio/trash/";
     private static final int RETENTION_DAYS = 30;
     private static final String ALLOWED_HTTP_HOOK_URLS_NOTE =
             "allowedHttpHookUrls가 설정되어 있으면 수집 주소를 허용 목록에 추가하세요";
@@ -40,16 +39,19 @@ public class SettingsController {
     private final RegistryService registryService;
     private final CollectTokenStore collectTokenStore;
     private final HookSettingsExampleBuilder hookSettingsExampleBuilder;
+    private final DataDirectory dataDirectory;
 
     public SettingsController(
             SnapshotAssembler snapshotAssembler,
             RegistryService registryService,
             CollectTokenStore collectTokenStore,
-            HookSettingsExampleBuilder hookSettingsExampleBuilder) {
+            HookSettingsExampleBuilder hookSettingsExampleBuilder,
+            DataDirectory dataDirectory) {
         this.snapshotAssembler = snapshotAssembler;
         this.registryService = registryService;
         this.collectTokenStore = collectTokenStore;
         this.hookSettingsExampleBuilder = hookSettingsExampleBuilder;
+        this.dataDirectory = dataDirectory;
     }
 
     @GetMapping("/settings")
@@ -73,8 +75,8 @@ public class SettingsController {
                 config.collectUrl(),
                 registry.hookConfigured(),
                 hookSettingsExample,
-                TEAMS_PATH,
-                TRASH_PATH,
+                dataDirectory.relative(DataDirectory.TEAMS, "*.json"),
+                dataDirectory.relative(DataDirectory.TRASH) + "/",
                 RETENTION_DAYS,
                 ALLOWED_HTTP_HOOK_URLS_NOTE);
     }

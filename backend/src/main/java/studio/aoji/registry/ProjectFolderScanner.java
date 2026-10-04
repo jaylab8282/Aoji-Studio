@@ -90,7 +90,7 @@ public class ProjectFolderScanner {
      */
     public boolean checkWritable(Path mountRoot) {
         try {
-            Path probe = Files.createTempFile(mountRoot, ".jaystudio-write-probe-", ".tmp");
+            Path probe = Files.createTempFile(mountRoot, ".aojistudio-write-probe-", ".tmp");
             Files.delete(probe);
             return true;
         } catch (IOException | UnsupportedOperationException | SecurityException e) {

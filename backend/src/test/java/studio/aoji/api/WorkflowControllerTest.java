@@ -89,11 +89,11 @@ class WorkflowControllerTest {
     }
 
     private Path teamsDir() {
-        return mountRoot.resolve(".jaystudio").resolve("teams");
+        return mountRoot.resolve(".aojistudio").resolve("teams");
     }
 
     private Path trashDir() {
-        return mountRoot.resolve(".jaystudio").resolve("trash");
+        return mountRoot.resolve(".aojistudio").resolve("trash");
     }
 
     private String issuedBrowserToken() throws Exception {
@@ -143,7 +143,7 @@ class WorkflowControllerTest {
     @Test
     @Order(2)
     void firstPostCreatesTeamsDirectory() throws Exception {
-        // [FR-001-AC6] .jaystudio/teams 없음 → POST 시 생성
+        // [FR-001-AC6] .aojistudio/teams 없음 → POST 시 생성
         assertThat(Files.exists(teamsDir())).isFalse();
 
         MvcResult result = createWorkflow("첫워크플로우", "첫 설명");

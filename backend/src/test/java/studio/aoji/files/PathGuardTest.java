@@ -20,7 +20,7 @@ class PathGuardTest {
     @Test
     void symlinkEscapingMountIsDetectedAndNotRead() throws IOException {
         // [NFR-07] 마운트 밖 심볼릭 링크 → 형식 오류 '마운트 밖 링크', 읽지 않음
-        Path outside = Files.createTempDirectory("jaystudio-outside");
+        Path outside = Files.createTempDirectory("aojistudio-outside");
         Path secret = Files.writeString(outside.resolve("secret.md"), "---\nname: secret\n---\n");
 
         Path agentsDir = Files.createDirectories(mountRoot.resolve(".claude").resolve("agents"));
@@ -50,7 +50,7 @@ class PathGuardTest {
     @Test
     void writeTargetThatIsSymlinkIsRejected() throws IOException {
         // [NFR-07] 쓰기 대상이 링크면 거부한다
-        Path outside = Files.createTempDirectory("jaystudio-outside-write");
+        Path outside = Files.createTempDirectory("aojistudio-outside-write");
         Path outsideTarget = outside.resolve("target.md");
         Path link = mountRoot.resolve("agent.md");
         Files.createSymbolicLink(link, outsideTarget);

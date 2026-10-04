@@ -10,6 +10,8 @@ import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
+import org.springframework.core.env.MutablePropertySources;
+import org.springframework.core.env.SystemEnvironmentPropertySource;
 import org.springframework.core.env.PropertySource;
 
 /**
@@ -53,8 +55,36 @@ public class LegacyEnvironmentPostProcessor implements EnvironmentPostProcessor,
                 case DUPLICATE -> warnings.envDuplicate(w.legacyName(), w.newName());
             }
         }
+        maskBlankNewNames(environment);
         if (!result.properties().isEmpty()) {
             environment.getPropertySources().addFirst(new MapPropertySource(SOURCE_NAME, new HashMap<String, Object>(result.properties())));
+        }
+    }
+
+    /**
+     * 빈 문자열 = 설정 안 됨(ADR-56). 스프링이 환경 변수 소스에서 {@code AOJISTUDIO_*=""}를 그대로 {@code aojistudio.*=""}로
+     * 묶으면 yaml 기본값(dev 프로필의 5173 등)이나 {@code @Scheduled} 기본값을 빈 값이 덮어쓴다. 값이 빈 대상 변수를 뺀
+     * 복사본으로 그 환경 변수 소스를 같은 이름·같은 자리에 바꿔 끼워 "없는 것"으로 만든다.
+     */
+    private static void maskBlankNewNames(ConfigurableEnvironment environment) {
+        MutablePropertySources sources = environment.getPropertySources();
+        for (PropertySource<?> source : sources.stream().toList()) {
+            if (!(source instanceof SystemEnvironmentPropertySource systemSource)) {
+                continue;
+            }
+            Map<String, Object> copy = new HashMap<>(systemSource.getSource());
+            boolean changed = false;
+            for (String suffix : LegacyEnv.names()) {
+                String name = LegacyEnv.NEW_PREFIX + suffix;
+                Object value = copy.get(name);
+                if (value != null && value.toString().isBlank()) {
+                    copy.remove(name);
+                    changed = true;
+                }
+            }
+            if (changed) {
+                sources.replace(source.getName(), new SystemEnvironmentPropertySource(source.getName(), copy));
+            }
         }
     }
 

@@ -214,9 +214,9 @@ class LiveStateServiceTest {
                         && entry.status() == Status.RUNNING);
 
         // [FR-004-AC7] 구성 파일에 넣은 뒤 → lobby에서 빠지고 agents[name].status 유지
-        Files.createDirectories(mountRoot.resolve(".jaystudio").resolve("teams"));
+        Files.createDirectories(mountRoot.resolve(".aojistudio").resolve("teams"));
         Files.writeString(
-                mountRoot.resolve(".jaystudio").resolve("teams").resolve("solo.json"),
+                mountRoot.resolve(".aojistudio").resolve("teams").resolve("solo.json"),
                 """
                 {
                   "schemaVersion": 1,

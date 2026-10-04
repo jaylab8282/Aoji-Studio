@@ -18,8 +18,8 @@ package studio.aoji.api;
  * @param collectUrl {@code <publicOrigin>/hooks/events}
  * @param hookConfigured hook 설정 여부(FR-014-AC3)
  * @param hookSettingsExample 수집 토큰을 넣은 hook 설정 예시 JSON 문자열(FR-014-AC2)
- * @param teamsPath {@code ".jaystudio/teams/*.json"}(const)
- * @param trashPath {@code ".jaystudio/trash/"}(const)
+ * @param teamsPath {@code "<데이터 폴더>/teams/*.json"}(.aojistudio 또는 읽기 전용 모드의 옛 폴더)
+ * @param trashPath {@code "<데이터 폴더>/trash/"}
  * @param retentionDays 이벤트 보존일(const 30)
  * @param allowedHttpHookUrlsNote {@code allowedHttpHookUrls} 안내 문구
  */

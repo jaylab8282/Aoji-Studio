@@ -62,7 +62,7 @@ class FolderPollerLatencyTest {
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry registry) throws IOException {
         Files.createDirectories(mountRoot.resolve(".claude").resolve("agents"));
-        Files.createDirectories(mountRoot.resolve(".jaystudio").resolve("teams"));
+        Files.createDirectories(mountRoot.resolve(".aojistudio").resolve("teams"));
 
         registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
         registry.add("aojistudio.public-port", () -> "4180");
@@ -76,7 +76,7 @@ class FolderPollerLatencyTest {
     @BeforeEach
     void createDirsIfMissing() throws IOException {
         Files.createDirectories(mountRoot.resolve(".claude").resolve("agents"));
-        Files.createDirectories(mountRoot.resolve(".jaystudio").resolve("teams"));
+        Files.createDirectories(mountRoot.resolve(".aojistudio").resolve("teams"));
     }
 
     @Test
@@ -129,7 +129,7 @@ class FolderPollerLatencyTest {
         }
         Thread.sleep(500);
         measure("구성 파일 삭제", i -> Files.delete(
-                mountRoot.resolve(".jaystudio").resolve("teams").resolve("latency-wf-delete-" + i + ".json")));
+                mountRoot.resolve(".aojistudio").resolve("teams").resolve("latency-wf-delete-" + i + ".json")));
     }
 
     /** 홀수/짝수 자리 패딩을 순환시켜 연속된 반복에서 항상 파일 크기가 달라지게 한다(mtime 해상도 회피). */
@@ -159,7 +159,7 @@ class FolderPollerLatencyTest {
                 """
                         .formatted(fileStem, description);
         Files.writeString(
-                mountRoot.resolve(".jaystudio").resolve("teams").resolve(fileStem + ".json"),
+                mountRoot.resolve(".aojistudio").resolve("teams").resolve(fileStem + ".json"),
                 json,
                 StandardCharsets.UTF_8);
     }

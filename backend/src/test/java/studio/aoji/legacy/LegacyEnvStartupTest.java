@@ -5,6 +5,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,7 +16,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.core.Ordered;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.SystemEnvironmentPropertySource;
+import studio.aoji.AojiStudioApplication;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -121,6 +130,87 @@ class LegacyEnvStartupTest {
             assertThat(environment.getProperty("aojistudio.allowed-origins")).isEqualTo("http://127.0.0.1:5173");
             assertThat(count(output.getAll(), "[legacy] env · ")).isEqualTo(2);
             assertThat(output.getAll()).doesNotContain("OldMountMarker").doesNotContain("4996");
+        }
+    }
+
+    /** 환경 변수 소스(SystemEnvironmentPropertySource)에 빈 새 이름을 넣어 SpringApplication을 직접 기동한다. */
+    abstract static class BlankNewNameBase {
+        @TempDir
+        Path mountRoot;
+        @TempDir
+        Path dataDir;
+
+        ConfigurableApplicationContext start(Map<String, Object> fakeEnv, String... profiles) {
+            ApplicationListener<ApplicationEnvironmentPreparedEvent> addFakeEnv = new FakeEnvListener(fakeEnv);
+            return new SpringApplicationBuilder(AojiStudioApplication.class)
+                    .listeners(addFakeEnv)
+                    .profiles(profiles)
+                    .run(
+                            "--server.port=0",
+                            "--spring.main.banner-mode=off",
+                            "--aojistudio.host-path=/Users/someone/Desktop/AojiStudio",
+                            "--aojistudio.public-port=4995",
+                            "--aojistudio.mount-path=" + mountRoot,
+                            "--aojistudio.data-path=" + dataDir,
+                            "--spring.datasource.url=jdbc:sqlite:" + dataDir.resolve("events.db"));
+        }
+    }
+
+    /** EnvironmentPostProcessor보다 먼저 실행되어 가짜 환경 변수 소스를 넣는다. */
+    static final class FakeEnvListener implements ApplicationListener<ApplicationEnvironmentPreparedEvent>, Ordered {
+        private final Map<String, Object> fakeEnv;
+
+        FakeEnvListener(Map<String, Object> fakeEnv) {
+            this.fakeEnv = fakeEnv;
+        }
+
+        @Override
+        public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {
+            event.getEnvironment().getPropertySources()
+                    .addFirst(new SystemEnvironmentPropertySource("fakeSystemEnvironment", new HashMap<>(fakeEnv)));
+        }
+
+        @Override
+        public int getOrder() {
+            return Ordered.HIGHEST_PRECEDENCE;
+        }
+    }
+
+    static class BlankNewNameTest extends BlankNewNameBase {
+        @Test
+        @DisplayName("[ADR-56] AOJISTUDIO_ALLOWED_ORIGINS=\"\" (옛 이름 없음) + dev 프로필 → 미설정으로 보아 5173 유지, 기동 성공")
+        void blankAllowedOriginsKeepsDevDefault() {
+            Map<String, Object> env = new HashMap<>();
+            env.put("AOJISTUDIO_ALLOWED_ORIGINS", "");
+            try (ConfigurableApplicationContext ctx = start(env, "dev")) {
+                assertThat(ctx.isRunning()).isTrue();
+                assertThat(ctx.getEnvironment().getProperty("aojistudio.allowed-origins"))
+                        .isEqualTo("http://127.0.0.1:5173");
+            }
+        }
+
+        @Test
+        @DisplayName("[ADR-56] AOJISTUDIO_POLL_INTERVAL_MS=\"\" (옛 이름 없음) → 미설정으로 보아 기본 1000으로 기동 성공")
+        void blankPollIntervalKeepsDefault() {
+            Map<String, Object> env = new HashMap<>();
+            env.put("AOJISTUDIO_POLL_INTERVAL_MS", "");
+            try (ConfigurableApplicationContext ctx = start(env)) {
+                assertThat(ctx.isRunning()).isTrue();
+                assertThat(ctx.getEnvironment().getProperty("aojistudio.poll-interval-ms")).isNull();
+                assertThat(ctx.getEnvironment().resolvePlaceholders("${aojistudio.poll-interval-ms:1000}"))
+                        .isEqualTo("1000");
+            }
+        }
+
+        @Test
+        @DisplayName("[ADR-56] 새 이름이 빈값이고 옛 이름에 값이 있으면 옛 값을 쓴다(환경 변수 소스 경로)")
+        void blankNewWithLegacyValueUsesLegacy() {
+            Map<String, Object> env = new HashMap<>();
+            env.put("AOJISTUDIO_POLL_INTERVAL_MS", "");
+            env.put("JAYSTUDIO_POLL_INTERVAL_MS", "777");
+            try (ConfigurableApplicationContext ctx = start(env)) {
+                assertThat(ctx.getEnvironment().getProperty("aojistudio.poll-interval-ms")).isEqualTo("777");
+            }
         }
     }
 }

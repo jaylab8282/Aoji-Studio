@@ -13,10 +13,10 @@ import java.security.SecureRandom;
 import java.util.HexFormat;
 import java.util.Set;
 import org.springframework.stereotype.Component;
-import studio.aoji.config.AppProperties;
+import studio.aoji.files.DataDirectory;
 
 /**
- * 기동 시 {@code .jaystudio/collect-token}을 읽거나 만든다 (architecture.md §6.3, ADR-16, NFR-05).
+ * 기동 시 {@code <데이터 폴더>/collect-token}을 읽거나 만든다 (architecture.md §6.3, ADR-16, NFR-05).
  * 파일이 있으면 읽기만 하고(읽기 전용 마운트에서도 기동 가능), 없고 만들 수 없으면 기동을 실패시킨다.
  */
 @Component
@@ -26,24 +26,23 @@ public class CollectTokenStore {
     private static final Set<PosixFilePermission> OWNER_READ_WRITE =
             PosixFilePermissions.fromString("rw-------");
 
-    private final AppProperties appProperties;
+    private final DataDirectory dataDirectory;
     private volatile String token;
 
-    public CollectTokenStore(AppProperties appProperties) {
-        this.appProperties = appProperties;
+    public CollectTokenStore(DataDirectory dataDirectory) {
+        this.dataDirectory = dataDirectory;
     }
 
     @PostConstruct
     void init() {
-        this.token = loadOrCreate(Path.of(appProperties.getMountPath()));
+        this.token = loadOrCreate(dataDirectory.path());
     }
 
     /**
      * 토큰 파일을 읽거나(있으면) 새로 만든다(없으면). 만들 수 없으면 {@link IllegalStateException}.
      */
-    static String loadOrCreate(Path mountRoot) {
-        Path jaystudioDir = mountRoot.resolve(".jaystudio");
-        Path tokenFile = jaystudioDir.resolve("collect-token");
+    static String loadOrCreate(Path dataDir) {
+        Path tokenFile = dataDir.resolve(DataDirectory.COLLECT_TOKEN);
 
         if (Files.exists(tokenFile)) {
             String content;
@@ -61,7 +60,7 @@ public class CollectTokenStore {
         }
 
         try {
-            Files.createDirectories(jaystudioDir);
+            Files.createDirectories(dataDir);
             String generated = HexFormat.of().formatHex(randomBytes(32));
             Files.writeString(
                     tokenFile,
@@ -77,7 +76,7 @@ public class CollectTokenStore {
             return generated;
         } catch (IOException e) {
             throw new IllegalStateException(
-                    "collect-token 파일을 만들 수 없습니다(" + jaystudioDir + ") · 마운트 쓰기 권한을 확인하세요", e);
+                    "collect-token 파일을 만들 수 없습니다 · 마운트 쓰기 권한을 확인하세요", e);
         }
     }
 

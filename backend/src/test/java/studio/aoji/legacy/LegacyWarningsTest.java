@@ -110,7 +110,7 @@ class LegacyWarningsTest {
         byMethod.put("dataDirBothExist", warnings::dataDirBothExist);
         byMethod.put("dataDirReadOnly", warnings::dataDirReadOnly);
         byMethod.put("helperTokenFallback", warnings::helperTokenFallback);
-        byMethod.put("helperTokenNotRegular", () -> warnings.helperTokenNotRegular("심볼릭 링크"));
+        byMethod.put("helperTokenNotRead", () -> warnings.helperTokenNotRead(LegacyWarnings.NotReadReason.SYMLINK));
         byMethod.put("mainClass", warnings::mainClass);
 
         // 공개 메서드 전수와 같아야 한다(메서드를 추가하면 이 테스트도 바뀌어야 한다)

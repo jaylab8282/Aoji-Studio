@@ -14,14 +14,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import studio.aoji.config.AppProperties;
+import studio.aoji.files.DataDirectory;
 import studio.aoji.live.LiveStateService;
 import studio.aoji.stream.SseHub;
 
 /**
  * 1초 폴링으로 감시 대상 파일의 경로·크기·mtime 스냅샷을 비교해 외부(호스트)에서 생긴 변경을
  * 감지한다(architecture.md §3.1·§3.2, ADR-04). 감시 대상: {@code .claude/agents/*.md},
- * {@code .claude/skills/*&#47;SKILL.md}, {@code .claude/settings.json}, {@code .jaystudio/teams/*.json},
- * {@code .jaystudio/helper-token}. {@code .}으로 시작하거나 {@code .tmp}로 끝나는 파일은
+ * {@code .claude/skills/*&#47;SKILL.md}, {@code .claude/settings.json}, {@code <데이터 폴더>/teams/*.json},
+ * {@code <데이터 폴더>/helper-token}. {@code .}으로 시작하거나 {@code .tmp}로 끝나는 파일은
  * {@code AtomicFileWriter}가 쓰는 임시 파일이므로 무시한다(ADR-08). 심볼릭 링크는 따라가지 않는다
  * (D-014, NFR-07) — 링크 자체는 감시 대상에 넣지 않고, 링크인 디렉터리는 내려가지 않는다.
  *
@@ -43,6 +44,7 @@ public class FolderPoller {
     private static final String SKILL_FILE_NAME = "SKILL.md";
 
     private final AppProperties appProperties;
+    private final DataDirectory dataDirectory;
     private final RegistryService registryService;
     private final LiveStateService liveStateService;
     private final SseHub sseHub;
@@ -51,10 +53,12 @@ public class FolderPoller {
 
     public FolderPoller(
             AppProperties appProperties,
+            DataDirectory dataDirectory,
             RegistryService registryService,
             LiveStateService liveStateService,
             SseHub sseHub) {
         this.appProperties = appProperties;
+        this.dataDirectory = dataDirectory;
         this.registryService = registryService;
         this.liveStateService = liveStateService;
         this.sseHub = sseHub;
@@ -74,10 +78,12 @@ public class FolderPoller {
         try {
             Map<String, FileStat> snapshot = captureSnapshot();
             if (!snapshot.equals(lastSnapshot)) {
-                lastSnapshot = snapshot;
                 // 방송을 rescanNow()의 락 안에서 실행해 RegistryController의 동시 rescan과 경합해도
                 // registry 방송 순서가 revision 순서를 따르게 한다(review NEEDS_FIX round 1).
                 registryService.rescanNow(registry -> sseHub.broadcast(registry, liveStateService.live()));
+                // 재스캔·방송이 성공한 뒤에만 기준선을 올린다. 먼저 올리면 재스캔이 한 번 실패했을 때 그 변경이
+                // 기준선에 이미 반영돼 다음 주기에 다시 감지되지 않고 영구히 누락된다(registry 방송 유실).
+                lastSnapshot = snapshot;
             }
         } catch (Exception e) {
             // 폴링 1회 실패로 스케줄 자체가 멈추면 안 된다 — 다음 주기에 다시 시도한다.
@@ -90,9 +96,9 @@ public class FolderPoller {
         Map<String, FileStat> snapshot = new HashMap<>();
 
         addFileIfWatchable(snapshot, mountRoot, mountRoot.resolve(".claude").resolve("settings.json"));
-        addFileIfWatchable(snapshot, mountRoot, mountRoot.resolve(".jaystudio").resolve("helper-token"));
+        addFileIfWatchable(snapshot, mountRoot, dataDirectory.helperTokenFile());
         addMatchingFiles(snapshot, mountRoot, mountRoot.resolve(".claude").resolve("agents"), ".md");
-        addMatchingFiles(snapshot, mountRoot, mountRoot.resolve(".jaystudio").resolve("teams"), ".json");
+        addMatchingFiles(snapshot, mountRoot, dataDirectory.teamsDir(), ".json");
         addSkillFiles(snapshot, mountRoot, mountRoot.resolve(".claude").resolve("skills"));
 
         return snapshot;

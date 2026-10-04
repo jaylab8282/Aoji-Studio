@@ -64,7 +64,7 @@ class StateControllerTest {
                     StandardCharsets.UTF_8);
         }
 
-        Path teamsDir = mountRoot.resolve(".jaystudio").resolve("teams");
+        Path teamsDir = mountRoot.resolve(".aojistudio").resolve("teams");
         Files.createDirectories(teamsDir);
         for (int w = 0; w < WORKFLOW_COUNT; w++) {
             String name = "workflow%02d".formatted(w);

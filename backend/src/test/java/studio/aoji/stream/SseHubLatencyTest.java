@@ -91,7 +91,7 @@ class SseHubLatencyTest {
     }
 
     private String collectToken() throws IOException {
-        return Files.readString(mountRoot.resolve(".jaystudio").resolve("collect-token"), StandardCharsets.UTF_8)
+        return Files.readString(mountRoot.resolve(".aojistudio").resolve("collect-token"), StandardCharsets.UTF_8)
                 .strip();
     }
 

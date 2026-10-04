@@ -16,13 +16,14 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.springframework.stereotype.Component;
 import studio.aoji.files.AtomicFileWriter;
+import studio.aoji.files.DataDirectory;
 import studio.aoji.files.PathGuard;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * {@code .jaystudio/teams/*.json} 구성 파일 읽기·스키마 검증·만들기·삭제
+ * {@code <데이터 폴더>/teams/*.json} 구성 파일 읽기·스키마 검증·만들기·삭제
  * (architecture.md §6.2, ADR-06, ADR-08, FR-002-AC5·AC6, FR-006-AC11, FR-008, FR-017).
  * 쓰기·삭제는 {@link #create}·{@link #delete}만 쓰고, 나머지 소속 변경 등은 T-009~T-011의 변경
  * API가 맡는다.
@@ -33,14 +34,15 @@ public class WorkflowConfigStore {
     private static final int SCHEMA_VERSION = 1;
     private static final String FILE_SUFFIX = ".json";
     private static final String TEAMS_SEGMENT = "teams";
-    private static final String JAYSTUDIO_SEGMENT = ".jaystudio";
 
     private final ObjectMapper objectMapper;
     private final AtomicFileWriter atomicFileWriter;
+    private final DataDirectory dataDirectory;
 
-    public WorkflowConfigStore(ObjectMapper objectMapper, AtomicFileWriter atomicFileWriter) {
+    public WorkflowConfigStore(ObjectMapper objectMapper, AtomicFileWriter atomicFileWriter, DataDirectory dataDirectory) {
         this.objectMapper = objectMapper;
         this.atomicFileWriter = atomicFileWriter;
+        this.dataDirectory = dataDirectory;
     }
 
     /**
@@ -73,7 +75,7 @@ public class WorkflowConfigStore {
     }
 
     /**
-     * 새 구성 파일을 만든다(api-spec {@code POST /api/workflows}, FR-008). {@code .jaystudio/teams}가
+     * 새 구성 파일을 만든다(api-spec {@code POST /api/workflows}, FR-008). {@code <데이터 폴더>/teams}가
      * 없으면 이 호출(첫 쓰기 시점)에 만든다(FR-001-AC6 — 읽기만 할 때는 만들지 않는다). {@code name}은
      * 호출자가 {@link WorkflowNameValidator}로 이미 검증·정규화한 값이어야 한다. 팀장·팀원 없이
      * 만들어지고(FR-008-AC3), {@code createdAt}·{@code updatedAt}은 서버가 채운다(architecture.md
@@ -84,7 +86,7 @@ public class WorkflowConfigStore {
         Path teamsDir = teamsDir(pathGuard.mountRoot());
         Files.createDirectories(teamsDir);
 
-        Path target = pathGuard.resolve(JAYSTUDIO_SEGMENT, TEAMS_SEGMENT, WorkflowNameValidator.fileName(name));
+        Path target = pathGuard.resolve(dataDirectory.name(), TEAMS_SEGMENT, WorkflowNameValidator.fileName(name));
         pathGuard.assertNotSymlink(target);
 
         String now = OffsetDateTime.now().toString();
@@ -106,7 +108,7 @@ public class WorkflowConfigStore {
      * {@code Workflow.rawMemberCount()}로 먼저 끝낸 뒤에만 호출한다(D-006).
      */
     public void delete(PathGuard pathGuard, String name) throws IOException {
-        Path target = pathGuard.resolve(JAYSTUDIO_SEGMENT, TEAMS_SEGMENT, WorkflowNameValidator.fileName(name));
+        Path target = pathGuard.resolve(dataDirectory.name(), TEAMS_SEGMENT, WorkflowNameValidator.fileName(name));
         pathGuard.assertNotSymlink(target);
         Files.delete(target);
     }
@@ -122,7 +124,7 @@ public class WorkflowConfigStore {
      */
     public void addMembers(PathGuard pathGuard, String workflowName, String newLeadOrNull, Collection<String> newMembers)
             throws IOException {
-        Path target = pathGuard.resolve(JAYSTUDIO_SEGMENT, TEAMS_SEGMENT, WorkflowNameValidator.fileName(workflowName));
+        Path target = pathGuard.resolve(dataDirectory.name(), TEAMS_SEGMENT, WorkflowNameValidator.fileName(workflowName));
         pathGuard.assertNotSymlink(target);
 
         RawWorkflowFile raw = readRaw(target);
@@ -150,7 +152,7 @@ public class WorkflowConfigStore {
 
     /** 구성 파일 경로(T-010/011 롤백용 원본 바이트 백업·복원에도 쓴다). */
     public Path configFilePath(PathGuard pathGuard, String workflowName) {
-        return pathGuard.resolve(JAYSTUDIO_SEGMENT, TEAMS_SEGMENT, WorkflowNameValidator.fileName(workflowName));
+        return pathGuard.resolve(dataDirectory.name(), TEAMS_SEGMENT, WorkflowNameValidator.fileName(workflowName));
     }
 
     /** 쓰기 전 원본 바이트를 백업한다(ADR-08 "원본 바이트를 메모리에 보관", T-010/011 롤백용). */
@@ -300,8 +302,8 @@ public class WorkflowConfigStore {
 
     private record RawWorkflowFile(String description, String lead, List<String> members, String createdAt) {}
 
-    private static Path teamsDir(Path mountRoot) {
-        return mountRoot.resolve(JAYSTUDIO_SEGMENT).resolve(TEAMS_SEGMENT);
+    private Path teamsDir(Path mountRoot) {
+        return mountRoot.resolve(dataDirectory.name()).resolve(TEAMS_SEGMENT);
     }
 
     private void readOne(
@@ -408,7 +410,7 @@ public class WorkflowConfigStore {
         workflows.add(new Workflow(
                 stem,
                 description,
-                ".jaystudio/teams/" + fileName,
+                dataDirectory.relative(TEAMS_SEGMENT, fileName),
                 lead,
                 sortedMembers,
                 sortedBrokenRefs,

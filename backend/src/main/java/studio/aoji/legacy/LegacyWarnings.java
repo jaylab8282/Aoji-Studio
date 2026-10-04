@@ -121,10 +121,25 @@ public class LegacyWarnings {
                 "helper/install.sh로 새 도우미를 설치하세요");
     }
 
-    /** helper-token · 옛 토큰 파일이 일반 파일이 아니라 읽지 않은 경우. fileKind는 고정 단어(예: 심볼릭 링크). */
-    public void helperTokenNotRegular(String fileKind) {
-        request("helper-token", "not-regular:" + fileKind,
-                LegacyNames.LEGACY_DATA_DIR + "/helper-token을 읽지 않았습니다(일반 파일이 아님: " + fileKind + ")",
+    /** helper-token · 옛 토큰 파일을 읽지 않은 사유(고정 문구만 허용 - 링크 대상 경로·값은 담지 않는다). */
+    public enum NotReadReason {
+        SYMLINK("일반 파일이 아님: 심볼릭 링크"),
+        DIRECTORY("일반 파일이 아님: 디렉터리"),
+        OTHER("일반 파일이 아님: 그 밖의 종류"),
+        PARENT_NOT_DIRECTORY("상위 폴더가 실제 디렉터리가 아님"),
+        UNREADABLE("읽을 수 없음");
+
+        private final String text;
+
+        NotReadReason(String text) {
+            this.text = text;
+        }
+    }
+
+    /** helper-token · 옛 토큰 파일을 읽지 않은 경우. */
+    public void helperTokenNotRead(NotReadReason reason) {
+        request("helper-token", "not-read:" + reason.name(),
+                LegacyNames.LEGACY_DATA_DIR + "/helper-token을 읽지 않았습니다(" + reason.text + ")",
                 "helper/install.sh로 새 도우미를 설치하세요");
     }
 

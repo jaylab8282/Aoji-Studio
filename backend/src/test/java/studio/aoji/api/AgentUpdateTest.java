@@ -94,7 +94,7 @@ class AgentUpdateTest {
     }
 
     private Path teamsDir() {
-        return mountRoot.resolve(".jaystudio").resolve("teams");
+        return mountRoot.resolve(".aojistudio").resolve("teams");
     }
 
     private Path definitionFile(String name) {
@@ -115,7 +115,7 @@ class AgentUpdateTest {
     }
 
     private String collectToken() throws IOException {
-        return Files.readString(mountRoot.resolve(".jaystudio").resolve("collect-token"), StandardCharsets.UTF_8)
+        return Files.readString(mountRoot.resolve(".aojistudio").resolve("collect-token"), StandardCharsets.UTF_8)
                 .strip();
     }
 

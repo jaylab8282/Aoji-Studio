@@ -29,11 +29,13 @@ class WorkflowConfigStoreTest {
 
     Path teamsDir;
 
-    private final WorkflowConfigStore store = new WorkflowConfigStore(new ObjectMapper(), new AtomicFileWriter());
+    private WorkflowConfigStore store;
 
     @BeforeEach
     void createTeamsDir() throws IOException {
-        teamsDir = Files.createDirectories(mountRoot.resolve(".jaystudio").resolve("teams"));
+        store = new WorkflowConfigStore(new ObjectMapper(), new AtomicFileWriter(),
+                studio.aoji.files.TestDataDirectories.forMount(mountRoot));
+        teamsDir = Files.createDirectories(mountRoot.resolve(".aojistudio").resolve("teams"));
     }
 
     private PathGuard pathGuard() {
@@ -227,7 +229,7 @@ class WorkflowConfigStoreTest {
     @Test
     @DisplayName("[NFR-07] 마운트 밖 심볼릭 링크 구성 파일 → 읽지 않고 '구성 파일 형식 오류'")
     void symlinkedTeamsFileEscapingMountIsNotReadAndReportedAsFormatError() throws IOException {
-        Path outside = Files.createTempDirectory("jaystudio-outside-team");
+        Path outside = Files.createTempDirectory("aojistudio-outside-team");
         Path secretTeam = Files.writeString(
                 outside.resolve("secret.json"),
                 """
@@ -284,9 +286,9 @@ class WorkflowConfigStoreTest {
     @Test
     @DisplayName("[FR-001-AC6] create가 teams 디렉터리를 첫 호출 때 만든다")
     void createMakesTeamsDirectoryWhenMissing() throws IOException {
-        Path freshMountRoot = Files.createTempDirectory("jaystudio-workflow-create");
+        Path freshMountRoot = Files.createTempDirectory("aojistudio-workflow-create");
         try {
-            Path freshTeamsDir = freshMountRoot.resolve(".jaystudio").resolve("teams");
+            Path freshTeamsDir = freshMountRoot.resolve(".aojistudio").resolve("teams");
             assertThat(Files.exists(freshTeamsDir)).isFalse();
 
             store.create(new PathGuard(freshMountRoot), "첫팀", "");
