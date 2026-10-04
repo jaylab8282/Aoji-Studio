@@ -4,9 +4,9 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "studio.jay"
-version = "0.0.1-SNAPSHOT"
-description = "Jay Studio Server"
+group = "studio.aoji"
+version = "1.0.1"
+description = "Aoji Studio Server"
 
 java {
     toolchain {
@@ -36,5 +36,9 @@ tasks.withType<Test> {
 }
 
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
-    archiveFileName.set("jaystudio-backend.jar")
+    archiveFileName.set("aojistudio-backend.jar")
+}
+
+springBoot {
+    mainClass.set("studio.aoji.AojiStudioApplication")
 }

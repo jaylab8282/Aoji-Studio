@@ -19,7 +19,7 @@ RUN ./gradlew bootJar --no-daemon -x test
 
 FROM eclipse-temurin:25-jre AS runtime
 WORKDIR /app
-COPY --from=backend-build /app/backend/build/libs/jaystudio-backend.jar app.jar
+COPY --from=backend-build /app/backend/build/libs/aojistudio-backend.jar app.jar
 RUN mkdir -p /workspace /data && chown -R 1000:1000 /app /workspace /data
 USER 1000:1000
 EXPOSE 4180
