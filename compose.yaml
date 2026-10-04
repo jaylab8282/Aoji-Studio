@@ -1,27 +1,32 @@
 services:
-  jaystudio:
+  aojistudio:
     build:
       context: .
       dockerfile: Dockerfile
-    image: jaystudio:local
+    image: aojistudio:local
     # 기본은 linux/arm64(Apple Silicon 확정 구성). x86_64 머신은 .env에서
-    # JAYSTUDIO_PLATFORM=linux/amd64로 바꾼다. 베이스 이미지는 모두 멀티아치다.
-    platform: ${JAYSTUDIO_PLATFORM:-linux/arm64}
+    # AOJISTUDIO_PLATFORM=linux/amd64로 바꾼다. 베이스 이미지는 모두 멀티아치다.
+    platform: ${AOJISTUDIO_PLATFORM:-${JAYSTUDIO_PLATFORM:-linux/arm64}} # LEGACY v1.0.x
     user: "1000:1000"
     restart: unless-stopped
     environment:
       TZ: Asia/Seoul
-      JAYSTUDIO_HOST_PATH: ${JAYSTUDIO_HOST_PATH:?JAYSTUDIO_HOST_PATH를 .env에 설정하세요}
-      JAYSTUDIO_PUBLIC_PORT: ${JAYSTUDIO_PORT:?JAYSTUDIO_PORT를 .env에 설정하세요}
-      JAYSTUDIO_MOUNT_PATH: /workspace
-      JAYSTUDIO_DATA_PATH: /data
-      # 브라우저가 호출할 열기 도우미 주소. 도우미를 기본 4181이 아닌 포트로 설치했을 때만 바꾼다.
-      JAYSTUDIO_HELPER_URL: ${JAYSTUDIO_HELPER_URL:-http://127.0.0.1:4181}
+      # 새 이름과 옛 이름을 둘 다 넘긴다. 빈 값은 미설정으로 취급되고 새 이름이 우선한다(ADR-56).
+      AOJISTUDIO_HOST_PATH: ${AOJISTUDIO_HOST_PATH:-}
+      JAYSTUDIO_HOST_PATH: ${JAYSTUDIO_HOST_PATH:-} # LEGACY v1.0.x
+      AOJISTUDIO_PUBLIC_PORT: ${AOJISTUDIO_PORT:-}
+      JAYSTUDIO_PUBLIC_PORT: ${JAYSTUDIO_PORT:-} # LEGACY v1.0.x
+      AOJISTUDIO_MOUNT_PATH: /workspace
+      AOJISTUDIO_DATA_PATH: /data
+      # 브라우저가 호출할 열기 도우미 주소. 도우미를 기본 4181이 아닌 포트로 설치했을 때만 바꾼다(비면 앱 기본값 4181).
+      AOJISTUDIO_HELPER_URL: ${AOJISTUDIO_HELPER_URL:-}
+      JAYSTUDIO_HELPER_URL: ${JAYSTUDIO_HELPER_URL:-} # LEGACY v1.0.x
     ports:
-      - "127.0.0.1:${JAYSTUDIO_PORT:?JAYSTUDIO_PORT를 .env에 설정하세요}:4180"
+      - "127.0.0.1:${AOJISTUDIO_PORT:-${JAYSTUDIO_PORT:?AOJISTUDIO_PORT를 .env에 설정하세요}}:4180" # LEGACY v1.0.x
     volumes:
-      - ${JAYSTUDIO_HOST_PATH:?JAYSTUDIO_HOST_PATH를 .env에 설정하세요}:/workspace
-      - jaystudio-data:/data
+      - ${AOJISTUDIO_HOST_PATH:-${JAYSTUDIO_HOST_PATH:?AOJISTUDIO_HOST_PATH를 .env에 설정하세요}}:/workspace # LEGACY v1.0.x
+      - aojistudio-data:/data
 
 volumes:
-  jaystudio-data:
+  aojistudio-data:
+    name: aojistudio-data

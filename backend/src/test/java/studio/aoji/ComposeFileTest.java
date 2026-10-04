@@ -19,6 +19,7 @@ import org.yaml.snakeyaml.Yaml;
 class ComposeFileTest {
 
     private static Map<String, Object> service;
+    private static Map<String, Object> topVolumes;
 
     @BeforeAll
     @SuppressWarnings("unchecked")
@@ -29,7 +30,8 @@ class ComposeFileTest {
             root = new Yaml().load(in);
         }
         Map<String, Object> services = (Map<String, Object>) root.get("services");
-        service = (Map<String, Object>) services.get("jaystudio");
+        service = (Map<String, Object>) services.get("aojistudio");
+        topVolumes = (Map<String, Object>) root.get("volumes");
     }
 
     private static Path findComposeFile() {
@@ -76,5 +78,35 @@ class ComposeFileTest {
     @DisplayName("[NFR-06] user는 1000:1000 이다")
     void runsAsNonRootUser() {
         assertThat(service.get("user")).isEqualTo("1000:1000");
+    }
+
+    @Test
+    @DisplayName("[NFR-04][ADR-59] 서비스 aojistudio, 이미지 aojistudio:local")
+    void serviceAndImageNames() {
+        assertThat(service).isNotNull();
+        assertThat(service.get("image")).isEqualTo("aojistudio:local");
+    }
+
+    @Test
+    @DisplayName("[ADR-59] 데이터 볼륨 이름이 name: aojistudio-data 로 고정된다")
+    @SuppressWarnings("unchecked")
+    void dataVolumeNameIsPinned() {
+        assertThat(topVolumes).containsKey("aojistudio-data");
+        Map<String, Object> volume = (Map<String, Object>) topVolumes.get("aojistudio-data");
+        assertThat(volume.get("name")).isEqualTo("aojistudio-data");
+        assertThat((List<String>) service.get("volumes")).contains("aojistudio-data:/data");
+    }
+
+    @Test
+    @DisplayName("[ADR-59] 서비스 볼륨 중 named volume은 aojistudio-data 하나뿐이다")
+    @SuppressWarnings("unchecked")
+    void onlyPinnedNamedVolumeIsUsed() {
+        List<String> volumes = (List<String>) service.get("volumes");
+        List<String> named = volumes.stream()
+                .map(v -> v.split(":")[0])
+                .filter(src -> !src.startsWith("/") && !src.startsWith(".") && !src.startsWith("$"))
+                .toList();
+        assertThat(named).containsExactly("aojistudio-data");
+        assertThat(topVolumes.keySet()).containsExactly("aojistudio-data");
     }
 }
