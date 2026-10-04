@@ -26,7 +26,7 @@ function buildWorkflow(overrides: Partial<Workflow> = {}): Workflow {
   return {
     name: "개발부서",
     description: "",
-    filePath: ".jaystudio/teams/개발부서.json",
+    filePath: ".aojistudio/teams/개발부서.json",
     lead: null,
     members: [],
     brokenRefs: [],
@@ -515,7 +515,7 @@ describe("ImportDialog", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "가져온 뒤 워크플로우에서 제거하면 정의 파일이 휴지통(.jaystudio/trash/)으로 이동합니다. 다른 워크플로우 소속 에이전트는 목록에 없습니다.",
+        "가져온 뒤 워크플로우에서 제거하면 정의 파일이 휴지통(.aojistudio/trash/)으로 이동합니다. 다른 워크플로우 소속 에이전트는 목록에 없습니다.",
       ),
     ).toBeInTheDocument();
 

@@ -1,5 +1,5 @@
 /**
- * ui-spec.md SCR-02 요약 줄: `JayStudio`·`.claude` 라벨 + 통계 + 워크플로우 밖 에이전트 링크
+ * ui-spec.md SCR-02 요약 줄: `AojiStudio`·`.claude` 라벨 + 통계 + 워크플로우 밖 에이전트 링크
  * + "+ 에이전트 만들기" 버튼 + 범례. FR-006-AC*, FR-001-E1, FR-004-AC7.
  */
 import type { Live, Registry } from "../../api/types";

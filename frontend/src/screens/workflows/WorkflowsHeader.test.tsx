@@ -1,3 +1,4 @@
+import { LEGACY_HELPER_TOKEN_HEADER } from "../../api/helper";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkflowsHeader } from "./WorkflowsHeader";
@@ -6,7 +7,7 @@ import { snapshotStore } from "../../state/snapshotStore";
 import { buildSnapshotFixture } from "../../test/fixtures/snapshot";
 
 const HELPER_URL = "http://127.0.0.1:4181";
-const DEFAULT_COMMAND = 'cd "/Users/jaybee/Desktop/JayStudio" && claude';
+const DEFAULT_COMMAND = 'cd "/Users/jaybee/Desktop/AojiStudio" && claude';
 const writeText = vi.fn<(text: string) => Promise<void>>();
 
 interface FetchCall {
@@ -128,7 +129,7 @@ describe("WorkflowsHeader", () => {
     expect(openCalls).toHaveLength(1);
     expect(openCalls[0]?.url).toBe(`${HELPER_URL}/open`);
     expect(JSON.parse(openCalls[0]?.body ?? "{}")).toEqual({ target: "default" });
-    expect(openCalls[0]?.headers["X-JayStudio-Helper-Token"]).toBe("b".repeat(64));
+    expect(openCalls[0]?.headers[LEGACY_HELPER_TOKEN_HEADER]).toBe("b".repeat(64));
     // 성공(204)은 화면에 아무 것도 남기지 않는다 — 터미널은 맥북에서 열린다.
     expect(screen.queryByTestId("helper-missing-dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();

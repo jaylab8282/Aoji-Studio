@@ -11,7 +11,7 @@ function buildWorkflow(overrides: Partial<Workflow> = {}): Workflow {
   return {
     name: "개발부서",
     description: "",
-    filePath: ".jaystudio/teams/dev.json",
+    filePath: ".aojistudio/teams/dev.json",
     lead: "dev-lead",
     members: ["dev-01", "dev-02"],
     brokenRefs: [],

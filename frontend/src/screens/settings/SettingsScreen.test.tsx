@@ -133,7 +133,7 @@ describe("SettingsScreen (SCR-07)", () => {
     renderScreen();
 
     await waitFor(() =>
-      expect(rowText("settings-row-mount-path")).toContain("/Users/jaybee/Desktop/JayStudio"),
+      expect(rowText("settings-row-mount-path")).toContain("/Users/jaybee/Desktop/AojiStudio"),
     );
     // 컨테이너 마운트 경로는 화면 어디에도 없다(ADR-20).
     expect(screen.queryByText(/\/workspace/)).not.toBeInTheDocument();
@@ -144,7 +144,7 @@ describe("SettingsScreen (SCR-07)", () => {
     const { container } = renderScreen();
 
     await waitFor(() =>
-      expect(rowText("settings-row-mount-path")).toContain("/Users/jaybee/Desktop/JayStudio"),
+      expect(rowText("settings-row-mount-path")).toContain("/Users/jaybee/Desktop/AojiStudio"),
     );
     expect(container.querySelectorAll("input")).toHaveLength(0);
     expect(container.querySelectorAll("textarea")).toHaveLength(0);
@@ -266,7 +266,7 @@ describe("SettingsScreen (SCR-07)", () => {
 
     expect(await screen.findByText("에이전트 폴더를 찾을 수 없습니다")).toBeInTheDocument();
     expect(
-      screen.getByText("/Users/jaybee/Desktop/JayStudio/.claude/agents"),
+      screen.getByText("/Users/jaybee/Desktop/AojiStudio/.claude/agents"),
     ).toBeInTheDocument();
     // 04-5가 카드 본문을 대체하므로 값 행은 그리지 않는다(에이전트 수를 표시하지 않는다).
     expect(screen.queryByTestId("settings-row-agents")).not.toBeInTheDocument();
@@ -387,7 +387,7 @@ describe("SettingsScreen (SCR-07)", () => {
 
     // 행 전체 글자에는 라벨이 섞여 있으므로 값(경로)이 실린 것으로 로드를 확정한다.
     await waitFor(() =>
-      expect(rowText("settings-row-mount-path")).toContain("/Users/jaybee/Desktop/JayStudio"),
+      expect(rowText("settings-row-mount-path")).toContain("/Users/jaybee/Desktop/AojiStudio"),
     );
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("설정");
     expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
@@ -407,10 +407,28 @@ describe("SettingsScreen (SCR-07)", () => {
     ).toBeInTheDocument();
     expect(rowText("settings-row-terminal-app")).toContain("macOS 기본 터미널");
     expect(rowText("settings-row-collect-url")).toContain("http://127.0.0.1:4180/hooks/events");
-    expect(rowText("settings-row-teams")).toContain(".jaystudio/teams/*.json · 팀장·팀원 목록");
-    expect(rowText("settings-row-trash")).toContain(".jaystudio/trash/ · 제거한 에이전트 보관");
+    expect(rowText("settings-row-teams")).toContain(".aojistudio/teams/*.json · 팀장·팀원 목록");
+    expect(rowText("settings-row-trash")).toContain(".aojistudio/trash/ · 제거한 에이전트 보관");
     expect(rowText("settings-row-retention")).toContain("30일");
     expect(rowText("settings-row-format-errors")).toContain("없음");
+  });
+
+  it("[FR-014][ADR-55] teamsPath·trashPath는 서버 값 그대로(옛 데이터 폴더 경로가 와도 가공 없이 표시)", async () => {
+    const base = buildSettingsFixture();
+    const oldDir = ["." + "jay", "studio"].join("");
+    const teamsPath = base.teamsPath.replace(".aojistudio", oldDir);
+    const trashPath = base.trashPath.replace(".aojistudio", oldDir);
+    expect(teamsPath).toMatch(/^\.jay.*studio\/teams\//);
+    expect(trashPath).toMatch(/^\.jay.*studio\/trash\//);
+    expect(teamsPath).not.toBe(base.teamsPath);
+    expect(trashPath).not.toBe(base.trashPath);
+    stubFetch({ settings: () => jsonResponse({ ...base, teamsPath, trashPath }) });
+    renderScreen();
+
+    await waitFor(() => expect(rowText("settings-row-teams")).toContain(teamsPath));
+    expect(rowText("settings-row-teams")).not.toContain(".aojistudio");
+    expect(rowText("settings-row-trash")).toContain(trashPath);
+    expect(rowText("settings-row-trash")).not.toContain(".aojistudio");
   });
 
   it("[FR-013-AC10] 진입 시 /health 호출, 무응답 → '테스트로 열기' 비활성 '도우미 미설치', 버튼 누를 때 재확인", async () => {

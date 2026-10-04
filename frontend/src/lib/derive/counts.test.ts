@@ -76,7 +76,7 @@ describe("counts", () => {
     const workflow: Workflow = {
       name: "개발부서",
       description: "",
-      filePath: ".jaystudio/teams/개발부서.json",
+      filePath: ".aojistudio/teams/개발부서.json",
       lead: "architect",
       members: ["qa", "backend-dev"],
       brokenRefs: [],
@@ -99,7 +99,7 @@ describe("counts", () => {
     const workflow: Workflow = {
       name: "무팀장부서",
       description: "",
-      filePath: ".jaystudio/teams/무팀장부서.json",
+      filePath: ".aojistudio/teams/무팀장부서.json",
       lead: null,
       members: ["only-member"],
       brokenRefs: [],

@@ -7,7 +7,7 @@ function buildWorkflow(name: string): Workflow {
   return {
     name,
     description: "",
-    filePath: `.jaystudio/teams/${name}.json`,
+    filePath: `.aojistudio/teams/${name}.json`,
     lead: null,
     members: [],
     brokenRefs: [],

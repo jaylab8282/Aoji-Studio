@@ -24,12 +24,12 @@ describe("AgentsDirMissing", () => {
   it("[SCR-04-5][FR-001-E1] 경로·안내 문구 렌더", () => {
     render(
       <MemoryRouter>
-        <AgentsDirMissing hostPath="/Users/jaybee/Desktop/JayStudio" />
+        <AgentsDirMissing hostPath="/Users/jaybee/Desktop/AojiStudio" />
       </MemoryRouter>,
     );
 
     expect(screen.getByText("에이전트 폴더를 찾을 수 없습니다")).toBeInTheDocument();
-    expect(screen.getByText("/Users/jaybee/Desktop/JayStudio/.claude/agents")).toBeInTheDocument();
+    expect(screen.getByText("/Users/jaybee/Desktop/AojiStudio/.claude/agents")).toBeInTheDocument();
   });
 
   it("[FR-001-AC4] '다시 읽기' 클릭 → rescan 성공 시 snapshotStore.registry 갱신", async () => {
@@ -51,7 +51,7 @@ describe("AgentsDirMissing", () => {
 
     render(
       <MemoryRouter>
-        <AgentsDirMissing hostPath="/Users/jaybee/Desktop/JayStudio" />
+        <AgentsDirMissing hostPath="/Users/jaybee/Desktop/AojiStudio" />
       </MemoryRouter>,
     );
 
@@ -80,7 +80,7 @@ describe("AgentsDirMissing", () => {
 
     render(
       <MemoryRouter>
-        <AgentsDirMissing hostPath="/Users/jaybee/Desktop/JayStudio" />
+        <AgentsDirMissing hostPath="/Users/jaybee/Desktop/AojiStudio" />
       </MemoryRouter>,
     );
 
@@ -104,7 +104,7 @@ describe("AgentsDirMissing", () => {
 
     render(
       <MemoryRouter>
-        <AgentsDirMissing hostPath="/Users/jaybee/Desktop/JayStudio" />
+        <AgentsDirMissing hostPath="/Users/jaybee/Desktop/AojiStudio" />
       </MemoryRouter>,
     );
 
@@ -121,7 +121,7 @@ describe("AgentsDirMissing", () => {
     render(
       <MemoryRouter initialEntries={["/"]}>
         <Routes>
-          <Route path="/" element={<AgentsDirMissing hostPath="/Users/jaybee/Desktop/JayStudio" />} />
+          <Route path="/" element={<AgentsDirMissing hostPath="/Users/jaybee/Desktop/AojiStudio" />} />
           <Route path="/settings" element={<p>설정 화면 도착</p>} />
         </Routes>
       </MemoryRouter>,
@@ -137,7 +137,7 @@ describe("AgentsDirMissing", () => {
   it("[ADR-42] 숨김 prop → '설정 열기'가 문서에 없고 '다시 읽기'는 남는다", () => {
     render(
       <MemoryRouter>
-        <AgentsDirMissing hostPath="/Users/jaybee/Desktop/JayStudio" showOpenSettings={false} />
+        <AgentsDirMissing hostPath="/Users/jaybee/Desktop/AojiStudio" showOpenSettings={false} />
       </MemoryRouter>,
     );
 
@@ -148,7 +148,7 @@ describe("AgentsDirMissing", () => {
     expect(screen.getAllByRole("button")).toHaveLength(1);
     // 나머지 요소(제목·경로·본문)는 01·02와 같다(ui-spec SCR-04-5).
     expect(screen.getByText("에이전트 폴더를 찾을 수 없습니다")).toBeInTheDocument();
-    expect(screen.getByText("/Users/jaybee/Desktop/JayStudio/.claude/agents")).toBeInTheDocument();
+    expect(screen.getByText("/Users/jaybee/Desktop/AojiStudio/.claude/agents")).toBeInTheDocument();
   });
 
   it("[ADR-42][conventions §7] 정적 단언 — AgentsDirMissing.tsx가 라우트를 스스로 읽지 않는다", () => {

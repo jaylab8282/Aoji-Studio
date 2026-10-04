@@ -19,7 +19,7 @@ import { UNKNOWN_ERROR_MESSAGE } from "../lib/text";
 export const HELPER_TIMEOUT_MS = 2000;
 
 /** api-spec.yaml `securitySchemes.helperToken`. */
-const HELPER_TOKEN_HEADER = "X-JayStudio-Helper-Token";
+export const LEGACY_HELPER_TOKEN_HEADER = "X-JayStudio-Helper-Token"; // LEGACY v1.0.x (ADR-57): 값 불변, 새 도우미는 두 헤더 수용
 
 /** `POST /open` 본문. 이 두 모양 밖의 키를 만들지 않는다(FR-013-AC6). */
 export type HelperOpenRequest = { target: "default" } | { target: "lead"; leadName: string };
@@ -121,7 +121,7 @@ export async function openHelperSession(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      [HELPER_TOKEN_HEADER]: token.token,
+      [LEGACY_HELPER_TOKEN_HEADER]: token.token,
     },
     body: JSON.stringify(request),
   });

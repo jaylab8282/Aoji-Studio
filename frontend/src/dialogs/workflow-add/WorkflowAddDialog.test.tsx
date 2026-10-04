@@ -13,7 +13,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 const createdWorkflow: Workflow = {
   name: "개발부서",
   description: "",
-  filePath: ".jaystudio/teams/개발부서.json",
+  filePath: ".aojistudio/teams/개발부서.json",
   lead: null,
   members: [],
   brokenRefs: [],
@@ -69,7 +69,7 @@ describe("WorkflowAddDialog", () => {
 
     expect(screen.getByRole("heading", { name: "워크플로우 추가" })).toBeInTheDocument();
     expect(
-      screen.getByText("구성 파일 .jaystudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다."),
+      screen.getByText("구성 파일 .aojistudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다."),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -85,7 +85,7 @@ describe("WorkflowAddDialog", () => {
 
     // (c) 정적 텍스트: 괄호 기호만 벗기고 낱말은 그대로다(ui-spec.md SCR-05-L).
     const description = screen.getByText(
-      "구성 파일 .jaystudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다.",
+      "구성 파일 .aojistudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다.",
     );
     expect(description).toBeInTheDocument();
     expect(description.textContent).not.toMatch(/[[\]]/);

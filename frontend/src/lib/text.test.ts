@@ -7,7 +7,14 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  AGENT_REMOVE_TRASH_NOTE,
+  APP_WORDMARK,
+  IMPORT_NOTICE_TRASH,
+  PANEL_FOOTNOTE_TRASH,
+  WORKFLOWS_SUMMARY_PROJECT_LABEL,
   WORKFLOW_ADD_DESCRIPTION,
+  agentFilePathLabel,
+  workflowDeleteConfigNote,
   WORKFLOW_DESCRIPTION_PLACEHOLDER,
   floorDuplicateWarning,
   importHiddenSelectionNotice,
@@ -177,12 +184,12 @@ describe("화면 문구", () => {
     const sample = [
       "// 문서 인용: `홈 / 에이전트 워크플로우 / [이름]`",
       "const pattern = /^[가-힣A-Za-z0-9]+$/;",
-      'const ok = "구성 파일 .jaystudio/teams/이름.json";',
-      'const bad = "구성 파일 .jaystudio/teams/[이름].json";',
+      'const ok = "구성 파일 .aojistudio/teams/이름.json";',
+      'const bad = "구성 파일 .aojistudio/teams/[이름].json";',
     ].join("\n");
 
     const { literals } = scanSource(sample);
-    expect(literals.filter(isOffender)).toEqual(["구성 파일 .jaystudio/teams/[이름].json"]);
+    expect(literals.filter(isOffender)).toEqual(["구성 파일 .aojistudio/teams/[이름].json"]);
   });
 
   it("[ADR-39] 받침 있는 이름·없는 이름 모두 '(으)로'", () => {
@@ -261,9 +268,29 @@ describe("화면 문구", () => {
   it("[ADR-33] 05-L 설명줄은 (c) 정적 텍스트, 설명 placeholder는 (b) 입력 예시", () => {
     // (c): 괄호 기호만 벗기고 낱말은 그대로 둔다.
     expect(WORKFLOW_ADD_DESCRIPTION).toBe(
-      "구성 파일 .jaystudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다.",
+      "구성 파일 .aojistudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다.",
     );
     // (b): 입력 placeholder는 괄호를 벗긴 설명 문구 그대로 유지한다(회귀 확인).
     expect(WORKFLOW_DESCRIPTION_PLACEHOLDER).toBe("한 줄 설명");
+  });
+});
+
+describe("[ADR-60][NFR-11] 이름·경로 문구 상수", () => {
+  it("[ADR-60] 워드마크·요약 라벨·경로 문구 상수 값(전수)", () => {
+    expect(APP_WORDMARK).toBe("Aoji Studio");
+    expect(WORKFLOWS_SUMMARY_PROJECT_LABEL).toBe("AojiStudio");
+    expect(agentFilePathLabel(".claude/agents/dev-lead.md")).toBe("AojiStudio/.claude/agents/dev-lead.md");
+    expect(WORKFLOW_ADD_DESCRIPTION).toBe("구성 파일 .aojistudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다.");
+    expect(workflowDeleteConfigNote("개발부서")).toBe("구성 파일 .aojistudio/teams/개발부서.json이 삭제됩니다");
+    expect(PANEL_FOOTNOTE_TRASH).toBe("제거 = 휴지통(.aojistudio/trash/)으로 이동 · 원문 로그 보기 없음");
+    expect(IMPORT_NOTICE_TRASH).toContain("휴지통(.aojistudio/trash/)");
+    expect(AGENT_REMOVE_TRASH_NOTE).toBe("정의 파일이 .aojistudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).");
+  });
+
+  it("[ADR-60] lib/text.ts에 옛 이름(공백·밑줄·붙임 표기, .점 폴더) 0건", () => {
+    const text = Object.entries(SOURCES).find(([path]) => path === "./text.ts")?.[1] ?? "";
+    expect(text.length).toBeGreaterThan(0);
+    const oldName = new RegExp(["jay", "studio"].join("[ _-]?"), "i");
+    expect(oldName.test(text)).toBe(false);
   });
 });

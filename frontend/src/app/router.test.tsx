@@ -44,7 +44,7 @@ describe("router", () => {
           {
             name: "개발부서",
             description: "",
-            filePath: ".jaystudio/teams/dev.json",
+            filePath: ".aojistudio/teams/dev.json",
             lead: null,
             members: [],
             brokenRefs: [],
@@ -85,7 +85,7 @@ describe("router", () => {
           {
             name: "개발부서",
             description: "",
-            filePath: ".jaystudio/teams/dev.json",
+            filePath: ".aojistudio/teams/dev.json",
             lead: null,
             members: [],
             brokenRefs: [],

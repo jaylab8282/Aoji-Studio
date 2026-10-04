@@ -7,11 +7,11 @@ export function buildSnapshotFixture(overrides: Partial<Snapshot> = {}): Snapsho
   return {
     serverTime: "2026-09-22T10:00:00+09:00",
     config: {
-      hostPath: "/Users/jaybee/Desktop/JayStudio",
+      hostPath: "/Users/jaybee/Desktop/AojiStudio",
       publicOrigin: "http://127.0.0.1:4180",
       collectUrl: "http://127.0.0.1:4180/hooks/events",
       helperUrl: "http://127.0.0.1:4181",
-      defaultSessionCommand: 'cd "/Users/jaybee/Desktop/JayStudio" && claude',
+      defaultSessionCommand: 'cd "/Users/jaybee/Desktop/AojiStudio" && claude',
     },
     registry: {
       revision: 1,

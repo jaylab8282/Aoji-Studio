@@ -50,7 +50,7 @@ function stubFetch(getResponses: (() => Response)[], putResponses: (() => Respon
 const 개발부서 = {
   name: "개발부서",
   description: "",
-  filePath: ".jaystudio/teams/개발부서.json",
+  filePath: ".aojistudio/teams/개발부서.json",
   lead: "dev-lead",
   members: [],
   brokenRefs: [],

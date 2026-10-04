@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { checkHelperHealth, getHelperToken, openHelperSession } from "./helper";
+import { LEGACY_HELPER_TOKEN_HEADER, checkHelperHealth, getHelperToken, openHelperSession } from "./helper";
 
 const HELPER_URL = "http://127.0.0.1:4181";
 const HELPER_TOKEN = "b".repeat(64);
@@ -81,7 +81,13 @@ describe("api/helper (FR-013)", () => {
     vi.unstubAllGlobals();
   });
 
-  it("[FR-013-AC6] 요청 URL = config.helperUrl + '/open', 본문 키는 target(+leadName)뿐, 헤더 X-JayStudio-Helper-Token", async () => {
+  it("[FR-013-AC6][ADR-57] 도우미 헤더 상수 값 = 옛 도우미 헤더 이름(값 불변)", () => {
+    const expected = "X-AojiStudio-Helper-Token".replace("Aoji", "Jay");
+    expect(expected).toMatch(/^X-Jay.+-Helper-Token$/);
+    expect(LEGACY_HELPER_TOKEN_HEADER).toBe(expected);
+  });
+
+  it("[FR-013-AC6] 요청 URL = config.helperUrl + '/open', 본문 키는 target(+leadName)뿐, 헤더 LEGACY_HELPER_TOKEN_HEADER 상수 이름", async () => {
     const calls = stubFetch();
 
     expect(await openHelperSession(HELPER_URL, { target: "default" })).toEqual({ kind: "opened" });
@@ -89,7 +95,7 @@ describe("api/helper (FR-013)", () => {
     const defaultCall = openCall(calls);
     expect(defaultCall.url).toBe(`${HELPER_URL}/open`);
     expect(defaultCall.method).toBe("POST");
-    expect(defaultCall.headers["X-JayStudio-Helper-Token"]).toBe(HELPER_TOKEN);
+    expect(defaultCall.headers[LEGACY_HELPER_TOKEN_HEADER]).toBe(HELPER_TOKEN);
     expect(defaultCall.headers["Content-Type"]).toBe("application/json");
     expect(Object.keys(JSON.parse(defaultCall.body ?? "{}"))).toEqual(["target"]);
     expect(JSON.parse(defaultCall.body ?? "{}")).toEqual({ target: "default" });
@@ -211,7 +217,7 @@ describe("api/helper (FR-013)", () => {
     expect(await checkHelperHealth(HELPER_URL)).toBe(true);
     expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([`GET ${HELPER_URL}/health`]);
     // `/health`는 Origin 검사만 한다 — 토큰을 보내지 않는다(api-spec.yaml).
-    expect(calls[0]?.headers["X-JayStudio-Helper-Token"]).toBeUndefined();
+    expect(calls[0]?.headers[LEGACY_HELPER_TOKEN_HEADER]).toBeUndefined();
 
     vi.useFakeTimers();
     stubFetch({ health: () => neverResolving(currentSignal()) });

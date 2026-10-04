@@ -7,7 +7,7 @@ import { agentEventsStore } from "../../state/agentEventsStore";
 import { connectionStore } from "../../state/connectionStore";
 import { buildSnapshotFixture } from "../../test/fixtures/snapshot";
 
-const HOST_PATH = "/Users/jaybee/Desktop/JayStudio";
+const HOST_PATH = "/Users/jaybee/Desktop/AojiStudio";
 
 function buildAgentDef(name: string): AgentDef {
   return {
@@ -118,7 +118,7 @@ describe("Panel", () => {
           currentTool: { name: "Edit", target: "backend/AgentController.java" },
           sessionStartedAt: "2026-09-22T09:12:34+09:00",
           childCount: 2,
-          cwd: `${HOST_PATH}/Jay_Studio`,
+          cwd: `${HOST_PATH}/Aoji_Studio`,
         }),
       }),
     });
@@ -126,7 +126,7 @@ describe("Panel", () => {
     expect(screen.getByText("현재 도구").nextElementSibling).toHaveTextContent("Edit · backend/AgentController.java");
     expect(screen.getByText("세션 시작").nextElementSibling).toHaveTextContent("09:12:34");
     expect(screen.getByText("서브에이전트").nextElementSibling).toHaveTextContent("2");
-    expect(screen.getByText("작업 폴더").nextElementSibling).toHaveTextContent("Jay_Studio");
+    expect(screen.getByText("작업 폴더").nextElementSibling).toHaveTextContent("Aoji_Studio");
     expect(screen.getByText("상태").nextElementSibling).toHaveTextContent("작업 중");
     expect(screen.getByText(".claude/agents/dev-lead.md")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("최근 이벤트 없음")).toBeInTheDocument());
@@ -193,7 +193,7 @@ describe("Panel", () => {
     expect(router.state.location.search).toBe("?dialog=agent-remove&agent=dev-lead");
 
     expect(screen.queryByText(/원문 로그 보기$/)).not.toBeInTheDocument();
-    expect(screen.getByText("제거 = 휴지통(.jaystudio/trash/)으로 이동 · 원문 로그 보기 없음")).toBeInTheDocument();
+    expect(screen.getByText("제거 = 휴지통(.aojistudio/trash/)으로 이동 · 원문 로그 보기 없음")).toBeInTheDocument();
   });
 
   it("[FR-011-AC5] status running → 정의 수정 비활성 '작업 중에는 수정할 수 없습니다'", async () => {
@@ -230,7 +230,7 @@ describe("Panel", () => {
 
     expect(screen.getByText("선택할 에이전트가 없습니다")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "정의 수정" })).not.toBeInTheDocument();
-    expect(screen.getByText("제거 = 휴지통(.jaystudio/trash/)으로 이동 · 원문 로그 보기 없음")).toBeInTheDocument();
+    expect(screen.getByText("제거 = 휴지통(.aojistudio/trash/)으로 이동 · 원문 로그 보기 없음")).toBeInTheDocument();
   });
 
   it("[FR-007-AC6] 재연결되면 최근 이벤트를 다시 불러온다", async () => {

@@ -47,13 +47,13 @@ function stubFetch(handlers: { get?: Handler; post?: Handler; put?: Handler; del
 const 개발부서 = {
   name: "개발부서",
   description: "",
-  filePath: ".jaystudio/teams/개발부서.json",
+  filePath: ".aojistudio/teams/개발부서.json",
   lead: "dev-lead",
   members: ["qa-02"],
   brokenRefs: [],
   rawMemberCount: 2,
 };
-const 운영팀 = { ...개발부서, name: "운영팀", filePath: ".jaystudio/teams/운영팀.json", lead: null, members: [], rawMemberCount: 0 };
+const 운영팀 = { ...개발부서, name: "운영팀", filePath: ".aojistudio/teams/운영팀.json", lead: null, members: [], rawMemberCount: 0 };
 
 function replaceSnapshot(overrides: Partial<Registry> = {}) {
   const fixture = buildSnapshotFixture();
@@ -527,6 +527,6 @@ describe("AgentForm", () => {
     expect(
       screen.getByText("이름 변경 시 파일명도 변경 · 폼에 없는 필드(permissionMode 등)는 기존 값 보존"),
     ).toBeInTheDocument();
-    expect(screen.getByText("JayStudio/.claude/agents/dev-lead.md")).toBeInTheDocument();
+    expect(screen.getByText("AojiStudio/.claude/agents/dev-lead.md")).toBeInTheDocument();
   });
 });

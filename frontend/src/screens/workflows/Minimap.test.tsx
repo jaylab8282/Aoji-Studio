@@ -8,7 +8,7 @@ function buildWorkflow(name: string, memberCount: number): Workflow {
   return {
     name,
     description: "",
-    filePath: `.jaystudio/teams/${name}.json`,
+    filePath: `.aojistudio/teams/${name}.json`,
     lead: "lead",
     members: Array.from({ length: memberCount }, (_, index) => `${name}-${index}`),
     brokenRefs: [],

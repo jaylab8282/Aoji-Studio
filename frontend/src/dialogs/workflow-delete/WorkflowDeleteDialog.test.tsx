@@ -67,7 +67,7 @@ describe("WorkflowDeleteDialog", () => {
     // 06-6(SCR-06-6)과 같은 공통 컴포넌트를 쓴다.
     expect(screen.getByTestId("confirm-by-name-dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "개발부서 워크플로우를 삭제할까요?" })).toBeInTheDocument();
-    expect(screen.getByText("구성 파일 .jaystudio/teams/개발부서.json이 삭제됩니다")).toBeInTheDocument();
+    expect(screen.getByText("구성 파일 .aojistudio/teams/개발부서.json이 삭제됩니다")).toBeInTheDocument();
     expect(screen.getByLabelText("확인을 위해 이름 입력")).toHaveAttribute("placeholder", "개발부서");
     expect(screen.getByRole("button", { name: "취소" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" })).toBeInTheDocument();

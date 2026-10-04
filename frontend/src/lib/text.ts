@@ -21,7 +21,7 @@ export const STATUS_LABEL_TEXT_SHORT: Record<Status, string> = {
 };
 
 // Sidebar 로고·워드마크 (docs/ui/screens/01-home.png 좌상단)
-export const APP_WORDMARK = "Jay Studio";
+export const APP_WORDMARK = "Aoji Studio";
 
 // Sidebar 탭 (ui-spec §공통 AppShell)
 export const SIDEBAR_TAB_HOME = "홈";
@@ -160,7 +160,7 @@ export const EVENTS_TABLE_FOOTNOTE = "token·key·password 등 기본 패턴은 
 export const EMPTY_VALUE_TEXT = "-";
 
 // SCR-02 에이전트 워크플로우 층 뷰
-export const WORKFLOWS_SUMMARY_PROJECT_LABEL = "JayStudio";
+export const WORKFLOWS_SUMMARY_PROJECT_LABEL = "AojiStudio";
 export const WORKFLOWS_SUMMARY_CLAUDE_LABEL = ".claude";
 export function workflowsSummaryCountsLabel(
   agentCount: number | string,
@@ -291,7 +291,7 @@ export const EDIT_AGENT_BUTTON_LABEL = "정의 수정";
 export const REMOVE_AGENT_BUTTON_LABEL = "제거";
 export const EDIT_AGENT_BUSY_REASON = "작업 중에는 수정할 수 없습니다";
 export const REMOVE_AGENT_BUSY_REASON = "작업 중에는 제거할 수 없습니다";
-export const PANEL_FOOTNOTE_TRASH = "제거 = 휴지통(.jaystudio/trash/)으로 이동 · 원문 로그 보기 없음";
+export const PANEL_FOOTNOTE_TRASH = "제거 = 휴지통(.aojistudio/trash/)으로 이동 · 원문 로그 보기 없음";
 export const PANEL_FOOTNOTE_TERMINAL_PREFIX = "작업 지시는 상단 ";
 export const PANEL_FOOTNOTE_TERMINAL_EMPHASIS = "팀장 호출";
 export const PANEL_FOOTNOTE_TERMINAL_SUFFIX = "로 연 터미널에서 직접 한다 · ";
@@ -311,7 +311,7 @@ export const WORKFLOW_ADD_TITLE = "워크플로우 추가";
  * 와이어프레임 표기의 괄호는 ADR-33 (c) 정적 텍스트이므로 괄호 기호만 벗기고 낱말은 그대로 둔다.
  */
 export const WORKFLOW_ADD_DESCRIPTION =
-  "구성 파일 .jaystudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다.";
+  "구성 파일 .aojistudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다.";
 export const WORKFLOW_NAME_LABEL = "이름";
 export const WORKFLOW_NAME_PLACEHOLDER = "개발부서";
 export const WORKFLOW_NAME_HINT = "이름 중복 불가 · 개수 제한 없음";
@@ -330,7 +330,7 @@ export function workflowDeleteTitle(name: string): string {
   return `${name} 워크플로우를 삭제할까요?`;
 }
 export function workflowDeleteConfigNote(name: string): string {
-  return `구성 파일 .jaystudio/teams/${name}.json이 삭제됩니다`;
+  return `구성 파일 .aojistudio/teams/${name}.json이 삭제됩니다`;
 }
 export const WORKFLOW_DELETE_CONFIRM_LABEL = "삭제 (이름 일치 시 활성)";
 export const WORKFLOW_DELETE_CONFIRM_PENDING_LABEL = "삭제 중…";
@@ -380,7 +380,7 @@ export const IMPORT_EMPTY_TEXT = "가져올 에이전트가 없습니다 · 새�
 export const IMPORT_NOTICE_LEAD =
   "팀장은 워크플로우당 1명이고 층의 첫 자리에 배치됩니다. 이미 팀장이 있으면 팀장 선택은 비활성.";
 export const IMPORT_NOTICE_TRASH =
-  "가져온 뒤 워크플로우에서 제거하면 정의 파일이 휴지통(.jaystudio/trash/)으로 이동합니다. 다른 워크플로우 소속 에이전트는 목록에 없습니다.";
+  "가져온 뒤 워크플로우에서 제거하면 정의 파일이 휴지통(.aojistudio/trash/)으로 이동합니다. 다른 워크플로우 소속 에이전트는 목록에 없습니다.";
 /** FR-009-AC5: 선택 인원이 라벨에 들어간다(ADR-33 (a) 치환). 0명이면 비활성이다. */
 export function importSubmitLabel(selectedCount: number): string {
   return `선택한 ${selectedCount}명 가져오기`;
@@ -406,7 +406,7 @@ export const AGENT_FORM_EDIT_TITLE = "에이전트 수정";
 /** 필수 입력 표시(와이어프레임 p.7: 이름·소속 워크플로우·설명에만 붙는다). */
 export const REQUIRED_MARK_TEXT = "필수";
 /**
- * 제목 옆 경로(ui-spec.md SCR-06 제목 행 `JayStudio/.claude/agents/...`).
+ * 제목 옆 경로(ui-spec.md SCR-06 제목 행 `AojiStudio/.claude/agents/...`).
  * 서버가 주는 `filePath`는 마운트 루트 기준 상대 경로이므로 앞에 프로젝트 폴더 이름을 붙인다(ADR-33 (a)).
  */
 export function agentFilePathLabel(filePath: string): string {
@@ -483,7 +483,7 @@ export function agentRemoveTitle(agentName: string, workflowName: string | null)
     : `${agentName}을(를) ${workflowName}에서 제거할까요?`;
 }
 export const AGENT_REMOVE_TRASH_NOTE =
-  "정의 파일이 .jaystudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).";
+  "정의 파일이 .aojistudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).";
 /** FR-012-AC3: 팀장을 제거할 때만 붙는 두 번째 안내 줄. */
 export function agentRemoveLeadNote(workflowName: string): string {
   return `팀장을 제거하면 ${workflowName} 층에 팀장 없음이 표시됩니다.`;

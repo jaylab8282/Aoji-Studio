@@ -44,7 +44,7 @@ function stubFetch(response: () => Response) {
 const 개발부서 = {
   name: "개발부서",
   description: "",
-  filePath: ".jaystudio/teams/개발부서.json",
+  filePath: ".aojistudio/teams/개발부서.json",
   lead: "dev-lead",
   members: ["qa-02"],
   brokenRefs: [],
@@ -91,7 +91,7 @@ describe("RemoveAgentDialog", () => {
   });
 
   it("[FR-012-AC1] name 일치 시만 활성", async () => {
-    const calls = stubFetch(() => jsonResponse({ trashPath: ".jaystudio/trash/dev-lead.20260922-100000.md", removedFromWorkflow: "개발부서" }));
+    const calls = stubFetch(() => jsonResponse({ trashPath: ".aojistudio/trash/dev-lead.20260922-100000.md", removedFromWorkflow: "개발부서" }));
     const onClose = renderDialog();
 
     expect(removeButton()).toBeDisabled();
@@ -111,7 +111,7 @@ describe("RemoveAgentDialog", () => {
     stubFetch(() => jsonResponse({}, 500));
     renderDialog("dev-lead");
 
-    expect(screen.getByText("정의 파일이 .jaystudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).")).toBeInTheDocument();
+    expect(screen.getByText("정의 파일이 .aojistudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).")).toBeInTheDocument();
     expect(screen.getByText("팀장을 제거하면 개발부서 층에 팀장 없음이 표시됩니다.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "dev-lead을(를) 개발부서에서 제거할까요?" })).toBeInTheDocument();
   });
@@ -121,12 +121,12 @@ describe("RemoveAgentDialog", () => {
     stubFetch(() => jsonResponse({}, 500));
     renderDialog("qa-02");
 
-    expect(screen.getByText("정의 파일이 .jaystudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).")).toBeInTheDocument();
+    expect(screen.getByText("정의 파일이 .aojistudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).")).toBeInTheDocument();
     expect(screen.queryByText(/팀장 없음이 표시됩니다/)).not.toBeInTheDocument();
   });
 
   it("[FR-012-AC5] 워크플로우 밖 에이전트 06에서 제거 버튼 활성, 제목 '<name>을(를) 제거할까요?'", async () => {
-    stubFetch(() => jsonResponse({ trashPath: ".jaystudio/trash/qa-01.20260922-100000.md", removedFromWorkflow: null }));
+    stubFetch(() => jsonResponse({ trashPath: ".aojistudio/trash/qa-01.20260922-100000.md", removedFromWorkflow: null }));
     const router = createMemoryRouter(routes, { initialEntries: ["/workflows?dialog=agent-edit&agent=qa-01"] });
     render(<RouterProvider router={router} />);
 
@@ -203,7 +203,7 @@ describe("RemoveAgentDialog", () => {
   });
 
   it("[SCR-06-6] `?dialog=agent-remove`로 열면 성공 후 03 화면을 그대로 둔다", async () => {
-    stubFetch(() => jsonResponse({ trashPath: ".jaystudio/trash/dev-lead.20260922-100000.md", removedFromWorkflow: "개발부서" }));
+    stubFetch(() => jsonResponse({ trashPath: ".aojistudio/trash/dev-lead.20260922-100000.md", removedFromWorkflow: "개발부서" }));
     const router = createMemoryRouter(routes, {
       initialEntries: ["/workflows/개발부서?agent=dev-lead&dialog=agent-remove"],
     });

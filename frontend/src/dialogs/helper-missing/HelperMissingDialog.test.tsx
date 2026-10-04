@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HelperMissingDialog } from "./HelperMissingDialog";
 
-const COMMAND = 'cd "/Users/jaybee/Desktop/JayStudio" && claude';
+const COMMAND = 'cd "/Users/jaybee/Desktop/AojiStudio" && claude';
 const writeText = vi.fn<(text: string) => Promise<void>>();
 
 describe("HelperMissingDialog (ui-spec §공통)", () => {

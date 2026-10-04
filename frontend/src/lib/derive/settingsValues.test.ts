@@ -13,7 +13,7 @@ describe("settingsDisplayValues", () => {
     const settings = buildSettingsFixture({ agentCount: 7, skillCount: 3, formatErrorCount: 1 });
 
     expect(settingsDisplayValues(settings, null)).toEqual({
-      hostPath: "/Users/jaybee/Desktop/JayStudio",
+      hostPath: "/Users/jaybee/Desktop/AojiStudio",
       agentCount: 7,
       skillCount: 3,
       writable: true,
@@ -39,10 +39,10 @@ describe("settingsDisplayValues", () => {
   });
 
   it("[FR-014-AC4] hostPath(맥북 경로)는 registry에 없으므로 settings 값을 유지한다", () => {
-    const settings = buildSettingsFixture({ hostPath: "/Users/jaybee/Desktop/JayStudio" });
+    const settings = buildSettingsFixture({ hostPath: "/Users/jaybee/Desktop/AojiStudio" });
 
     expect(settingsDisplayValues(settings, registryFixture()).hostPath).toBe(
-      "/Users/jaybee/Desktop/JayStudio",
+      "/Users/jaybee/Desktop/AojiStudio",
     );
   });
 

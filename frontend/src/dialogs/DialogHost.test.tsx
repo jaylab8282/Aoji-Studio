@@ -13,7 +13,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 const createdWorkflow: Workflow = {
   name: "개발부서",
   description: "",
-  filePath: ".jaystudio/teams/개발부서.json",
+  filePath: ".aojistudio/teams/개발부서.json",
   lead: null,
   members: [],
   brokenRefs: [],
@@ -96,7 +96,7 @@ describe("DialogHost", () => {
       {
         name: "개발부서",
         description: "",
-        filePath: ".jaystudio/teams/개발부서.json",
+        filePath: ".aojistudio/teams/개발부서.json",
         lead: null,
         members: [],
         brokenRefs: [],
@@ -119,7 +119,7 @@ describe("DialogHost", () => {
       {
         name: "개발부서",
         description: "",
-        filePath: ".jaystudio/teams/개발부서.json",
+        filePath: ".aojistudio/teams/개발부서.json",
         lead: null,
         members: [],
         brokenRefs: [],
@@ -150,7 +150,7 @@ describe("DialogHost", () => {
       {
         name: "개발부서",
         description: "",
-        filePath: ".jaystudio/teams/개발부서.json",
+        filePath: ".aojistudio/teams/개발부서.json",
         lead: null,
         members: [],
         brokenRefs: [],
