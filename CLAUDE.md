@@ -1,4 +1,4 @@
-<!-- JayStudio/<프로젝트명>/CLAUDE.md로 복사한다. Project와 Automation은 사람이 채우고, Commands는 scaffolder가 작성한다. 이 폴더의 파일을 읽을 때 컨텍스트에 올라간다. 역할별 절차는 에이전트 파일에 있으므로 여기에 적지 않는다. 이 주석은 컨텍스트에 올라가지 않는다. -->
+<!-- web-develop-depart/<프로젝트명>/CLAUDE.md로 복사한다. Project와 Automation은 사람이 채우고, Commands는 web-scaffolder가 작성한다. 이 폴더의 파일을 읽을 때 컨텍스트에 올라간다. 역할별 절차는 에이전트 파일에 있으므로 여기에 적지 않는다. 이 주석은 컨텍스트에 올라가지 않는다. -->
 # Jay_Studio
 
 ## Project
@@ -7,7 +7,7 @@
 - 기준 문서: `docs/final_requirements_function.md`, `docs/final_requirements_architecture.md`
 
 ## Commands
-<!-- scaffolder가 작성한다. 모든 명령은 이 폴더 기준이며, 실제로 실행해 확인한 명령만 적는다. -->
+<!-- web-scaffolder가 작성한다. 모든 명령은 이 폴더 기준이며, 실제로 실행해 확인한 명령만 적는다. -->
 - install:
   - Backend: 없음(`./gradlew`가 최초 빌드 시 Gradle·JDK 25 toolchain을 `~/.gradle/`에 자동 설치)
   - Frontend: `cd frontend && npm install`
@@ -48,7 +48,7 @@
 - max_fix_rounds: 3
 
 ## Rules
-- `docs/requirements_*.md`(원본)와 `docs/ui/`(확정 UI 기준)는 수정하지 않는다. `docs/final_requirements_*.md`는 `/planner`만 수정한다.
-- `docs/api-spec*`, `docs/realtime-spec.md`, `docs/ui-spec.md`는 architect만 수정한다.
-- 커밋은 develop-tech-lead만 한다. `.env`는 커밋하지 않고 `.env.example`만 커밋한다.
+- `docs/requirements_*.md`(원본)와 `docs/ui/`(확정 UI 기준)는 수정하지 않는다. `docs/final_requirements_*.md`는 `/web-planner`만 수정한다.
+- `docs/api-spec*`, `docs/realtime-spec.md`, `docs/ui-spec.md`는 web-architect만 수정한다.
+- 커밋은 web-develop-tech-lead만 한다. `.env`는 커밋하지 않고 `.env.example`만 커밋한다.
 - 검증은 위 Commands로 한다. 적혀 있지 않은 명령으로 통과를 주장하지 않는다.
