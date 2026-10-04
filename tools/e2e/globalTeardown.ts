@@ -7,6 +7,7 @@ import {
   COMPOSE_FILE,
   E2E_DIR,
   composeEnv,
+  isCompatBatch,
   readE2eStateOrNull,
   removeE2eState,
 } from "./lib/e2e-state";
@@ -37,7 +38,10 @@ export default async function globalTeardown(): Promise<void> {
 
   // E2E-R2-06: 표준 배치(새 이름만 쓰는 배치)의 컨테이너 로그에 `[legacy]` 줄이 0건이어야 한다.
   // down -v 전에 읽는다(컨테이너가 사라지면 로그도 사라진다).
-  if (typeof state.fixtureDir === "string") {
+  if (isCompatBatch()) {
+    // 호환 배치는 옛 이름을 일부러 써서 `[legacy]` 줄이 정상이다. 그 줄은 각 호환 spec이 단언한다.
+    log("호환 배치 — E2E-R2-06 검사를 건너뜁니다(각 호환 spec이 [legacy] 줄을 단언)");
+  } else if (typeof state.fixtureDir === "string") {
     try {
       const logs = execFileSync(
         "docker",

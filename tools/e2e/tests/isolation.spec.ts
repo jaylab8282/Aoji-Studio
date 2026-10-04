@@ -28,8 +28,10 @@ const HARNESS_FILES = [
   "globalTeardown.ts",
   "playwright.config.ts",
   "compose.e2e.yaml",
+  "compose.e2e-legacy-env.yaml",
   join("lib", "e2e-state.ts"),
   join("lib", "harness-utils.ts"),
+  join("lib", "legacy-fixture.ts"),
   join("lib", "other-origin-server.mjs"),
   join("lib", "replay.ts"),
   join("scripts", "check-compose-build.sh"),
@@ -77,6 +79,7 @@ function canonicalPath(path: string): string {
 /**
  * bind 소스가 fixture 폴더인지. Docker Desktop(WSL2)은 호스트 경로를 보고하지 않고
  * `/run/desktop/mnt/host/wsl/docker-desktop-bind-mounts/<배포판>/<호스트 경로의 sha256>`을 보고한다.
+ * (D-110 실행 환경: WSL2 + Docker Desktop. 해시는 bind 소스 호스트 경로의 sha256이다.)
  * 이 경우 마지막 마디가 fixture 경로(원본·canonical 표기 둘 중 하나)의 sha256과 같은지로 판정한다.
  */
 function bindSourceIsFixture(source: string, fixtureDir: string, rawFixtureDir: string): boolean {
@@ -155,25 +158,27 @@ for (const relativePath of HARNESS_FILES) {
   });
 }
 
-test("[FR-003-AC1][격리] compose.e2e.yaml의 호스트 마운트는 ${E2E_FIXTURE_DIR} 하나뿐이고 docker.sock이 없다", () => {
-  const code = readHarnessCode("compose.e2e.yaml");
+for (const composeFile of ["compose.e2e.yaml", "compose.e2e-legacy-env.yaml"]) {
+  test(`[FR-003-AC1][격리] ${composeFile}의 호스트 마운트는 \${E2E_FIXTURE_DIR} 하나뿐이고 docker.sock이 없다`, () => {
+    const code = readHarnessCode(composeFile);
 
-  expect(code).toContain("${E2E_FIXTURE_DIR");
-  expect(code).not.toContain("docker.sock");
-  expect(code).not.toContain("privileged");
+    expect(code).toContain("${E2E_FIXTURE_DIR");
+    expect(code).not.toContain("docker.sock");
+    expect(code).not.toContain("privileged");
 
-  const hostPaths = code
-    .split("\n")
-    .map((line) => /^\s*-\s*(\S+):(\/\S*)$/.exec(line.trim()))
-    .filter((match): match is RegExpExecArray => match !== null)
-    .map((match) => match[1] as string);
-  expect(hostPaths.length).toBeGreaterThan(0);
-  for (const hostPath of hostPaths) {
-    // 절대 경로·상대 경로·홈 경로를 직접 적지 않는다. `${E2E_FIXTURE_DIR...}` 또는 이름 있는 볼륨만 쓴다.
-    const allowed = hostPath.startsWith("${E2E_FIXTURE_DIR") || /^[A-Za-z0-9][\w.-]*$/.test(hostPath);
-    expect(allowed, `허용되지 않은 호스트 마운트: ${hostPath}`).toBe(true);
-  }
-});
+    const hostPaths = code
+      .split("\n")
+      .map((line) => /^\s*-\s*(\S+):(\/\S*)$/.exec(line.trim()))
+      .filter((match): match is RegExpExecArray => match !== null)
+      .map((match) => match[1] as string);
+    expect(hostPaths.length).toBeGreaterThan(0);
+    for (const hostPath of hostPaths) {
+      // 절대 경로·상대 경로·홈 경로를 직접 적지 않는다. `${E2E_FIXTURE_DIR...}` 또는 이름 있는 볼륨만 쓴다.
+      const allowed = hostPath.startsWith("${E2E_FIXTURE_DIR") || /^[A-Za-z0-9][\w.-]*$/.test(hostPath);
+      expect(allowed, `허용되지 않은 호스트 마운트: ${hostPath}`).toBe(true);
+    }
+  });
+}
 
 test("[FR-003-AC1][격리] 기동된 컨테이너의 bind 마운트는 임시 fixture 사본뿐이다(docker inspect)", () => {
   const state = readE2eState();

@@ -12,7 +12,18 @@ export const PROJECT_ROOT = resolve(E2E_DIR, "..", "..");
 /** fixture 원본 폴더(복사 원본. 테스트는 이 폴더를 수정하지 않는다). */
 export const FIXTURES_DIR = join(PROJECT_ROOT, "tools", "fixtures");
 
-export const COMPOSE_FILE = join(E2E_DIR, "compose.e2e.yaml");
+/**
+ * `E2E_COMPOSE=legacy-env`이면 환경 변수만 옛 이름인 호환 compose(E2E-R2-03)를 쓴다. 그 밖의 값은 오류다.
+ * 값이 없으면 표준 `compose.e2e.yaml`이다.
+ */
+const COMPOSE_VARIANT = process.env.E2E_COMPOSE ?? "";
+if (COMPOSE_VARIANT !== "" && COMPOSE_VARIANT !== "legacy-env") {
+  throw new Error(`E2E_COMPOSE 값이 올바르지 않습니다: ${COMPOSE_VARIANT} (legacy-env만 허용)`);
+}
+export const COMPOSE_FILE = join(
+  E2E_DIR,
+  COMPOSE_VARIANT === "legacy-env" ? "compose.e2e-legacy-env.yaml" : "compose.e2e.yaml",
+);
 export const COMPOSE_SERVICE = "aojistudio-e2e";
 export const CONTAINER_PORT = "4180";
 
@@ -36,6 +47,24 @@ export const DEFAULT_FIXTURE = "project-basic";
 export const COLLECT_TOKEN_PLACEHOLDER = "e2e0c011".repeat(8);
 export const HELPER_TOKEN_PLACEHOLDER = "e2e0fee1".repeat(8);
 
+/** 호환 fixture(`project-legacy-*`)를 준비할 때 하네스가 써 넣은 값(tasks.md T-R2-10, architecture §8.4.1). */
+export type LegacyFixtureInfo = {
+  kind: "only" | "both";
+  /** 서버가 수집 토큰으로 쓰는 값(only: 옛 폴더 값 = 이동 뒤에도 같다 / both: 새 폴더 값). */
+  collectToken: string;
+  /** both일 때만: 옛 폴더의 collect-token 값(새 폴더 값과 다르다). only이면 null. */
+  oldCollectToken: string | null;
+  /** only일 때만: 옛 폴더의 helper-token 값. both이면 null. */
+  helperToken: string | null;
+  /** 기동 전 옛 데이터 폴더 아래 모든 파일의 sha256(상대 경로 → hex). */
+  legacyDirSha256: Record<string, string>;
+};
+
+/** 호환 배치(옛 이름을 일부러 쓰는 배치)인지. 표준 배치의 `[legacy]` 0건 검사(E2E-R2-06)는 이 배치에 적용하지 않는다. */
+export function isCompatBatch(): boolean {
+  return COMPOSE_VARIANT !== "" || (process.env.E2E_FIXTURE ?? "").startsWith("project-legacy-");
+}
+
 export type E2eState = {
   /** 복사한 fixture 이름(`tools/fixtures/<name>`). */
   fixtureName: string;
@@ -58,6 +87,8 @@ export type E2eState = {
   composeFile: string;
   composeService: string;
   startedAt: string;
+  /** 호환 fixture 배치에서만 있다. */
+  legacy?: LegacyFixtureInfo;
 };
 
 /** 상태 파일을 덮어쓴다(부분 갱신). globalSetup·globalTeardown만 호출한다. */

@@ -39,6 +39,7 @@ import {
   removeE2eState,
   writeE2eState,
 } from "./lib/e2e-state";
+import { prepareLegacyFixture } from "./lib/legacy-fixture";
 import {
   delay,
   describeProcess,
@@ -73,17 +74,23 @@ export default async function globalSetup(): Promise<void> {
   const fixture = prepareFixture();
   log(`fixture: ${fixture.name} → ${fixture.dir}${fixture.owned ? "" : " (E2E_FIXTURE_DIR 지정)"}`);
 
-  const tokens = writePlaceholderTokens(fixture.dir);
+  // 호환 fixture(`project-legacy-*`)는 하네스가 난수 토큰을 써 넣고 옛 폴더 sha256을 기록한다(T-R2-10).
+  // 그 배치는 표준 도우미를 띄우지 않는다 — E2E-R2-07이 마이그레이션 뒤 shim 도우미를 직접 띄운다.
+  const legacy = fixture.owned && fixture.name.startsWith("project-legacy-")
+    ? prepareLegacyFixture(fixture.dir, fixture.name)
+    : null;
+  const tokens = legacy ?? writePlaceholderTokens(fixture.dir);
   writeE2eState({
+    ...(legacy === null ? {} : { legacy: legacy.info }),
     fixtureName: fixture.name,
     fixtureDir: fixture.dir,
     fixtureOwned: fixture.owned,
     baseUrl: BASE_URL,
     helperUrl: HELPER_URL,
     otherOriginUrl: OTHER_ORIGIN_URL,
-    collectToken: COLLECT_TOKEN_PLACEHOLDER,
+    collectToken: legacy?.info.collectToken ?? COLLECT_TOKEN_PLACEHOLDER,
     collectTokenFile: tokens.collectTokenFile,
-    helperToken: HELPER_TOKEN_PLACEHOLDER,
+    helperToken: legacy?.info.helperToken ?? HELPER_TOKEN_PLACEHOLDER,
     helperTokenFile: tokens.helperTokenFile,
     helperLogPath: HELPER_LOG_PATH,
     helperPid: null,
@@ -110,6 +117,7 @@ export default async function globalSetup(): Promise<void> {
     }
     log(`컨테이너 준비 완료: ${BASE_URL}`);
 
+    if (legacy === null) {
     helper = startBackgroundProcess(
       [
         HELPER_SCRIPT,
@@ -135,6 +143,9 @@ export default async function globalSetup(): Promise<void> {
       label: "dry-run 도우미",
     });
     log(`dry-run 도우미 준비 완료: ${HELPER_URL} (pid ${helper.pid}, 로그 ${HELPER_LOG_PATH})`);
+    } else {
+      log("호환 fixture 배치 — 표준 dry-run 도우미를 띄우지 않습니다(E2E-R2-07이 shim으로 직접 띄움)");
+    }
 
     originServer = startBackgroundProcess(
       [ORIGIN_SERVER_SCRIPT, String(OTHER_ORIGIN_PORT)],
