@@ -5,9 +5,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 /** LaunchAgent Label. install.sh·uninstall.sh와 같은 값을 쓴다. */
-export const HELPER_LABEL = 'com.jaystudio.helper';
+export const HELPER_LABEL = 'com.aojistudio.helper';
 
-const TEMPLATE_URL = new URL('../launchd/com.jaystudio.helper.plist.template', import.meta.url);
+const TEMPLATE_URL = new URL('../launchd/com.aojistudio.helper.plist.template', import.meta.url);
 
 /**
  * plist에 들어갈 문자열을 XML로 이스케이프한다.

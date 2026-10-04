@@ -11,7 +11,7 @@ import {
   parseOpenRequest,
 } from '../lib/validate.mjs';
 
-const PROJECT_DIR = '/Users/jaybee/Desktop/JayStudio';
+const PROJECT_DIR = '/Users/jaybee/Desktop/AojiStudio';
 
 test("[FR-013-AC7] 팀장 name은 '^[a-z0-9-]{1,64}$'만 허용한다", () => {
   assert.equal(LEAD_NAME_PATTERN.source, '^[a-z0-9-]{1,64}$');

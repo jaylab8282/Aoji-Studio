@@ -21,15 +21,16 @@ import {
   createOpenTerminal,
   ensureTokenFile,
   parseArgs,
-} from '../jaystudio-helper.mjs';
+} from '../aojistudio-helper.mjs';
+import { LEGACY_HELPER_TOKEN_HEADER } from '../lib/legacy.mjs';
 
-const HELPER_ROOT = dirname(fileURLToPath(new URL('../jaystudio-helper.mjs', import.meta.url)));
-const HELPER_SCRIPT = join(HELPER_ROOT, 'jaystudio-helper.mjs');
+const HELPER_ROOT = dirname(fileURLToPath(new URL('../aojistudio-helper.mjs', import.meta.url)));
+const HELPER_SCRIPT = join(HELPER_ROOT, 'aojistudio-helper.mjs');
 const TOKEN = 'a'.repeat(64);
 const ORIGIN = 'http://127.0.0.1:4180';
 const DEV_ORIGIN = 'http://127.0.0.1:5173';
 
-const tempRoot = mkdtempSync(join(tmpdir(), 'jaystudio-helper-test-'));
+const tempRoot = mkdtempSync(join(tmpdir(), 'aojistudio-helper-test-'));
 after(() => rmSync(tempRoot, { recursive: true, force: true }));
 
 function makeProjectDir(name) {
@@ -83,7 +84,7 @@ async function withServer(overrides, run) {
 function openRequest(baseUrl, { origin = ORIGIN, token = TOKEN, body = { target: 'default' }, contentType = 'application/json' } = {}) {
   const headers = {};
   if (origin !== null) headers.Origin = origin;
-  if (token !== null) headers['X-JayStudio-Helper-Token'] = token;
+  if (token !== null) headers['X-AojiStudio-Helper-Token'] = token;
   if (contentType !== null) headers['Content-Type'] = contentType;
   return fetch(`${baseUrl}/open`, {
     method: 'POST',
@@ -291,7 +292,7 @@ test("[NFR-04] listen host '127.0.0.1'", async () => {
     join(HELPER_ROOT, 'lib', 'plist.mjs'),
     join(HELPER_ROOT, 'install.sh'),
     join(HELPER_ROOT, 'uninstall.sh'),
-    join(HELPER_ROOT, 'launchd', 'com.jaystudio.helper.plist.template'),
+    join(HELPER_ROOT, 'launchd', 'com.aojistudio.helper.plist.template'),
   ];
   for (const file of sourceFiles) {
     const source = readFileSync(file, 'utf8');
@@ -314,7 +315,7 @@ test("[NFR-04] listen host '127.0.0.1'", async () => {
 
 test("[NFR-05] 첫 실행 시 helper-token 생성 mode 600 hex 64, 기존 파일 있으면 재사용", () => {
   const projectDir = makeProjectDir('token-file');
-  const tokenFile = join(projectDir, '.jaystudio', 'helper-token');
+  const tokenFile = join(projectDir, '.aojistudio', 'helper-token');
   assert.equal(parseArgs(['--project-dir', projectDir]).tokenFile, tokenFile);
 
   const created = ensureTokenFile(tokenFile);
@@ -392,7 +393,7 @@ test("[FR-013-E3][T-FIX-07] 2차 상한(1MiB)을 넘는 본문 → 소켓을 끊
       const declaredBytes = 4 * 1024 * 1024;
       socket.write(
         `POST /open HTTP/1.1\r\nHost: ${HELPER_HOST}:${port}\r\nOrigin: ${ORIGIN}\r\n` +
-          `X-JayStudio-Helper-Token: ${TOKEN}\r\nContent-Type: application/json\r\n` +
+          `X-AojiStudio-Helper-Token: ${TOKEN}\r\nContent-Type: application/json\r\n` +
           `Content-Length: ${declaredBytes}\r\nConnection: keep-alive\r\n\r\n`,
       );
       const chunk = Buffer.alloc(64 * 1024, 0x78);
@@ -459,7 +460,7 @@ test("[FR-013-AC7] OPTIONS /open preflight 204 · 허용 헤더, Content-Type �
     assert.equal(preflight.headers.get('access-control-allow-methods'), 'POST');
     assert.equal(
       preflight.headers.get('access-control-allow-headers'),
-      'Content-Type, X-JayStudio-Helper-Token',
+      `Content-Type, ${LEGACY_HELPER_TOKEN_HEADER}, X-AojiStudio-Helper-Token`,
     );
 
     const blocked = await fetch(`${baseUrl}/open`, {

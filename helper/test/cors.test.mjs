@@ -10,6 +10,7 @@ import {
   parseAllowedOrigins,
   preflightHeaders,
 } from '../lib/cors.mjs';
+import { LEGACY_HELPER_TOKEN_HEADER } from '../lib/legacy.mjs';
 
 test("[FR-013-AC7] 허용 Origin 기본값은 'http://127.0.0.1:4180' 하나다", () => {
   assert.deepEqual([...DEFAULT_ALLOWED_ORIGINS], ['http://127.0.0.1:4180']);
@@ -53,6 +54,6 @@ test("[FR-013-AC7] CORS 응답 헤더는 요청 Origin만 되돌려 준다", () 
     'Access-Control-Allow-Origin': 'http://127.0.0.1:4180',
     Vary: 'Origin',
     'Access-Control-Allow-Methods': 'POST',
-    'Access-Control-Allow-Headers': 'Content-Type, X-JayStudio-Helper-Token',
+    'Access-Control-Allow-Headers': `Content-Type, ${LEGACY_HELPER_TOKEN_HEADER}, X-AojiStudio-Helper-Token`,
   });
 });

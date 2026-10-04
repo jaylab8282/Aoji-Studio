@@ -5,10 +5,14 @@
 set -euo pipefail
 
 HELPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT_PATH="$HELPER_DIR/jaystudio-helper.mjs"
+SCRIPT_PATH="$HELPER_DIR/aojistudio-helper.mjs"
 PLIST_RENDERER="$HELPER_DIR/lib/plist.mjs"
 
-LABEL="com.jaystudio.helper"
+LABEL="com.aojistudio.helper"
+LEGACY_LABEL="com.jaystudio.helper" # LEGACY v1.0.x
+LEGACY_DATA_DIR=".jaystudio" # LEGACY v1.0.x
+LEGACY_ENV_LAUNCH_AGENTS_DIR="JAYSTUDIO_LAUNCH_AGENTS_DIR" # LEGACY v1.0.x
+LEGACY_ENV_HEALTH_TIMEOUT_SECONDS="JAYSTUDIO_HEALTH_TIMEOUT_SECONDS" # LEGACY v1.0.x
 PORT="4181"
 ALLOWED_ORIGINS="http://127.0.0.1:4180"
 PROJECT_DIR=""
@@ -16,11 +20,10 @@ TOKEN_FILE=""
 LOG_FILE=""
 NODE_BIN=""
 DRY_RUN="false"
-LAUNCH_AGENTS_DIR="${JAYSTUDIO_LAUNCH_AGENTS_DIR:-$HOME/Library/LaunchAgents}"
 
 usage() {
   cat <<'USAGE'
-usage: ./install.sh --project-dir <JayStudio 맥북 경로>
+usage: ./install.sh --project-dir <AojiStudio 맥북 경로>
                     [--port <number>] [--allowed-origins <origin[,origin]>]
                     [--token-file <path>] [--log-file <path>] [--node <path>]
                     [--label <launchd label>] [--dry-run]
@@ -28,8 +31,9 @@ usage: ./install.sh --project-dir <JayStudio 맥북 경로>
   --dry-run  아무것도 바꾸지 않는다. 만들 plist를 stdout에, 실행할 명령을 stderr에 적는다.
   등록 전에 포트가 비어 있는지 확인하고, 다른 프로세스가 쓰고 있으면 등록하지 않고 실패한다.
   등록 후 /health가 응답하는지 확인하고, 응답이 없으면 등록을 해제하고 실패한다.
-  환경 변수 JAYSTUDIO_LAUNCH_AGENTS_DIR로 LaunchAgents 폴더를 바꿀 수 있다(기본 ~/Library/LaunchAgents).
-  환경 변수 JAYSTUDIO_HEALTH_TIMEOUT_SECONDS로 기동 확인 대기 시간을 바꿀 수 있다(기본 10초, 1~120).
+  환경 변수 AOJISTUDIO_LAUNCH_AGENTS_DIR로 LaunchAgents 폴더를 바꿀 수 있다(기본 ~/Library/LaunchAgents).
+  환경 변수 AOJISTUDIO_HEALTH_TIMEOUT_SECONDS로 기동 확인 대기 시간을 바꿀 수 있다(기본 10초, 1~120).
+  옛 도우미(Label이 옛 이름)가 등록돼 있으면 설치하지 않고 제거 명령을 안내한다.
 USAGE
 }
 
@@ -38,9 +42,43 @@ fail() {
   exit 1
 }
 
+# 옛 환경 변수 폴백(ADR-57, v1.0.x). 새 이름이 우선이고 빈 문자열은 미설정이다.
+# 경고에는 환경 변수 이름만 쓰고 값은 쓰지 않는다(NFR-08, ADR-53).
+legacy_warn() {
+  echo "install.sh: [legacy] $1 · $2 · $3 · v1.1.0에서 제거됩니다" >&2
+}
+
+# resolve_env <새 이름> <옛 이름을 담은 변수 이름> <기본값> → RESOLVED_ENV_VALUE, RESOLVED_ENV_NAME
+resolve_env() {
+  local new_name="$1" legacy_name_var="$2" default_value="$3"
+  local legacy_name="${!legacy_name_var}"
+  local new_value="${!new_name:-}"
+  local legacy_value="${!legacy_name:-}"
+  if [ -n "$new_value" ]; then
+    RESOLVED_ENV_VALUE="$new_value"
+    RESOLVED_ENV_NAME="$new_name"
+    if [ -n "$legacy_value" ]; then
+      legacy_warn env "$legacy_name 무시($new_name 우선)" "${legacy_name}을 지우세요"
+    fi
+  elif [ -n "$legacy_value" ]; then
+    RESOLVED_ENV_VALUE="$legacy_value"
+    RESOLVED_ENV_NAME="$legacy_name"
+    legacy_warn env "$legacy_name 사용 중" "${new_name}로 바꾸세요"
+  else
+    RESOLVED_ENV_VALUE="$default_value"
+    RESOLVED_ENV_NAME="$new_name"
+  fi
+}
+
 # launchd Label 화이트리스트. 슬래시·상위 경로·공백·선두 하이픈을 막아
 # plist 경로($LAUNCH_AGENTS_DIR/$LABEL.plist)가 인자로 조작되지 않게 한다(경로 처리 보안).
 LABEL_PATTERN='^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'
+
+resolve_env AOJISTUDIO_LAUNCH_AGENTS_DIR LEGACY_ENV_LAUNCH_AGENTS_DIR "$HOME/Library/LaunchAgents"
+LAUNCH_AGENTS_DIR="$RESOLVED_ENV_VALUE"
+resolve_env AOJISTUDIO_HEALTH_TIMEOUT_SECONDS LEGACY_ENV_HEALTH_TIMEOUT_SECONDS "10"
+HEALTH_TIMEOUT="$RESOLVED_ENV_VALUE"
+HEALTH_TIMEOUT_ENV_NAME="$RESOLVED_ENV_NAME"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -73,12 +111,11 @@ esac
 [ "$PORT" -ge 1 ] && [ "$PORT" -le 65535 ] || fail "--port 값이 포트 번호가 아닙니다: $PORT"
 # plist를 만들거나 launchctl을 부르기 전에 Label을 검증한다.
 [[ "$LABEL" =~ $LABEL_PATTERN ]] || fail "--label 값이 올바르지 않습니다 (영숫자로 시작하고 영숫자·점·밑줄·하이픈 1~64자): $LABEL"
-HEALTH_TIMEOUT="${JAYSTUDIO_HEALTH_TIMEOUT_SECONDS:-10}"
 case "$HEALTH_TIMEOUT" in
-  ''|*[!0-9]*) fail "JAYSTUDIO_HEALTH_TIMEOUT_SECONDS 값이 초 단위 숫자가 아닙니다: $HEALTH_TIMEOUT" ;;
+  ''|*[!0-9]*) fail "$HEALTH_TIMEOUT_ENV_NAME 값이 초 단위 숫자가 아닙니다: $HEALTH_TIMEOUT" ;;
 esac
 [ "$HEALTH_TIMEOUT" -ge 1 ] && [ "$HEALTH_TIMEOUT" -le 120 ] \
-  || fail "JAYSTUDIO_HEALTH_TIMEOUT_SECONDS 값은 1~120이어야 합니다: $HEALTH_TIMEOUT"
+  || fail "$HEALTH_TIMEOUT_ENV_NAME 값은 1~120이어야 합니다: $HEALTH_TIMEOUT"
 [ -f "$SCRIPT_PATH" ] || fail "도우미 스크립트를 찾을 수 없습니다: $SCRIPT_PATH"
 [ -f "$PLIST_RENDERER" ] || fail "plist 생성기를 찾을 수 없습니다: $PLIST_RENDERER"
 
@@ -88,7 +125,7 @@ if [ -z "$NODE_BIN" ]; then
 fi
 [ -x "$NODE_BIN" ] || fail "node 실행 파일이 아닙니다: $NODE_BIN"
 if [ -z "$TOKEN_FILE" ]; then
-  TOKEN_FILE="$PROJECT_DIR/.jaystudio/helper-token"
+  TOKEN_FILE="$PROJECT_DIR/.aojistudio/helper-token"
 fi
 if [ -z "$LOG_FILE" ]; then
   LOG_FILE="$HOME/Library/Logs/$LABEL.log"
@@ -96,6 +133,27 @@ fi
 
 PLIST_PATH="$LAUNCH_AGENTS_DIR/$LABEL.plist"
 SERVICE_TARGET="gui/$(id -u)/$LABEL"
+LEGACY_PLIST_PATH="$LAUNCH_AGENTS_DIR/$LEGACY_LABEL.plist"
+LEGACY_SERVICE_TARGET="gui/$(id -u)/$LEGACY_LABEL"
+
+# 옛 데이터 폴더만 있고 `.aojistudio/`가 없으면 설치를 거부한다(ADR-57). 서버가 먼저 폴더를 옮겨야 하고,
+# 도우미가 `.aojistudio/`를 먼저 만들면 서버가 이동하지 않는다.
+if [ -d "$PROJECT_DIR/$LEGACY_DATA_DIR" ] && [ ! -d "$PROJECT_DIR/.aojistudio" ]; then
+  fail "Aoji Studio 서버(v1.0.1)를 먼저 기동해 $LEGACY_DATA_DIR/를 옮긴 뒤 다시 설치하세요 — 설치하지 않았습니다"
+fi
+
+# 옛 도우미(옛 Label)가 등록돼 있거나 옛 plist가 있으면 설치하지 않는다. 자동으로 내리지 않는다 —
+# launchd 조작은 사람이 한다(ADR-57 6). --dry-run은 launchctl을 부르지 않고 plist 존재만 본다.
+LEGACY_FOUND=""
+if [ -e "$LEGACY_PLIST_PATH" ] || [ -L "$LEGACY_PLIST_PATH" ]; then
+  LEGACY_FOUND="plist 있음"
+elif [ "$DRY_RUN" != "true" ] && launchctl print "$LEGACY_SERVICE_TARGET" >/dev/null 2>&1; then
+  LEGACY_FOUND="등록됨"
+fi
+if [ -n "$LEGACY_FOUND" ]; then
+  legacy_warn launchd-label "$LEGACY_LABEL $LEGACY_FOUND" "설치하지 않았습니다 — ./uninstall.sh --label $LEGACY_LABEL 로 제거한 뒤 다시 설치하세요"
+  exit 1
+fi
 
 PLIST_CONTENT="$("$NODE_BIN" "$PLIST_RENDERER" \
   --label "$LABEL" \

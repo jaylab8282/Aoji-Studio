@@ -11,12 +11,14 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const HELPER_ROOT = dirname(fileURLToPath(new URL('../jaystudio-helper.mjs', import.meta.url)));
+import { LEGACY_DATA_DIR_NAME, LEGACY_ENV_HEALTH_TIMEOUT_SECONDS, LEGACY_ENV_LAUNCH_AGENTS_DIR, LEGACY_HELPER_LABEL } from '../lib/legacy.mjs';
+
+const HELPER_ROOT = dirname(fileURLToPath(new URL('../aojistudio-helper.mjs', import.meta.url)));
 const INSTALL_SH = join(HELPER_ROOT, 'install.sh');
 const UNINSTALL_SH = join(HELPER_ROOT, 'uninstall.sh');
-const LABEL = 'com.jaystudio.helper';
+const LABEL = 'com.aojistudio.helper';
 
-const tempRoot = mkdtempSync(join(tmpdir(), 'jaystudio-install-test-'));
+const tempRoot = mkdtempSync(join(tmpdir(), 'aojistudio-install-test-'));
 after(() => rmSync(tempRoot, { recursive: true, force: true }));
 
 // 가짜 launchctl: 호출되면 표시 파일을 남긴다. 실제 launchctl은 실행되지 않는다.
@@ -25,12 +27,12 @@ const launchctlMarker = join(tempRoot, 'launchctl-was-called');
 mkdirSync(fakeBin, { recursive: true });
 writeFileSync(
   join(fakeBin, 'launchctl'),
-  `#!/bin/sh\necho "$@" >> '${launchctlMarker}'\nexit 0\n`,
+  `#!/bin/sh\ncase "$*" in print*${LEGACY_HELPER_LABEL}) exit 1;; esac\necho "$@" >> '${launchctlMarker}'\nexit 0\n`,
   { mode: 0o755 },
 );
 
 const launchAgentsDir = join(tempRoot, 'LaunchAgents');
-const projectDir = join(tempRoot, 'JayStudio');
+const projectDir = join(tempRoot, 'AojiStudio');
 mkdirSync(projectDir, { recursive: true });
 
 function runScript(script, args) {
@@ -41,7 +43,7 @@ function runScript(script, args) {
       ...process.env,
       PATH: `${fakeBin}:${process.env.PATH ?? ''}`,
       HOME: tempRoot,
-      JAYSTUDIO_LAUNCH_AGENTS_DIR: launchAgentsDir,
+      AOJISTUDIO_LAUNCH_AGENTS_DIR: launchAgentsDir,
     },
   });
 }
@@ -57,7 +59,7 @@ test("[FR-013-AC7][NFR-05] install.sh --dry-run은 plist만 출력하고 launchc
   assert.equal(result.status, 0, result.stderr);
 
   const programArguments = readProgramArguments(result.stdout);
-  assert.equal(programArguments[1], join(HELPER_ROOT, 'jaystudio-helper.mjs'));
+  assert.equal(programArguments[1], join(HELPER_ROOT, 'aojistudio-helper.mjs'));
   assert.deepEqual(programArguments.slice(2), [
     '--project-dir',
     projectDir,
@@ -66,7 +68,7 @@ test("[FR-013-AC7][NFR-05] install.sh --dry-run은 plist만 출력하고 launchc
     '--port',
     '4181',
     '--token-file',
-    join(projectDir, '.jaystudio', 'helper-token'),
+    join(projectDir, '.aojistudio', 'helper-token'),
   ]);
   assert.equal(result.stdout.includes('--dry-run'), false);
   assert.match(result.stdout, /<key>RunAtLoad<\/key>\s*<true\/>/);
@@ -160,7 +162,7 @@ test("[NFR-05] uninstall.sh --dry-run은 실행할 명령만 알리고 plist를 
 
 const BAD_LABELS = [
   '../victim',
-  'com.jaystudio.helper/../victim',
+  `${LEGACY_HELPER_LABEL}/../victim`,
   '/etc/victim',
   '.',
   '..',
@@ -214,14 +216,14 @@ test("[보안] 잘못된 label → 아무것도 지우지 않고 실패", () => 
 // 실제 launchd에 등록하지 않는다: PATH 앞의 가짜 launchctl이 호출만 기록하고 아무것도 띄우지 않으므로
 // /health 무응답 경로가 그대로 재현된다. 성공 경로는 테스트가 /health 대역 서버를 직접 띄워 만든다.
 
-const verifyRoot = mkdtempSync(join(tmpdir(), 'jaystudio-install-verify-'));
+const verifyRoot = mkdtempSync(join(tmpdir(), 'aojistudio-install-verify-'));
 after(() => rmSync(verifyRoot, { recursive: true, force: true }));
 const verifyBin = join(verifyRoot, 'bin');
 const verifyMarker = join(verifyRoot, 'launchctl-calls');
 mkdirSync(verifyBin, { recursive: true });
 writeFileSync(
   join(verifyBin, 'launchctl'),
-  `#!/bin/sh\necho "$@" >> '${verifyMarker}'\nexit 0\n`,
+  `#!/bin/sh\ncase "$*" in print*${LEGACY_HELPER_LABEL}) exit 1;; esac\necho "$@" >> '${verifyMarker}'\nexit 0\n`,
   { mode: 0o755 },
 );
 const verifyAgentsDir = join(verifyRoot, 'LaunchAgents');
@@ -229,8 +231,8 @@ const verifyAgentsDir = join(verifyRoot, 'LaunchAgents');
 const VERIFY_ENV = {
   PATH: `${verifyBin}:${process.env.PATH ?? ''}`,
   HOME: verifyRoot,
-  JAYSTUDIO_LAUNCH_AGENTS_DIR: verifyAgentsDir,
-  JAYSTUDIO_HEALTH_TIMEOUT_SECONDS: '1',
+  AOJISTUDIO_LAUNCH_AGENTS_DIR: verifyAgentsDir,
+  AOJISTUDIO_HEALTH_TIMEOUT_SECONDS: '1',
 };
 
 /**
@@ -324,7 +326,7 @@ test("[NFR-05] install.sh는 /health가 응답하면 설치 완료로 끝난다"
   try {
     const running = runInstallWithVerify(
       ['--project-dir', projectDir, '--port', String(port)],
-      { JAYSTUDIO_HEALTH_TIMEOUT_SECONDS: '15' },
+      { AOJISTUDIO_HEALTH_TIMEOUT_SECONDS: '15' },
     );
     await waitForBootstrapCall();
     await new Promise((resolve) => stub.listen(port, '127.0.0.1', resolve));
@@ -383,4 +385,186 @@ test("[NFR-05][T-FIX-07] 포트를 다른 프로세스가 선점했으면 bootst
     rmSync(verifyMarker, { force: true });
     rmSync(verifyAgentsDir, { recursive: true, force: true });
   }
+});
+
+// ── [ADR-57] 이름 변경 · 옛 도우미 감지 · 옛 환경 변수 폴백 ─────────────────────
+// 옛 이름은 lib/legacy.mjs 상수로만 쓴다. 실제 launchctl·실제 LaunchAgents 폴더는 쓰지 않는다.
+
+function freshDir(name) {
+  const dir = join(tempRoot, `adr57-${name}-${Math.random().toString(16).slice(2, 8)}`);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+/** 지정한 환경 변수만 가진 환경으로 스크립트를 돌린다(AOJISTUDIO_*·옛 변수는 명시한 것만 전달). */
+function runScriptWithEnv(script, args, envOverrides, fakeLaunchctlBin = fakeBin) {
+  const env = { ...process.env, PATH: `${fakeLaunchctlBin}:${process.env.PATH ?? ''}`, HOME: tempRoot };
+  for (const key of Object.keys(env)) {
+    if (key.startsWith('AOJISTUDIO_') || key.startsWith(LEGACY_ENV_LAUNCH_AGENTS_DIR.split('_')[0] + '_')) {
+      delete env[key];
+    }
+  }
+  return spawnSync('/bin/bash', [script, ...args], { encoding: 'utf8', timeout: 20_000, env: { ...env, ...envOverrides } });
+}
+
+test("[ADR-57] install.sh --dry-run 출력: Label com.aojistudio.helper · 로그 com.aojistudio.helper.log · 스크립트 aojistudio-helper.mjs", () => {
+  const agents = freshDir('agents');
+  const project = freshDir('project');
+  const result = runScriptWithEnv(INSTALL_SH, ['--project-dir', project, '--dry-run'], { AOJISTUDIO_LAUNCH_AGENTS_DIR: agents });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /<key>Label<\/key>\s*<string>com\.aojistudio\.helper<\/string>/);
+  assert.ok(result.stderr.includes(join(tempRoot, 'Library', 'Logs', 'com.aojistudio.helper.log')), result.stderr);
+  assert.ok(result.stderr.includes(join(agents, 'com.aojistudio.helper.plist')), result.stderr);
+  assert.ok(result.stdout.includes(join(HELPER_ROOT, 'aojistudio-helper.mjs')), result.stdout);
+  assert.equal(result.stderr.includes('[legacy]'), false, result.stderr);
+  assert.equal(existsSync(launchctlMarker), false);
+});
+
+test("[ADR-57] 옛 plist가 있으면 exit 1 + 'uninstall.sh --label <옛 Label>' 안내, 새 plist 미작성, launchctl 미호출", () => {
+  const agents = freshDir('agents-old-plist');
+  const project = freshDir('project-old-plist');
+  writeFileSync(join(agents, `${LEGACY_HELPER_LABEL}.plist`), '<plist version="1.0"><dict/></plist>');
+
+  for (const extra of [['--dry-run'], []]) {
+    const result = runScriptWithEnv(INSTALL_SH, ['--project-dir', project, ...extra], { AOJISTUDIO_LAUNCH_AGENTS_DIR: agents });
+    assert.equal(result.status, 1, `${extra.join(' ')}: ${result.stdout}${result.stderr}`);
+    assert.ok(result.stderr.includes(`uninstall.sh --label ${LEGACY_HELPER_LABEL}`), result.stderr);
+    assert.match(result.stderr, /\[legacy\] launchd-label/);
+    assert.equal(existsSync(join(agents, `${LABEL}.plist`)), false);
+    assert.equal(result.stdout.includes('<plist'), false);
+  }
+  assert.deepEqual(readdirSync(agents), [`${LEGACY_HELPER_LABEL}.plist`]);
+  assert.equal(existsSync(launchctlMarker), false);
+});
+
+test("[ADR-57] 옛 Label이 launchctl print로 등록돼 있으면 plist가 없어도 exit 1, 새 plist·bootstrap 없음", () => {
+  const registeredBin = join(freshDir('registered-bin'));
+  const registeredMarker = join(registeredBin, 'calls');
+  writeFileSync(join(registeredBin, 'launchctl'), `#!/bin/sh\necho "$@" >> '${registeredMarker}'\nexit 0\n`, { mode: 0o755 });
+  const agents = freshDir('agents-registered');
+  const project = freshDir('project-registered');
+
+  const result = runScriptWithEnv(INSTALL_SH, ['--project-dir', project], { AOJISTUDIO_LAUNCH_AGENTS_DIR: agents }, registeredBin);
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  assert.ok(result.stderr.includes(`uninstall.sh --label ${LEGACY_HELPER_LABEL}`), result.stderr);
+  assert.deepEqual(readdirSync(agents), []);
+  const calls = readFileSync(registeredMarker, 'utf8').trim().split('\n');
+  assert.deepEqual(calls.map((line) => line.split(' ')[0]), ['print']);
+  assert.ok(calls[0].endsWith(`/${LEGACY_HELPER_LABEL}`), calls[0]);
+});
+
+test("[ADR-57] 옛 환경 변수 LaunchAgents 폴더만 → 그 폴더 사용 + 'install.sh: [legacy] env' 경고(이름만, 값 없음)", () => {
+  const legacyAgents = freshDir('agents-legacy-env');
+  const project = freshDir('project-legacy-env');
+  const result = runScriptWithEnv(INSTALL_SH, ['--project-dir', project, '--dry-run'], { [LEGACY_ENV_LAUNCH_AGENTS_DIR]: legacyAgents });
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(result.stderr.includes(join(legacyAgents, `${LABEL}.plist`)), result.stderr);
+  assert.match(result.stderr, /install\.sh: \[legacy\] env · /);
+  assert.ok(result.stderr.includes(`${LEGACY_ENV_LAUNCH_AGENTS_DIR} 사용 중`), result.stderr);
+  const warningLine = result.stderr.split('\n').find((line) => line.includes('[legacy]'));
+  assert.equal(warningLine.includes(legacyAgents), false, warningLine);
+});
+
+test("[ADR-57] 새·옛 환경 변수가 둘 다 있으면 새 이름 폴더를 쓰고 옛 변수 무시 경고", () => {
+  const newAgents = freshDir('agents-new');
+  const legacyAgents = freshDir('agents-legacy');
+  const project = freshDir('project-both-env');
+  const result = runScriptWithEnv(INSTALL_SH, ['--project-dir', project, '--dry-run'], {
+    AOJISTUDIO_LAUNCH_AGENTS_DIR: newAgents,
+    [LEGACY_ENV_LAUNCH_AGENTS_DIR]: legacyAgents,
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(result.stderr.includes(join(newAgents, `${LABEL}.plist`)), result.stderr);
+  assert.equal(result.stderr.includes(join(legacyAgents, `${LABEL}.plist`)), false, result.stderr);
+  assert.ok(result.stderr.includes(`${LEGACY_ENV_LAUNCH_AGENTS_DIR} 무시`), result.stderr);
+});
+
+test("[ADR-57] 옛 환경 변수 HEALTH_TIMEOUT도 폴백 + 경고, 새 이름이 우선", () => {
+  const project = freshDir('project-health-env');
+  const agents = freshDir('agents-health-env');
+  const legacyOnly = runScriptWithEnv(INSTALL_SH, ['--project-dir', project, '--dry-run'], {
+    AOJISTUDIO_LAUNCH_AGENTS_DIR: agents,
+    [LEGACY_ENV_HEALTH_TIMEOUT_SECONDS]: '7',
+  });
+  assert.equal(legacyOnly.status, 0, legacyOnly.stderr);
+  assert.match(legacyOnly.stderr, /최대 7초/);
+  assert.ok(legacyOnly.stderr.includes(`[legacy] env · ${LEGACY_ENV_HEALTH_TIMEOUT_SECONDS} 사용 중`), legacyOnly.stderr);
+
+  const both = runScriptWithEnv(INSTALL_SH, ['--project-dir', project, '--dry-run'], {
+    AOJISTUDIO_LAUNCH_AGENTS_DIR: agents,
+    AOJISTUDIO_HEALTH_TIMEOUT_SECONDS: '5',
+    [LEGACY_ENV_HEALTH_TIMEOUT_SECONDS]: '7',
+  });
+  assert.equal(both.status, 0, both.stderr);
+  assert.match(both.stderr, /최대 5초/);
+  assert.equal(/최대 7초/.test(both.stderr), false);
+
+  const invalid = runScriptWithEnv(INSTALL_SH, ['--project-dir', project, '--dry-run'], {
+    AOJISTUDIO_LAUNCH_AGENTS_DIR: agents,
+    AOJISTUDIO_HEALTH_TIMEOUT_SECONDS: '999',
+  });
+  assert.equal(invalid.status, 1);
+  assert.match(invalid.stderr, /AOJISTUDIO_HEALTH_TIMEOUT_SECONDS 값은 1~120/);
+});
+
+test("[ADR-57] 옛 데이터 폴더만 있는 project-dir → 설치 거부(exit 1), .aojistudio/ 생성·plist 작성·launchctl 호출 없음", () => {
+  const agents = freshDir('agents-legacy-only');
+  const project = freshDir('project-legacy-only');
+  mkdirSync(join(project, LEGACY_DATA_DIR_NAME));
+  for (const extra of [['--dry-run'], []]) {
+    const result = runScriptWithEnv(INSTALL_SH, ['--project-dir', project, ...extra], { AOJISTUDIO_LAUNCH_AGENTS_DIR: agents });
+    assert.equal(result.status, 1, `${extra.join(' ')}: ${result.stdout}${result.stderr}`);
+    assert.match(result.stderr, /서버\(v1\.0\.1\)를 먼저 기동/);
+    assert.equal(result.stdout.includes('<plist'), false);
+  }
+  assert.equal(existsSync(join(project, '.aojistudio')), false);
+  assert.deepEqual(readdirSync(agents), []);
+  assert.equal(existsSync(launchctlMarker), false);
+
+  // 두 폴더가 모두 있으면(서버가 이미 옮겼거나 B 상태) 거부하지 않는다.
+  mkdirSync(join(project, '.aojistudio'));
+  const both = runScriptWithEnv(INSTALL_SH, ['--project-dir', project, '--dry-run'], { AOJISTUDIO_LAUNCH_AGENTS_DIR: agents });
+  assert.equal(both.status, 0, both.stderr);
+});
+
+test("[ADR-57] uninstall.sh 기본 Label은 com.aojistudio.helper, --label <옛 Label> --dry-run으로 옛 도우미도 지정할 수 있다", () => {
+  const agents = freshDir('agents-uninstall');
+  const env = { AOJISTUDIO_LAUNCH_AGENTS_DIR: agents };
+  const byDefault = runScriptWithEnv(UNINSTALL_SH, ['--dry-run'], env);
+  assert.equal(byDefault.status, 0, byDefault.stderr);
+  assert.ok(byDefault.stdout.includes(join(agents, `${LABEL}.plist`)), byDefault.stdout);
+  assert.match(byDefault.stdout, /launchctl bootout gui\/\d+\/com\.aojistudio\.helper/);
+
+  const legacy = runScriptWithEnv(UNINSTALL_SH, ['--label', LEGACY_HELPER_LABEL, '--dry-run'], env);
+  assert.equal(legacy.status, 0, legacy.stderr);
+  assert.ok(legacy.stdout.includes(join(agents, `${LEGACY_HELPER_LABEL}.plist`)), legacy.stdout);
+  assert.ok(legacy.stdout.includes(`launchctl bootout`), legacy.stdout);
+  assert.equal(legacy.stderr.includes('[legacy] launchd-label'), false, '옛 Label을 직접 지정하면 안내하지 않는다');
+  assert.equal(existsSync(launchctlMarker), false);
+});
+
+test("[ADR-57] uninstall.sh는 옛 plist가 남아 있으면 제거 명령을 안내하고 지우지 않으며, 토큰 안내는 .aojistudio/helper-token", () => {
+  const agents = freshDir('agents-uninstall-left');
+  const newPlist = join(agents, `${LABEL}.plist`);
+  const oldPlist = join(agents, `${LEGACY_HELPER_LABEL}.plist`);
+  writeFileSync(newPlist, '<plist version="1.0"><dict/></plist>');
+  writeFileSync(oldPlist, '<plist version="1.0"><dict/></plist>');
+  rmSync(launchctlMarker, { force: true });
+
+  const result = runScriptWithEnv(UNINSTALL_SH, [], { AOJISTUDIO_LAUNCH_AGENTS_DIR: agents });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(existsSync(newPlist), false);
+  assert.equal(existsSync(oldPlist), true);
+  assert.ok(result.stderr.includes(`uninstall.sh --label ${LEGACY_HELPER_LABEL}`), result.stderr);
+  assert.match(result.stderr, /uninstall\.sh: \[legacy\] launchd-label/);
+  assert.ok(result.stdout.includes('.aojistudio/helper-token'), result.stdout);
+  rmSync(launchctlMarker, { force: true });
+});
+
+test("[ADR-57] uninstall.sh도 옛 LaunchAgents 환경 변수를 폴백으로 받고 경고한다", () => {
+  const legacyAgents = freshDir('agents-uninstall-legacy-env');
+  const result = runScriptWithEnv(UNINSTALL_SH, ['--dry-run'], { [LEGACY_ENV_LAUNCH_AGENTS_DIR]: legacyAgents });
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(result.stdout.includes(join(legacyAgents, `${LABEL}.plist`)), result.stdout);
+  assert.match(result.stderr, /uninstall\.sh: \[legacy\] env · /);
 });

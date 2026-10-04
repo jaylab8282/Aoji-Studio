@@ -14,12 +14,12 @@ import {
 
 const OPTIONS = Object.freeze({
   nodePath: '/opt/homebrew/bin/node',
-  scriptPath: '/Users/jaybee/Desktop/JayStudio/Jay_Studio/helper/jaystudio-helper.mjs',
-  projectDir: '/Users/jaybee/Desktop/JayStudio',
+  scriptPath: '/Users/jaybee/Desktop/AojiStudio/Aoji-Studio/helper/aojistudio-helper.mjs',
+  projectDir: '/Users/jaybee/Desktop/AojiStudio',
   allowedOrigins: 'http://127.0.0.1:4180',
   port: 4181,
-  tokenFile: '/Users/jaybee/Desktop/JayStudio/.jaystudio/helper-token',
-  logFile: '/Users/jaybee/Library/Logs/com.jaystudio.helper.log',
+  tokenFile: '/Users/jaybee/Desktop/AojiStudio/.aojistudio/helper-token',
+  logFile: '/Users/jaybee/Library/Logs/com.aojistudio.helper.log',
 });
 
 /** plist의 ProgramArguments 배열을 순서대로 읽는다. */
@@ -34,21 +34,21 @@ test("[FR-013-AC7][NFR-05] 생성 plist에 ProgramArguments(node, 스크립트, 
 
   assert.deepEqual(readProgramArguments(plist), [
     '/opt/homebrew/bin/node',
-    '/Users/jaybee/Desktop/JayStudio/Jay_Studio/helper/jaystudio-helper.mjs',
+    '/Users/jaybee/Desktop/AojiStudio/Aoji-Studio/helper/aojistudio-helper.mjs',
     '--project-dir',
-    '/Users/jaybee/Desktop/JayStudio',
+    '/Users/jaybee/Desktop/AojiStudio',
     '--allowed-origins',
     'http://127.0.0.1:4180',
     '--port',
     '4181',
     '--token-file',
-    '/Users/jaybee/Desktop/JayStudio/.jaystudio/helper-token',
+    '/Users/jaybee/Desktop/AojiStudio/.aojistudio/helper-token',
   ]);
   assert.match(plist, /<key>RunAtLoad<\/key>\s*<true\/>/);
   assert.match(plist, /<key>KeepAlive<\/key>\s*<true\/>/);
   assert.equal(plist.includes('--dry-run'), false);
-  assert.match(plist, /<key>Label<\/key>\s*<string>com\.jaystudio\.helper<\/string>/);
-  assert.equal(HELPER_LABEL, 'com.jaystudio.helper');
+  assert.match(plist, /<key>Label<\/key>\s*<string>com\.aojistudio\.helper<\/string>/);
+  assert.equal(HELPER_LABEL, 'com.aojistudio.helper');
   assert.ok(plist.startsWith('<?xml version="1.0" encoding="UTF-8"?>'));
   assert.equal(plist.includes('{{'), false);
 });
@@ -82,11 +82,11 @@ test("[FR-013-AC7] install.sh가 넘기는 CLI 인자를 그대로 읽는다", (
   assert.deepEqual(
     parsePlistArgs([
       '--label',
-      'com.jaystudio.helper',
+      'com.aojistudio.helper',
       '--node',
       '/opt/homebrew/bin/node',
       '--script',
-      '/x/jaystudio-helper.mjs',
+      '/x/aojistudio-helper.mjs',
       '--project-dir',
       '/x',
       '--allowed-origins',
@@ -94,21 +94,31 @@ test("[FR-013-AC7] install.sh가 넘기는 CLI 인자를 그대로 읽는다", (
       '--port',
       '4181',
       '--token-file',
-      '/x/.jaystudio/helper-token',
+      '/x/.aojistudio/helper-token',
       '--log-file',
       '/x/helper.log',
     ]),
     {
-      label: 'com.jaystudio.helper',
+      label: 'com.aojistudio.helper',
       nodePath: '/opt/homebrew/bin/node',
-      scriptPath: '/x/jaystudio-helper.mjs',
+      scriptPath: '/x/aojistudio-helper.mjs',
       projectDir: '/x',
       allowedOrigins: 'http://127.0.0.1:4180',
       port: '4181',
-      tokenFile: '/x/.jaystudio/helper-token',
+      tokenFile: '/x/.aojistudio/helper-token',
       logFile: '/x/helper.log',
     },
   );
   assert.throws(() => parsePlistArgs(['--unknown', 'x']), /알 수 없는 인자/);
   assert.throws(() => parsePlistArgs(['--port']), /값이 필요/);
+});
+
+test("[ADR-57] 기본 Label은 com.aojistudio.helper, 스크립트 경로는 aojistudio-helper.mjs, --dry-run 미포함", () => {
+  assert.equal(HELPER_LABEL, 'com.aojistudio.helper');
+  const plist = renderPlist(OPTIONS);
+  assert.match(plist, /<key>Label<\/key>\s*<string>com\.aojistudio\.helper<\/string>/);
+  const scriptPath = readProgramArguments(plist)[1];
+  assert.ok(scriptPath.endsWith('/aojistudio-helper.mjs'), scriptPath);
+  assert.equal(plist.includes('--dry-run'), false);
+  assert.equal(plist.includes('{{'), false);
 });
