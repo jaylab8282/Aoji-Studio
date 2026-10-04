@@ -30,7 +30,7 @@ import tools.jackson.databind.ObjectMapper;
 class SettingsControllerTest {
 
     private static final String ALLOWED_ORIGIN = "http://127.0.0.1:4180";
-    private static final String HOST_PATH = "/Users/jaybee/Desktop/JayStudio";
+    private static final String HOST_PATH = "/Users/jaybee/Desktop/AojiStudio";
 
     @TempDir
     static Path mountRoot;

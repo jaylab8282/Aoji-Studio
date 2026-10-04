@@ -42,7 +42,7 @@ class SnapshotAssemblerTest {
                 "---\nname: architect\ndescription: 설계\n---\n본문\n",
                 StandardCharsets.UTF_8);
 
-        registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
+        registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/AojiStudio");
         registry.add("aojistudio.public-port", () -> "4180");
         registry.add("aojistudio.mount-path", () -> mountRoot.toString());
         registry.add("aojistudio.data-path", () -> dataDir.toString());
@@ -72,11 +72,11 @@ class SnapshotAssemblerTest {
         Snapshot snapshot = snapshotAssembler.assemble();
 
         assertThat(snapshot.serverTime()).isNotNull();
-        assertThat(snapshot.config().hostPath()).isEqualTo("/Users/jaybee/Desktop/JayStudio");
+        assertThat(snapshot.config().hostPath()).isEqualTo("/Users/jaybee/Desktop/AojiStudio");
         assertThat(snapshot.config().publicOrigin()).isEqualTo("http://127.0.0.1:4180");
         assertThat(snapshot.config().collectUrl()).isEqualTo("http://127.0.0.1:4180/hooks/events");
         assertThat(snapshot.config().defaultSessionCommand())
-                .isEqualTo("cd \"/Users/jaybee/Desktop/JayStudio\" && claude");
+                .isEqualTo("cd \"/Users/jaybee/Desktop/AojiStudio\" && claude");
         assertThat(snapshot.registry()).isNotNull();
         assertThat(snapshot.registry().agents()).extracting(a -> a.name()).contains("architect");
         assertThat(snapshot.live()).isNotNull();

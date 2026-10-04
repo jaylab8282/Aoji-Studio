@@ -66,7 +66,7 @@ class SseHubLatencyTest {
                 "---\nname: architect\ndescription: 설계\n---\n본문\n",
                 StandardCharsets.UTF_8);
 
-        registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
+        registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/AojiStudio");
         registry.add("aojistudio.public-port", () -> "4180");
         registry.add("aojistudio.mount-path", () -> mountRoot.toString());
         registry.add("aojistudio.data-path", () -> dataDir.toString());
@@ -151,7 +151,7 @@ class SseHubLatencyTest {
                         .formatted(sessionId);
         HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/hooks/events"))
                 .header("Content-Type", "application/json")
-                .header("X-JayStudio-Collect-Token", collectToken())
+                .header("X-AojiStudio-Collect-Token", collectToken())
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
         HttpResponse<Void> response =

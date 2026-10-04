@@ -10,19 +10,19 @@ import org.junit.jupiter.api.Test;
  */
 class CommandStringsTest {
 
-    private static final String HOST_PATH = "/Users/jaybee/Desktop/JayStudio";
+    private static final String HOST_PATH = "/Users/jaybee/Desktop/AojiStudio";
 
     @Test
     @DisplayName("[FR-013-AC1] defaultSessionCommand == 'cd \"<hostPath>\" && claude'")
     void defaultSessionCommandMatchesExactFormat() {
         assertThat(CommandStrings.defaultSessionCommand(HOST_PATH))
-                .isEqualTo("cd \"/Users/jaybee/Desktop/JayStudio\" && claude");
+                .isEqualTo("cd \"/Users/jaybee/Desktop/AojiStudio\" && claude");
     }
 
     @Test
     @DisplayName("[FR-013-AC2] leadSessionCommandTemplate == 'cd \"<hostPath>\" && claude --agent <팀장 name>'")
     void leadSessionCommandTemplateMatchesExactFormat() {
         assertThat(CommandStrings.leadSessionCommandTemplate(HOST_PATH))
-                .isEqualTo("cd \"/Users/jaybee/Desktop/JayStudio\" && claude --agent <팀장 name>");
+                .isEqualTo("cd \"/Users/jaybee/Desktop/AojiStudio\" && claude --agent <팀장 name>");
     }
 }

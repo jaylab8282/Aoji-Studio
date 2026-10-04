@@ -27,7 +27,7 @@ docker compose build
 docker run --rm --user 1000:1000 -v <옛 볼륨 이름>:/from:ro -v aojistudio-data:/data --entrypoint cp aojistudio:local -a /from/. /data/
 ```
 
-옛 볼륨은 읽기 전용(`:ro`)으로 붙이고 복사만 한다. 새 볼륨은 이미지의 `/data`(소유 1000)에 처음 붙어 소유권을 물려받는다. 끝나면 위 4번 `up`을 한다. 이관 명령 형식은 `tools/e2e/scripts/check-volume-migration.sh`가 임시 볼륨으로 확인한다.
+옛 볼륨은 읽기 전용(`:ro`)으로 붙이고 복사만 한다. 새 볼륨은 이미지의 `/data`(소유 1000)에 처음 붙어 소유권을 물려받는다. 끝나면 위 4번 `up`을 한다. 이관 명령이 compose 밖에서 `aojistudio-data` 볼륨을 만들므로, 이후 `docker compose up` 때 `volume "aojistudio-data" already exists but was not created by Docker Compose` 경고가 나올 수 있다. 동작에는 영향이 없다. 이관 명령 형식은 `tools/e2e/scripts/check-volume-migration.sh`가 임시 볼륨으로 확인한다.
 
 ## ② 첫 기동의 `.jaystudio/` → `.aojistudio/` 이동
 
@@ -56,7 +56,7 @@ docker run --rm --user 1000:1000 -v <옛 볼륨 이름>:/from:ro -v aojistudio-d
 
 ## ⑤ 옛 도우미와 새 도우미 (macOS, 도우미를 쓰는 경우만)
 
-- 옛 도우미(`com.jaystudio.helper`)는 다음 로그인·재시작까지 그대로 돈다. 재시작되면 옛 스크립트 이름이 새 도우미를 대신 실행하고 `[legacy] helper-script` 경고를 남긴다. 옛 토큰 경로(`.jaystudio/helper-token`)는 새 경로로 바뀌어 쓰인다(`[legacy] helper-token-path`).
+- 옛 도우미(`com.jaystudio.helper`)는 다음 로그인·재시작까지 그대로 돈다. 재시작되면 옛 스크립트 이름이 새 도우미를 대신 실행하고 `[legacy] helper-script` 경고를 남긴다. 옛 `--token-file` 경로(`.jaystudio/helper-token`)는 프로젝트에 `.aojistudio/`가 있으면 새 경로(`.aojistudio/helper-token`)로 바꿔 쓰이고, `.aojistudio/`가 없으면 옛 경로를 그대로 쓰며, 두 경우 모두 `[legacy] helper-token-path` 경고를 남긴다.
 - 서버가 첫 기동에서 `.jaystudio/`를 옮기기 전에는 도우미를 설치하지 않는다 — `.jaystudio/`만 있고 `.aojistudio/`가 없으면 `install.sh`가 설치를 거부한다(① 4번 `up` 뒤에 한다).
 - 옛 도우미가 등록돼 있으면 `install.sh`는 설치하지 않고 제거 명령을 안내한다. 자동으로 내리지 않는다. 제거하고 새 도우미를 설치한다:
 

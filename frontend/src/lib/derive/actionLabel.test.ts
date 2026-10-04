@@ -3,7 +3,7 @@ import { actionLabel } from "./actionLabel";
 import type { ToolRef } from "../../api/types";
 
 function tool(name: string): ToolRef {
-  return { name, target: "backend/src/main/java/studio/jay/api/AgentController.java" };
+  return { name, target: "backend/src/main/java/studio/aoji/api/AgentController.java" };
 }
 
 describe("actionLabel", () => {

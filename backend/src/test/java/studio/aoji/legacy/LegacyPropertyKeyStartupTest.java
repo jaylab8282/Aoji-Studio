@@ -1,4 +1,4 @@
-package studio.aoji.config;
+package studio.aoji.legacy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -12,12 +12,10 @@ import org.springframework.boot.jdbc.autoconfigure.DataSourceInitializationAutoC
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
+import studio.aoji.config.AppProperties;
 
-/**
- * 필수 환경 변수 검증 (architecture.md §4.2, FR-014-E1, NFR-05).
- * 실제 auto-configuration(DataSource, SQL 초기화)까지 포함해 진짜 기동 경로를 재현한다.
- */
-class AppStartupTest {
+/** 옛 프로퍼티 키 거부 (ADR-56). AppStartupTest에서 옮김 - 표준 테스트에는 옛 이름을 두지 않는다. */
+class LegacyPropertyKeyStartupTest {
 
     @TempDir
     Path dataDir;
@@ -37,43 +35,18 @@ class AppStartupTest {
     }
 
     @Test
-    @DisplayName("[FR-014-E1] AOJISTUDIO_HOST_PATH 없음 → 기동 실패, 메시지에 AOJISTUDIO_HOST_PATH")
-    void hostPathMissingFailsStartup() {
+    @DisplayName("[ADR-56] 옛 프로퍼티 키 jaystudio.* 는 받지 않는다 → 기동 실패")
+    void legacyPropertyKeysAreNotAccepted() {
         contextRunner()
-                .withPropertyValues("aojistudio.public-port=4180")
+                .withPropertyValues(
+                        "jaystudio.host-path=/Users/someone/Desktop/AojiStudio",
+                        "jaystudio.public-port=4180")
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure())
                             .rootCause()
-                            .isInstanceOf(IllegalStateException.class)
                             .hasMessageContaining("AOJISTUDIO_HOST_PATH");
                 });
-    }
-
-    @Test
-    @DisplayName("[NFR-05] AOJISTUDIO_PUBLIC_PORT 빈값 + 옛 이름 없음 → 기동 실패")
-    void publicPortBlankFailsStartup() {
-        contextRunner()
-                .withPropertyValues(
-                        "aojistudio.host-path=/Users/jaybee/Desktop/AojiStudio",
-                        "aojistudio.public-port=")
-                .run(context -> {
-                    assertThat(context).hasFailed();
-                    assertThat(context.getStartupFailure())
-                            .rootCause()
-                            .isInstanceOf(IllegalStateException.class)
-                            .hasMessageContaining("AOJISTUDIO_PUBLIC_PORT");
-                });
-    }
-
-    @Test
-    @DisplayName("필수 환경 변수 모두 있음 → 컨텍스트 기동 성공")
-    void allRequiredPropertiesPresentStartsSuccessfully() {
-        contextRunner()
-                .withPropertyValues(
-                        "aojistudio.host-path=/Users/jaybee/Desktop/AojiStudio",
-                        "aojistudio.public-port=4180")
-                .run(context -> assertThat(context).hasNotFailed());
     }
 
     @Configuration

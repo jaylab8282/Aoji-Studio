@@ -1,4 +1,5 @@
 // E2E-R2-07 옛 도우미 shim (architecture.md §8.4.2, ADR-57). v1.0.x 호환 · v1.1.0에서 제거.
+// 배치 10에서 R2-02 → R2-04 → R2-07 순서로 실행(run-e2e.sh). R2-07은 R2-04의 이동 결과에 의존.
 // fixture: `project-legacy-only` (호환 배치 ①, 마이그레이션이 끝난 뒤). 옛 plist가 넘기던 인자
 // (`jaystudio-helper.mjs … --token-file <fixture>/.jaystudio/helper-token`)로 dry-run 도우미를 띄워도 02 `Claude 열기`가 동작한다.
 // 검증 ID: FR-013-AC1, FR-013-AC7.

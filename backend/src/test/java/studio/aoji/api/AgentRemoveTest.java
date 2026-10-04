@@ -70,7 +70,7 @@ class AgentRemoveTest {
 
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry registry) {
-        registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
+        registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/AojiStudio");
         registry.add("aojistudio.public-port", () -> "4180");
         registry.add("aojistudio.mount-path", () -> mountRoot.toString());
         registry.add("aojistudio.data-path", () -> dataDir.toString());
@@ -166,7 +166,7 @@ class AgentRemoveTest {
     private void postHook(String body) throws Exception {
         mockMvc.perform(post("/hooks/events")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("X-JayStudio-Collect-Token", collectToken())
+                        .header("X-AojiStudio-Collect-Token", collectToken())
                         .content(body))
                 .andExpect(status().isNoContent());
     }

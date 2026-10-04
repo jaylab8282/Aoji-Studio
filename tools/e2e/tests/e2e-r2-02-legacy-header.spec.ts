@@ -1,4 +1,5 @@
 // E2E-R2-02 옛 수집 헤더 (architecture.md §8.4.2, ADR-54). v1.0.x 호환 · v1.1.0에서 제거.
+// 배치 10에서 R2-02 → R2-04 → R2-07 순서로 실행(run-e2e.sh). R2-07은 R2-04의 이동 결과에 의존.
 // fixture: `project-legacy-only` (호환 배치 ①). 옛 헤더 `X-JayStudio-Collect-Token`으로 직접 POST해도 수집된다.
 // 검증 ID: FR-003-AC2, NFR-08.
 import { expect, test } from "@playwright/test";

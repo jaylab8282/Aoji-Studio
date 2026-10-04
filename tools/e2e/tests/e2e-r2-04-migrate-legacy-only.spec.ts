@@ -1,4 +1,5 @@
 // E2E-R2-04 마이그레이션: `.jaystudio/`만 있는 쓰기 가능 마운트 (architecture.md §8.4.2, ADR-55). v1.0.x 호환.
+// 배치 10에서 R2-02 → R2-04 → R2-07 순서로 실행(run-e2e.sh). R2-07은 R2-04의 이동 결과에 의존.
 // fixture: `project-legacy-only` (호환 배치 ①). 첫 기동에서 옛 데이터 폴더가 새 폴더로 옮겨진다.
 // 검증 ID: NFR-09, FR-001-AC1, NFR-08.
 import { mkdtempSync, rmSync } from "node:fs";

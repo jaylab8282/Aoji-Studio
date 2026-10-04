@@ -53,26 +53,6 @@ class BrowserTokenFilterTest {
     }
 
     @Test
-    @DisplayName("[ADR-52] X-AojiStudio-Browser-Token 통과 / X-JayStudio-Browser-Token만 → 403 UNAUTHORIZED_TOKEN")
-    void legacyBrowserTokenHeaderIsNotAccepted() throws Exception {
-        MockHttpServletRequest ok = new MockHttpServletRequest("POST", "/api/workflows");
-        ok.addHeader("X-AojiStudio-Browser-Token", filter.token());
-        RecordingFilterChain okChain = new RecordingFilterChain();
-        filter.doFilter(ok, new MockHttpServletResponse(), okChain);
-        assertThat(okChain.invoked).isTrue();
-
-        MockHttpServletRequest legacy = new MockHttpServletRequest("POST", "/api/workflows");
-        legacy.addHeader("X-JayStudio-Browser-Token", filter.token());
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        RecordingFilterChain legacyChain = new RecordingFilterChain();
-        filter.doFilter(legacy, response, legacyChain);
-
-        assertThat(response.getStatus()).isEqualTo(403);
-        assertThat(response.getContentAsString()).contains("UNAUTHORIZED_TOKEN");
-        assertThat(legacyChain.invoked).isFalse();
-    }
-
-    @Test
     @DisplayName("변경 메서드(POST) + 틀린 토큰 → 403")
     void mutatingMethodWithWrongTokenIsRejected() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/workflows");

@@ -11,6 +11,10 @@
 # 실패 조사: E2E_KEEP_UP=1을 붙이면 컨테이너·도우미를 남긴다(조사 후 직접 정리해야 한다).
 set -euo pipefail
 
+# 셸에 미리 export된 값이 표준 배치를 호환 배치로 바꿔 E2E-R2-06 검사를 면제하지 않게 한다.
+# 호환 배치(10~13)는 아래 run_batch 줄의 명령 접두(E2E_COMPOSE=…·E2E_MOUNT_MODE=…)로만 지정한다.
+unset E2E_COMPOSE E2E_MOUNT_MODE
+
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 RESULTS=()

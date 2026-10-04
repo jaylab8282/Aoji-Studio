@@ -41,7 +41,7 @@ class SqliteConfigTest {
 
         @DynamicPropertySource
         static void props(DynamicPropertyRegistry registry) {
-            registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
+            registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/AojiStudio");
             registry.add("aojistudio.public-port", () -> "4180");
             registry.add("aojistudio.mount-path", () -> mountRoot.toString());
             // aojistudio.data-path가 해석되는 시점(=Environment 준비 시점, 컨텍스트 기동보다 먼저)에
@@ -82,7 +82,7 @@ class SqliteConfigTest {
 
         @DynamicPropertySource
         static void props(DynamicPropertyRegistry registry) {
-            registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/JayStudio");
+            registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/AojiStudio");
             registry.add("aojistudio.public-port", () -> "4180");
             registry.add("aojistudio.mount-path", () -> mountRoot.toString());
             registry.add("aojistudio.data-path", () -> {

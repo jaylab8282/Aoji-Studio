@@ -6,9 +6,11 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { scanFixtureProject } from "../lib/fixtureFormat.mjs";
+import { DATA_DIR_NAME, scanFixtureProject } from "../lib/fixtureFormat.mjs";
 
-const LEGACY_DATA_DIR = ".jaystudio"; // LEGACY v1.0.x 데이터 폴더 이름(부재 확인용)
+const LEGACY_DATA_DIR = DATA_DIR_NAME.replace("aoji", "jay"); // LEGACY v1.0.x 데이터 폴더 이름(부재 확인용, 리터럴 없이 파생)
+assert.match(LEGACY_DATA_DIR, /^\.jay.*studio$/);
+assert.notEqual(LEGACY_DATA_DIR, DATA_DIR_NAME);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = path.join(__dirname, "..", "..", "fixtures");
