@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "name": "old-team",
+  "description": "옛 폴더에만 있는 워크플로우",
+  "lead": "old-lead",
+  "members": [],
+  "createdAt": "2026-09-01T12:00:00+09:00",
+  "updatedAt": "2026-09-01T12:00:00+09:00"
+}

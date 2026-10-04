@@ -2,11 +2,13 @@
 // tools/fixtures/*는 읽기만 한다 — 아무 파일도 쓰지 않는다(conventions.md §1 MUST).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { scanFixtureProject } from "../lib/fixtureFormat.mjs";
+
+const LEGACY_DATA_DIR = ".jaystudio"; // LEGACY v1.0.x 데이터 폴더 이름(부재 확인용)
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = path.join(__dirname, "..", "..", "fixtures");
@@ -40,10 +42,31 @@ function assertHookSettingsJson(projectName, expectedUrl) {
     assert.equal(entry.type, "http", `${projectName} ${eventName} type`);
     assert.equal(entry.url, expectedUrl, `${projectName} ${eventName} url`);
     assert.equal(entry.timeout, 3, `${projectName} ${eventName} timeout`);
-    assert.equal(typeof entry.headers["X-JayStudio-Collect-Token"], "string");
-    assert.ok(entry.headers["X-JayStudio-Collect-Token"].length > 0);
+    assert.equal(typeof entry.headers["X-AojiStudio-Collect-Token"], "string");
+    assert.ok(entry.headers["X-AojiStudio-Collect-Token"].length > 0);
   }
 }
+
+// ---------------------------------------------------------------------------
+// 데이터 폴더 이름 (ADR-55, NFR-10): 표준 fixture에는 옛 데이터 폴더가 없다
+// ---------------------------------------------------------------------------
+
+test("[fixtures][ADR-55][NFR-10] 표준 fixture에는 옛 데이터 폴더가 0개이고, 구성 파일이 있는 fixture는 .aojistudio를 쓴다", () => {
+  const standard = readdirSync(FIXTURES_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && !e.name.startsWith("project-legacy-"))
+    .map((e) => e.name);
+  assert.ok(standard.length >= 7, `표준 fixture ${standard.length}개`);
+  for (const name of standard) {
+    assert.equal(
+      existsSync(path.join(fixture(name), LEGACY_DATA_DIR)), // LEGACY 데이터 폴더 부재 확인
+      false,
+      `${name}에 옛 데이터 폴더가 있다`,
+    );
+  }
+  for (const name of ["project-configured", "project-format-errors", "project-large", "project-showcase"]) {
+    assert.equal(existsSync(path.join(fixture(name), ".aojistudio", "teams")), true, `${name}/.aojistudio/teams`);
+  }
+});
 
 // ---------------------------------------------------------------------------
 // project-basic (기존 fixture, 그대로 유지 — CLAUDE.md e2e 절차·README가 복사해 쓴다)
@@ -127,7 +150,7 @@ test("[fixtures] project-format-errors: 구성 파일 JSON 오류 2건(schemaVer
 
   // malformed-json.json은 실제로 JSON.parse가 실패하는 파일이어야 한다(스키마 위반이 아니라 파싱 실패).
   const raw = readFileSync(
-    path.join(fixture("project-format-errors"), ".jaystudio", "teams", "malformed-json.json"),
+    path.join(fixture("project-format-errors"), ".aojistudio", "teams", "malformed-json.json"),
     "utf8",
   );
   assert.throws(() => JSON.parse(raw), "malformed-json.json은 JSON 파싱이 실제로 실패해야 한다");

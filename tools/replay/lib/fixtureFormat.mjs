@@ -7,6 +7,8 @@ import path from "node:path";
 const NAME_PATTERN = /^[a-z0-9-]+$/;
 const DELIMITER = "---";
 const SCHEMA_VERSION = 1;
+/** 표준 fixture의 데이터 폴더 이름(architecture.md §8.4.1). legacy fixture는 호출 쪽이 이름을 넘긴다. */
+export const DATA_DIR_NAME = ".aojistudio";
 
 /** UTF-8 엄격 디코딩. 잘못된 바이트가 있으면 던진다(architecture.md §6.1). */
 export function decodeUtf8Strict(buffer) {
@@ -126,7 +128,7 @@ export function resolveDuplicateNames(parsedByRelativePath) {
 }
 
 /**
- * 구성 파일(.jaystudio/teams/<이름>.json) 하나를 파싱한다(architecture.md §6.2, WorkflowConfigStore.readOne).
+ * 구성 파일(.aojistudio/teams/<이름>.json) 하나를 파싱한다(architecture.md §6.2, WorkflowConfigStore.readOne).
  * 반환: { ok: true, name, description, lead, members, brokenRefs, rawMemberCount }
  *     | { ok: false, reason: "구성 파일 형식 오류" }
  *     | { ok: true, ..., brokenRefFormatErrors: ["<name> · 구성 파일 참조 깨짐 (<워크플로우>)", ...] }
@@ -229,10 +231,10 @@ export function parseWorkflowConfigFile(buffer, stem, validAgentNames) {
  * fixture 프로젝트 폴더 하나를 스캔한다(architecture.md §6.1·§6.2 전체). E2E·backend와 달리
  * 파일시스템만 읽고 아무것도 쓰지 않는다(conventions.md §1 MUST — fixture는 읽기만).
  */
-export function scanFixtureProject(projectDir) {
+export function scanFixtureProject(projectDir, dataDirName = DATA_DIR_NAME) {
   const agentsDir = path.join(projectDir, ".claude", "agents");
   const skillsDir = path.join(projectDir, ".claude", "skills");
-  const teamsDir = path.join(projectDir, ".jaystudio", "teams");
+  const teamsDir = path.join(projectDir, dataDirName, "teams");
 
   const agentsDirMissing = !isDirectory(agentsDir);
   const agentFormatErrors = [];

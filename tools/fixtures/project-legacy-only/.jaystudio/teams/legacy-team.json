@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "name": "legacy-team",
+  "description": "옛 데이터 폴더 호환 워크플로우",
+  "lead": "legacy-lead",
+  "members": ["legacy-member"],
+  "createdAt": "2026-09-01T12:00:00+09:00",
+  "updatedAt": "2026-09-01T12:00:00+09:00"
+}

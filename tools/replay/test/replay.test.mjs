@@ -38,7 +38,7 @@ function readJsonl(fileName) {
 }
 
 function makeTempScenario(lines) {
-  const dir = mkdtempSync(path.join(tmpdir(), "jaystudio-replay-test-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "aojistudio-replay-test-"));
   const scenarioPath = path.join(dir, "scenario.jsonl");
   writeFileSync(scenarioPath, lines.map((l) => JSON.stringify(l)).join("\n") + "\n");
   const tokenFile = path.join(dir, "collect-token");
@@ -120,7 +120,7 @@ test("parseArguments: --delay-ms 값을 그대로 받는다", () => {
 
 test("parseArguments: --url·--token-file·시나리오 경로가 없으면 던진다", () => {
   assert.throws(() => parseArguments([]), /사용법/);
-  assert.throws(() => parseArguments(["--url", "http://x"]), /사용법/);
+  assert.throws(() => parseArguments(["--url", "http://x"]), /사용법.*\.aojistudio\/collect-token/);
   assert.throws(
     () => parseArguments(["--url", "http://x", "--token-file", "/tmp/x"]),
     /사용법/,
@@ -177,7 +177,7 @@ test("재생 도구: 시나리오 줄 순서대로 POST하고 Content-Type·토�
     assert.equal(r.url, "http://127.0.0.1:4180/hooks/events");
     assert.equal(r.method, "POST");
     assert.equal(r.headers["Content-Type"], "application/json");
-    assert.equal(r.headers["X-JayStudio-Collect-Token"], token);
+    assert.equal(r.headers["X-AojiStudio-Collect-Token"], token);
   }
 
   rmSync(dir, { recursive: true, force: true });

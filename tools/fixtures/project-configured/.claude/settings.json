@@ -1,16 +1,16 @@
 {
   "hooks": {
-    "SessionStart": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-JayStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
-    "SessionEnd": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-JayStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
-    "UserPromptSubmit": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-JayStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
-    "Stop": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-JayStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
-    "PreToolUse": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-JayStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
-    "PostToolUse": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-JayStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
-    "PostToolUseFailure": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-JayStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
-    "PermissionRequest": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-JayStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
-    "PermissionDenied": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-JayStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
-    "Notification": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-JayStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
-    "SubagentStart": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-JayStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
-    "SubagentStop": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-JayStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }]
+    "SessionStart": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-AojiStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
+    "SessionEnd": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-AojiStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
+    "UserPromptSubmit": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-AojiStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
+    "Stop": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-AojiStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
+    "PreToolUse": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-AojiStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
+    "PostToolUse": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-AojiStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
+    "PostToolUseFailure": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-AojiStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
+    "PermissionRequest": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-AojiStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
+    "PermissionDenied": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-AojiStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
+    "Notification": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-AojiStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
+    "SubagentStart": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-AojiStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }],
+    "SubagentStop": [{ "hooks": [{ "type": "http", "url": "http://127.0.0.1:4180/hooks/events", "headers": { "X-AojiStudio-Collect-Token": "fixture0000000000000000000000000000000000000000000000000000aa" }, "timeout": 3 }] }]
   }
 }

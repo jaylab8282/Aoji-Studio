@@ -20,7 +20,7 @@ export function parseArguments(argv) {
 
   if (!values.url || !values["token-file"] || positionals.length !== 1) {
     throw new Error(
-      "사용법: replay.mjs --url <수집 주소> --token-file <collect-token 경로> [--delay-ms <ms>] <scenario.jsonl>",
+      "사용법: replay.mjs --url <수집 주소> --token-file <collect-token 경로, 예: <프로젝트>/.aojistudio/collect-token> [--delay-ms <ms>] <scenario.jsonl>",
     );
   }
 
@@ -73,7 +73,7 @@ export async function replay(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-JayStudio-Collect-Token": token,
+        "X-AojiStudio-Collect-Token": token,
       },
       body: line,
     });
