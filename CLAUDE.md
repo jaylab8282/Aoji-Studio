@@ -3,7 +3,7 @@
 
 ## Project
 - 한 줄 요약: 맥북 로컬에서 Claude Code 에이전트 워크플로우(정의·구성 파일)를 관리하고 hook 이벤트를 SSE로 실시간 관제하는 단일 컨테이너 웹 도구.
-- 절대 제약: 실제 `AojiStudio/.claude`·`.aojistudio`는 자동 구간에서 생성·수정·삭제하지 않는다(테스트는 `tools/fixtures/*`를 임시 폴더로 복사). `0.0.0.0` 바인딩·`docker.sock` 마운트·`AojiStudio` 밖 호스트 경로 마운트 금지. 웹에서 셸·에이전트 실행 기능·로그인·외부 접속 기능을 추가하지 않는다. git push·데이터 삭제는 사용자 요청 없이 하지 않는다. 맥북에 소프트웨어를 설치하지 않는다(Gradle wrapper·npm·Playwright 브라우저 캐시 안은 허용).
+- 절대 제약: 실제 `AojiStudio/.claude`·`.aojistudio`는 자동 구간에서 생성·수정·삭제하지 않는다(테스트는 `tools/fixtures/*`를 임시 폴더로 복사). `0.0.0.0` 바인딩·`docker.sock` 마운트·`AojiStudio` 밖 호스트 경로 마운트 금지. 웹에서 셸·에이전트 실행 기능·로그인·외부 접속 기능을 추가하지 않는다. git push는 사람만 한다. 데이터 삭제는 사용자 요청 없이 하지 않는다. 맥북에 소프트웨어를 설치하지 않는다(Gradle wrapper·npm·Playwright 브라우저 캐시 안은 허용).
 - 기준 문서: `docs/final_requirements_function.md`, `docs/final_requirements_architecture.md`
 
 ## Commands
@@ -31,26 +31,23 @@
 - up (전체 기동):
   - `cp .env.example .env` 후 `.env`의 `AOJISTUDIO_HOST_PATH`를 채운다(x86_64 머신은 `AOJISTUDIO_PLATFORM=linux/amd64` 주석도 푼다) → `docker compose up -d --build --remove-orphans`
   - 확인: `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:4180/` → `200`
-  - v1.0.0에서 올리는 업그레이드(옛 컨테이너 정리·이벤트 이관·`[legacy]` 로그 확인)는 [UPGRADE-v1.0.1.md](UPGRADE-v1.0.1.md)를 따른다.
 - down:
   - `docker compose down --remove-orphans` (볼륨 유지)
   - 주의: `docker compose down -v`는 이벤트 볼륨 `aojistudio-data`를 지운다. 볼륨 이름이 고정이라 **`-p`만으로는 볼륨이 격리되지 않는다 — 운영 `compose.yaml`의 빌드·기동 확인은 `tools/e2e/scripts/check-compose-build.sh`로 한다**(운영 compose를 `-p`만 바꿔 `up`/`down -v` 하지 않는다).
 - compose 확인 스크립트(운영 볼륨을 건드리지 않는다. x86_64 머신은 `AOJISTUDIO_PLATFORM=linux/amd64`를 앞에 붙인다):
+  - 옛 앱 이름 검색 0건(컨테이너 기동 없음, NFR-13 ⑤): `tools/e2e/scripts/check-old-names.sh [루트]`
   - 옛 이름 환경 변수 거부(컨테이너 기동 없음, NFR-13 ②): `tools/e2e/scripts/check-old-env.sh`
   - 운영 `compose.yaml` 빌드·기동(포트 4186, 임시 볼륨 `aojistudio-r2check-data`): `tools/e2e/scripts/check-compose-build.sh`
 - e2e (공개 포트 `127.0.0.1:4185` — `4190`은 쓰지 않는다: WHATWG Fetch bad port, ADR-45):
   - (사전 1회) `cd tools/e2e && npm install && npx playwright install chromium`
   - 전체: `cd tools/e2e && ./scripts/run-e2e.sh`
+    - 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 10배치(55·16·4·3·9·12·1·7·7·3 = 117)를 순서대로 돈다.
     - `globalSetup`이 fixture 임시 복사 → `compose.e2e.yaml up -d --build` → dry-run 도우미(4191) → 다른 Origin 페이지 서버(4192)까지 준비하고, `globalTeardown`이 컨테이너·프로세스·임시 폴더를 정리한다. 사전 준비 명령 없음
     - 기동 전에 4185·4191·4192 선점 검사를 한다 — 낡은 스택이 남아 있으면 소유 pid와 정리 명령을 출력하고 즉시 실패한다
   - 배치 단독 실행(fixture가 다른 시나리오는 실행을 나눈다):
     - `cd tools/e2e && E2E_FIXTURE=project-configured npx playwright test tests/e2e-03.spec.ts tests/e2e-07.spec.ts tests/e2e-10.spec.ts`
     - `cd tools/e2e && E2E_FIXTURE=project-no-agents-dir npx playwright test tests/e2e-06.spec.ts --grep "project-no-agents-dir"`
-  - 호환 배치(v1.0.x 옛 이름 수용 확인. `run-e2e.sh`의 배치 10~13):
-    - `cd tools/e2e && E2E_FIXTURE=project-legacy-only npx playwright test tests/e2e-r2-02-legacy-header.spec.ts tests/e2e-r2-04-migrate-legacy-only.spec.ts tests/e2e-r2-07-legacy-helper-shim.spec.ts`
-    - `cd tools/e2e && E2E_MOUNT_MODE=ro E2E_FIXTURE=project-legacy-only npx playwright test tests/e2e-r2-04b-legacy-read-only.spec.ts`
-    - `cd tools/e2e && E2E_FIXTURE=project-legacy-both npx playwright test tests/e2e-r2-05-migrate-both.spec.ts`
-    - `cd tools/e2e && E2E_COMPOSE=legacy-env E2E_FIXTURE=project-configured npx playwright test tests/e2e-r2-03-legacy-env.spec.ts`
+    - `cd tools/e2e && E2E_FIXTURE=project-old-name npx playwright test tests/e2e-17-old-name.spec.ts`
   - x86_64 머신(WSL 등)은 위 e2e 명령 앞에 `E2E_PLATFORM=linux/amd64`를 붙인다.
   - 실패 조사: 위 명령 앞에 `E2E_KEEP_UP=1`을 붙이면 정리를 건너뛴다. 조사 후 출력된 정리 명령을 그대로 실행하고 `lsof -nP -iTCP:4185 -iTCP:4191 -iTCP:4192`로 확인한다
 

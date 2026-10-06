@@ -27,7 +27,7 @@ docker compose down --remove-orphans
 ```
 
 `docker compose down -v`는 이벤트 볼륨 `aojistudio-data`를 지운다(볼륨 이름이 고정이라 `-p`로 격리되지 않는다). 쓰지 않는다.
-운영 `compose.yaml`의 빌드·기동 확인은 `tools/e2e/scripts/check-compose-build.sh`로 한다. v1.0.0에서 올릴 때는 [UPGRADE-v1.0.1.md](UPGRADE-v1.0.1.md)를 본다.
+운영 `compose.yaml`의 빌드·기동 확인은 `tools/e2e/scripts/check-compose-build.sh`로 한다.
 
 포트(`AOJISTUDIO_PORT`, 기본 4180)와 마운트 경로(`AOJISTUDIO_HOST_PATH`)는 `.env`에만 둔다. 값이 없으면 `docker compose up`이 실패한다.
 
@@ -89,8 +89,6 @@ cd helper
 
 옵션: `--port`, `--allowed-origins`, `--token-file`, `--log-file`, `--node`, `--label`.
 `--label`은 영숫자로 시작하는 영숫자·`.`·`_`·`-` 1~64자만 받는다(경로 조작 방지). 바꿨다면 `./uninstall.sh --label <같은 값>`으로 지운다.
-
-v1.0.0 시절에 설치한 옛 도우미가 등록돼 있으면 `install.sh`는 설치하지 않고 제거 명령을 안내한다 — 절차는 [UPGRADE-v1.0.1.md](UPGRADE-v1.0.1.md)의 ⑤.
 
 ### 4. 설치 확인
 
@@ -237,14 +235,14 @@ cd tools/e2e
 E2E_FIXTURE=project-configured npx playwright test tests/e2e-03.spec.ts
 ```
 
-`run-e2e.sh`는 표준 배치 9개 뒤에 v1.0.x 호환 배치 4개(옛 헤더·옛 `.aojistudio` 이전·읽기 전용 마운트·옛 환경 변수)를 돈다(13배치).
+`run-e2e.sh`는 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 10배치를 돈다.
 x86_64 머신(윈도우·리눅스)은 명령 앞에 `E2E_PLATFORM=linux/amd64`를 붙인다(기본은 `linux/arm64`).
 
 compose 확인 스크립트는 운영 볼륨 `aojistudio-data`를 건드리지 않는다(x86_64 머신은 앞에 `AOJISTUDIO_PLATFORM=linux/amd64`):
 
 ```bash
-tools/e2e/scripts/check-compose-env.sh         # 옛·새 환경 변수 해석 (컨테이너 기동 없음)
-tools/e2e/scripts/check-volume-migration.sh    # 이벤트 볼륨 이관 명령 (임시 볼륨, 이미지 aojistudio:local 필요)
+tools/e2e/scripts/check-old-names.sh           # 옛 앱 이름 검색 0건 (컨테이너 기동 없음)
+tools/e2e/scripts/check-old-env.sh             # 옛 이름 환경 변수 거부 (컨테이너 기동 없음)
 tools/e2e/scripts/check-compose-build.sh       # 운영 compose.yaml 빌드·기동 (포트 4186, 임시 볼륨)
 ```
 

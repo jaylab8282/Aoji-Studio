@@ -51,7 +51,7 @@ docker compose up -d --build --remove-orphans
 ```
 > 내리려면 `docker compose down --remove-orphans`.
 > `docker compose down -v`는 이벤트 볼륨(`aojistudio-data`)까지 지우므로 쓰지 않는다.
-> v1.0.0에서 올리는 중이라면 **[UPGRADE-v1.0.1.md](UPGRADE-v1.0.1.md)**를 먼저 본다(이름 변경·옛 이름 호환·이벤트 이관).
+> v1.0.0 사용자는 `v1.0.1` 태그로 먼저 올린다(그 태그의 `UPGRADE-v1.0.1.md`).
 
 
 필수 3) Hook 설정 
@@ -69,6 +69,7 @@ cd helper
 ```
 첫 열기에서 macOS 자동화 권한 대화상자가 한 번 뜬다 — **허용**해야 동작한다. <br>
 제거는 `./uninstall.sh`.
+도우미를 다시 시작하려면 `launchctl kickstart -k gui/$UID/com.aojistudio.helper` 를 실행하거나 다시 로그인한다.
 
 > 되돌리는 방법, 예행 연습(`--dry-run`), 설치 확인 명령, 실패했을 때의 화면, 토큰 파일 취급은 <br>
 > **[Detail_Readme.md](Detail_Readme.md)**에 있다. 처음 설치한다면 그쪽을 보고 하는 편이 안전하다.
@@ -79,11 +80,11 @@ cd helper
 각 줄은 **저장소 루트에서** 시작한다. 주석의 숫자는 통과해야 하는 테스트 수다(줄면 뭔가 빠진 것이다).
 
 ```bash
-# 유닛 — 합 839
-(cd backend && ./gradlew test)                 # 343
-(cd frontend && npm install && npm test)       # 394
-(cd helper && npm test)                        # 64
-(cd tools/replay && npm test)                  # 38
+# 유닛 — 합 798
+(cd backend && ./gradlew test)                 # 316
+(cd frontend && npm install && npm test)       # 393
+(cd helper && npm test)                        # 54
+(cd tools/replay && npm test)                  # 35
 
 # 린트 · 타입체크 · 빌드
 (cd frontend && npm run lint && npm run typecheck && npm run build)
@@ -91,7 +92,7 @@ cd helper
 
 # E2E — 실제 컨테이너, 목킹 없음
 (cd tools/e2e && npm install && npx playwright install chromium)   # 사전 1회
-(cd tools/e2e && ./scripts/run-e2e.sh)         # 13배치 131 (표준 9 + v1.0.x 호환 4)
+(cd tools/e2e && ./scripts/run-e2e.sh)         # 10배치 117
 ```
 
 `run-e2e.sh`는 fixture 복사 → 컨테이너 기동 → dry-run 도우미(4191)·다른 Origin 서버(4192) 준비 →
