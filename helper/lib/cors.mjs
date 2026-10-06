@@ -4,9 +4,7 @@
 /** 허용 Origin 기본값 (FR-013-AC7). 개발 중에는 실행 인자로 5173을 추가한다. */
 export const DEFAULT_ALLOWED_ORIGINS = Object.freeze(['http://127.0.0.1:4180']);
 
-import { LEGACY_HELPER_TOKEN_HEADER } from './legacy.mjs';
-
-/** 도우미 토큰 헤더 (conventions.md §5). 옛 이름은 `legacy.mjs`의 상수로 함께 받는다(ADR-57). */
+/** 도우미 토큰 헤더 (conventions.md §5). */
 export const HELPER_TOKEN_HEADER = 'X-AojiStudio-Helper-Token';
 
 /**
@@ -82,6 +80,6 @@ export function preflightHeaders(origin) {
   return {
     ...corsHeaders(origin),
     'Access-Control-Allow-Methods': 'POST',
-    'Access-Control-Allow-Headers': `Content-Type, ${LEGACY_HELPER_TOKEN_HEADER}, ${HELPER_TOKEN_HEADER}`,
+    'Access-Control-Allow-Headers': `Content-Type, ${HELPER_TOKEN_HEADER}`,
   };
 }

@@ -22,12 +22,6 @@ import {
   parseAllowedOrigins,
   preflightHeaders,
 } from './lib/cors.mjs';
-import {
-  LEGACY_HELPER_TOKEN_HEADER,
-  REFUSE_MESSAGE,
-  helperTokenPathWarning,
-  resolveTokenFile,
-} from './lib/legacy.mjs';
 
 /** 바인딩 주소는 루프백 고정 (NFR-04, conventions.md §6). */
 export const HELPER_HOST = '127.0.0.1';
@@ -35,8 +29,6 @@ export const DEFAULT_PORT = 4181;
 export const HELPER_VERSION = '1';
 export const OSASCRIPT_PATH = '/usr/bin/osascript';
 export const TOKEN_HEADER_NAME = 'x-aojistudio-helper-token';
-/** v1.0.x 브라우저가 보내는 옛 이름(Node는 헤더 이름을 소문자로 준다). 경고하지 않는다(ADR-57 4). */
-const LEGACY_TOKEN_HEADER_NAME = LEGACY_HELPER_TOKEN_HEADER.toLowerCase();
 /** 토큰 파일 기본 위치. `--token-file`로 덮어쓴다(architecture.md §6.3). */
 export const DEFAULT_TOKEN_FILE_RELATIVE = join('.aojistudio', 'helper-token');
 const MAX_BODY_BYTES = 4096;
@@ -394,9 +386,8 @@ export function createHelperServer(options) {
       return;
     }
     const headers = corsHeaders(origin);
-    // 새 헤더가 있으면 새 헤더만 검사한다(둘 다 있어도 옛 헤더로 통과시키지 않는다 — ADR-57 4).
-    const requestToken =
-      request.headers[TOKEN_HEADER_NAME] ?? request.headers[LEGACY_TOKEN_HEADER_NAME];
+    // 토큰 헤더는 X-AojiStudio-Helper-Token 하나만 검사한다(ADR-63).
+    const requestToken = request.headers[TOKEN_HEADER_NAME];
     if (typeof requestToken !== 'string' || !timingSafeEquals(requestToken, token)) {
       sendError(response, 403, 'UNAUTHORIZED_TOKEN', headers);
       return;
@@ -436,14 +427,6 @@ export function createHelperServer(options) {
   }
 }
 
-function isDirectory(path) {
-  try {
-    return statSync(path).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
 /**
  * 프로세스 진입점. 인자·토큰을 확정한 뒤 127.0.0.1에만 바인딩한다(NFR-04).
  * @param {string[]} argv
@@ -453,19 +436,7 @@ function isDirectory(path) {
 export function main(argv, io = {}) {
   const stderr = io.stderr ?? process.stderr;
   const options = parseArgs(argv);
-  // 토큰 파일을 만들기 전에 경로를 확정한다 — `.aojistudio/`를 먼저 만들지 않기 위해서다(ADR-57 3).
-  const resolved = resolveTokenFile({
-    projectDir: options.projectDir,
-    tokenFile: options.tokenFile,
-    isDirectory,
-  });
-  if (resolved.refuse) {
-    throw new Error(REFUSE_MESSAGE);
-  }
-  if (resolved.notice !== null) {
-    stderr.write(`aojistudio-helper: ${helperTokenPathWarning(resolved.notice === 'redirected')}\n`);
-  }
-  const token = ensureTokenFile(resolved.tokenFile, { stderr });
+  const token = ensureTokenFile(options.tokenFile, { stderr });
   const server = createHelperServer({
     projectDir: options.projectDir,
     allowedOrigins: options.allowedOrigins,
@@ -486,7 +457,7 @@ export function main(argv, io = {}) {
 }
 
 /**
- * 명령줄 실행. 실패는 스택 없이 한 줄만 남기고 종료 코드 1로 끝낸다(NFR-08). shim도 이 함수를 쓴다.
+ * 명령줄 실행. 실패는 스택 없이 한 줄만 남기고 종료 코드 1로 끝낸다(NFR-08). 
  * @param {string[]} argv
  */
 export async function runCli(argv) {

@@ -4,10 +4,10 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter, once } from 'node:events';
-import { spawnSync } from 'node:child_process';
-import { connect } from 'node:net';
+import { spawn, spawnSync } from 'node:child_process';
+import { connect, createServer as createNetServer } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,7 +22,6 @@ import {
   ensureTokenFile,
   parseArgs,
 } from '../aojistudio-helper.mjs';
-import { LEGACY_HELPER_TOKEN_HEADER } from '../lib/legacy.mjs';
 
 const HELPER_ROOT = dirname(fileURLToPath(new URL('../aojistudio-helper.mjs', import.meta.url)));
 const HELPER_SCRIPT = join(HELPER_ROOT, 'aojistudio-helper.mjs');
@@ -31,7 +30,20 @@ const ORIGIN = 'http://127.0.0.1:4180';
 const DEV_ORIGIN = 'http://127.0.0.1:5173';
 
 const tempRoot = mkdtempSync(join(tmpdir(), 'aojistudio-helper-test-'));
-after(() => rmSync(tempRoot, { recursive: true, force: true }));
+const startedPids = [];
+after(() => {
+  // 정리 확인: 시작한 자식 프로세스가 하나도 남아 있지 않아야 한다.
+  const alive = startedPids.filter((pid) => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  rmSync(tempRoot, { recursive: true, force: true });
+  assert.deepEqual(alive, [], `남은 자식 프로세스: ${alive.join(',')}`);
+});
 
 function makeProjectDir(name) {
   const dir = join(tempRoot, name);
@@ -460,7 +472,7 @@ test("[FR-013-AC7] OPTIONS /open preflight 204 · 허용 헤더, Content-Type �
     assert.equal(preflight.headers.get('access-control-allow-methods'), 'POST');
     assert.equal(
       preflight.headers.get('access-control-allow-headers'),
-      `Content-Type, ${LEGACY_HELPER_TOKEN_HEADER}, X-AojiStudio-Helper-Token`,
+      'Content-Type, X-AojiStudio-Helper-Token',
     );
 
     const blocked = await fetch(`${baseUrl}/open`, {
@@ -492,4 +504,224 @@ test("[FR-013-AC11] osascript 실행 실패 → 500 OPEN_FAILED", async () => {
       assert.doesNotMatch(body.message, /ENOENT|osascript/);
     },
   );
+});
+
+// ── 자식 프로세스·스크립트 실행 보조 ────────────────────────────────────────────
+
+const INSTALL_SH = join(HELPER_ROOT, 'install.sh');
+const UNINSTALL_SH = join(HELPER_ROOT, 'uninstall.sh');
+const OTHER_TOKEN = 'b'.repeat(64);
+
+/** 숫자 7이 들어가지 않는 빈 포트를 고른다(NFR-08 테스트가 타임아웃 값 '7'을 찾기 때문). */
+async function findFreePort() {
+  for (;;) {
+    const server = createNetServer();
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    await new Promise((resolve) => server.close(resolve));
+    if (!String(port).includes('7')) {
+      return port;
+    }
+  }
+}
+
+/**
+ * 도우미를 자식 프로세스로 실행한다. 'listening' 줄이 나오거나 종료할 때까지 기다린 뒤
+ * 살아 있으면 SIGTERM으로 끝내고 종료를 기다린다. PID는 startedPids에 기록한다.
+ * `inspect()`가 있으면 기동된 상태에서 호출한다.
+ */
+async function runHelper(args, inspect) {
+  const child = spawn(process.execPath, [HELPER_SCRIPT, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+  startedPids.push(child.pid);
+  let stdout = '';
+  let stderr = '';
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  const exited = new Promise((resolve) => child.once('close', (code) => resolve(code)));
+  let listeningResolve;
+  const listening = new Promise((resolve) => {
+    listeningResolve = resolve;
+  });
+  child.stdout.on('data', (chunk) => {
+    stdout += chunk;
+    if (stdout.includes(' listening on ')) {
+      listeningResolve(true);
+    }
+  });
+  child.stderr.on('data', (chunk) => {
+    stderr += chunk;
+  });
+  const timer = setTimeout(() => child.kill('SIGKILL'), 15_000);
+  try {
+    const outcome = await Promise.race([listening, exited.then(() => false)]);
+    let inspected;
+    if (outcome === true && inspect !== undefined) {
+      inspected = await inspect();
+    }
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill('SIGTERM');
+    }
+    const code = await exited;
+    return { started: outcome === true, code, stdout, stderr, inspected };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function rawOpen(port, headers, body = { target: 'default' }) {
+  return fetch(`http://${HELPER_HOST}:${port}/open`, {
+    method: 'POST',
+    headers: { Origin: ORIGIN, 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify(body),
+  });
+}
+
+/** install.sh·uninstall.sh를 임시 HOME과 가짜 launchctl로 실행한다. 실제 launchctl은 호출되지 않는다. */
+function runShell(script, args, env, home) {
+  const base = { ...process.env, HOME: home };
+  for (const key of Object.keys(base)) {
+    if (key.startsWith('AOJISTUDIO_')) {
+      delete base[key];
+    }
+  }
+  const fakeBin = join(tempRoot, 'bin');
+  mkdirSync(fakeBin, { recursive: true });
+  const launchctl = join(fakeBin, 'launchctl');
+  if (!existsSync(launchctl)) {
+    writeFileSync(launchctl, '#!/bin/sh\nexit 1\n', { mode: 0o755 });
+  }
+  return spawnSync('/bin/bash', [script, ...args], {
+    encoding: 'utf8',
+    timeout: 20_000,
+    env: { ...base, PATH: `${fakeBin}:${base.PATH ?? ''}`, ...env },
+  });
+}
+
+// ── 토큰 헤더 X-AojiStudio-Helper-Token 하나 [FR-013-AC7][FR-013-E2] ───────────
+
+test("[FR-013-AC7] X-AojiStudio-Helper-Token 일치 → 204, 실행 함수 1회 호출", async () => {
+  const projectDir = makeProjectDir('header-match');
+  await withServer({ projectDir }, async ({ baseUrl, commands }) => {
+    const response = await rawOpen(Number(new URL(baseUrl).port), { 'X-AojiStudio-Helper-Token': TOKEN });
+    assert.equal(response.status, 204);
+    assert.deepEqual(commands, [`cd "${projectDir}" && claude`]);
+  });
+});
+
+test("[FR-013-E2] 토큰 헤더 값 불일치 → 403 UNAUTHORIZED_TOKEN, 실행 함수 호출 0", async () => {
+  const projectDir = makeProjectDir('header-mismatch');
+  await withServer({ projectDir }, async ({ baseUrl, commands }) => {
+    const response = await rawOpen(Number(new URL(baseUrl).port), { 'X-AojiStudio-Helper-Token': OTHER_TOKEN });
+    assert.equal(response.status, 403);
+    assert.equal((await response.json()).code, 'UNAUTHORIZED_TOKEN');
+    assert.deepEqual(commands, []);
+  });
+});
+
+test("[FR-013-E2] 토큰 헤더 없음 → 403 UNAUTHORIZED_TOKEN, 실행 함수 호출 0", async () => {
+  const projectDir = makeProjectDir('header-missing');
+  await withServer({ projectDir }, async ({ baseUrl, commands }) => {
+    const response = await rawOpen(Number(new URL(baseUrl).port), {});
+    assert.equal(response.status, 403);
+    assert.equal((await response.json()).code, 'UNAUTHORIZED_TOKEN');
+    assert.deepEqual(commands, []);
+  });
+});
+
+// ── 토큰 파일 생성 [FR-013-AC8] ────────────────────────────────────────────────
+
+test("[FR-013-AC8] 토큰 파일이 없으면 .aojistudio/helper-token 생성(mode 600, hex 64), .aojistudio/ 없으면 만든다 · --token-file 옵션 유지", async () => {
+  const project = makeProjectDir('fresh-token');
+  const port = await findFreePort();
+
+  const result = await runHelper(['--dry-run', '--port', String(port), '--project-dir', project]);
+  assert.equal(result.started, true, result.stderr);
+  const tokenFile = join(project, '.aojistudio', 'helper-token');
+  assert.match(readFileSync(tokenFile, 'utf8'), /^[0-9a-f]{64}$/);
+  assert.equal(statSync(tokenFile).mode & 0o777, 0o600);
+  assert.equal(result.stderr, '');
+
+  // --token-file <경로> 지정 시 그 경로의 토큰을 쓰고(옵션 유지) 기본 경로는 만들지 않는다.
+  const customProject = makeProjectDir('custom-token');
+  const customFile = join(makeProjectDir('custom-token-dir'), 'my-token');
+  writeFileSync(customFile, TOKEN, { mode: 0o600 });
+  const customPort = await findFreePort();
+  const custom = await runHelper(
+    ['--dry-run', '--port', String(customPort), '--project-dir', customProject, '--token-file', customFile],
+    async () => ({
+      custom: (await rawOpen(customPort, { 'X-AojiStudio-Helper-Token': TOKEN })).status,
+      other: (await rawOpen(customPort, { 'X-AojiStudio-Helper-Token': OTHER_TOKEN })).status,
+    }),
+  );
+  assert.equal(custom.started, true, custom.stderr);
+  assert.deepEqual(custom.inspected, { custom: 204, other: 403 });
+  assert.equal(existsSync(join(customProject, '.aojistudio')), false);
+});
+
+// ── 출력 전체 마스킹 [NFR-08] ──────────────────────────────────────────────────
+
+test("[NFR-08] 기동 로그·인증 실패·잘못된 name 400·기동 실패·install/uninstall --dry-run 출력에 토큰 값·project-dir·환경 변수 값 0건", async () => {
+  const captured = [];
+
+  // 기동 로그 + 인증 실패(403) + 잘못된 name(400). 토큰은 알려진 hex다.
+  const project = makeProjectDir('mask-run');
+  mkdirSync(join(project, '.aojistudio'));
+  writeFileSync(join(project, '.aojistudio', 'helper-token'), TOKEN, { mode: 0o600 });
+  const port = await findFreePort();
+  const running = await runHelper(['--dry-run', '--port', String(port), '--project-dir', project], async () => {
+    const unauthorized = await rawOpen(port, { 'X-AojiStudio-Helper-Token': OTHER_TOKEN });
+    const badName = await rawOpen(port, { 'X-AojiStudio-Helper-Token': TOKEN }, { target: 'lead', leadName: 'Bad Name' });
+    return { unauthorized: unauthorized.status, badName: badName.status };
+  });
+  assert.equal(running.started, true, running.stderr);
+  assert.deepEqual(running.inspected, { unauthorized: 403, badName: 400 });
+  assert.match(running.stdout, /listening on/);
+  captured.push(running.stdout, running.stderr);
+
+  // 기동 실패: 없는 project-dir, 잘못된 port
+  const missingDir = join(tempRoot, 'mask-no-such-dir');
+  const failedDir = await runHelper(['--dry-run', '--port', String(await findFreePort()), '--project-dir', missingDir]);
+  assert.equal(failedDir.code, 1);
+  assert.match(failedDir.stderr, /기동 실패/);
+  captured.push(failedDir.stdout, failedDir.stderr);
+  const failedPort = await runHelper(['--dry-run', '--port', 'abc', '--project-dir', project]);
+  assert.equal(failedPort.code, 1);
+  captured.push(failedPort.stdout, failedPort.stderr);
+
+  // install.sh 조기 실패(잘못된 포트): 환경 변수 값(임시 LaunchAgents 경로, 타임아웃 7)이 나올 이유가 없다.
+  const home = makeProjectDir('mask-home');
+  const agents = makeProjectDir('mask-agents');
+  const earlyFail = runShell(INSTALL_SH, ['--project-dir', project, '--port', 'abc', '--dry-run'], {
+    AOJISTUDIO_LAUNCH_AGENTS_DIR: agents,
+    AOJISTUDIO_HEALTH_TIMEOUT_SECONDS: '7',
+  }, home);
+  assert.notEqual(earlyFail.status, 0);
+  captured.push(earlyFail.stdout, earlyFail.stderr);
+  const badTimeout = runShell(INSTALL_SH, ['--project-dir', project, '--dry-run'], {
+    AOJISTUDIO_LAUNCH_AGENTS_DIR: agents,
+    AOJISTUDIO_HEALTH_TIMEOUT_SECONDS: '999',
+  }, home);
+  assert.equal(badTimeout.status, 1);
+  assert.match(badTimeout.stderr, /AOJISTUDIO_HEALTH_TIMEOUT_SECONDS 값은 1~120/);
+  captured.push(badTimeout.stdout, badTimeout.stderr);
+
+  const everything = captured.join('\n');
+  for (const secret of [TOKEN, OTHER_TOKEN]) {
+    assert.equal(everything.includes(secret), false, '토큰 값이 출력에 있다');
+  }
+  for (const dir of [project, missingDir, agents, tempRoot]) {
+    assert.equal(everything.includes(dir), false, `절대 경로가 출력에 있다: ${dir}`);
+  }
+  assert.equal(/(?<![0-9A-Za-z.])7(?![0-9A-Za-z.])/.test(everything), false, '타임아웃 값이 출력에 있다');
+
+  // --dry-run 정상 출력은 plist·경로를 보여 주는 것이 목적이다. 토큰 값(파일 내용)은 읽지도 쓰지도 않는다.
+  const installDry = runShell(INSTALL_SH, ['--project-dir', project, '--dry-run'], {}, home);
+  assert.equal(installDry.status, 0, installDry.stderr);
+  const uninstallDry = runShell(UNINSTALL_SH, ['--dry-run'], {}, home);
+  assert.equal(uninstallDry.status, 0, uninstallDry.stderr);
+  const dryOutput = [installDry.stdout, installDry.stderr, uninstallDry.stdout, uninstallDry.stderr].join('\n');
+  assert.match(dryOutput, /DRY-RUN/);
+  for (const secret of [TOKEN, OTHER_TOKEN]) {
+    assert.equal(dryOutput.includes(secret), false, '--dry-run 출력에 토큰 값이 있다');
+  }
 });
