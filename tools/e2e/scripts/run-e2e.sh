@@ -44,6 +44,17 @@ run_batch() {
   fi
 }
 
+# 사전 0 — 옛 앱 이름 검색 0건(NFR-13 ⑤, ADR-62). 컨테이너를 띄우지 않는다.
+echo ""
+echo "===== 사전 — check-old-names.sh (컨테이너 기동 없음) ====="
+if ./scripts/check-old-names.sh; then
+  RESULTS+=("PASS  사전 — check-old-names.sh (옛 이름 검색 0건)")
+else
+  RESULTS+=("FAIL  사전 — check-old-names.sh (옛 이름 검색 0건)")
+  echo "check-old-names.sh 실패" >&2
+  exit 1
+fi
+
 # 사전 1회 — compose.yaml에서 옛 이름 환경 변수가 해석되지 않는지(NFR-13 ②, ADR-62). 컨테이너를 띄우지 않으므로
 # globalSetup 전에 한 번만 돈다. 실패하면 set -e로 바로 멈추고 요약에 FAIL로 남는다.
 echo ""

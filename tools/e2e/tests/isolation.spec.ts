@@ -34,6 +34,7 @@ const HARNESS_FILES = [
   join("lib", "replay.ts"),
   join("scripts", "check-compose-build.sh"),
   join("scripts", "check-old-env.sh"),
+  join("scripts", "check-old-names.sh"),
   join("scripts", "check-port.sh"),
   join("scripts", "run-e2e.sh"),
   join("tests", "ui-helpers.ts"),
