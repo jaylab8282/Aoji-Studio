@@ -58,8 +58,8 @@ export function Office({ workflow, live, collectorDown, selectedName, onSelect }
           <p className="text-aux text-text-muted">{OFFICE_SUBTITLE}</p>
         </div>
 
-        <div className="office-grid min-h-0 flex-1 overflow-auto bg-inset p-5">
-          <div className="grid grid-cols-3 gap-4">
+        <div className="canvas-grid min-h-0 flex-1 overflow-auto bg-inset p-5">
+          <div className="office-grid">
             {seats.map((seat) => (
               <SeatCell
                 key={seat.key}

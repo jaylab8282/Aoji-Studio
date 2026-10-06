@@ -1,0 +1,42 @@
+/*
+ * 계산식이 필요한 배치 (ADR-65 결정 2). theme.css 변수만 쓴다. 간격 `gap` 토큰 = 12px = spacing 3칸.
+ */
+
+/* 03 오피스 열 수: 칸 최소 184px로 들어가는 수, 최대 6열 (screen-flow.md 배치 규칙). */
+@utility office-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(max(var(--spacing-office-min), calc((100% - 5 * var(--spacing) * 3) / 6)), 1fr)
+  );
+  grid-auto-rows: var(--spacing-office-cell);
+  gap: calc(var(--spacing) * 3);
+}
+
+/* 02 캔버스 배경 격자선 (24px 간격, grid/line). */
+@utility canvas-grid {
+  background-image:
+    linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* 02 층 헤더: 층 카드(컨테이너) 폭 440px 이하면 줄바꿈하고 사유 줄을 아래 줄 오른쪽에 둔다. */
+@utility floor-container {
+  container-type: inline-size;
+}
+
+@utility floor-header {
+  @container (max-width: 440px) {
+    flex-wrap: wrap;
+    row-gap: var(--spacing);
+  }
+}
+
+@utility floor-reason {
+  @container (max-width: 440px) {
+    order: 9;
+    flex-basis: 100%;
+    text-align: right;
+  }
+}

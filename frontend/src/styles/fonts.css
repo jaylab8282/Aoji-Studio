@@ -1,0 +1,9 @@
+/* 글꼴은 @fontsource 패키지 파일만 쓴다 (외부 요청 0, ADR-65 결정 4). */
+@import "@fontsource/sora/400.css";
+@import "@fontsource/sora/600.css";
+@import "@fontsource/sora/700.css";
+@import "@fontsource/gothic-a1/400.css";
+@import "@fontsource/gothic-a1/600.css";
+@import "@fontsource/gothic-a1/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";

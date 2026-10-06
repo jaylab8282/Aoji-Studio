@@ -1,3 +1,0 @@
-IBM Plex Sans KR, IBM Plex Mono
-Licensed under the SIL Open Font License, Version 1.1.
-Source: https://github.com/IBM/plex (distributed via @fontsource, self-hosted here, no external request at runtime).
