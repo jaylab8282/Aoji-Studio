@@ -17,7 +17,7 @@ export const routes: RouteObject[] = [
   {
     element: <App />,
     children: [
-      { path: "/", element: <HomeScreen />, handle: { breadcrumb: SIDEBAR_TAB_HOME, showProjectChip: true } },
+      { path: "/", element: <HomeScreen />, handle: { breadcrumb: SIDEBAR_TAB_HOME, showProjectChip: true, topBarWf: "01-1" } },
       {
         path: "/workflows",
         element: <WorkflowsScreen />,
@@ -25,6 +25,7 @@ export const routes: RouteObject[] = [
           breadcrumb: SIDEBAR_TAB_WORKFLOWS,
           rightExtra: () => <WorkflowsHeader />,
           showProjectChip: true,
+          topBarWf: "02-1",
         },
       },
       {
@@ -34,9 +35,10 @@ export const routes: RouteObject[] = [
           breadcrumb: (params: Readonly<Record<string, string | undefined>>) => (
             <WorkflowBreadcrumb name={params.name ?? ""} />
           ),
+          topBarWf: "03-1",
         },
       },
-      { path: "/settings", element: <SettingsScreen />, handle: { breadcrumb: SIDEBAR_TAB_SETTINGS } },
+      { path: "/settings", element: <SettingsScreen />, handle: { breadcrumb: SIDEBAR_TAB_SETTINGS, topBarWf: "07-1" } },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },

@@ -1,13 +1,23 @@
 /**
- * ui-spec.md SCR-04-3 실시간 연결 끊김 배너. FR-016-AC1·AC2·AC3.
- * conventions.md §7 MUST: `App` 레이아웃에서 한 번만 렌더링하고 모든 라우트 위에 나온다.
+ * ui-spec.md SCR-04-3 실시간 연결 끊김 띠(`data-wf="04-3-1"`). FR-016-AC1·AC2·AC3.
+ * `wifi-off` + `실시간 연결이 끊겼습니다 · N초 후 재연결`(600, N 고정폭) + `마지막 갱신 hh:mm:ss 기준 화면을 유지합니다`
+ * (`text-text`, 말줄임) + 오른쪽 `danger` 버튼 `refresh-cw 지금 재연결`.
+ * conventions.md §7 MUST: `AppShell`에서 한 번만 렌더링하고 모든 라우트의 상단 바 아래에 나온다.
  */
 import { useConnectionStore } from "../../state/connectionStore";
 import { reconnectNow } from "../../api/stream";
 import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
+import { Icon } from "../ui/Icon";
 import { formatHms } from "../../lib/format/time";
-import { disconnectBannerMessage, lastUpdatedLabel, NO_DATA_YET_TEXT, RECONNECT_NOW_LABEL } from "../../lib/text";
+import {
+  DISCONNECT_BANNER_LEAD,
+  DISCONNECT_BANNER_TAIL,
+  LAST_UPDATED_LEAD,
+  LAST_UPDATED_TAIL,
+  NO_DATA_YET_TEXT,
+  RECONNECT_NOW_LABEL,
+} from "../../lib/text";
 
 export function DisconnectBanner() {
   const { state, retryInSec, lastUpdatedAt } = useConnectionStore();
@@ -15,16 +25,29 @@ export function DisconnectBanner() {
   if (state !== "disconnected") return null;
 
   return (
-    <Banner tone="danger">
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-body">{disconnectBannerMessage(retryInSec)}</p>
-        <Button variant="secondary" size="sm" onClick={reconnectNow}>
-          {RECONNECT_NOW_LABEL}
-        </Button>
-      </div>
-      <p className="mt-1 text-aux text-text-faint">
-        {lastUpdatedAt ? lastUpdatedLabel(formatHms(lastUpdatedAt)) : NO_DATA_YET_TEXT}
-      </p>
+    <Banner tone="danger" wf="04-3-1">
+      <Icon name="wifi-off" />
+      <b data-testid="disconnect-countdown" className="font-semibold">
+        {DISCONNECT_BANNER_LEAD}
+        <span className="font-mono">{retryInSec}</span>
+        {DISCONNECT_BANNER_TAIL}
+      </b>
+      <span data-testid="disconnect-last-updated" className="min-w-0 truncate text-text">
+        {lastUpdatedAt === null ? (
+          NO_DATA_YET_TEXT
+        ) : (
+          <>
+            {LAST_UPDATED_LEAD}
+            <span className="font-mono">{formatHms(lastUpdatedAt)}</span>
+            {LAST_UPDATED_TAIL}
+          </>
+        )}
+      </span>
+      <span className="flex-1" />
+      <Button variant="danger" size="sm" onClick={reconnectNow}>
+        <Icon name="refresh-cw" />
+        {RECONNECT_NOW_LABEL}
+      </Button>
     </Banner>
   );
 }

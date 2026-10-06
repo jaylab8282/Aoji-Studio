@@ -10,10 +10,11 @@ type RouteHandle = {
   rightExtra?: () => ReactNode;
   /** TopBar 프로젝트 칩 표시 여부. 01·02만 true(ADR-30). TopBar는 라우트를 직접 읽지 않는다. */
   showProjectChip?: boolean;
+  /** TopBar `data-wf` 영역 이름(`01-1`·`02-1`·`03-1`·`07-1`, 화면 원본과 같다). */
+  topBarWf?: string;
 };
 
-// AppShell(사이드바·상단바)·04-3 배너·SSE 연결은 T-013에서 채운다.
-// 브레드크럼·오른쪽 추가 버튼·프로젝트 칩 표시 여부는 각 라우트의 `handle`에서 가져온다.
+// AppShell(사이드 탭·상단 바·04-3 띠)은 모든 라우트가 공유한다. 브레드크럼·오른쪽 추가 버튼·프로젝트 칩 표시 여부는 각 라우트의 `handle`에서 가져온다.
 // 05·06 팝업은 라우트가 아니라 `?dialog=`이므로 `DialogHost`를 여기 한 곳에서만 그린다(ADR-14).
 export function App() {
   const matches = useMatches();
@@ -26,7 +27,12 @@ export function App() {
 
   return (
     <>
-      <AppShell breadcrumb={breadcrumb} rightExtra={rightExtra} showProjectChip={handle?.showProjectChip === true}>
+      <AppShell
+        breadcrumb={breadcrumb}
+        rightExtra={rightExtra}
+        showProjectChip={handle?.showProjectChip === true}
+        topBarWf={handle?.topBarWf}
+      >
         <Outlet />
       </AppShell>
       <DialogHost />

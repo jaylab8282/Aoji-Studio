@@ -320,7 +320,7 @@ const STATUS_LINE_PATTERN = /^(작업 중|권한 대기|대기)( · 부모 .+)?$
 // ── 화면 조회 도우미 ──────────────────────────────────────────────────────────────
 
 function sidebar(page: Page): Locator {
-  return page.locator("aside").filter({ hasText: "Aoji Studio" });
+  return page.getByRole("complementary", { name: "주 메뉴" });
 }
 
 function floorCardByName(page: Page, workflowName: string): Locator {

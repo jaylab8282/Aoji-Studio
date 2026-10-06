@@ -59,7 +59,9 @@ describe("router", () => {
 
   it("[T-001] /settings 경로 → 설정 화면 렌더", () => {
     render(<RouterProvider router={buildRouter("/settings")} />);
-    expect(screen.getByRole("heading", { name: "설정" })).toBeInTheDocument();
+    // 상단 바 제목(h1, 공통 셸)과 이행 중인 07 화면 본문 제목이 모두 `설정`이다(본문 제목은 T-R3-19에서 빠진다).
+    expect(screen.getAllByRole("heading", { name: "설정" }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("banner")).toHaveTextContent("설정");
   });
 
   // ADR-30: 프로젝트 칩은 01·02에만. 03·07에는 두지 않는다.

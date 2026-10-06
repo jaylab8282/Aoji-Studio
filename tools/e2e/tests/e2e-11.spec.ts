@@ -108,7 +108,7 @@ function settingsFile(): string {
 
 /** 사이드바(`Sidebar`) — `CollectorStatus`의 hook 설정 표시를 읽는다. */
 function sidebar(page: Page) {
-  return page.locator("aside").filter({ hasText: "Aoji Studio" });
+  return page.getByRole("complementary", { name: "주 메뉴" });
 }
 
 /** fixture의 정의 파일 수(서버 `agentCount`와 같아야 한다). */
@@ -166,7 +166,7 @@ test("[FR-014-AC4][FR-013-AC5][E2E-11] 07 카드 3개의 값 행이 실제 값�
   const state = readE2eState();
 
   await gotoReady(page, "/settings");
-  await expect(page.getByRole("heading", { level: 1, name: SETTINGS_TITLE, exact: true })).toBeVisible();
+  await expect(page.locator("header[data-wf]").getByRole("heading", { level: 1, name: SETTINGS_TITLE, exact: true })).toBeVisible();
 
   // 카드 1 프로젝트 폴더 — FR-014-AC4: 컨테이너 경로(`/workspace`)가 아니라 맥북 경로다.
   const mountRow = page.getByTestId("settings-row-mount-path");

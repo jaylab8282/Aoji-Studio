@@ -55,7 +55,7 @@ const IMMEDIATE_RECONNECT_BUDGET_MS = 1500;
 /** ui-spec.md SCR-04-3 배너 첫 줄 문구(확정 문구. `lib/text.ts` disconnectBannerMessage와 같다). */
 const BANNER_PATTERN = /^실시간 연결이 끊겼습니다 · (\d+)초 후 재연결$/;
 /** ui-spec.md SCR-04-3 아래 줄 문구. */
-const LAST_UPDATED_PATTERN = /^마지막 갱신 (\d{2}):(\d{2}):(\d{2}) 기준 화면 유지$/;
+const LAST_UPDATED_PATTERN = /^마지막 갱신 (\d{2}):(\d{2}):(\d{2}) 기준 화면을 유지합니다$/;
 
 const DEV_TEAM = "dev-team";
 /** 끊긴 동안 fixture에 추가하는 에이전트. 재연결 후에야 화면에 나타나야 한다(FR-016-AC2·AC4). */
@@ -113,7 +113,7 @@ async function currentRetryInSec(page: Page): Promise<number | null> {
   if ((await banner.count()) === 0) {
     return null;
   }
-  const text = (await banner.locator("p").first().textContent())?.trim() ?? "";
+  const text = (await banner.getByTestId("disconnect-countdown").textContent())?.trim() ?? "";
   const matched = BANNER_PATTERN.exec(text);
   if (matched === null) {
     return null;
@@ -274,12 +274,12 @@ test("[FR-016-AC1][FR-016-AC2][FR-016-AC3][FR-016-AC4][E2E-05] 컨테이너 paus
 
     // 배너 문구·버튼·아래 줄(ui-spec.md SCR-04-3 요소 표).
     const banner = disconnectBanner(page);
-    await expect(banner.locator("p").first()).toHaveText(BANNER_PATTERN);
+    await expect(banner.getByTestId("disconnect-countdown")).toHaveText(BANNER_PATTERN);
     const reconnectNowButton = banner.getByRole("button", { name: "지금 재연결", exact: true });
     await expect(reconnectNowButton).toBeVisible();
     await expect(reconnectNowButton).toBeEnabled();
 
-    const lastUpdatedText = (await banner.locator("p").nth(1).textContent())?.trim() ?? "";
+    const lastUpdatedText = (await banner.getByTestId("disconnect-last-updated").textContent())?.trim() ?? "";
     const lastUpdatedMatch = LAST_UPDATED_PATTERN.exec(lastUpdatedText);
     expect(
       lastUpdatedMatch,

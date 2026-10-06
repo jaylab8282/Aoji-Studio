@@ -40,3 +40,57 @@
     text-align: right;
   }
 }
+
+/* 앱 골격 (ui-spec §공통 AppShell, ADR-66): [사이드 탭 232 | 본문 열], `rail:`이면 [레일 64 | 본문 열]. 높이 100vh. */
+@utility app-grid {
+  display: grid;
+  grid-template-columns: var(--spacing-sidebar) minmax(0, 1fr);
+  height: 100vh;
+  min-height: 0;
+
+  @media (orientation: portrait), (max-width: 1199px) {
+    grid-template-columns: var(--spacing-rail) minmax(0, 1fr);
+  }
+}
+
+/*
+ * 레일 툴팁 (ui-spec §공통 Tooltip): 레일 메뉴·수집 축약이 hover·focus 때 오른쪽에 `data-tip` 글자를 보여 준다.
+ * 가로형에서는 항목에 글자가 보이므로 그리지 않는다. 위치는 항목 오른쪽 16px(원본 00-side-tab `.tip` left 70).
+ * `data-tip-edge="bottom"`은 항목 아래 끝에 맞춘다(수집 축약).
+ */
+@utility rail-tip {
+  position: relative;
+
+  &::after {
+    content: attr(data-tip);
+    display: none;
+    position: absolute;
+    left: calc(100% + var(--spacing) * 4);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-selected);
+    color: var(--color-text);
+    font-size: var(--text-aux);
+    font-weight: 400;
+    line-height: 1.5;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  &[data-tip-edge="bottom"]::after {
+    top: auto;
+    bottom: 0;
+    transform: none;
+  }
+
+  @media (orientation: portrait), (max-width: 1199px) {
+    &:hover::after,
+    &:focus-visible::after {
+      display: block;
+    }
+  }
+}

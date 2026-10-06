@@ -11,7 +11,7 @@ export function Skeleton({ className = "", "aria-label": ariaLabel }: SkeletonPr
     <div
       role="status"
       aria-label={ariaLabel ?? "로딩 중"}
-      className={`bg-soft rounded-control ${className}`}
+      className={`bg-soft rounded-chip ${className}`}
     />
   );
 }

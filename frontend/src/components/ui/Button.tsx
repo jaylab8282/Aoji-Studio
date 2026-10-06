@@ -72,7 +72,7 @@ export function Button({
         type="button"
         disabled={isDisabled}
         aria-disabled={isDisabled}
-        className={`inline-flex items-center justify-center whitespace-nowrap rounded-control text-body font-medium transition-colors duration-200 ${fullWidth ? "flex-1" : ""} ${isDisabled ? DISABLED_CLASSES : `${VARIANT_CLASSES[variant]} ${VARIANT_HOVER_CLASSES[variant]}`} ${SIZE_CLASSES[size]}`}
+        className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-control text-body font-medium transition-colors duration-200 ${fullWidth ? "flex-1" : ""} ${isDisabled ? DISABLED_CLASSES : `${VARIANT_CLASSES[variant]} ${VARIANT_HOVER_CLASSES[variant]}`} ${SIZE_CLASSES[size]}`}
         {...rest}
       >
         {children}

@@ -20,8 +20,12 @@ export const STATUS_LABEL_TEXT_SHORT: Record<Status, string> = {
   idle: "대기",
 };
 
-// Sidebar 로고·워드마크 (docs/ui/screens/01-home.png 좌상단)
+// Sidebar 로고 (ui-spec §공통 로고·파비콘: 심볼 `alt`)
 export const APP_WORDMARK = "Aoji Studio";
+// Sidebar 태그라인 (가로형만, docs/ui/screens/00-side-tab.html `NAV-1`)
+export const APP_TAGLINE = "AI AGENT ORCHESTRATION PLATFORM";
+// Sidebar `<aside aria-label>` (docs/ui/screens/00-side-tab.html `NAV`)
+export const SIDEBAR_LABEL = "주 메뉴";
 
 // Sidebar 탭 (ui-spec §공통 AppShell)
 export const SIDEBAR_TAB_HOME = "홈";
@@ -39,18 +43,27 @@ export const HOOK_CONFIGURED_TEXT = "hook 설정됨";
 export const HOOK_NOT_CONFIGURED_TEXT = "hook 설정 안 됨";
 export const NO_LAST_RECEIVED_TEXT = "마지막 수신 없음";
 
+// 수집 상자 `마지막 수신 <시각>`의 앞 글자(시각은 고정폭 글자로 따로 그린다)와 레일 축약의 둘째 줄
+export const COLLECTOR_LAST_RECEIVED_LEAD = "마지막 수신 ";
+export const COLLECTOR_RAIL_LABEL = "수집";
+
 export function lastReceivedLabel(hhmmss: string | null): string {
   return hhmmss === null ? NO_LAST_RECEIVED_TEXT : `마지막 수신 ${hhmmss}`;
 }
 
 // DisconnectBanner (ui-spec SCR-04-3, FR-016)
+// 숫자(N)는 고정폭 글자로 따로 그리므로 앞뒤 글자를 나눠 둔다.
+export const DISCONNECT_BANNER_LEAD = "실시간 연결이 끊겼습니다 · ";
+export const DISCONNECT_BANNER_TAIL = "초 후 재연결";
 export function disconnectBannerMessage(retryInSec: number): string {
-  return `실시간 연결이 끊겼습니다 · ${retryInSec}초 후 재연결`;
+  return `${DISCONNECT_BANNER_LEAD}${retryInSec}${DISCONNECT_BANNER_TAIL}`;
 }
 export const RECONNECT_NOW_LABEL = "지금 재연결";
 export const NO_DATA_YET_TEXT = "아직 받은 데이터가 없습니다";
+export const LAST_UPDATED_LEAD = "마지막 갱신 ";
+export const LAST_UPDATED_TAIL = " 기준 화면을 유지합니다";
 export function lastUpdatedLabel(hhmmss: string): string {
-  return `마지막 갱신 ${hhmmss} 기준 화면 유지`;
+  return `${LAST_UPDATED_LEAD}${hhmmss}${LAST_UPDATED_TAIL}`;
 }
 
 // 워크플로우 칩 (lib/derive/workflowChip.ts에서 조립하는 문구 그대로 보관)
