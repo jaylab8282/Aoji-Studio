@@ -1,4 +1,4 @@
-import { LEGACY_HELPER_TOKEN_HEADER } from "../../api/helper";
+import { HELPER_TOKEN_HEADER } from "../../api/helper";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -189,7 +189,7 @@ describe("Header", () => {
     expect(screen.getByRole("button", { name: "에이전트 워크플로우로" })).toBeInTheDocument();
   });
 
-  it("[FR-013-AC2][FR-013-AC6] 팀장 호출 → 요청 URL = helperUrl + '/open', 본문 키는 target·leadName뿐, 헤더 LEGACY_HELPER_TOKEN_HEADER 상수 이름", async () => {
+  it("[FR-013-AC2][FR-013-AC6] 팀장 호출 → 요청 URL = helperUrl + '/open', 본문 키는 target·leadName뿐, 헤더 HELPER_TOKEN_HEADER 상수 이름", async () => {
     const calls = stubFetch();
     renderHeader(buildWorkflow());
 
@@ -201,7 +201,7 @@ describe("Header", () => {
     expect(openCall?.method).toBe("POST");
     expect(Object.keys(JSON.parse(openCall?.body ?? "{}"))).toEqual(["target", "leadName"]);
     expect(JSON.parse(openCall?.body ?? "{}")).toEqual({ target: "lead", leadName: "dev-lead" });
-    expect(openCall?.headers[LEGACY_HELPER_TOKEN_HEADER]).toBe(HELPER_TOKEN);
+    expect(openCall?.headers[HELPER_TOKEN_HEADER]).toBe(HELPER_TOKEN);
     // 경로·명령은 도우미에 보내지 않는다(hostPath는 프론트가 보여주고 복사할 뿐이다).
     expect(openCall?.body).not.toContain("claude");
     expect(openCall?.body).not.toContain(HOST_PATH);

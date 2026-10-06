@@ -92,11 +92,11 @@ describe("client", () => {
     await apiPost("/api/workflows", { name: "x" });
 
     const newBrowserHeader = "X-AojiStudio-Browser-Token";
-    const legacyBrowserHeader = newBrowserHeader.replace("Aoji", "Jay");
-    expect(legacyBrowserHeader).toMatch(/^X-Jay.+-Browser-Token$/);
-    expect(legacyBrowserHeader).not.toBe(newBrowserHeader);
+    const oldBrowserHeader = newBrowserHeader.replace("Aoji", "Jay");
+    expect(oldBrowserHeader).toMatch(/^X-Jay.+-Browser-Token$/);
+    expect(oldBrowserHeader).not.toBe(newBrowserHeader);
     expect(receivedHeaders?.[newBrowserHeader]).toBe(token);
-    expect(receivedHeaders?.[legacyBrowserHeader]).toBeUndefined();
+    expect(receivedHeaders?.[oldBrowserHeader]).toBeUndefined();
   });
 
   it("[client.test] localStorage 미사용", async () => {

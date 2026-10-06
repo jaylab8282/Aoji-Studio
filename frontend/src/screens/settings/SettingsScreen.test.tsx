@@ -413,22 +413,15 @@ describe("SettingsScreen (SCR-07)", () => {
     expect(rowText("settings-row-format-errors")).toContain("없음");
   });
 
-  it("[FR-014][ADR-55] teamsPath·trashPath는 서버 값 그대로(옛 데이터 폴더 경로가 와도 가공 없이 표시)", async () => {
+  it("[FR-014] teamsPath·trashPath는 서버 값 그대로 표시", async () => {
     const base = buildSettingsFixture();
-    const oldDir = ["." + "jay", "studio"].join("");
-    const teamsPath = base.teamsPath.replace(".aojistudio", oldDir);
-    const trashPath = base.trashPath.replace(".aojistudio", oldDir);
-    expect(teamsPath).toMatch(/^\.jay.*studio\/teams\//);
-    expect(trashPath).toMatch(/^\.jay.*studio\/trash\//);
-    expect(teamsPath).not.toBe(base.teamsPath);
-    expect(trashPath).not.toBe(base.trashPath);
+    const teamsPath = ".aojistudio/teams/*.json";
+    const trashPath = ".aojistudio/trash/";
     stubFetch({ settings: () => jsonResponse({ ...base, teamsPath, trashPath }) });
     renderScreen();
 
     await waitFor(() => expect(rowText("settings-row-teams")).toContain(teamsPath));
-    expect(rowText("settings-row-teams")).not.toContain(".aojistudio");
     expect(rowText("settings-row-trash")).toContain(trashPath);
-    expect(rowText("settings-row-trash")).not.toContain(".aojistudio");
   });
 
   it("[FR-013-AC10] 진입 시 /health 호출, 무응답 → '테스트로 열기' 비활성 '도우미 미설치', 버튼 누를 때 재확인", async () => {
