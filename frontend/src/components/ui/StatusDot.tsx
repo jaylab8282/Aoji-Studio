@@ -1,21 +1,24 @@
 /**
- * ui-spec.md §공통 StatusDot / ui-rules.md 1: 9~10px 사각, 실행 중만 발광.
- * 색만으로 상태를 구분하지 않으므로 항상 `StatusLabel`과 함께 쓴다(단독 사용 금지는 이용부에서 지킨다).
- * 모서리 3px 전용 토큰 `--radius-dot` (D-022, ADR-21).
+ * ui-spec.md §공통 StatusDot (`_base.css:67-71`): 8×8 사각형 `rounded-dot`. 작업 중(`running`)만 발광,
+ * 권한 대기 주황, 대기 `idle`, 장애 `danger`. 색만으로 구분하지 않으므로 글자와 함께 쓴다(`StatusLabel`·칩).
+ * `data-*` 같은 속성은 그대로 넘긴다.
  */
+import type { HTMLAttributes } from "react";
 import type { Status } from "../../api/types";
 
-const DOT_CLASSES: Record<Status, string> = {
-  running: "bg-running shadow-glow",
+export type DotStatus = Status | "danger";
+
+const DOT_CLASSES: Record<DotStatus, string> = {
+  running: "bg-live shadow-glow",
   waiting: "bg-waiting",
   idle: "bg-idle",
+  danger: "bg-danger",
 };
 
-export function StatusDot({ status }: { status: Status }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`inline-block w-2.5 h-2.5 rounded-dot ${DOT_CLASSES[status]}`}
-    />
-  );
+interface StatusDotProps extends Omit<HTMLAttributes<HTMLSpanElement>, "className"> {
+  status: DotStatus;
+}
+
+export function StatusDot({ status, ...rest }: StatusDotProps) {
+  return <span aria-hidden="true" {...rest} className={`inline-block size-dot shrink-0 rounded-dot ${DOT_CLASSES[status]}`} />;
 }

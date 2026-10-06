@@ -39,7 +39,7 @@ export function SaveConflictDialog({
   const pending = reloading || overwriting;
 
   return (
-    <Dialog title={SAVE_CONFLICT_TITLE} onClose={onClose}>
+    <Dialog title={SAVE_CONFLICT_TITLE} size="sm" onClose={onClose}>
       <div className="flex flex-col gap-4" data-testid="save-conflict-dialog">
         <h2 className="text-section font-semibold text-text">{SAVE_CONFLICT_TITLE}</h2>
         <p className="text-body text-text-secondary">{saveConflictBody(agentName, formatHms(modifiedAt))}</p>

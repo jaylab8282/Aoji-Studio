@@ -8,6 +8,7 @@
  */
 import type { ReactNode } from "react";
 import { useSnapshotStore } from "../../state/snapshotStore";
+import { Chip } from "../ui/Chip";
 import { Skeleton } from "../ui/Skeleton";
 import { LOCAL_ONLY_TEXT, PROJECT_CHIP_PREFIX } from "../../lib/text";
 
@@ -39,25 +40,22 @@ export function TopBar({ breadcrumb, rightExtra, showProjectChip = false, wf }: 
   );
 }
 
-const CHIP_CLASSES =
-  "block h-chip min-w-0 overflow-hidden rounded-chip bg-selected px-2 font-mono text-aux leading-6 text-ellipsis whitespace-nowrap text-text-mono";
-
 // 본문 밖이라 AppShell 공통 스켈레톤이 덮지 않는다 → 칩 안에 자체 스켈레톤(220×10)을 둔다(ui-spec §공통 로딩 예외, ADR-32).
 function ProjectChip() {
   const { ready, config } = useSnapshotStore();
 
   if (!ready || config === null) {
     return (
-      <div className={CHIP_CLASSES}>
+      <Chip path>
         <Skeleton className="h-2.5 w-55" aria-label="프로젝트 칩 로딩 중" />
-      </div>
+      </Chip>
     );
   }
 
   const text = `${PROJECT_CHIP_PREFIX}${config.hostPath}`;
   return (
-    <div className={CHIP_CLASSES} title={config.hostPath} data-clamp>
+    <Chip path title={config.hostPath} data-clamp>
       {text}
-    </div>
+    </Chip>
   );
 }

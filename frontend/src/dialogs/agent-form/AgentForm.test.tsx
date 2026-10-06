@@ -491,10 +491,10 @@ describe("AgentForm", () => {
     expect(screen.queryByText("작업 중에는 제거할 수 없습니다")).not.toBeInTheDocument();
   });
 
-  it("[ADR-40] 06 폼은 size lg, 06-5·06-6은 md", () => {
+  it("[ADR-71] 06 폼은 size lg, 06-5·06-6은 sm", () => {
     stubFetch({});
     renderAt("/workflows?dialog=agent-new&workflow=개발부서");
-    expect(screen.getByRole("dialog").className).toContain("max-w-3xl");
+    expect(screen.getByRole("dialog").className).toContain("max-w-dialog-lg");
 
     const conflict = render(
       <SaveConflictDialog
@@ -507,7 +507,7 @@ describe("AgentForm", () => {
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getAllByRole("dialog").at(-1)?.className).toContain("max-w-md");
+    expect(screen.getAllByRole("dialog").at(-1)?.className).toContain("max-w-dialog-sm");
     conflict.unmount();
 
     render(
@@ -515,7 +515,7 @@ describe("AgentForm", () => {
         <RemoveAgentDialog agentName="dev-lead" onClose={vi.fn()} />
       </MemoryRouter>,
     );
-    expect(screen.getAllByRole("dialog").at(-1)?.className).toContain("max-w-md");
+    expect(screen.getAllByRole("dialog").at(-1)?.className).toContain("max-w-dialog-sm");
   });
 
   it("[FR-011-AC1][FR-011-AC2] 각주로 파일명 변경·보존 규칙을 알린다", async () => {

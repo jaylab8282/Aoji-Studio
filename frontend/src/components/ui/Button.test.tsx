@@ -12,18 +12,19 @@ const OUTLINE_RESET_CLASSES = [
   `focus-visible:outline-${"none"}`,
 ];
 
-// ui-spec.md §공통 `Button`, conventions.md §7 MUST, ADR-29.
-// 비활성은 variant 표현을 대체하는 여섯 번째 표현이라 variant와 무관하게 모두 같은 모양이다.
+// ui-spec.md §공통 `Button`, ADR-69, conventions.md §7 MUST.
+// 비활성은 variant 표현을 대체하는 표현이라 variant와 무관하게 모두 같은 모양이다.
 
-const ALL_VARIANTS: ButtonVariant[] = ["primary", "terminal", "secondary", "add", "danger"];
+const ALL_VARIANTS: ButtonVariant[] = ["primary", "accent", "secondary", "add", "danger", "terminal"];
 
 // variant 채움 배경·강조 테두리 색 클래스(비활성일 때 하나도 남으면 안 된다).
 const VARIANT_FILL_CLASSES = [
-  "bg-running",
-  "bg-running-soft",
+  "bg-action",
+  "bg-action-soft",
   "bg-soft",
   "bg-danger-soft",
-  "border-running",
+  "border-action",
+  "border-action-border",
   "border-border-strong",
   "border-danger-border",
 ];
@@ -33,133 +34,149 @@ function classesOf(name: string): string[] {
 }
 
 describe("Button", () => {
-  it("[ADR-29] primary·danger·terminal·secondary 비활성이 모두 같은 모양(배경 없음·점선·faint)", () => {
+  it("[NFR-12] variant별 활성 클래스(primary·accent·secondary·add·danger)", () => {
+    const expected: Record<Exclude<ButtonVariant, "terminal">, string[]> = {
+      primary: ["bg-action", "text-on-action", "border", "border-action", "min-h-control-primary", "px-4"],
+      accent: ["bg-action-soft", "text-link", "border", "border-action-border", "min-h-control"],
+      secondary: ["bg-soft", "text-text", "border", "border-border-strong", "min-h-control"],
+      add: ["bg-card", "text-text-muted", "border", "border-border-dashed", "border-dashed"],
+      danger: ["bg-danger-soft", "text-danger", "border", "border-danger-border"],
+    };
+
+    for (const [variant, classes] of Object.entries(expected) as Array<[ButtonVariant, string[]]>) {
+      const { unmount } = render(<Button variant={variant}>실행</Button>);
+      const button = screen.getByRole("button", { name: "실행" });
+      expect(button).toBeEnabled();
+      const shape = classesOf("실행");
+      for (const cls of classes) {
+        expect(shape, `${variant} 활성 모양에 ${cls}`).toContain(cls);
+      }
+      // 모든 활성 버튼은 600 글자와 아이콘 간격 6(gap-1.5), 모서리 control이다. 활성에는 비활성 표현이 섞이지 않는다.
+      expect(shape).toContain("font-semibold");
+      expect(shape).toContain("gap-1.5");
+      expect(shape).toContain("rounded-control");
+      expect(shape).not.toContain("cursor-not-allowed");
+      if (variant !== "add") expect(shape).not.toContain("border-dashed");
+      unmount();
+    }
+  });
+
+  it("[NFR-12] danger size sm도 글자 굵기 600이다(T-R3-09 이월)", () => {
+    render(
+      <Button variant="danger" size="sm">
+        제거
+      </Button>,
+    );
+    expect(classesOf("제거")).toContain("font-semibold");
+  });
+
+  it("[NFR-12] 비활성이면 variant 무관 같은 표현(점선·bg-card·text-muted 400·cursor-not-allowed)", () => {
     const { unmount } = render(
       <>
-        <Button variant="primary" disabledReason="작업 중에는 수정할 수 없습니다">
-          정의 수정
-        </Button>
-        <Button variant="danger" disabledReason="작업 중에는 제거할 수 없습니다">
-          제거
-        </Button>
-        <Button variant="terminal" disabledReason="팀장이 없습니다">
-          팀장 호출
-        </Button>
-        <Button variant="secondary" disabled>
-          가져오기
-        </Button>
+        {ALL_VARIANTS.map((variant) => (
+          <Button key={variant} variant={variant} disabled>
+            {variant}
+          </Button>
+        ))}
       </>,
     );
 
-    const shapes = ["정의 수정", "제거", "팀장 호출", "가져오기"].map((name) =>
-      [...classesOf(name)].sort().join(" "),
+    // 높이·안 여백은 크기 규칙(primary 36·16)이라 비교에서 뺀다 — `_base.css` `.btn.off`도 크기를 덮어쓰지 않는다.
+    const shapes = ALL_VARIANTS.map((variant) =>
+      classesOf(variant)
+        .filter((cls) => !/^(min-h-|px-)/.test(cls))
+        .sort()
+        .join(" "),
     );
-
-    // 네 variant의 비활성 모양이 완전히 같다.
     expect(new Set(shapes).size).toBe(1);
 
-    // 그 한 가지 모양은 배경 없음 + 점선 `border/dashed` + `text/faint`다.
-    const shape = classesOf("정의 수정");
-    expect(shape).toContain("bg-transparent");
-    expect(shape).toContain("border-dashed");
-    expect(shape).toContain("border-border-dashed");
-    expect(shape).toContain("text-text-faint");
+    const shape = classesOf("primary");
+    for (const cls of ["bg-card", "border-dashed", "border-border-dashed", "text-text-muted", "font-normal", "cursor-not-allowed"]) {
+      expect(shape).toContain(cls);
+    }
+    expect(shape).not.toContain("font-semibold");
     for (const fill of VARIANT_FILL_CLASSES) {
       expect(shape).not.toContain(fill);
     }
-
+    for (const variant of ALL_VARIANTS) {
+      expect(screen.getByRole("button", { name: variant })).toBeDisabled();
+      expect(screen.getByRole("button", { name: variant })).toHaveAttribute("aria-disabled", "true");
+    }
     unmount();
   });
 
-  it("[ADR-29] 비활성 `add` variant도 같은 모양이고, 모든 variant 비활성에 disabled 속성이 붙는다", () => {
+  it("[NFR-12] `disabledReason`이면 비활성 + 이유 줄 렌더 + 버튼 aria-describedby가 이유 줄을 가리킨다", () => {
     render(
-      <Button variant="add" disabledReason="쓰기 권한이 없습니다">
+      <Button variant="primary" disabledReason="쓰기 권한 없음">
         워크플로우 추가
       </Button>,
     );
 
     const button = screen.getByRole("button", { name: "워크플로우 추가" });
     expect(button).toBeDisabled();
-    expect(button).toHaveAttribute("aria-disabled", "true");
-    const shape = button.className.split(/\s+/);
-    expect(shape).toContain("bg-transparent");
-    expect(shape).toContain("border-dashed");
-    expect(shape).toContain("border-border-dashed");
-    expect(shape).toContain("text-text-faint");
-    expect(screen.getByText("쓰기 권한이 없습니다")).toBeInTheDocument();
+    const reason = screen.getByText("쓰기 권한 없음");
+    expect(reason.id).not.toBe("");
+    expect(button).toHaveAttribute("aria-describedby", reason.id);
+    expect(button).toHaveAccessibleDescription("쓰기 권한 없음");
+    expect(reason).toHaveClass("text-aux", "text-text-muted");
   });
 
-  it("[ADR-29] 활성 variant 모양은 그대로다(variant별 채움 배경·테두리 유지)", () => {
-    const expected: Record<ButtonVariant, string[]> = {
-      primary: ["bg-running", "text-on-accent", "border", "border-running"],
-      terminal: ["bg-running-soft", "text-running", "border", "border-running"],
-      secondary: ["bg-soft", "text-text", "border", "border-border-strong"],
-      add: ["bg-transparent", "text-text", "border", "border-border-dashed", "border-dashed"],
-      danger: ["bg-danger-soft", "text-danger", "border", "border-danger-border"],
-    };
+  it("[NFR-12] 이유 줄이 없으면 aria-describedby도 없고, 호출부 aria-describedby는 이유 id와 합쳐진다", () => {
+    const { unmount } = render(<Button variant="secondary">열기</Button>);
+    expect(screen.getByRole("button", { name: "열기" })).not.toHaveAttribute("aria-describedby");
+    unmount();
 
-    for (const variant of ALL_VARIANTS) {
-      const { unmount } = render(<Button variant={variant}>실행</Button>);
-      const button = screen.getByRole("button", { name: "실행" });
-      expect(button).toBeEnabled();
-      const shape = button.className.split(/\s+/);
-      for (const cls of expected[variant]) {
-        expect(shape, `${variant} 활성 모양에 ${cls}`).toContain(cls);
-      }
-      // 활성에는 비활성 표현(faint 글자)이 섞이지 않는다.
-      if (variant !== "add") {
-        expect(shape).not.toContain("border-dashed");
-      }
-      expect(shape).not.toContain("text-text-faint");
-      unmount();
-    }
+    render(
+      <>
+        <span id="outer">바깥 설명</span>
+        <Button variant="secondary" aria-describedby="outer" disabledReason="팀장 없음">
+          열기
+        </Button>
+      </>,
+    );
+    const ids = screen.getByRole("button", { name: "열기" }).getAttribute("aria-describedby")?.split(" ");
+    expect(ids).toHaveLength(2);
+    expect(ids?.[0]).toBe("outer");
   });
 
-  it("[ADR-46 A] secondary·add → hover:bg-selected, primary·terminal·danger → hover:brightness-110, 다섯 variant 모두 focus-visible에 같은 표현", () => {
-    // ui-spec.md §공통 "마우스 hover·키보드 `:focus-visible` 표현" 표 ①·③.
-    const expression: Record<ButtonVariant, string> = {
-      primary: "brightness-110",
-      terminal: "brightness-110",
-      secondary: "bg-selected",
-      add: "bg-selected",
-      danger: "brightness-110",
+  it("[NFR-12] hover 클래스: primary hover:bg-action-hover, secondary hover:border-border-dashed, add hover:text-text, accent·danger는 없음", () => {
+    const hover: Record<string, string[]> = {
+      primary: ["hover:bg-action-hover"],
+      secondary: ["hover:border-border-dashed"],
+      add: ["hover:text-text"],
+      accent: [],
+      danger: [],
     };
 
-    for (const variant of ALL_VARIANTS) {
-      const { unmount } = render(<Button variant={variant}>실행</Button>);
+    for (const [variant, classes] of Object.entries(hover)) {
+      const { unmount } = render(<Button variant={variant as ButtonVariant}>실행</Button>);
       const shape = classesOf("실행");
-      const mine = expression[variant];
-      const other = mine === "bg-selected" ? "brightness-110" : "bg-selected";
-
-      expect(shape, `${variant} hover`).toContain(`hover:${mine}`);
-      // `:focus-visible`은 hover와 같은 표현이다(키보드 사용자도 같은 피드백을 받는다).
-      expect(shape, `${variant} focus-visible`).toContain(`focus-visible:${mine}`);
-      // 다른 부류의 표현이 섞이지 않는다(값 규칙 고정: 새 색·임의값 없음).
-      expect(shape).not.toContain(`hover:${other}`);
-      expect(shape).not.toContain(`focus-visible:${other}`);
-      expect(shape.filter((cls) => cls.includes("["))).toEqual([]);
-      // 브라우저 기본 포커스 표시를 지우지 않는다.
+      expect(shape.filter((cls) => cls.startsWith("hover:")).sort(), variant).toEqual(
+        variant === "primary" ? [...classes, "hover:border-action-hover"].sort() : [...classes].sort(),
+      );
+      // 초점 링은 base.css `:focus-visible` 한 곳이 그린다 — 지우는 클래스도, 별도 focus 클래스도 없다.
       expect(shape.filter((cls) => OUTLINE_RESET_CLASSES.includes(cls))).toEqual([]);
-      // 색 전환은 `transition-colors duration-200`만 쓴다.
-      expect(shape).toContain("transition-colors");
-      expect(shape).toContain("duration-200");
+      expect(shape.filter((cls) => cls.includes("["))).toEqual([]);
       unmount();
     }
   });
 
-  it("[ADR-46 A] disabled·disabledReason → hover·focus 클래스 없음", () => {
-    // 눌리지 않는 컨트롤의 피드백은 거짓 정보다(ui-rules.md 2).
+  it("[NFR-12] 색 전환은 120ms(`duration-120`)이고 위치·크기 전환은 없다", () => {
+    render(<Button variant="secondary">실행</Button>);
+    const shape = classesOf("실행");
+    expect(shape).toContain("transition-colors");
+    expect(shape).toContain("duration-120");
+    expect(shape.filter((cls) => /^(transition-(all|transform)|duration-(200|300))$/.test(cls))).toEqual([]);
+  });
+
+  it("[NFR-12] 비활성(disabled·disabledReason)에는 hover 클래스가 없다", () => {
     for (const variant of ALL_VARIANTS) {
       const byDisabled = render(
         <Button variant={variant} disabled>
           실행
         </Button>,
       );
-      expect(screen.getByRole("button", { name: "실행" })).toBeDisabled();
-      expect(
-        classesOf("실행").filter((cls) => cls.startsWith("hover:") || cls.startsWith("focus-visible:")),
-        `${variant} disabled`,
-      ).toEqual([]);
+      expect(classesOf("실행").filter((cls) => cls.startsWith("hover:")), `${variant} disabled`).toEqual([]);
       byDisabled.unmount();
 
       const byReason = render(
@@ -167,12 +184,36 @@ describe("Button", () => {
           실행
         </Button>,
       );
-      expect(screen.getByRole("button", { name: "실행" })).toBeDisabled();
-      expect(
-        classesOf("실행").filter((cls) => cls.startsWith("hover:") || cls.startsWith("focus-visible:")),
-        `${variant} disabledReason`,
-      ).toEqual([]);
+      expect(classesOf("실행").filter((cls) => cls.startsWith("hover:")), `${variant} reason`).toEqual([]);
       byReason.unmount();
     }
+  });
+
+  it("[NFR-12] size icon은 34×34(size-control)이고 aria-label을 갖는다", () => {
+    render(
+      <Button variant="secondary" size="icon" aria-label="확대">
+        +
+      </Button>,
+    );
+    const shape = classesOf("확대");
+    expect(shape).toContain("size-control");
+    expect(shape).toContain("p-0");
+  });
+
+  it("이행용: 옛 variant `terminal`은 accent 표현으로, 옛 size `sm`·`md`는 default 높이로 그린다", () => {
+    render(
+      <>
+        <Button variant="terminal" size="sm">
+          터미널
+        </Button>
+        <Button variant="secondary" size="md">
+          보조
+        </Button>
+      </>,
+    );
+    const terminal = classesOf("터미널");
+    expect(terminal).toContain("bg-action-soft");
+    expect(terminal).toContain("min-h-control");
+    expect(classesOf("보조")).toContain("min-h-control");
   });
 });

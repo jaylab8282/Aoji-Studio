@@ -101,8 +101,9 @@ describe("Sidebar", () => {
       const a = link(label);
       expect(a, label).toHaveAttribute("aria-label", label);
       expect(a, label).toHaveAttribute("title", label);
-      expect(a, label).toHaveAttribute("data-tip", label);
-      expect(a, label).toHaveClass("rail-tip", "rail:w-rail-item-w", "rail:min-h-rail-item-h", "rail:justify-center");
+      expect(a.parentElement, label).toHaveAttribute("data-tip", label);
+      expect(a.parentElement, label).toHaveClass("tooltip-rail");
+      expect(a, label).toHaveClass("rail:w-rail-item-w", "rail:min-h-rail-item-h", "rail:justify-center");
       expect(within(a).getByText(label), icon).toHaveClass("rail:hidden");
       expect(a.querySelector("svg"), icon).toHaveAttribute("aria-hidden", "true");
       expect(a.querySelector("svg"), icon).toHaveAttribute("width", "18");

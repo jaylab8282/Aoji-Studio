@@ -1,84 +1,84 @@
 /**
- * ui-spec.md §공통 Button, ui-rules.md 2, conventions.md §3 Frontend MUST.
- * variant는 이 다섯 가지만 쓴다. `disabledReason`이 있으면 비활성 + 옆에 이유를 보여준다.
- * 비활성은 variant 표현을 대체한다(ADR-29): 채움 배경·강조 테두리 색을 지우고 점선 + faint 글자만 남겨
- * variant와 무관하게 모두 같은 모양이 된다. 활성 variant 모양은 그대로다.
- * 라벨과 이유는 한 줄로 고정한다(`whitespace-nowrap`): 좁은 칸에서도 글자가 쪼개지지 않고
- * 클릭 영역 높이(`h-btn`/`h-btn-sm`)가 유지된다(ui-rules.md 2, NFR-12 최소 34px).
+ * ui-spec.md §공통 Button, ADR-69, ADR-71, conventions.md §7 MUST.
+ * variant = `primary`·`accent`·`secondary`·`add`·`danger`, size = `default`(높이 34)·`icon`(34×34).
+ * 비활성은 variant 표현을 대체한다: 어느 variant든 점선 `border/dashed` + `bg/card` + `text/muted` 400 +
+ * `cursor-not-allowed`. 이유 줄(`disabledReason`)이 있으면 버튼 옆에 그리고 `aria-describedby`로 잇는다.
+ * hover는 `_base.css`와 같다 — secondary 테두리 `border/dashed`, primary `action/primary-hover`, add 글자 `text/primary`.
+ * 키보드 초점 링은 `styles/base.css`의 `:focus-visible` 한 곳이 그린다. 색 전환은 `motion/fast` 120ms.
  * 눌러도 아무 일도 없는 활성 버튼을 만들지 않는다.
+ *
+ * 이행용 옛 이름(T-R3-20에서 지운다): variant `terminal` → `accent`, size `md`·`sm` → `default`.
  */
+import { useId } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-export type ButtonVariant = "primary" | "terminal" | "secondary" | "add" | "danger";
-export type ButtonSize = "md" | "sm";
+export type ButtonVariant = "primary" | "accent" | "secondary" | "add" | "danger" | "terminal";
+export type ButtonSize = "default" | "icon" | "md" | "sm";
 
-interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className"> {
+type ButtonBaseProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className"> & {
   variant: ButtonVariant;
-  size?: ButtonSize;
   disabledReason?: string;
   /** 버튼을 가로로 늘린다(ui-spec.md SCR-03 패널 `정의 수정` "primary, 넓게"). */
   fullWidth?: boolean;
   children: ReactNode;
-}
+};
 
-// ui-rules.md 2 표: 주 동작 / 터미널 열기 / 보조 / 추가 / 위험
-// 여섯 번째 행 `비활성`은 variant 위에 덧칠하는 상태가 아니라 variant 표현을 대체한다(ADR-29).
-const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: "bg-running text-on-accent border border-running",
-  terminal: "bg-running-soft text-running border border-running",
-  secondary: "bg-soft text-text border border-border-strong",
-  add: "bg-transparent text-text border border-border-dashed border-dashed",
+type ButtonProps =
+  | (ButtonBaseProps & { size?: Exclude<ButtonSize, "icon"> })
+  | (ButtonBaseProps & { size: "icon"; "aria-label": string });
+
+const VARIANT_CLASSES: Record<Exclude<ButtonVariant, "terminal">, string> = {
+  primary: "bg-action text-on-action border border-action hover:bg-action-hover hover:border-action-hover",
+  accent: "bg-action-soft text-link border border-action-border",
+  secondary: "bg-soft text-text border border-border-strong hover:border-border-dashed",
+  add: "bg-card text-text-muted border border-border-dashed border-dashed hover:text-text",
   danger: "bg-danger-soft text-danger border border-danger-border",
 };
 
-// ADR-29 / conventions.md §7 MUST: 비활성은 variant와 무관하게 한 가지 모양이다.
-// 채움 배경과 강조 테두리 색을 지우고 점선(`border/dashed`) + `text/faint` 글자만 남긴다.
-// 새 색·새 토큰을 만들지 않는다.
 const DISABLED_CLASSES =
-  "bg-transparent text-text-faint border border-border-dashed border-dashed opacity-100";
+  "bg-card text-text-muted font-normal border border-border-dashed border-dashed cursor-not-allowed";
 
-// ADR-46 A / conventions.md §7 MUST: hover·`:focus-visible` 표현은 variant별로 두 가지뿐이다.
-// 어두운 표면(`secondary`·`add`)은 배경 토큰을 `bg/selected`로 바꾸고, 상태 색 채움
-// (`primary`·`terminal`·`danger`)은 색 토큰을 교체하지 않고 `brightness-110` 한 단계만 준다.
-// `:focus-visible`에는 hover와 같은 표현을 쓰고 브라우저 기본 포커스 표시를 지우지 않는다.
-// 비활성에는 이 클래스를 붙이지 않는다 — 눌리지 않는 컨트롤의 피드백은 거짓 정보다(ui-rules.md 2).
-const VARIANT_HOVER_CLASSES: Record<ButtonVariant, string> = {
-  primary: "hover:brightness-110 focus-visible:brightness-110",
-  terminal: "hover:brightness-110 focus-visible:brightness-110",
-  secondary: "hover:bg-selected focus-visible:bg-selected",
-  add: "hover:bg-selected focus-visible:bg-selected",
-  danger: "hover:brightness-110 focus-visible:brightness-110",
-};
+function resolveVariant(variant: ButtonVariant): Exclude<ButtonVariant, "terminal"> {
+  return variant === "terminal" ? "accent" : variant;
+}
 
-const SIZE_CLASSES: Record<ButtonSize, string> = {
-  md: "h-btn px-4",
-  sm: "h-btn-sm px-3",
-};
+function sizeClasses(size: ButtonSize, variant: Exclude<ButtonVariant, "terminal">): string {
+  if (size === "icon") return "size-control p-0";
+  return variant === "primary" ? "min-h-control-primary px-4" : "min-h-control px-3";
+}
 
-export function Button({
-  variant,
-  size = "md",
-  disabledReason,
-  fullWidth = false,
-  disabled,
-  children,
-  ...rest
-}: ButtonProps) {
+export function Button(props: ButtonProps) {
+  const {
+    variant,
+    size = "default",
+    disabledReason,
+    fullWidth = false,
+    disabled,
+    children,
+    "aria-describedby": ariaDescribedBy,
+    ...rest
+  } = props;
+  const reasonId = useId();
+  const resolved = resolveVariant(variant);
   const isDisabled = Boolean(disabled) || Boolean(disabledReason);
+  const describedBy = [ariaDescribedBy, disabledReason ? reasonId : undefined].filter(Boolean).join(" ");
 
   return (
     <span className={`items-center gap-2 ${fullWidth ? "flex w-full" : "inline-flex"}`}>
       <button
         type="button"
+        {...rest}
         disabled={isDisabled}
         aria-disabled={isDisabled}
-        className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-control text-body font-medium transition-colors duration-200 ${fullWidth ? "flex-1" : ""} ${isDisabled ? DISABLED_CLASSES : `${VARIANT_CLASSES[variant]} ${VARIANT_HOVER_CLASSES[variant]}`} ${SIZE_CLASSES[size]}`}
-        {...rest}
+        aria-describedby={describedBy === "" ? undefined : describedBy}
+        className={`inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-control text-body transition-colors duration-120 ease-standard ${fullWidth ? "flex-1" : ""} ${isDisabled ? DISABLED_CLASSES : `font-semibold ${VARIANT_CLASSES[resolved]}`} ${sizeClasses(size, resolved)}`}
       >
         {children}
       </button>
       {disabledReason ? (
-        <span className="whitespace-nowrap text-aux text-text-faint">{disabledReason}</span>
+        <span id={reasonId} className="text-aux text-text-muted whitespace-nowrap">
+          {disabledReason}
+        </span>
       ) : null}
     </span>
   );

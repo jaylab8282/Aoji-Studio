@@ -11,6 +11,7 @@
 import { NavLink } from "react-router-dom";
 import { CollectorStatus } from "./CollectorStatus";
 import { Icon, type IconName } from "../ui/Icon";
+import { Tooltip } from "../ui/Tooltip";
 import {
   APP_TAGLINE,
   APP_WORDMARK,
@@ -27,7 +28,7 @@ const TABS: Array<{ to: string; label: string; icon: IconName; end: boolean }> =
 ];
 
 const NAV_BASE =
-  "rail-tip flex min-h-control items-center gap-3 rounded-control px-3 transition-colors duration-120 ease-standard rail:min-h-rail-item-h rail:w-rail-item-w rail:justify-center rail:p-0";
+  "relative flex min-h-control items-center gap-3 rounded-control px-3 transition-colors duration-120 ease-standard rail:min-h-rail-item-h rail:w-rail-item-w rail:justify-center rail:p-0";
 
 export function Sidebar() {
   return (
@@ -61,35 +62,35 @@ export function Sidebar() {
       </div>
       <nav data-wf="NAV-2" className="grid gap-1 rail:justify-items-center">
         {TABS.map((tab) => (
-          <NavLink
-            key={tab.to}
-            to={tab.to}
-            end={tab.end}
-            aria-label={tab.label}
-            title={tab.label}
-            data-tip={tab.label}
-            className={({ isActive }) =>
-              `${NAV_BASE} ${
-                isActive
-                  ? "bg-selected font-semibold text-text"
-                  : "text-text-secondary hover:bg-soft hover:text-text focus-visible:bg-soft focus-visible:text-text"
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                {isActive ? (
-                  <span
-                    aria-hidden="true"
-                    data-testid="nav-current-bar"
-                    className="absolute top-2 bottom-2 -left-3 w-0.5 rounded-dot bg-brand-blue rail:-left-2.5"
-                  />
-                ) : null}
-                <Icon name={tab.icon} size="md" className={isActive ? "text-link" : undefined} />
-                <span className="rail:hidden">{tab.label}</span>
-              </>
-            )}
-          </NavLink>
+          <Tooltip key={tab.to} bubble="rail" content={tab.label} className="block">
+            <NavLink
+              to={tab.to}
+              end={tab.end}
+              aria-label={tab.label}
+              title={tab.label}
+              className={({ isActive }) =>
+                `${NAV_BASE} ${
+                  isActive
+                    ? "bg-selected font-semibold text-text"
+                    : "text-text-secondary hover:bg-soft hover:text-text focus-visible:bg-soft focus-visible:text-text"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {isActive ? (
+                    <span
+                      aria-hidden="true"
+                      data-testid="nav-current-bar"
+                      className="absolute top-2 bottom-2 -left-3 w-0.5 rounded-dot bg-brand-blue rail:-left-2.5"
+                    />
+                  ) : null}
+                  <Icon name={tab.icon} size="md" className={isActive ? "text-link" : undefined} />
+                  <span className="rail:hidden">{tab.label}</span>
+                </>
+              )}
+            </NavLink>
+          </Tooltip>
         ))}
       </nav>
       <CollectorStatus />

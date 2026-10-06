@@ -35,16 +35,14 @@ const IMPLEMENTATION_SOURCES: ReadonlyArray<readonly [string, string]> = SOURCES
 
 /**
  * hover·`:focus-visible` 클래스를 가질 수 있는 파일 전수(conventions.md §7 MUST, ADR-46 A, ADR-49):
- * 공용 컴포넌트 6개 + 화면 전용 클릭 영역 3곳(01 대표 카드, 02 책상 칸, 03 오피스 칸) + ④ 링크 1곳(03 브레드크럼).
+ * 공용 컴포넌트 3개(`Sidebar`·`Button`·`Link` — 입력 4종은 ADR-69로 hover가 없어졌다) + 화면 전용 클릭 영역 3곳(01 대표 카드,
+ * 02 책상 칸, 03 오피스 칸) + ④ 링크 1곳(03 브레드크럼).
  * 05-R 목록 행(`ImportAgentTable.tsx`)은 행에 클릭 동작이 없어 목록에서 빠졌다(ADR-49 1).
  */
 const HOVER_FOCUS_FILES: ReadonlyArray<string> = [
   "src/components/common/Sidebar.tsx",
   "src/components/ui/Button.tsx",
-  "src/components/ui/SearchInput.tsx",
-  "src/components/ui/Select.tsx",
-  "src/components/ui/TextArea.tsx",
-  "src/components/ui/TextInput.tsx",
+  "src/components/ui/Link.tsx",
   "src/screens/home/FeaturedWorkflows.tsx",
   "src/screens/workflow-detail/Breadcrumb.tsx",
   "src/screens/workflow-detail/Office.tsx",
@@ -188,14 +186,14 @@ describe("정적 단언", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("[ADR-46 A][ADR-49] hover:·focus-visible: 클래스는 공용 컴포넌트 6개 + 화면 전용 클릭 영역 3곳 + ④ 링크 1곳(03 브레드크럼)에만 있다", () => {
+  it("[ADR-46 A][ADR-49] hover:·focus-visible: 클래스는 공용 컴포넌트 3개 + 화면 전용 클릭 영역 3곳 + ④ 링크 1곳(03 브레드크럼)에만 있다", () => {
     const files = IMPLEMENTATION_SOURCES.filter(([, text]) => /hover:|focus-visible:/.test(text)).map(
       ([path]) => path,
     );
     expect([...files].sort()).toEqual([...HOVER_FOCUS_FILES].sort());
     // 05-R 목록 행은 행에 클릭 동작이 없어 목록에서 빠졌다(ADR-49 1).
     expect(HOVER_FOCUS_FILES).not.toContain("src/dialogs/import-agents/ImportAgentTable.tsx");
-    expect(HOVER_FOCUS_FILES).toHaveLength(10);
+    expect(HOVER_FOCUS_FILES).toHaveLength(7);
   });
 
   it("[ADR-49] 화면 전용 클릭 영역 3곳의 hover 값이 bg-selected로 고정되고 같은 표현이 focus-visible:에도 있다", () => {

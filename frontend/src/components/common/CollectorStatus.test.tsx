@@ -100,7 +100,9 @@ describe("CollectorStatus", () => {
     expect(mini).toBe(rail());
     expect(mini).toHaveAttribute("tabindex", "0");
     expect(mini).toHaveAttribute("title", "수집 상태 · hook 설정됨 · 마지막 수신 10:20:30");
-    expect(mini).toHaveAttribute("data-tip", "수집 상태 · hook 설정됨 · 마지막 수신 10:20:30");
+    // 툴팁은 래퍼(`Tooltip bubble="rail"`)가 `data-tip`으로 그린다(D-125).
+    expect(mini.parentElement).toHaveAttribute("data-tip", "수집 상태 · hook 설정됨 · 마지막 수신 10:20:30");
+    expect(mini.parentElement).toHaveClass("tooltip-rail");
   });
 
   it("[FR-003-AC6] 미설정이면 레일 label이 '수집 상태 · hook 설정 안 됨 · 마지막 수신 없음'", () => {
@@ -117,7 +119,8 @@ describe("CollectorStatus", () => {
     render(<CollectorStatus />);
 
     expect(box()).toHaveClass("rail:hidden");
-    expect(rail()).toHaveClass("hidden", "rail:grid", "w-rail-item-w");
+    expect(rail().parentElement).toHaveClass("hidden", "rail:block");
+    expect(rail()).toHaveClass("grid", "w-rail-item-w");
   });
 
   it("[FR-003-AC6] ready false → 칩·시각 스켈레톤, 레일은 '수집' + 스켈레톤(칩 글자·시각 없음)", () => {

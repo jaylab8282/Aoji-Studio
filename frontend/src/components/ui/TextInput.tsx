@@ -1,19 +1,22 @@
 /**
- * 공용 한 줄 텍스트 입력. `Field`와 함께 05·06 팝업에서 쓴다.
- * 색·글꼴·간격은 theme.css 토큰만 쓴다(conventions.md §7). 크기는 보조 컨트롤 높이(`h-btn-sm`)로
- * `SearchInput`·`Select`와 맞춘다(NFR-12 최소 34px).
- * hover·`:focus-visible`은 `bg-selected`(ADR-46 A ① 어두운 표면). 브라우저 기본 포커스 표시는 지우지 않는다.
+ * ui-spec.md §공통 TextInput (`_base.css:98-104`): 높이 34, `bg-soft`·`border-strong`·`rounded-control`, placeholder `text-muted`,
+ * 키보드 초점 링은 `styles/base.css` `:focus-visible`(ADR-69). 에러는 `aria-invalid`일 때 테두리 `danger`(`Field`가 속성을 넣는다).
+ * 입력은 클릭 동작이 없어 hover 표현을 주지 않는다. `mono`는 값이 경로·이름일 때 고정폭.
  */
 import type { InputHTMLAttributes } from "react";
 
-type TextInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "className">;
+interface TextInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "className"> {
+  mono?: boolean;
+}
 
-export function TextInput(props: TextInputProps) {
+export function TextInput({ mono = false, ...rest }: TextInputProps) {
   return (
     <input
       type="text"
-      {...props}
-      className="h-btn-sm w-full rounded-control border border-border-strong bg-soft px-3 text-body text-text hover:bg-selected focus-visible:bg-selected"
+      {...rest}
+      className={`min-h-control w-full min-w-0 rounded-control border border-border-strong bg-soft px-3 text-body placeholder:text-text-muted aria-invalid:border-danger disabled:cursor-not-allowed disabled:text-text-muted ${
+        mono ? "font-mono text-text-mono" : "text-text"
+      }`}
     />
   );
 }

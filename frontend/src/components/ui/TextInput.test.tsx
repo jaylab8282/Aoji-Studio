@@ -2,30 +2,28 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { TextInput } from "./TextInput";
 
-/**
- * 브라우저 기본 포커스 표시를 지우는 클래스(ADR-46 A 금지 대상).
- * 문자열을 조립해 Tailwind가 이 테스트 문구에서 죽은 유틸리티를 만들지 않게 한다.
- */
-const OUTLINE_RESET_CLASSES = [
-  `outline-${"none"}`,
-  `focus:outline-${"none"}`,
-  `focus-visible:outline-${"none"}`,
-];
+/** 브라우저 기본 포커스 표시를 지우는 클래스(ADR-46 A 금지 대상). 문자열을 조립해 죽은 유틸리티 생성을 막는다. */
+const OUTLINE_RESET_CLASSES = [`outline-${"none"}`, `focus:outline-${"none"}`, `focus-visible:outline-${"none"}`];
 
-// ui-spec.md §공통 "마우스 hover·키보드 `:focus-visible` 표현" 표 ①(ADR-46 A):
-// 입력창은 `bg-soft` 표면이라 hover·focus에서 `bg-selected`로 한 단계 밝아진다.
-
+// ui-spec.md §공통 Field/TextInput, ADR-69: 입력은 hover가 없고 초점 링은 base.css `:focus-visible`이 그린다.
 describe("TextInput", () => {
-  it("[ADR-46 A] hover:bg-selected (focus-visible도 같은 표현, 기본 포커스 표시 유지)", () => {
+  it("[NFR-12] 높이 34·bg-soft·border-strong·rounded-control·placeholder muted, hover·임의값·outline 제거 없음", () => {
     render(<TextInput aria-label="이름 (name)" />);
 
-    const input = screen.getByRole("textbox", { name: "이름 (name)" });
-    const classes = input.className.split(/\s+/).filter(Boolean);
-
-    expect(classes).toContain("bg-soft");
-    expect(classes).toContain("hover:bg-selected");
-    expect(classes).toContain("focus-visible:bg-selected");
+    const classes = screen.getByRole("textbox", { name: "이름 (name)" }).className.split(/\s+/).filter(Boolean);
+    for (const cls of ["min-h-control", "bg-soft", "border-border-strong", "rounded-control", "placeholder:text-text-muted"]) {
+      expect(classes).toContain(cls);
+    }
+    expect(classes.filter((cls) => cls.startsWith("hover:") || cls.startsWith("focus-visible:"))).toEqual([]);
     expect(classes.filter((cls) => cls.includes("["))).toEqual([]);
     expect(classes.filter((cls) => OUTLINE_RESET_CLASSES.includes(cls))).toEqual([]);
+  });
+
+  it("[NFR-12] aria-invalid이면 테두리 danger 변형을 갖고, mono는 고정폭 글자", () => {
+    render(<TextInput aria-label="이름" aria-invalid mono />);
+
+    const input = screen.getByRole("textbox", { name: "이름" });
+    expect(input).toBeInvalid();
+    expect(input).toHaveClass("aria-invalid:border-danger", "font-mono", "text-text-mono");
   });
 });

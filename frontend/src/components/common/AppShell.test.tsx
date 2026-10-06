@@ -112,8 +112,8 @@ describe("AppShell", () => {
     expect(screen.getByRole("status", { name: "" })).toBeInTheDocument();
   });
 
-  it("[NFR-12] 레일 툴팁(rail-tip): rail:에서만, hover·focus-visible 때 data-tip 글자를 오른쪽 16px에 보인다", () => {
-    const rule = /@utility rail-tip \{([\s\S]*?)\n\}/.exec(layoutCss)?.[1] ?? "";
+  it("[NFR-12] 레일 툴팁(tooltip-rail): rail:에서만, hover·focus 때 data-tip 글자를 오른쪽 16px에 보인다", () => {
+    const rule = /@utility tooltip-rail \{([\s\S]*?)\n\}/.exec(layoutCss)?.[1] ?? "";
 
     expect(rule).toContain("content: attr(data-tip);");
     expect(rule).toMatch(/&::after \{[^}]*display: none;/);
@@ -121,7 +121,7 @@ describe("AppShell", () => {
     expect(rule).toContain("background: var(--color-selected);");
     expect(rule).toContain("border: 1px solid var(--color-border-strong);");
     expect(rule).toMatch(
-      /@media \(orientation: portrait\), \(max-width: 1199px\) \{\s*&:hover::after,\s*&:focus-visible::after \{\s*display: block;/,
+      /@media \(orientation: portrait\), \(max-width: 1199px\) \{\s*&:hover::after,\s*&:focus-within::after \{\s*display: block;/,
     );
   });
 });

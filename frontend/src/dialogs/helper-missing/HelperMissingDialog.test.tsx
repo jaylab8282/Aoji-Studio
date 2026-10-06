@@ -22,6 +22,9 @@ describe("HelperMissingDialog (ui-spec §공통)", () => {
       "명령 복사",
       "닫기",
     ]);
+    // 새 표현(ADR-71): Dialog sm 480 + 명령 줄은 CommandLine(bg-inset 고정폭).
+    expect(screen.getByRole("dialog")).toHaveClass("max-w-dialog-sm");
+    expect(screen.getByText(COMMAND)).toHaveClass("bg-inset", "font-mono");
   });
 
   it("[FR-013-E1] `명령 복사`가 팝업에 실린 명령을 그대로 복사한다", async () => {
