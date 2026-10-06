@@ -8,9 +8,12 @@ import { fileURLToPath } from "node:url";
 
 import { DATA_DIR_NAME, scanFixtureProject } from "../lib/fixtureFormat.mjs";
 
-const LEGACY_DATA_DIR = DATA_DIR_NAME.replace("aoji", "jay"); // LEGACY v1.0.x 데이터 폴더 이름(부재 확인용, 리터럴 없이 파생)
-assert.match(LEGACY_DATA_DIR, /^\.jay.*studio$/);
-assert.notEqual(LEGACY_DATA_DIR, DATA_DIR_NAME);
+const OLD_DATA_DIR = DATA_DIR_NAME.replace("aoji", "jay"); // 옛 데이터 폴더 이름(부재 확인용, 리터럴 없이 파생)
+assert.match(OLD_DATA_DIR, /^\.jay.*studio$/);
+assert.notEqual(OLD_DATA_DIR, DATA_DIR_NAME);
+
+/** 옛 이름 미지원 fixture(E2E-17 spec이 직접 다룬다). 표준 fixture 형식 검사에서 이름으로 뺀다. */
+const OLD_NAME_FIXTURE = "project-old-name";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = path.join(__dirname, "..", "..", "fixtures");
@@ -55,12 +58,12 @@ function assertHookSettingsJson(projectName, expectedUrl) {
 
 test("[fixtures][ADR-55][NFR-10] 표준 fixture에는 옛 데이터 폴더가 0개이고, 구성 파일이 있는 fixture는 .aojistudio를 쓴다", () => {
   const standard = readdirSync(FIXTURES_DIR, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && !e.name.startsWith("project-legacy-"))
+    .filter((e) => e.isDirectory() && e.name !== OLD_NAME_FIXTURE)
     .map((e) => e.name);
   assert.ok(standard.length >= 7, `표준 fixture ${standard.length}개`);
   for (const name of standard) {
     assert.equal(
-      existsSync(path.join(fixture(name), LEGACY_DATA_DIR)), // LEGACY 데이터 폴더 부재 확인
+      existsSync(path.join(fixture(name), OLD_DATA_DIR)), // 옛 데이터 폴더 부재 확인
       false,
       `${name}에 옛 데이터 폴더가 있다`,
     );

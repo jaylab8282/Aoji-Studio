@@ -7,7 +7,7 @@ import path from "node:path";
 const NAME_PATTERN = /^[a-z0-9-]+$/;
 const DELIMITER = "---";
 const SCHEMA_VERSION = 1;
-/** 표준 fixture의 데이터 폴더 이름(architecture.md §8.4.1). legacy fixture는 호출 쪽이 이름을 넘긴다. */
+/** fixture의 데이터 폴더 이름(architecture.md §8.4.1). */
 export const DATA_DIR_NAME = ".aojistudio";
 
 /** UTF-8 엄격 디코딩. 잘못된 바이트가 있으면 던진다(architecture.md §6.1). */
@@ -231,10 +231,10 @@ export function parseWorkflowConfigFile(buffer, stem, validAgentNames) {
  * fixture 프로젝트 폴더 하나를 스캔한다(architecture.md §6.1·§6.2 전체). E2E·backend와 달리
  * 파일시스템만 읽고 아무것도 쓰지 않는다(conventions.md §1 MUST — fixture는 읽기만).
  */
-export function scanFixtureProject(projectDir, dataDirName = DATA_DIR_NAME) {
+export function scanFixtureProject(projectDir) {
   const agentsDir = path.join(projectDir, ".claude", "agents");
   const skillsDir = path.join(projectDir, ".claude", "skills");
-  const teamsDir = path.join(projectDir, dataDirName, "teams");
+  const teamsDir = path.join(projectDir, DATA_DIR_NAME, "teams");
 
   const agentsDirMissing = !isDirectory(agentsDir);
   const agentFormatErrors = [];

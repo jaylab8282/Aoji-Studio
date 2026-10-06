@@ -21,7 +21,7 @@ services:
     ports:
       - "127.0.0.1:4185:4180"
     volumes:
-      - ${E2E_FIXTURE_DIR:?E2E_FIXTURE_DIR를 지정하세요}:/workspace:${E2E_MOUNT_MODE:-rw}
+      - ${E2E_FIXTURE_DIR:?E2E_FIXTURE_DIR를 지정하세요}:/workspace
       - aojistudio-e2e-data:/data
 
 # 볼륨에 name:을 고정하지 않는다 — down -v가 -p 접두 볼륨만 지우게 한다(D-109).

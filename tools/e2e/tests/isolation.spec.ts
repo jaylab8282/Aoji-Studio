@@ -28,16 +28,13 @@ const HARNESS_FILES = [
   "globalTeardown.ts",
   "playwright.config.ts",
   "compose.e2e.yaml",
-  "compose.e2e-legacy-env.yaml",
   join("lib", "e2e-state.ts"),
   join("lib", "harness-utils.ts"),
-  join("lib", "legacy-fixture.ts"),
   join("lib", "other-origin-server.mjs"),
   join("lib", "replay.ts"),
   join("scripts", "check-compose-build.sh"),
-  join("scripts", "check-compose-env.sh"),
+  join("scripts", "check-old-env.sh"),
   join("scripts", "check-port.sh"),
-  join("scripts", "check-volume-migration.sh"),
   join("scripts", "run-e2e.sh"),
   join("tests", "ui-helpers.ts"),
 ];
@@ -51,11 +48,8 @@ const SOURCE_EXTENSIONS = [".ts", ".mjs", ".yaml", ".yml", ".sh"];
 const FORBIDDEN_PATH_PATTERNS = [
   /\/Users\//,
   /Desktop\/AojiStudio/,
-  /Desktop\/JayStudio/, // LEGACY v1.0.x
   /AojiStudio\/\.claude/,
   /AojiStudio\/\.aojistudio/,
-  /JayStudio\/\.claude/, // LEGACY v1.0.x
-  /JayStudio\/\.jaystudio/, // LEGACY v1.0.x
   /homedir\(/,
   /process\.env\.HOME/,
   /(^|[^\w])~\//,
@@ -152,13 +146,13 @@ for (const relativePath of HARNESS_FILES) {
   test(`[FR-003-AC1][격리] ${relativePath}의 .claude·.aojistudio 참조는 fixture 경로와 함께만 나온다`, () => {
     const suspicious = readHarnessCode(relativePath)
       .split("\n")
-      .filter((line) => /\.claude|\.aojistudio|\.jaystudio/.test(line)) // LEGACY v1.0.x
+      .filter((line) => /\.claude|\.aojistudio/.test(line))
       .filter((line) => !FIXTURE_CONTEXT.test(line));
     expect(suspicious).toEqual([]);
   });
 }
 
-for (const composeFile of ["compose.e2e.yaml", "compose.e2e-legacy-env.yaml"]) {
+for (const composeFile of ["compose.e2e.yaml"]) {
   test(`[FR-003-AC1][격리] ${composeFile}의 호스트 마운트는 \${E2E_FIXTURE_DIR} 하나뿐이고 docker.sock이 없다`, () => {
     const code = readHarnessCode(composeFile);
 

@@ -141,7 +141,13 @@ async function expectNoDryRunLine(baseline: number): Promise<void> {
 
 // ── 도우미 `POST /open` 요청 관찰 (FR-013-AC6) ─────────────────────────────────────────────
 
-type OpenRequestLog = { origin: string; path: string; body: string | null };
+type OpenRequestLog = {
+  origin: string;
+  path: string;
+  body: string | null;
+  /** 요청이 실제로 실은 헤더 이름(소문자, 값은 보관하지 않는다). */
+  headerNames: Promise<string[]>;
+};
 
 /** 브라우저가 도우미로 보낸 `POST /open` 요청을 모은다(가로채지 않고 관찰만 한다). */
 function recordOpenRequests(page: Page, helperUrl: string): OpenRequestLog[] {
@@ -149,7 +155,12 @@ function recordOpenRequests(page: Page, helperUrl: string): OpenRequestLog[] {
   page.on("request", (request: Request) => {
     const url = new URL(request.url());
     if (url.origin === helperUrl && request.method() === "POST") {
-      logs.push({ origin: url.origin, path: url.pathname, body: request.postData() });
+      logs.push({
+        origin: url.origin,
+        path: url.pathname,
+        body: request.postData(),
+        headerNames: request.allHeaders().then((headers) => Object.keys(headers)),
+      });
     }
   });
   return logs;
@@ -163,6 +174,21 @@ function onlyOpenRequest(logs: OpenRequestLog[]): OpenRequestLog {
     throw new Error("도우미 /open 요청 기록이 없습니다");
   }
   return log;
+}
+
+/**
+ * FR-013-AC6: 브라우저가 도우미로 보낸 토큰 헤더 이름은 `X-AojiStudio-Helper-Token` 하나다(NFR-13 ④ 이름 단언).
+ * 이름만 본다 — 값은 읽지도 남기지도 않는다.
+ */
+async function expectHelperTokenHeaderName(log: OpenRequestLog): Promise<void> {
+  const names = await log.headerNames;
+  expect(names, "도우미 요청에 X-AojiStudio-Helper-Token 헤더가 없습니다").toContain(
+    "x-aojistudio-helper-token",
+  );
+  expect(
+    names.filter((name) => name.endsWith("-helper-token")),
+    "도우미 토큰 헤더가 새 이름 하나가 아닙니다",
+  ).toEqual(["x-aojistudio-helper-token"]);
 }
 
 /**
@@ -312,6 +338,7 @@ test('[FR-013-AC1][FR-013-AC6][E2E-09] 02 `Claude 열기 · 기본 세션` → �
   const openRequest = onlyOpenRequest(openRequests);
   expect(openRequest.origin).toBe(state.helperUrl);
   expectOpenRequestBody(openRequest, { target: "default" }, state.fixtureDir);
+  await expectHelperTokenHeaderName(openRequest);
 });
 
 test('[FR-013-AC2][FR-013-AC6][E2E-09] 03 `팀장 호출 · 터미널 열기` → {target:"lead",leadName}만 보내고 stdout에 `--agent <lead>`가 붙은 명령이 남는다', async ({
@@ -336,6 +363,7 @@ test('[FR-013-AC2][FR-013-AC6][E2E-09] 03 `팀장 호출 · 터미널 열기` �
   const openRequest = onlyOpenRequest(openRequests);
   expect(openRequest.origin).toBe(state.helperUrl);
   expectOpenRequestBody(openRequest, { target: "lead", leadName: DEV_LEAD }, state.fixtureDir);
+  await expectHelperTokenHeaderName(openRequest);
 });
 
 test("[FR-013-AC4][E2E-09] 팀장 없는 워크플로우의 03 → `팀장 호출 · 터미널 열기` 비활성 + `팀장 없음`, 도우미 호출 0건", async ({

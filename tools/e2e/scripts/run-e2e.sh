@@ -11,10 +11,6 @@
 # 실패 조사: E2E_KEEP_UP=1을 붙이면 컨테이너·도우미를 남긴다(조사 후 직접 정리해야 한다).
 set -euo pipefail
 
-# 셸에 미리 export된 값이 표준 배치를 호환 배치로 바꿔 E2E-R2-06 검사를 면제하지 않게 한다.
-# 호환 배치(10~13)는 아래 run_batch 줄의 명령 접두(E2E_COMPOSE=…·E2E_MOUNT_MODE=…)로만 지정한다.
-unset E2E_COMPOSE E2E_MOUNT_MODE
-
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 RESULTS=()
@@ -48,15 +44,15 @@ run_batch() {
   fi
 }
 
-# 사전 1회 — compose.yaml의 옛 환경 변수 계층·중첩 기본값(E2E-R2-03 보조, ADR-56). 컨테이너를 띄우지 않으므로
+# 사전 1회 — compose.yaml에서 옛 이름 환경 변수가 해석되지 않는지(NFR-13 ②, ADR-62). 컨테이너를 띄우지 않으므로
 # globalSetup 전에 한 번만 돈다. 실패하면 set -e로 바로 멈추고 요약에 FAIL로 남는다.
 echo ""
-echo "===== 사전 — check-compose-env.sh (컨테이너 기동 없음) ====="
-if ./scripts/check-compose-env.sh; then
-  RESULTS+=("PASS  사전 — check-compose-env.sh (옛 env 4경우)")
+echo "===== 사전 — check-old-env.sh (컨테이너 기동 없음) ====="
+if ./scripts/check-old-env.sh; then
+  RESULTS+=("PASS  사전 — check-old-env.sh (옛 env 미해석)")
 else
-  RESULTS+=("FAIL  사전 — check-compose-env.sh (옛 env 4경우)")
-  echo "check-compose-env.sh 실패" >&2
+  RESULTS+=("FAIL  사전 — check-old-env.sh (옛 env 미해석)")
+  echo "check-old-env.sh 실패" >&2
   exit 1
 fi
 
@@ -128,27 +124,12 @@ run_batch "배치 8 — project-showcase (E2E-13 스크린샷 · pitch·이름 �
 run_batch "배치 9 — project-large (E2E-12 줌·미니맵·검색·드롭다운)" project-large \
   tests/e2e-12.spec.ts
 
-# ── 호환 배치 4개 (architecture.md §8.4.3, tasks.md T-R2-10). 표준 배치와 fixture·compose가 달라 따로 돈다.
-# 이 배치들은 옛 이름을 일부러 쓰므로 globalTeardown의 `[legacy]` 0건 검사(E2E-R2-06)를 하지 않는다(E2E 하네스가
-# 배치 종류를 fixture 이름·E2E_COMPOSE로 판정). 각 spec이 `[legacy]` 줄을 직접 단언한다.
+# 배치 10 — project-old-name(옛 이름 데이터 폴더만 있는 fixture). E2E-17: 옛 폴더는 읽지도 옮기지도 않고, 옛 수집 헤더는 401이다
+# (NFR-13 ①③, ADR-62). 옛 토큰 파일은 spec이 임시 복사본에 직접 써 넣는다. 이벤트 0건인 새 컨테이너에서 시작해야
+# 01 실시간 이벤트 행 수(1)가 맞으므로 다른 spec과 합치지 않는다.
+run_batch "배치 10 — project-old-name (E2E-17 옛 이름 미지원)" project-old-name \
+  tests/e2e-17-old-name.spec.ts
 
-# 배치 10 — project-legacy-only(쓰기 가능). 파일 이름 순서가 곧 실행 순서다: R2-02(옛 헤더) → R2-04(이동) → R2-07(shim 도우미).
-run_batch "배치 10 — project-legacy-only (E2E-R2-02 옛 헤더·R2-04 이동·R2-07 옛 도우미 shim)" project-legacy-only \
-  tests/e2e-r2-02-legacy-header.spec.ts \
-  tests/e2e-r2-04-migrate-legacy-only.spec.ts \
-  tests/e2e-r2-07-legacy-helper-shim.spec.ts
-
-# 배치 11 — project-legacy-only를 `:ro`로 마운트(E2E_MOUNT_MODE=ro). 같은 spec 안에서 rw로 다시 띄운다.
-E2E_MOUNT_MODE=ro run_batch "배치 11 — project-legacy-only :ro (E2E-R2-04b 읽기 전용 → rw 재기동)" project-legacy-only \
-  tests/e2e-r2-04b-legacy-read-only.spec.ts
-
-# 배치 12 — project-legacy-both. 옛 폴더·새 폴더가 모두 있어 아무것도 옮기지 않는다.
-run_batch "배치 12 — project-legacy-both (E2E-R2-05 둘 다 있음)" project-legacy-both \
-  tests/e2e-r2-05-migrate-both.spec.ts
-
-# 배치 13 — project-configured + compose.e2e-legacy-env.yaml(환경 변수가 옛 이름뿐인 compose).
-E2E_COMPOSE=legacy-env run_batch "배치 13 — project-configured + 옛 환경 변수 (E2E-R2-03)" project-configured \
-  tests/e2e-r2-03-legacy-env.spec.ts
-
-# E2E-01~15 전부가 위 9개 배치로 끝난다(architecture.md §8.2). 새 시나리오를 넣을 때는 fixture가 같고
+# E2E-01~15와 E2E-17이 위 10개 배치로 끝난다(architecture.md §8.2). 새 시나리오를 넣을 때는 fixture가 같고
 # 서로의 전제를 건드리지 않는 배치에 덧붙이고, 컨테이너 상태를 바꾸는 spec(예: pause)은 단독 배치로 둔다.
+# 모든 배치가 끝날 때마다 globalTeardown이 컨테이너 로그의 옛 호환 경고 0줄을 단언한다(NFR-13 ⑥).

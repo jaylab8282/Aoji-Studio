@@ -10,30 +10,20 @@
 //   - T-FIX-12 span-1 열(4열)에 부모 접미가 붙은 책상을 **나란히 두 개 실제로 놓고** 상태 줄 clamp를
 //     실측한다(ADR-50 B. 투영값이 아니라 실측 — `scenarios/span1-status-clamp.jsonl` 재생)
 //
-// **01 캡처를 보는 리뷰어가 먼저 읽을 것(T-024 Minor 4)**: 01 캡처는 뷰포트 clip 1440×1140이고
-// 01 문서 총 높이는 그보다 큰 1158px이다(T-025 실측). 그래서 사이드바 하단 `수집 상태` 카드 하단
-// 1.75px가 프레임 밖으로 잘린다 — `AppShell`의 `min-h-screen` + `Sidebar`의 `justify-between` 때문이고
-// 표 높이 `h-96`은 ADR-49 3에서 현행 유지로 확정됐다(`ui-spec.md` SCR-01 확정된 차이 1항:
-// "01 문서 총 높이는 대조 대상 아님"). **요소 누락이 아니다** — `수집 상태` 카드와 그 안의
-// `hook 설정됨`은 아래 01 테스트가 DOM으로 직접 단언하고, 실측치는 `captureFrame`이 annotation과
-// 실행 로그에 매 실행마다 남긴다.
-//
 // 재생 줄 ↔ 화면 상태의 근거는 `tools/replay/scenarios/README.md`의 showcase.jsonl 22줄 대응표다.
-// 잘못된 상태를 캡처하면 대조가 무의미하므로 **캡처 전에 대응표대로의 상태를 단언**한다.
+// 잘못된 상태를 보면 단언이 무의미하므로 **대응표대로의 상태를 먼저 단언**한다.
 //
-// 캡처 범위: **뷰포트 clip 한 가지 방식**이다(ADR-46 C, conventions.md §8 MUST). 02·03은 기본 뷰포트
-// 1440×1024로 찍고, 기준 프레임이 기본 뷰포트보다 높은 01만 캡처 직전 뷰포트 높이를 기준 프레임 높이로
-// 바꿨다가 되돌린다. 저장 파일은 `docs/ui/screens/`의 기준 이미지와 **같은 픽셀 크기로 clip**해 리뷰어가
-// 그대로 겹쳐 볼 수 있게 한다. 기준 이미지 크기는 PNG 헤더에서 읽어 대조하므로 이 spec에 크기를 임의로
-// 적지 않는다.
+// T-R3-05: 기준 이미지(`docs/ui/screens/01-home.png` 등)가 디자인 확정본 가져오기 때 삭제돼(final D-F21)
+// `captureFrame` 호출 4곳과 `captureFrame`·`pngSize`·`REFERENCE_DIR` 도우미를 지웠다. 기능 단언은 그대로다.
+// 화면 대조 캡처는 T-R3-21이 새 기준으로 다시 정의한다.
 //
 // 목킹 없음: 실제 컨테이너·실제 재생 도구·실제 fixture 파일만 쓴다(conventions.md §8).
-import { mkdirSync, readFileSync, statSync } from "node:fs";
+import { mkdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { E2E_DIR, PROJECT_ROOT, readE2eState } from "../lib/e2e-state";
+import { E2E_DIR, readE2eState } from "../lib/e2e-state";
 import { SCENARIOS_DIR, replayScenarioLines, scenarioLines } from "../lib/replay";
 import {
   PIXEL_FILL,
@@ -65,9 +55,6 @@ const SHOWCASE_SCENARIO = join(SCENARIOS_DIR, "showcase.jsonl");
 const SPAN1_CLAMP_SCENARIO = join(SCENARIOS_DIR, "span1-status-clamp.jsonl");
 const SPAN1_CLAMP_LINE_COUNT = 8;
 
-/** 사이드바 하단 `CollectorStatus` 카드 제목(lib/text.ts `COLLECTOR_STATUS_TITLE`). 프레임 내부 여부 실측용. */
-const COLLECTOR_CARD_TITLE = "수집 상태";
-
 /**
  * 03 오피스 하단 `동작 매핑` 범례 문구(`docs/ui-spec.md` SCR-03 요소 표 원문 그대로).
  * 03 캡처 프레임보다 아래에 있어 캡처로는 보이지 않으므로 DOM으로 단언한다(T-024 리뷰 Minor 5).
@@ -95,8 +82,6 @@ const SCREENSHOT_DIR = join(E2E_DIR, "screenshots");
  * 같은 폴더를 다시 쓰게 되므로, 이름을 태스크 중립으로 바꾸고 `SCREENSHOT_DIR` 아래로 옮긴다).
  */
 const SPAN1_CLAMP_SCREENSHOT_DIR = join(SCREENSHOT_DIR, "02-span1-clamp");
-/** 확정 기준 이미지 폴더(읽기만 한다). */
-const REFERENCE_DIR = join(PROJECT_ROOT, "docs", "ui", "screens");
 
 /** `project-showcase` fixture 실물 수치. 값이 바뀌면 이 spec의 단언 근거가 깨진다. */
 const AGENT_COUNT = 17;
@@ -153,111 +138,10 @@ function settingsFile(): string {
   return fixturePath(...SETTINGS_FILE_SEGMENTS);
 }
 
-// ── 기준 이미지 크기 (PNG IHDR에서 읽는다. 기준 이미지는 읽기만 하고 수정하지 않는다) ──────────────
-
-interface PixelSize {
-  width: number;
-  height: number;
-}
-
-function pngSize(path: string): PixelSize {
-  const header = readFileSync(path).subarray(0, 24);
-  return { width: header.readUInt32BE(16), height: header.readUInt32BE(20) };
-}
-
 /** 실측 수치를 테스트 주석과 실행 로그에 함께 남긴다(리뷰 보고의 근거가 되는 산출물이다). */
 function logMeasurement(testInfo: { annotations: { type: string; description?: string }[] }, type: string, description: string): void {
   testInfo.annotations.push({ type, description });
   process.stdout.write(`[E2E-13 실측] ${type}: ${description}\n`);
-}
-
-/**
- * 기준 이미지와 같은 픽셀 크기로 잘라 저장한다 — **뷰포트 clip 한 가지 방식**이다
- * (ADR-46 C / conventions.md §8 MUST). 02·03은 기본 뷰포트(1440×1024) 안에서 자르고,
- * 기준 프레임이 기본 뷰포트보다 높은 01만 캡처 직전 뷰포트 높이를 기준 프레임 높이로 바꾼 뒤 되돌린다.
- * `fullPage` 캡처와 "문서 높이 ≥ 프레임 높이" 단언은 쓰지 않는다: 01 실시간 이벤트 표가 고정 높이(`h-96`)라
- * 문서 높이가 콘텐츠에 따라 프레임 높이 아래로 내려갈 수 있고, `AppShell`의 `min-h-screen`이 뷰포트 높이만큼은
- * 보장해 산출물 크기가 콘텐츠와 무관해진다.
- *
- * 뷰포트를 바꿔 찍는 화면(01)에서는 리뷰 판정 근거를 실측해 annotation에 남긴다(T-024 Minor 4):
- * 문서 높이와 사이드바 하단 `수집 상태` 카드가 프레임 안에 들어왔는지.
- */
-async function captureFrame(
-  page: Page,
-  testInfo: { annotations: { type: string; description?: string }[] },
-  options: { fileName: string; referenceFileName: string },
-): Promise<PixelSize> {
-  const viewport = page.viewportSize();
-  expect(viewport, "뷰포트 크기를 읽을 수 없습니다").not.toBeNull();
-  const baseViewport = viewport as PixelSize;
-  // T-FIX-03 m4: 기본 캡처 뷰포트는 기준 캡처와 같은 1440×1024여야 한다(playwright.config.ts에 고정돼 있다).
-  expect(baseViewport.width).toBe(1440);
-  expect(baseViewport.height).toBe(1024);
-
-  const frame = pngSize(join(REFERENCE_DIR, options.referenceFileName));
-  expect(frame.width, "기준 이미지 폭이 1440이 아닙니다").toBe(1440);
-
-  // 기준 프레임이 기본 뷰포트보다 높으면(01) 그 높이로 잠시 바꿔 찍는다.
-  const resized = frame.height > baseViewport.height;
-  if (resized) {
-    await page.setViewportSize({ width: frame.width, height: frame.height });
-  }
-
-  try {
-    const documentHeight = await page.evaluate(() => document.documentElement.scrollHeight);
-    const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
-
-    mkdirSync(SCREENSHOT_DIR, { recursive: true });
-    const path = join(SCREENSHOT_DIR, options.fileName);
-    await page.screenshot({ path, clip: { x: 0, y: 0, width: frame.width, height: frame.height } });
-
-    const saved = pngSize(path);
-    expect(saved).toEqual(frame);
-    expect(statSync(path).size, "캡처 파일이 비었습니다").toBeGreaterThan(0);
-    logMeasurement(
-      testInfo,
-      `캡처 ${options.fileName}`,
-      `${saved.width}×${saved.height}px (기준 ${options.referenceFileName} ${frame.width}×${frame.height}px, ` +
-        `뷰포트 ${frame.width}×${resized ? frame.height : baseViewport.height}, 문서 높이 ${documentHeight}px, ` +
-        `레이아웃 폭 ${clientWidth}px, 뷰포트 clip)`,
-    );
-
-    if (resized) {
-      // T-024 Minor 4 판정 근거: 사이드바 하단 `수집 상태` 카드가 프레임 안에 들어왔는가.
-      //
-      // 현행 사실(2026-09-28 T-025 실측, ADR-49 3에서 현행 유지 확정): 01 문서 높이 1158px >
-      // 프레임 1140px이라 이 카드 하단 약 1.75px이 **프레임 밖으로 잘린다**. 캡처만 보면 카드가
-      // 없어 보일 수 있으나 요소 누락이 아니다 — 바로 아래 `toBeVisible()`이 카드를 DOM으로 단언하고
-      // (01 테스트는 카드 안의 `hook 설정됨`도 단언한다), 잘린 양은 아래 annotation에 수치로 남는다.
-      // 프레임을 문서 높이에 맞추지 않는 이유: `ui-spec.md` SCR-01 확정된 차이 1항이 "01 문서 총
-      // 높이는 대조 대상 아님"으로 확정했고 기준 PNG와 같은 픽셀 크기로 잘라야 겹쳐 볼 수 있다.
-      const collectorCard = sidebar(page).getByText(COLLECTOR_CARD_TITLE, { exact: true }).locator("..");
-      await expect(collectorCard).toBeVisible();
-      const box = await collectorCard.boundingBox();
-      expect(box, "`수집 상태` 카드 상자를 읽을 수 없습니다").not.toBeNull();
-      const { y, height } = box as { y: number; height: number };
-      const bottom = round2(y + height);
-      const insideFrame = y >= 0 && bottom <= frame.height;
-      logMeasurement(
-        testInfo,
-        `캡처 ${options.fileName} 사이드바 수집 상태 카드`,
-        `top ${round2(y)}px · bottom ${bottom}px · 프레임 높이 ${frame.height}px → ` +
-          `${
-            insideFrame
-              ? "프레임 안"
-              : `프레임 밖 ${round2(bottom - frame.height)}px(T-024 Minor 4 잔존 · ADR-49 3에서 현행 유지 확정 · ` +
-                "요소 누락이 아니라 DOM 단언으로 검증된다)"
-          }, 문서 높이 ${documentHeight}px ` +
-          `(${documentHeight <= frame.height ? "프레임 높이 이하" : "프레임 높이 초과"})`,
-      );
-    }
-
-    return saved;
-  } finally {
-    if (resized) {
-      await page.setViewportSize(baseViewport);
-    }
-  }
 }
 
 // ── 02 책상 격자 실측 (T-015 m5·m1·m6) ────────────────────────────────────────────
@@ -478,9 +362,9 @@ test.afterAll(() => {
   writeFixtureFile(settingsFile(), originalSettings);
 });
 
-test("[DoD 화면 대조][E2E-13] 01 홈 — showcase 22줄 재생 상태를 단언하고 01-home.png를 남긴다", async ({
+test("[DoD 화면 대조][E2E-13] 01 홈 — showcase 22줄 재생 상태를 단언한다", async ({
   page,
-}, testInfo) => {
+}) => {
   await gotoReady(page, "/");
 
   // hook 설정이 인식됐다(사이드바 탭 + KPI 4).
@@ -519,12 +403,11 @@ test("[DoD 화면 대조][E2E-13] 01 홈 — showcase 22줄 재생 상태를 단
     page.getByText("token·key·password 등 기본 패턴은 ••••••••로 가림", { exact: true }),
   ).toBeVisible();
 
-  await captureFrame(page, testInfo, { fileName: "01-home.png", referenceFileName: "01-home.png" });
 });
 
-test("[DoD 화면 대조][E2E-13] 02 워크플로우 층 뷰 — 로비 2세션·층 4개 상태를 단언하고 02-workflows.png를 남긴다", async ({
+test("[DoD 화면 대조][E2E-13] 02 워크플로우 층 뷰 — 로비 2세션·층 4개 상태를 단언한다", async ({
   page,
-}, testInfo) => {
+}) => {
   await gotoReady(page, "/workflows");
 
   // 요약 줄·범례(fixture 실물 + 재생 결과).
@@ -566,15 +449,11 @@ test("[DoD 화면 대조][E2E-13] 02 워크플로우 층 뷰 — 로비 2세션�
     spriteBox(page, "dev-07").getByText(`작업 중 · 부모 ${"dev-lead"}`, { exact: true }),
   ).toBeVisible();
 
-  await captureFrame(page, testInfo, {
-    fileName: "02-workflows.png",
-    referenceFileName: "02-workflows.png",
-  });
 });
 
-test("[DoD 화면 대조][E2E-13] 03 픽셀 오피스 — 말풍선·부모·작은 캐릭터를 단언하고 03-workflow-detail.png를 남긴다", async ({
+test("[DoD 화면 대조][E2E-13] 03 픽셀 오피스 — 말풍선·부모·작은 캐릭터를 단언한다", async ({
   page,
-}, testInfo) => {
+}) => {
   await gotoReady(page, `/workflows/${DEV_TEAM}`);
 
   // 04-4 배너는 없다(hook 설정됨 + 이벤트 수신 이력 있음).
@@ -628,15 +507,11 @@ test("[DoD 화면 대조][E2E-13] 03 픽셀 오피스 — 말풍선·부모·작
     page.locator("p").filter({ hasText: panelFootnoteTerminal("dev-lead") }),
   ).toBeVisible();
 
-  await captureFrame(page, testInfo, {
-    fileName: "03-workflow-detail.png",
-    referenceFileName: "03-workflow-detail.png",
-  });
 });
 
-test("[DoD 화면 대조][E2E-13][D-032] 03 04-4 변형 — hook 설정을 지운 03을 03-workflow-detail-collector-down.png로 남긴다", async ({
+test("[DoD 화면 대조][E2E-13][D-032] 03 04-4 변형 — hook 설정을 지운 03의 04-4 표시를 단언한다", async ({
   page,
-}, testInfo) => {
+}) => {
   try {
     await gotoReady(page, `/workflows/${DEV_TEAM}`);
     const collectorBanner = page.getByRole("status").filter({ hasText: "hook 이벤트 수신 없음" });
@@ -665,12 +540,6 @@ test("[DoD 화면 대조][E2E-13][D-032] 03 04-4 변형 — hook 설정을 지�
     await expect(panelRowValue(page, "현재 도구")).toHaveText("-");
     // ADR-27 고정 비대상: 헤더 칩은 실제 live 값이라 그대로 `권한 대기 1명`이다.
     await expect(page.getByText(`권한 대기 ${WAITING_COUNT}명`, { exact: true })).toBeVisible();
-
-    await captureFrame(page, testInfo, {
-      fileName: "03-workflow-detail-collector-down.png",
-      // 기준 이미지가 없는 변형 캡처이므로 03 기준 프레임과 같은 범위로 맞춘다(리뷰어가 03과 나란히 본다).
-      referenceFileName: "03-workflow-detail.png",
-    });
   } finally {
     writeFixtureFile(settingsFile(), hookSettingsJson());
   }
