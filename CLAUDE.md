@@ -36,8 +36,7 @@
   - `docker compose down --remove-orphans` (볼륨 유지)
   - 주의: `docker compose down -v`는 이벤트 볼륨 `aojistudio-data`를 지운다. 볼륨 이름이 고정이라 **`-p`만으로는 볼륨이 격리되지 않는다 — 운영 `compose.yaml`의 빌드·기동 확인은 `tools/e2e/scripts/check-compose-build.sh`로 한다**(운영 compose를 `-p`만 바꿔 `up`/`down -v` 하지 않는다).
 - compose 확인 스크립트(운영 볼륨을 건드리지 않는다. x86_64 머신은 `AOJISTUDIO_PLATFORM=linux/amd64`를 앞에 붙인다):
-  - 옛·새 환경 변수 해석: `tools/e2e/scripts/check-compose-env.sh`
-  - 이벤트 볼륨 이관 명령(임시 볼륨 두 개, 이미지 `aojistudio:local`이 먼저 있어야 한다): `tools/e2e/scripts/check-volume-migration.sh`
+  - 옛 이름 환경 변수 거부(컨테이너 기동 없음, NFR-13 ②): `tools/e2e/scripts/check-old-env.sh`
   - 운영 `compose.yaml` 빌드·기동(포트 4186, 임시 볼륨 `aojistudio-r2check-data`): `tools/e2e/scripts/check-compose-build.sh`
 - e2e (공개 포트 `127.0.0.1:4185` — `4190`은 쓰지 않는다: WHATWG Fetch bad port, ADR-45):
   - (사전 1회) `cd tools/e2e && npm install && npx playwright install chromium`

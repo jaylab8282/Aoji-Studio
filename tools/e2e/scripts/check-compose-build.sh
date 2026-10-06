@@ -15,14 +15,14 @@ VOL_PREFIX=aojistudio-r2check-
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
-# 호스트 환경이 섞이지 않게 옛 이름·새 이름을 비운다(플랫폼은 그대로 넘긴다).
-unset JAYSTUDIO_HOST_PATH JAYSTUDIO_PORT JAYSTUDIO_PLATFORM JAYSTUDIO_HELPER_URL AOJISTUDIO_HELPER_URL # LEGACY v1.0.x
+# 호스트 환경이 섞이지 않게 도우미 주소를 비운다(플랫폼은 그대로 넘긴다).
+unset AOJISTUDIO_HELPER_URL
 
 # 삭제 가드: 테스트 접두 볼륨만 지운다. 운영 이름은 거부한다.
 rm_test_volume() {
   local name="$1"
   [[ "$name" == "$VOL_PREFIX"* ]] || { echo "FAIL: 테스트 접두($VOL_PREFIX)가 아니라 삭제를 거부합니다: $name" >&2; return 1; }
-  [[ "$name" != "aojistudio-data" && "$name" != *jaystudio-data ]] || { echo "FAIL: 운영 볼륨 삭제를 거부합니다: $name" >&2; return 1; } # LEGACY v1.0.x
+  [[ "$name" != "aojistudio-data" ]] || { echo "FAIL: 운영 볼륨 삭제를 거부합니다: $name" >&2; return 1; }
   if docker volume inspect "$name" > /dev/null 2>&1; then
     docker volume rm "$name" > /dev/null
     echo "정리: 볼륨 $name 삭제"
@@ -33,7 +33,7 @@ rm_test_volume() {
 prod_snapshot() {
   local n
   while IFS= read -r n; do
-    if [[ "$n" == "aojistudio-data" || "$n" == *jaystudio-data ]]; then # LEGACY v1.0.x
+    if [[ "$n" == "aojistudio-data" ]]; then
       echo "$n=$(docker volume inspect --format '{{.CreatedAt}}' "$n")"
     fi
   done < <(docker volume ls --format '{{.Name}}' | sort)
