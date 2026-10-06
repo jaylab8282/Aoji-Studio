@@ -1,10 +1,9 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Office } from "./Office";
 import { WorkflowDetailScreen } from "./WorkflowDetailScreen";
 import { WorkflowsScreen } from "../workflows/WorkflowsScreen";
-import { screen as screenColor, shirt } from "../../components/pixel/palette";
 import type { AgentDef, AgentLive, Live, Snapshot, ToolRef, UndefinedSubagent, Workflow } from "../../api/types";
 import { snapshotStore } from "../../state/snapshotStore";
 import { agentEventsStore } from "../../state/agentEventsStore";
@@ -75,13 +74,14 @@ function renderOffice(options: { workflow?: Workflow; live?: Live; collectorDown
   );
 }
 
-/** OfficeSprite의 rect 순서(pixel-sprites.md B): 모니터 화면·받침·얼굴·머리카락·몸통(셔츠)·책상·다리2. */
-function spriteFills(container: HTMLElement): { screen: string; shirt: string }[] {
-  return Array.from(container.querySelectorAll("svg[role='img']")).map((svg) => {
-    const rects = svg.querySelectorAll("rect");
+/** 캐릭터 칸(`data-agent-name`)과 그 안 `PixelChar`의 상태(`data-state`)·크기(`data-size`). */
+function chars(container: HTMLElement): { name: string; state: string; size: string }[] {
+  return Array.from(container.querySelectorAll("[data-agent-name]")).map((cell) => {
+    const svg = cell.querySelector("svg[data-testid='pixel-char']");
     return {
-      screen: rects[0]?.getAttribute("fill") ?? "",
-      shirt: rects[4]?.getAttribute("fill") ?? "",
+      name: cell.getAttribute("data-agent-name") ?? "",
+      state: svg?.getAttribute("data-state") ?? "",
+      size: svg?.getAttribute("data-size") ?? "",
     };
   });
 }
@@ -138,9 +138,8 @@ describe("Office", () => {
       workflow: buildWorkflow({ lead: "dev-lead", members: ["dev-03", "dev-01", "dev-02"], rawMemberCount: 4 }),
     });
 
-    const sprites = container.querySelectorAll("svg[role='img']");
-    expect(sprites).toHaveLength(4);
-    expect(Array.from(sprites).map((svg) => svg.getAttribute("aria-label"))).toEqual([
+    expect(container.querySelectorAll("svg[data-testid='pixel-char'][aria-hidden='true']")).toHaveLength(4);
+    expect(chars(container).map((c) => c.name)).toEqual([
       "dev-lead",
       "dev-01",
       "dev-02",
@@ -155,7 +154,7 @@ describe("Office", () => {
       selectedName: null,
     });
 
-    expect(container.querySelectorAll("svg[role='img']")).toHaveLength(0);
+    expect(container.querySelectorAll("svg[data-testid='pixel-char']")).toHaveLength(0);
     expect(screen.getAllByText("빈 자리")).toHaveLength(3);
   });
 
@@ -163,7 +162,7 @@ describe("Office", () => {
     renderOffice({ selectedName: "dev-01" });
 
     const selected = screen.getByRole("button", { pressed: true });
-    expect(within(selected).getByRole("img", { name: "dev-01" })).toBeInTheDocument();
+    expect(selected.querySelector("[data-agent-name='dev-01']")).not.toBeNull();
     expect(selected.className).toContain("border-running");
     expect(selected.className).toContain("bg-running-soft");
   });
@@ -181,11 +180,9 @@ describe("Office", () => {
 
     expect(screen.getByText("타이핑 · Edit")).toBeInTheDocument();
     expect(screen.getByText("권한 요청")).toBeInTheDocument();
-    expect(spriteFills(container)).toEqual([
-      { screen: screenColor.running, shirt: shirt.running },
-      { screen: screenColor.waiting, shirt: shirt.waiting },
-      { screen: screenColor.idle, shirt: shirt.idle },
-    ]);
+    expect(chars(container).map((c) => c.state)).toEqual(["running", "waiting", "idle"]);
+    expect(screen.getByText("타이핑 · Edit")).toHaveAttribute("data-tone", "running");
+    expect(screen.getByText("권한 요청")).toHaveAttribute("data-tone", "waiting");
   });
 
   it("[FR-007-AC3] undefinedSubagents(부모 소속) → 부모 다음 칸 small, '작업 중 · 부모 <name>'", () => {
@@ -196,17 +193,12 @@ describe("Office", () => {
       }),
     });
 
-    const sprites = Array.from(container.querySelectorAll("svg[role='img']"));
-    expect(sprites.map((svg) => svg.getAttribute("aria-label"))).toEqual([
-      "dev-lead",
-      "doc-writer",
-      "dev-01",
-      "dev-02",
+    expect(chars(container)).toEqual([
+      { name: "dev-lead", state: "running", size: "office" },
+      { name: "doc-writer", state: "running", size: "sub" },
+      { name: "dev-01", state: "idle", size: "office" },
+      { name: "dev-02", state: "idle", size: "office" },
     ]);
-    // 작은 캐릭터(48×60)는 부모 칸 바로 다음 칸이고 셔츠는 서브에이전트 색이다.
-    expect(sprites[1]?.getAttribute("width")).toBe("48");
-    expect(sprites[1]?.getAttribute("height")).toBe("60");
-    expect(spriteFills(container)[1]?.shirt).toBe(shirt.sub);
     expect(screen.getByText("작업 중 · 부모 dev-lead")).toBeInTheDocument();
     expect(screen.getByText("읽기 · Grep")).toBeInTheDocument();
   });
@@ -235,7 +227,7 @@ describe("Office", () => {
 
     expect(screen.queryByText("outside-sub")).not.toBeInTheDocument();
     expect(screen.queryByText("lobby-sub")).not.toBeInTheDocument();
-    expect(container.querySelectorAll("svg[role='img']")).toHaveLength(3);
+    expect(container.querySelectorAll("svg[data-testid='pixel-char']")).toHaveLength(3);
   });
 
   it("[FR-007-E1] everReceived false → 04-4 배너 '마지막 수신 없음', 모든 캐릭터 대기색·'대기' 글자", () => {
@@ -246,11 +238,7 @@ describe("Office", () => {
 
     expect(screen.getByText("hook 이벤트 수신 없음 · 마지막 수신 없음")).toBeInTheDocument();
     expect(screen.getByText("Claude Code 미실행 또는 컨테이너 재시작 · 캐릭터는 모두 회색 대기")).toBeInTheDocument();
-    expect(spriteFills(container)).toEqual([
-      { screen: screenColor.idle, shirt: shirt.idle },
-      { screen: screenColor.idle, shirt: shirt.idle },
-      { screen: screenColor.idle, shirt: shirt.idle },
-    ]);
+    expect(chars(container).map((c) => c.state)).toEqual(["idle", "idle", "idle"]);
     // 캐릭터마다 말풍선 `대기` + 상태 글자 `대기`
     expect(screen.getAllByText("대기")).toHaveLength(6);
   });
@@ -277,7 +265,7 @@ describe("Office", () => {
     const { container } = renderDetailScreen();
 
     expect(screen.getByText("hook 이벤트 수신 없음 · 마지막 수신 2026-09-22 10:30")).toBeInTheDocument();
-    expect(spriteFills(container).every((fill) => fill.shirt === shirt.idle)).toBe(true);
+    expect(chars(container).every((c) => c.state === "idle")).toBe(true);
     expect(screen.queryByText("작업 중")).not.toBeInTheDocument();
     expect(screen.queryByText("타이핑 · Edit")).not.toBeInTheDocument();
     expect(screen.queryByText("권한 요청")).not.toBeInTheDocument();
@@ -303,8 +291,9 @@ describe("Office", () => {
 
     // 02 층 책상: live 값 그대로 `작업 중` + running 셔츠색
     expect(screen.getAllByText("작업 중").length).toBeGreaterThan(0);
-    const leadDesk = container.querySelector("svg[aria-label='dev-lead']");
-    expect(leadDesk?.querySelectorAll("rect")[4]?.getAttribute("fill")).toBe(shirt.running);
+    const leadDesk = container.querySelector("[data-agent-name='dev-lead'] svg[data-testid='pixel-char']");
+    expect(leadDesk).toHaveAttribute("data-state", "running");
+    expect(leadDesk).toHaveAttribute("data-size", "desk");
     // 스토어 값(=API 값)도 running 그대로다
     expect(snapshotStore.getSnapshot().live?.agents["dev-lead"]?.status).toBe("running");
   });

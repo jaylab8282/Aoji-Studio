@@ -6,7 +6,6 @@
  * 04-4 표시 고정은 `lib/derive/collectorDown.ts`가 맡는다(conventions.md §3 MUST: 컴포넌트에서 집계·라벨 금지).
  */
 import type { AgentLive, Live, Status, Workflow } from "../../api/types";
-import { OfficeSprite } from "../../components/pixel/OfficeSprite";
 import { actionLabel } from "../../lib/derive/actionLabel";
 import { displayStatus } from "../../lib/derive/collectorDown";
 import { officeSeats, type Seat } from "../../lib/derive/officeSeats";
@@ -23,6 +22,7 @@ import {
   agentStatusWithParent,
 } from "../../lib/text";
 import { CollectorDownBanner } from "./CollectorDownBanner";
+import { SeatFigure } from "./SeatFigure";
 
 const IDLE_STATUS: Status = "idle";
 
@@ -110,7 +110,7 @@ function SeatCell({ seat, live, collectorDown, selectedName, onSelect }: SeatCel
     const status = displayStatus(subagent.status, collectorDown);
     return (
       <div className={`${CELL_CLASSES} border-border bg-card-alt`}>
-        <OfficeSprite
+        <SeatFigure
           small
           name={subagent.agentType}
           status={status}
@@ -133,7 +133,7 @@ function SeatCell({ seat, live, collectorDown, selectedName, onSelect }: SeatCel
       // 비선택 칸의 hover·`:focus-visible`은 `bg-selected`, 선택된 칸에는 hover 표현이 없다(ADR-46 A ①).
       className={`${CELL_CLASSES} ${selected ? "border-running bg-running-soft" : "border-border bg-card-alt hover:bg-selected focus-visible:bg-selected"}`}
     >
-      <OfficeSprite
+      <SeatFigure
         name={seat.name}
         isLead={seat.isLead}
         status={status}

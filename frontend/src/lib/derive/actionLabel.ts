@@ -17,7 +17,7 @@ import {
   typingActionLabel,
 } from "../text";
 
-/** 말풍선 색 계열. 렌더링(채움·회색·테두리)은 `OfficeSprite`가 정한다. */
+/** 말풍선 색 계열. 렌더링(채움·회색·테두리)은 `Bubble`이 정한다. */
 export type ActionTone = Status;
 
 export interface ActionLabelResult {

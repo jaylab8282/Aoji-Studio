@@ -156,3 +156,72 @@
     outline-offset: 2px;
   }
 }
+
+/*
+ * 픽셀 캐릭터 (ui-spec §공통 픽셀 캐릭터, ADR-67, `components/pixel/PixelChar`).
+ * 부위 색은 CSS 변수 `--px-*`가 받고 상태(`pixel-char-running`·`pixel-char-waiting`, 기본 = 대기)가 값을 바꾼다.
+ * 표는 `docs/ui/screens/_base.css:146-150`의 `.ch`·`.ch.live`·`.ch.wait`와 같다(토큰 이름만 코드 이름으로).
+ * 색 변화는 `rect`의 `fill` 200ms(`motion/base`, `ease`)뿐이다. `prefers-reduced-motion`은 base.css가 0ms로 만든다.
+ */
+@utility pixel-char {
+  display: block;
+  flex: none;
+  shape-rendering: crispEdges;
+  --px-frame: var(--color-border-strong);
+  --px-screen: var(--color-soft);
+  --px-code: var(--color-soft);
+  --px-face: var(--color-text-muted);
+  --px-hair: var(--color-border-dashed);
+  --px-shirt: var(--color-idle);
+  --px-desk: var(--color-border-dashed);
+  --px-leg: var(--color-border-strong);
+
+  & rect {
+    transition: fill 200ms var(--ease-standard);
+  }
+  & rect[data-part="frame"] {
+    fill: var(--px-frame);
+  }
+  & rect[data-part="screen"] {
+    fill: var(--px-screen);
+  }
+  & rect[data-part="code"] {
+    fill: var(--px-code);
+  }
+  & rect[data-part="hair"] {
+    fill: var(--px-hair);
+  }
+  & rect[data-part="face"] {
+    fill: var(--px-face);
+  }
+  & rect[data-part="shirt"] {
+    fill: var(--px-shirt);
+  }
+  & rect[data-part="desk"] {
+    fill: var(--px-desk);
+  }
+  & rect[data-part="leg"] {
+    fill: var(--px-leg);
+  }
+}
+
+@utility pixel-char-running {
+  --px-screen: var(--color-live-border);
+  --px-code: var(--color-live);
+  --px-face: var(--color-text-secondary);
+  --px-hair: var(--color-text-faint);
+  --px-shirt: var(--color-live);
+}
+
+@utility pixel-char-waiting {
+  --px-screen: var(--color-waiting-border);
+  --px-code: var(--color-waiting);
+  --px-face: var(--color-text-secondary);
+  --px-hair: var(--color-text-faint);
+  --px-shirt: var(--color-waiting);
+}
+
+/* 03 정의 없는 서브에이전트: 66px 캐릭터가 88px 칸 높이 안에서 위아래 11px 여백(`03-workflow-detail.html:29`). */
+@utility pixel-char-sub {
+  margin: calc((var(--spacing-char-office) - var(--spacing-char-desk)) / 2) 0;
+}

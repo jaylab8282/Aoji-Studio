@@ -213,7 +213,7 @@ async function deskMetrics(page: Page, workflowName: string): Promise<DeskMetric
         }
         return { left, right, width: Math.max(0, right - left) };
       };
-      return [...card.querySelectorAll("svg[role='img']")].map((svg) => {
+      return [...card.querySelectorAll("svg[data-testid='pixel-char']")].map((svg) => {
         const box = svg.getBoundingClientRect();
         const root = svg.parentElement;
         const labelSpan = root?.querySelector("span[title] > span") ?? null;
@@ -223,7 +223,7 @@ async function deskMetrics(page: Page, workflowName: string): Promise<DeskMetric
         const statusSpan = root?.lastElementChild ?? null;
         const statusRect = paintExtent(statusSpan);
         return {
-          name: svg.getAttribute("aria-label") ?? "",
+          name: root?.getAttribute("data-agent-name") ?? "",
           label: labelSpan?.textContent ?? "",
           centerX: box.left + box.width / 2,
           centerY: box.top + box.height / 2,
@@ -467,8 +467,8 @@ test("[DoD 화면 대조][E2E-13] 03 픽셀 오피스 — 말풍선·부모·작
 
   // 오피스 칸 순서: 팀장 첫 자리 → 정의 없는 서브에이전트는 부모 바로 다음 칸(FR-007-AC3, ADR-28).
   const officeNames = await page
-    .locator(".office-grid svg[role='img']")
-    .evaluateAll((elements) => elements.map((element) => element.getAttribute("aria-label") ?? ""));
+    .locator(".office-grid svg[data-testid='pixel-char']")
+    .evaluateAll((elements) => elements.map((element) => element.parentElement?.getAttribute("data-agent-name") ?? ""));
   expect(officeNames).toEqual([
     "dev-lead",
     "Explore",

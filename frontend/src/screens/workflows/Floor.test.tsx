@@ -120,7 +120,7 @@ describe("Floor", () => {
 
     const desk = screen.getByRole("button", { name: /dev-lead/ });
     const classes = desk.className.split(/\s+/).filter(Boolean);
-    // 칸 폭을 받아야 `DeskSprite`의 글자 clamp 기준 폭이 생긴다(conventions.md §7 MUST).
+    // 칸 폭을 받아야 `DeskFigure`의 글자 clamp 기준 폭이 생긴다(conventions.md §7 MUST).
     expect(classes).toContain("w-full");
     expect(classes).toContain("min-w-0");
     // hover·focus 표현은 그대로다(ADR-46 A 회귀 0).

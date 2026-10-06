@@ -122,11 +122,11 @@ async function visibleFloorNames(page: Page): Promise<string[]> {
     .evaluateAll((elements) => elements.map((element) => element.textContent ?? ""));
 }
 
-/** 02 책상 SVG의 `aria-label`(= 에이전트 name) 목록. */
+/** 02 책상 캐릭터 묶음의 `data-agent-name`(= 에이전트 name) 목록. */
 async function visibleDeskNames(page: Page): Promise<string[]> {
   return page
-    .locator("svg[role='img']")
-    .evaluateAll((elements) => elements.map((element) => element.getAttribute("aria-label") ?? ""));
+    .locator("svg[data-testid='pixel-char']")
+    .evaluateAll((elements) => elements.map((element) => element.parentElement?.getAttribute("data-agent-name") ?? ""));
 }
 
 test.describe.configure({ mode: "serial" });

@@ -162,13 +162,13 @@ test.describe("[E2E-06] project-format-errors — 04-6 정의 파일 형식 오�
 
     // FR-002-AC2·AC5·AC6: 오류 파일·깨진 참조는 에이전트 수와 층에서 제외된다.
     await expect(body.getByText("에이전트 2 · 스킬 0 · 워크플로우 3", { exact: true })).toBeVisible();
-    await expect(body.getByRole("img", { name: "no-such-agent", exact: true })).toHaveCount(0);
-    await expect(body.getByRole("img", { name: "duplicate-agent", exact: true })).toHaveCount(0);
+    await expect(body.locator(`[data-agent-name="no-such-agent"]`)).toHaveCount(0);
+    await expect(body.locator(`[data-agent-name="duplicate-agent"]`)).toHaveCount(0);
     // 구성 파일 자체가 깨진 워크플로우는 층에 올리지 않는다(FR-002-AC6).
     await expect(body.getByRole("heading", { level: 3, name: "malformed-json" })).toHaveCount(0);
     await expect(body.getByRole("heading", { level: 3, name: "schema-error" })).toHaveCount(0);
     // 정상 파일은 층에 있다.
-    await expect(body.getByRole("img", { name: "valid-agent", exact: true })).toBeVisible();
+    await expect(body.locator(`[data-agent-name="valid-agent"]`)).toBeVisible();
   });
 
   test("[FR-002-AC3][FR-011-E3][E2E-06] 형식 오류 파일 수정 시도 → 06을 열지 않고 02의 04-6 목록으로 돌아온다", async ({

@@ -1,16 +1,19 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { DeskSprite } from "./DeskSprite";
+import { DeskFigure } from "./DeskFigure";
 
-describe("DeskSprite", () => {
-  it("[FR-006-AC10] SVG viewBox 22×22, 46px, pixel-sprites A 좌표 8개 rect, name·상태 글자 렌더", () => {
-    const { container } = render(<DeskSprite name="dev-lead" status="running" isLead parentLabel={null} />);
+describe("DeskFigure", () => {
+  it("[FR-006-AC10] PixelChar desk(66) rect 12개, name·상태 글자·data-agent-name 렌더", () => {
+    const { container } = render(<DeskFigure name="dev-lead" status="running" isLead parentLabel={null} />);
 
     const svg = container.querySelector("svg");
     expect(svg).toHaveAttribute("viewBox", "0 0 22 22");
-    expect(svg).toHaveAttribute("width", "46");
-    expect(svg).toHaveAttribute("height", "46");
-    expect(container.querySelectorAll("rect")).toHaveLength(8);
+    expect(svg).toHaveAttribute("width", "66");
+    expect(svg).toHaveAttribute("height", "66");
+    expect(svg).toHaveAttribute("data-size", "desk");
+    expect(svg).toHaveAttribute("data-state", "running");
+    expect(container.querySelectorAll("rect")).toHaveLength(12);
+    expect(container.querySelector("[data-agent-name='dev-lead']")).not.toBeNull();
     expect(screen.getByText("dev-lead")).toBeInTheDocument();
     expect(screen.getByText("작업 중")).toBeInTheDocument();
     expect(screen.getByText("팀장")).toBeInTheDocument();
@@ -18,19 +21,19 @@ describe("DeskSprite", () => {
 
   it("[FR-006-AC4] name 12자 초과 → 12자+… 말줄임 + title에 전체 이름", () => {
     const longName = "abcdefghijklmno";
-    const { container } = render(<DeskSprite name={longName} status="idle" isLead={false} parentLabel={null} />);
+    const { container } = render(<DeskFigure name={longName} status="idle" isLead={false} parentLabel={null} />);
 
     expect(screen.getByText("abcdefghijkl…")).toBeInTheDocument();
     expect(container.querySelector(`[title="${longName}"]`)).not.toBeNull();
   });
 
   it("[FR-006-AC1][FR-007-AC3] parentLabel 있으면 상태 글자 뒤 '· 부모 <라벨>'", () => {
-    render(<DeskSprite name="sub-1" status="running" isLead={false} parentLabel="[세션 1]" />);
+    render(<DeskFigure name="sub-1" status="running" isLead={false} parentLabel="[세션 1]" />);
     expect(screen.getByText("작업 중 · 부모 [세션 1]")).toBeInTheDocument();
   });
 
   it("[FR-006-AC10][ADR-50 B] 부모 접미가 있는 상태 줄 — 한 줄 clamp가 걸리고 전체 문구가 title로 나오며 DOM 텍스트는 '작업 중 · 부모 [세션 1]' 그대로", () => {
-    render(<DeskSprite name="sub-1" status="running" isLead={false} parentLabel="[세션 1]" />);
+    render(<DeskFigure name="sub-1" status="running" isLead={false} parentLabel="[세션 1]" />);
 
     // DOM 텍스트는 자르지 않는다 — `agentStatusWithParent()` 결과가 그대로 있어야
     // `e2e-04`·`e2e-13`의 `exact: true` 단언이 통과한다(ADR-50 B).
@@ -49,7 +52,7 @@ describe("DeskSprite", () => {
 
   it("[FR-006-AC10][ADR-50 B] 접미 없는 상태 줄에는 title이 없다 — 책상 안 title 요소는 이름 칩 하나뿐이다", () => {
     const { container } = render(
-      <DeskSprite name="dev-lead" status="running" isLead parentLabel={null} />,
+      <DeskFigure name="dev-lead" status="running" isLead parentLabel={null} />,
     );
 
     const statusLine = screen.getByText("작업 중");
@@ -61,7 +64,7 @@ describe("DeskSprite", () => {
 
   it("[ADR-50 B] 루트가 칸 폭을 받는다 — w-full·min-w-0이 있고 w-fit이 없다", () => {
     const { container } = render(
-      <DeskSprite name="dev-lead" status="running" isLead={false} parentLabel={null} />,
+      <DeskFigure name="dev-lead" status="running" isLead={false} parentLabel={null} />,
     );
 
     const root = container.firstElementChild as HTMLElement;
@@ -75,7 +78,7 @@ describe("DeskSprite", () => {
 
   it("[FR-006-AC4][ADR-50 B] 이름 칩 줄도 칸 폭에서 한 줄 clamp된다 — 12자 말줄임은 ellipsis.ts가 그대로 담당한다", () => {
     const { container } = render(
-      <DeskSprite name="abcdefghijklmno" status="idle" isLead={false} parentLabel={null} />,
+      <DeskFigure name="abcdefghijklmno" status="idle" isLead={false} parentLabel={null} />,
     );
 
     const nameChip = screen.getByText("abcdefghijkl…");

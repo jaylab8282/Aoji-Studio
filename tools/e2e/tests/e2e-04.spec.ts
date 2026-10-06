@@ -52,12 +52,11 @@ const STATE_REFLECT_DEADLINE_MS = 2000;
 const REPLAY_DIAGNOSTIC_TIMEOUT_MS = 10_000;
 
 /**
- * `frontend/src/components/pixel/palette.ts`의 고정 팔레트 값(pixel-sprites.md 공통 색) 중
- * `PIXEL_FILL`(ui-helpers)에 없는 두 값. `waiting`은 ui-spec §공통 토큰 `state/waiting`과 같고,
- * `sub`는 작은 캐릭터(서브에이전트) 셔츠 색이다.
+ * `PIXEL_FILL`(ui-helpers)에 없는 값. `waiting`은 ui-spec §공통 토큰 `state/waiting`(#FFA24D)이고,
+ * 정의 없는 서브에이전트는 별도 셔츠 색 없이 상태 색 규칙을 따른다(FR-007-AC3) — 작업 중이면 `signal/live`.
  */
-const SHIRT_WAITING_FILL = "#FF9A4D";
-const SUB_SHIRT_FILL = "#7FB8A0";
+const SHIRT_WAITING_FILL = "#FFA24D";
+const SUB_SHIRT_FILL = PIXEL_FILL.shirtRunning;
 
 const DEV_TEAM = "dev-team";
 const OPS_TEAM = "ops-team";
@@ -121,12 +120,12 @@ function recentEventItems(page: Page): Locator {
 /** 03 오피스 그리드의 캐릭터 SVG(그리드 배치 순서 그대로). */
 function officeSprites(page: Page): Locator {
   // `Office.tsx`의 오피스 그리드 컨테이너 class. 칸 순서(FR-007-AC3 "부모 다음 칸") 확인에 쓴다.
-  return page.locator(".office-grid svg[role='img']");
+  return page.locator(".office-grid svg[data-testid='pixel-char']");
 }
 
 async function officeSpriteNames(page: Page): Promise<(string | null)[]> {
   return officeSprites(page).evaluateAll((elements) =>
-    elements.map((element) => element.getAttribute("aria-label")),
+    elements.map((element) => element.parentElement?.getAttribute("data-agent-name") ?? null),
   );
 }
 

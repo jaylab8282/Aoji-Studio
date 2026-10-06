@@ -41,18 +41,18 @@ export const REFLECTION_DIAGNOSTIC_TIMEOUT_MS = 10_000;
 export const SETUP_REFLECT_TIMEOUT_MS = 10_000;
 
 /**
- * `frontend/src/components/pixel/palette.ts`의 고정 팔레트 값(pixel-sprites.md 공통 색).
- * `idle`은 ui-spec.md §공통 토큰 `state/idle`(#55627A)과 같은 값이며, 04-4 "캐릭터 모두 대기색"
- * (FR-007-E1) 단언에 쓴다.
+ * 픽셀 캐릭터(`PixelChar`, ADR-67)의 부위 색 기대값. 값은 ui-spec.md §픽셀 캐릭터 표의 토큰이 가리키는
+ * 색이다: 셔츠 `state/idle`(#5E6474)·`signal/live`(#14E7FC), 모니터 화면 대기 `bg/soft`(#1A1D25).
+ * 04-4 "캐릭터 모두 대기색"(FR-007-E1) 단언에도 쓴다.
  */
 export const PIXEL_FILL = {
-  shirtIdle: "#55627A",
-  shirtRunning: "#3DD68C",
-  screenIdle: "#1B2433",
+  shirtIdle: "#5E6474",
+  shirtRunning: "#14E7FC",
+  screenIdle: "#1A1D25",
 } as const;
 
-/** `OfficeSprite`·`DeskSprite`의 rect 순서(두 컴포넌트가 같다): 0 모니터 화면 … 4 몸통(셔츠). */
-const RECT_INDEX = { screen: 0, shirt: 4 } as const;
+/** `PixelChar`가 rect에 다는 부위 이름(`data-part`). fill은 CSS 변수라 속성이 아니라 계산된 스타일로 읽는다. */
+type PixelPart = "frame" | "screen" | "code" | "hair" | "face" | "shirt" | "desk" | "leg";
 
 // ── fixture 파일 (항상 임시 사본 안) ────────────────────────────────────────────────
 
@@ -163,9 +163,12 @@ export function floorName(page: Page, workflowName: string): Locator {
   return page.getByRole("heading", { level: 3, name: workflowName, exact: true });
 }
 
-/** 02 책상 / 03 오피스 캐릭터의 SVG(`role="img"`, `aria-label` = name). */
+/**
+ * 02 책상 / 03 오피스 캐릭터의 SVG(`svg[data-testid="pixel-char"]`). 캐릭터 묶음 루트의
+ * `data-agent-name`이 name(서브에이전트는 agentType)이다. SVG는 `aria-hidden`이라 role로는 찾지 않는다.
+ */
 export function spriteSvg(page: Page, agentName: string): Locator {
-  return page.getByRole("img", { name: agentName, exact: true });
+  return page.locator(`[data-agent-name=${JSON.stringify(agentName)}] > svg[data-testid='pixel-char']`);
 }
 
 /** 캐릭터 묶음(말풍선·name 칩·상태 글자를 함께 담은 래퍼) = SVG의 부모. */
@@ -173,12 +176,30 @@ export function spriteBox(page: Page, agentName: string): Locator {
   return spriteSvg(page, agentName).locator("xpath=..");
 }
 
+/**
+ * 부위 rect의 계산된 fill을 `#RRGGBB`(대문자)로 읽는다. 색 전환(200ms)이 끝난 값을 읽도록
+ * 해당 rect의 진행 중 애니메이션이 끝나기를 기다린 뒤 읽는다.
+ */
+async function pixelPartFill(page: Page, agentName: string, part: PixelPart): Promise<string | null> {
+  return spriteSvg(page, agentName)
+    .locator(`rect[data-part='${part}']`)
+    .evaluate(async (rect) => {
+      await Promise.all(rect.getAnimations().map((animation) => animation.finished.catch(() => undefined)));
+      const match = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(getComputedStyle(rect).fill);
+      if (match === null) return null;
+      return `#${[match[1], match[2], match[3]]
+        .map((channel) => Number(channel).toString(16).padStart(2, "0"))
+        .join("")
+        .toUpperCase()}`;
+    });
+}
+
 export function spriteShirtFill(page: Page, agentName: string): Promise<string | null> {
-  return spriteSvg(page, agentName).locator("rect").nth(RECT_INDEX.shirt).getAttribute("fill");
+  return pixelPartFill(page, agentName, "shirt");
 }
 
 export function spriteScreenFill(page: Page, agentName: string): Promise<string | null> {
-  return spriteSvg(page, agentName).locator("rect").nth(RECT_INDEX.screen).getAttribute("fill");
+  return pixelPartFill(page, agentName, "screen");
 }
 
 /** 03 선택 패널(`Panel.tsx`)의 값 행: `<dt>라벨</dt><dd>값</dd>`에서 값 쪽. */

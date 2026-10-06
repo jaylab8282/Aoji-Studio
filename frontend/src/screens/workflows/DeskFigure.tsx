@@ -1,6 +1,6 @@
 /**
- * ui-spec.md §공통 DeskSprite (A, 22×22 → 46px). pixel-sprites.md "A. 층 뷰용" 좌표 8칸 그대로.
- * FR-006-AC1(팀장 배지)·AC4(12자 초과 말줄임 + title 전체)·AC10.
+ * ui-spec.md SCR-02 책상 안쪽: 팀장 배지 + `PixelChar desk`(66) + name + 상태 줄 (ADR-67).
+ * FR-006-AC1(팀장 배지)·AC4(12자 초과 말줄임 + title 전체)·AC10. 배치 자체는 T-R3-13 몫이라 그대로 둔다.
  *
  * 루트는 그리드 칸 폭을 받고(`w-full min-w-0` — `w-fit` 금지) 이름 칩 줄과 상태 글자 줄은 각자
  * CSS 한 줄 clamp(`w-full min-w-0 truncate`)로 칸 폭에서 자른다. 부모 접미(`· 부모 <라벨>`)가 붙은 상태 줄은
@@ -12,11 +12,8 @@
 import type { Status } from "../../api/types";
 import { agentStatusWithParent, LEAD_BADGE_TEXT } from "../../lib/text";
 import { ellipsis } from "../../lib/format/ellipsis";
-import { Tooltip } from "../ui/Tooltip";
-import { desk, hair, legs, monitorBack, screen, shirt, skin } from "./palette";
-
-const GRID_SIZE = 22;
-const RENDER_SIZE = 46;
+import { PixelChar } from "../../components/pixel/PixelChar";
+import { Tooltip } from "../../components/ui/Tooltip";
 
 const STATUS_TEXT_CLASS: Record<Status, string> = {
   running: "text-running",
@@ -24,18 +21,18 @@ const STATUS_TEXT_CLASS: Record<Status, string> = {
   idle: "text-text-faint",
 };
 
-interface DeskSpriteProps {
+interface DeskFigureProps {
   name: string;
   status: Status;
   isLead: boolean;
   parentLabel: string | null;
 }
 
-export function DeskSprite({ name, status, isLead, parentLabel }: DeskSpriteProps) {
+export function DeskFigure({ name, status, isLead, parentLabel }: DeskFigureProps) {
   const statusText = agentStatusWithParent(status, parentLabel);
 
   return (
-    <div className="relative flex w-full min-w-0 flex-col items-center gap-1">
+    <div data-agent-name={name} className="relative flex w-full min-w-0 flex-col items-center gap-1">
       {/*
         팀장 배지는 루트(= 그리드 칸 폭)를 기준으로 왼쪽 위에 붙는다. 루트가 `w-fit`에서 `w-full`이 되면서
         (ADR-50 B) 배지 기준이 칸 왼쪽 끝으로 바뀌어 **왼쪽으로 이동**한다 — 실측 span-1(74.84px 열)에서
@@ -48,31 +45,7 @@ export function DeskSprite({ name, status, isLead, parentLabel }: DeskSpriteProp
           {LEAD_BADGE_TEXT}
         </span>
       ) : null}
-      <svg
-        viewBox={`0 0 ${GRID_SIZE} ${GRID_SIZE}`}
-        width={RENDER_SIZE}
-        height={RENDER_SIZE}
-        role="img"
-        aria-label={name}
-        style={{ shapeRendering: "crispEdges", imageRendering: "pixelated" }}
-      >
-        {/* 모니터 화면 */}
-        <rect x={1} y={2} width={10} height={7} fill={screen[status]} />
-        {/* 모니터 받침 */}
-        <rect x={5} y={9} width={2} height={2} fill={monitorBack} />
-        {/* 머리 */}
-        <rect x={12} y={3} width={6} height={2} fill={hair} />
-        {/* 얼굴 */}
-        <rect x={12} y={5} width={6} height={4} fill={skin} />
-        {/* 몸통(셔츠) */}
-        <rect x={11} y={9} width={8} height={6} fill={shirt[status]} />
-        {/* 책상 상판 */}
-        <rect x={0} y={13} width={22} height={3} fill={desk} />
-        {/* 다리 1 */}
-        <rect x={12} y={16} width={2} height={5} fill={legs} />
-        {/* 다리 2 */}
-        <rect x={16} y={16} width={2} height={5} fill={legs} />
-      </svg>
+      <PixelChar status={status} size="desk" />
       {/*
         이름 칩 줄. clamp는 **줄 요소인 이 블록**에 건다 — `Tooltip`이 만드는 `<span>`은 inline이라
         `overflow` clamp가 걸리지 않고(실측: 클래스를 안쪽 span에 두면 `nowrap`만 먹어 13자 이름이

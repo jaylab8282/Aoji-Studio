@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkflowDetailScreen } from "./WorkflowDetailScreen";
@@ -85,7 +85,7 @@ describe("WorkflowDetailScreen", () => {
     renderDetail();
 
     const selected = screen.getByRole("button", { pressed: true });
-    expect(within(selected).getByRole("img", { name: "dev-lead" })).toBeInTheDocument();
+    expect(selected.querySelector("[data-agent-name='dev-lead']")).not.toBeNull();
     await waitFor(() => expect(screen.getByText("최근 이벤트 없음")).toBeInTheDocument());
   });
 
@@ -95,7 +95,7 @@ describe("WorkflowDetailScreen", () => {
     renderDetail();
 
     const selected = screen.getByRole("button", { pressed: true });
-    expect(within(selected).getByRole("img", { name: "dev-01" })).toBeInTheDocument();
+    expect(selected.querySelector("[data-agent-name='dev-01']")).not.toBeNull();
     await waitFor(() => expect(screen.getByText("최근 이벤트 없음")).toBeInTheDocument());
   });
 
@@ -105,7 +105,7 @@ describe("WorkflowDetailScreen", () => {
     renderDetail("/workflows/개발부서?agent=dev-02");
 
     const selected = screen.getByRole("button", { pressed: true });
-    expect(within(selected).getByRole("img", { name: "dev-02" })).toBeInTheDocument();
+    expect(selected.querySelector("[data-agent-name='dev-02']")).not.toBeNull();
     await waitFor(() => expect(screen.getByText("최근 이벤트 없음")).toBeInTheDocument());
   });
 
@@ -115,7 +115,7 @@ describe("WorkflowDetailScreen", () => {
     const { router } = renderDetail();
     await waitFor(() => expect(screen.getByText("최근 이벤트 없음")).toBeInTheDocument());
 
-    const cell = screen.getByRole("img", { name: "dev-01" }).closest("button");
+    const cell = document.querySelector("[data-agent-name='dev-01']")?.closest("button") ?? null;
     expect(cell).not.toBeNull();
     fireEvent.click(cell as HTMLButtonElement);
 
