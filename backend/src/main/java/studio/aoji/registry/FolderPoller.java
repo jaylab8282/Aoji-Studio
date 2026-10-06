@@ -73,7 +73,7 @@ public class FolderPoller {
         lastSnapshot = captureSnapshot();
     }
 
-    @Scheduled(fixedDelayString = "${aojistudio.poll-interval-ms:1000}")
+    @Scheduled(fixedDelayString = "#{@appProperties.pollIntervalMs}")
     void poll() {
         try {
             Map<String, FileStat> snapshot = captureSnapshot();

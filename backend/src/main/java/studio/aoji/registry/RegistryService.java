@@ -102,8 +102,7 @@ public class RegistryService {
 
         AgentsScanResult agentsScan = projectFolderScanner.scanAgents(mountRoot, pathGuard);
         int skillCount = projectFolderScanner.scanSkills(mountRoot);
-        // 읽기 전용 마운트에서 옛 폴더를 읽기 전용으로 쓰는 모드(ADR-55 A-RO)는 항상 쓰기 불가다.
-        boolean writable = !dataDirectory.legacyReadOnly() && projectFolderScanner.checkWritable(mountRoot);
+        boolean writable = projectFolderScanner.checkWritable(mountRoot);
 
         Set<String> validAgentNames = agentsScan.validAgents().stream()
                 .map(parsed -> parsed.definition().name())

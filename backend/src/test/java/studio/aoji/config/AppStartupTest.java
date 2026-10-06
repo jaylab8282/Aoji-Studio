@@ -3,6 +3,15 @@ package studio.aoji.config;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.core.Ordered;
+import org.springframework.core.env.SystemEnvironmentPropertySource;
+import studio.aoji.AojiStudioApplication;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -74,6 +83,77 @@ class AppStartupTest {
                         "aojistudio.host-path=/Users/jaybee/Desktop/AojiStudio",
                         "aojistudio.public-port=4180")
                 .run(context -> assertThat(context).hasNotFailed());
+    }
+
+    /** 환경 변수 소스(SystemEnvironmentPropertySource)에 값을 넣어 SpringApplication을 직접 기동한다. */
+    private ConfigurableApplicationContext start(Map<String, Object> fakeEnv, String... profiles) {
+        return new SpringApplicationBuilder(AojiStudioApplication.class)
+                .listeners(new FakeEnvListener(fakeEnv))
+                .profiles(profiles)
+                .run(
+                        "--server.port=0",
+                        "--spring.main.banner-mode=off",
+                        "--aojistudio.host-path=/Users/jaybee/Desktop/AojiStudio",
+                        "--aojistudio.public-port=4995",
+                        "--aojistudio.mount-path=" + mountRoot,
+                        "--aojistudio.data-path=" + dataDir,
+                        "--spring.datasource.url=jdbc:sqlite:" + dataDir.resolve("events.db"));
+    }
+
+    @TempDir
+    Path mountRoot;
+
+    @Test
+    @DisplayName("[NFR-05][ADR-47] dev 프로필 → 허용 Origin 5173 유지, 기동 성공")
+    void devProfileKeepsAllowedOrigin5173() {
+        try (ConfigurableApplicationContext ctx = start(new HashMap<>(), "dev")) {
+            assertThat(ctx.isRunning()).isTrue();
+            assertThat(ctx.getEnvironment().getProperty("aojistudio.allowed-origins"))
+                    .isEqualTo("http://127.0.0.1:5173");
+            assertThat(ctx.getBean(AppProperties.class).getAllowedOrigins()).isEqualTo("http://127.0.0.1:5173");
+        }
+    }
+
+    @Test
+    @DisplayName("[NFR-05][ADR-47] AOJISTUDIO_ALLOWED_ORIGINS=\"\" + dev 프로필 → 미설정으로 보아 5173 유지, 기동 성공")
+    void blankAllowedOriginsKeepsDevDefault() {
+        Map<String, Object> env = new HashMap<>();
+        env.put("AOJISTUDIO_ALLOWED_ORIGINS", "");
+        try (ConfigurableApplicationContext ctx = start(env, "dev")) {
+            assertThat(ctx.isRunning()).isTrue();
+            assertThat(ctx.getBean(AppProperties.class).getAllowedOrigins()).isEqualTo("http://127.0.0.1:5173");
+        }
+    }
+
+    @Test
+    @DisplayName("[NFR-05][ADR-47] AOJISTUDIO_POLL_INTERVAL_MS=\"\" → 미설정으로 보아 기본 1000으로 기동 성공")
+    void blankPollIntervalKeepsDefault() {
+        Map<String, Object> env = new HashMap<>();
+        env.put("AOJISTUDIO_POLL_INTERVAL_MS", "");
+        try (ConfigurableApplicationContext ctx = start(env)) {
+            assertThat(ctx.isRunning()).isTrue();
+            assertThat(ctx.getBean(AppProperties.class).getPollIntervalMs()).isEqualTo("1000");
+        }
+    }
+
+    /** 환경 변수 소스를 가장 앞에 넣는다. */
+    static final class FakeEnvListener implements ApplicationListener<ApplicationEnvironmentPreparedEvent>, Ordered {
+        private final Map<String, Object> fakeEnv;
+
+        FakeEnvListener(Map<String, Object> fakeEnv) {
+            this.fakeEnv = fakeEnv;
+        }
+
+        @Override
+        public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {
+            event.getEnvironment().getPropertySources()
+                    .addFirst(new SystemEnvironmentPropertySource("fakeSystemEnvironment", new HashMap<>(fakeEnv)));
+        }
+
+        @Override
+        public int getOrder() {
+            return Ordered.HIGHEST_PRECEDENCE;
+        }
     }
 
     @Configuration

@@ -118,14 +118,8 @@ class CollectTokenStoreTest {
         }
 
         @Bean
-        studio.aoji.legacy.LegacyWarnings legacyWarnings() {
-            return new studio.aoji.legacy.LegacyWarnings(java.time.Clock.systemUTC(), line -> { });
-        }
-
-        @Bean
-        studio.aoji.files.DataDirectory dataDirectory(AppProperties appProperties,
-                studio.aoji.registry.ProjectFolderScanner scanner, studio.aoji.legacy.LegacyWarnings warnings) {
-            return new studio.aoji.files.DataDirectory(appProperties, scanner, warnings);
+        studio.aoji.files.DataDirectory dataDirectory(AppProperties appProperties) {
+            return new studio.aoji.files.DataDirectory(appProperties);
         }
 
         @Bean

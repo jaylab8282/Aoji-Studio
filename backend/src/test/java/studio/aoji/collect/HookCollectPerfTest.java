@@ -20,7 +20,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import studio.aoji.legacy.LegacyNames;
 
 /**
  * 수집 응답 시간 (api-spec {@code POST /hooks/events} 설명, FR-003-AC3).
@@ -60,12 +59,6 @@ class HookCollectPerfTest {
     void thousandRequestsWithNewHeaderRespondUnder100msP95WithEmptyBody() throws Exception {
         // [FR-003-AC3] 새 헤더 1000회 POST p95 < 100ms, 응답 204 본문 길이 0
         measure("X-AojiStudio-Collect-Token", "new-header");
-    }
-
-    @Test
-    void thousandRequestsWithLegacyHeaderRespondUnder100msP95WithEmptyBody() throws Exception {
-        // [FR-003-AC3][ADR-54] 옛 헤더 1000회 POST p95 < 100ms, 응답 204 본문 길이 0
-        measure(LegacyNames.LEGACY_COLLECT_TOKEN_HEADER, "legacy-header");
     }
 
     private void measure(String headerName, String label) throws Exception {

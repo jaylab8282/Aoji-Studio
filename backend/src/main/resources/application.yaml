@@ -25,7 +25,7 @@ logging:
     root: INFO
 
 # 필수: AOJISTUDIO_HOST_PATH, AOJISTUDIO_PUBLIC_PORT — 없거나 빈 값이면 AppProperties가 기동을 실패시킨다.
-# 환경 변수(새 이름 우선, 옛 이름 수용)는 legacy.LegacyEnvironmentPostProcessor가 해석해 aojistudio.* 로 넣는다(ADR-56).
+# 환경 변수는 Spring 완화 바인딩(AOJISTUDIO_* → aojistudio.*)으로만 받는다(ADR-61).
 # 여기에는 환경 변수가 없을 때의 기본값만 둔다.
 aojistudio:
   host-path:

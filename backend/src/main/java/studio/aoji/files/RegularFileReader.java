@@ -1,4 +1,4 @@
-package studio.aoji.legacy;
+package studio.aoji.files;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -16,13 +16,22 @@ import java.util.function.Consumer;
 import org.springframework.stereotype.Component;
 
 /**
- * 도우미 토큰 파일 읽기 판정(ADR-57, NFR-07). 일반 파일일 때만 읽고, 아니면 "없음 + 사유"다. 읽기는 한 번에 한다:
+ * 토큰 파일 읽기 판정(ADR-61, NFR-07). 일반 파일일 때만 읽고, 아니면 "없음 + 사유"다. 읽기는 한 번에 한다:
  * 부모 확인 → 대상 분류 → {@code Files.newByteChannel(path, READ, NOFOLLOW_LINKS)}로 연 채널에서 읽는다.
  * 확인 뒤 따로 {@code readString}하는 2단계 읽기는 없다(TOCTOU) - 확인과 열기 사이에 링크로 바뀌어도
  * NOFOLLOW_LINKS 열기가 실패하므로 링크 대상은 읽히지 않는다. 사유에는 링크 대상 경로·값을 담지 않는다.
  */
 @Component
-public class HelperTokenReader {
+public class RegularFileReader {
+
+    /** 읽지 않은 사유. 링크 대상 경로·값은 담지 않는다. */
+    public enum NotReadReason {
+        SYMLINK,
+        DIRECTORY,
+        PARENT_NOT_DIRECTORY,
+        UNREADABLE,
+        OTHER
+    }
 
     /** hex 64자 + 여유. 이보다 크면 토큰 파일로 보지 않는다. */
     static final int MAX_BYTES = 1024;
@@ -34,12 +43,12 @@ public class HelperTokenReader {
     }
 
     /** token이 null이면 "없음". reason이 있으면 읽지 않은 사유. */
-    public record Outcome(String token, LegacyWarnings.NotReadReason reason) {
+    public record Outcome(String token, NotReadReason reason) {
         static Outcome absent() {
             return new Outcome(null, null);
         }
 
-        static Outcome absent(LegacyWarnings.NotReadReason reason) {
+        static Outcome absent(NotReadReason reason) {
             return new Outcome(null, reason);
         }
     }
@@ -47,12 +56,12 @@ public class HelperTokenReader {
     private final Opener opener;
     private final Consumer<Path> beforeOpen;
 
-    public HelperTokenReader() {
+    public RegularFileReader() {
         this(Files::newByteChannel, p -> { });
     }
 
     /** 테스트용: 열기 함수와 "부모 확인 뒤·열기 전" 훅을 주입한다. */
-    public HelperTokenReader(Opener opener, Consumer<Path> beforeOpen) {
+    public RegularFileReader(Opener opener, Consumer<Path> beforeOpen) {
         this.opener = opener;
         this.beforeOpen = beforeOpen;
     }
@@ -69,7 +78,7 @@ public class HelperTokenReader {
                 return Outcome.absent();
             }
             if (parentAttrs.isSymbolicLink() || !parentAttrs.isDirectory()) {
-                return Outcome.absent(LegacyWarnings.NotReadReason.PARENT_NOT_DIRECTORY);
+                return Outcome.absent(NotReadReason.PARENT_NOT_DIRECTORY);
             }
         }
         BasicFileAttributes fileAttrs = attrs(file);
@@ -82,7 +91,7 @@ public class HelperTokenReader {
         beforeOpen.accept(file);
         try (SeekableByteChannel channel = opener.open(file, Set.of(StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS))) {
             if (channel.size() > MAX_BYTES) {
-                return Outcome.absent(LegacyWarnings.NotReadReason.UNREADABLE);
+                return Outcome.absent(NotReadReason.UNREADABLE);
             }
             ByteBuffer buffer = ByteBuffer.allocate((int) channel.size());
             while (buffer.hasRemaining() && channel.read(buffer) > 0) {
@@ -95,18 +104,18 @@ public class HelperTokenReader {
         } catch (IOException e) {
             // 열기 실패(예: 그 사이 링크로 교체 → ELOOP). 사유만 분류하고 링크 대상은 따라가지 않는다.
             BasicFileAttributes now = attrs(file);
-            return Outcome.absent(now == null ? LegacyWarnings.NotReadReason.UNREADABLE : classify(now));
+            return Outcome.absent(now == null ? NotReadReason.UNREADABLE : classify(now));
         }
     }
 
-    private static LegacyWarnings.NotReadReason classify(BasicFileAttributes attrs) {
+    private static NotReadReason classify(BasicFileAttributes attrs) {
         if (attrs.isSymbolicLink()) {
-            return LegacyWarnings.NotReadReason.SYMLINK;
+            return NotReadReason.SYMLINK;
         }
         if (attrs.isDirectory()) {
-            return LegacyWarnings.NotReadReason.DIRECTORY;
+            return NotReadReason.DIRECTORY;
         }
-        return attrs.isRegularFile() ? LegacyWarnings.NotReadReason.UNREADABLE : LegacyWarnings.NotReadReason.OTHER;
+        return attrs.isRegularFile() ? NotReadReason.UNREADABLE : NotReadReason.OTHER;
     }
 
     private static BasicFileAttributes attrs(Path path) {

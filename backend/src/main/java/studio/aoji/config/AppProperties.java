@@ -2,6 +2,10 @@ package studio.aoji.config;
 
 import jakarta.annotation.PostConstruct;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.EnvironmentAware;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.PropertySource;
 import org.springframework.stereotype.Component;
 
 /**
@@ -10,7 +14,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConfigurationProperties(prefix = "aojistudio")
-public class AppProperties {
+public class AppProperties implements EnvironmentAware {
 
     private String hostPath = "";
     private String publicPort = "";
@@ -18,6 +22,8 @@ public class AppProperties {
     private String dataPath = "/data";
     private String helperUrl = "http://127.0.0.1:4181";
     private String allowedOrigins = "";
+    private Environment environment;
+    private String pollIntervalMs = "1000";
 
     @PostConstruct
     void validate() {
@@ -25,7 +31,7 @@ public class AppProperties {
         requireNonBlank("AOJISTUDIO_PUBLIC_PORT", publicPort);
     }
 
-    /** 빈 문자열은 설정 안 됨으로 본다(ADR-56) - 기본값을 유지한다. */
+    /** 선택 값의 빈 문자열은 설정 안 됨으로 본다(ADR-47) - 기본값을 유지한다. */
     private static String orDefault(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
     }
@@ -88,11 +94,40 @@ public class AppProperties {
         this.helperUrl = orDefault(helperUrl, this.helperUrl);
     }
 
+    /**
+     * 빈 문자열은 설정 안 됨이다(ADR-47). 환경 변수가 빈 값이면 우선순위가 낮은 소스(dev 프로필 yaml의 5173 등)의
+     * 첫 비어 있지 않은 값을 쓰고, 없으면 빈 값을 그대로 둔다({@code OriginFilter}가 공개 포트로 기본값을 계산).
+     */
     public String getAllowedOrigins() {
-        return allowedOrigins;
+        if (allowedOrigins != null && !allowedOrigins.isBlank()) {
+            return allowedOrigins;
+        }
+        if (environment instanceof ConfigurableEnvironment configurable) {
+            for (PropertySource<?> source : configurable.getPropertySources()) {
+                Object value = source.getProperty("aojistudio.allowed-origins");
+                if (value != null && !value.toString().isBlank()) {
+                    return value.toString();
+                }
+            }
+        }
+        return allowedOrigins == null ? "" : allowedOrigins;
+    }
+
+    @Override
+    public void setEnvironment(Environment environment) {
+        this.environment = environment;
     }
 
     public void setAllowedOrigins(String allowedOrigins) {
         this.allowedOrigins = allowedOrigins;
+    }
+
+    /** 폴더 폴링 간격(ms). 빈 문자열은 설정 안 됨으로 본다 - 기본 1000. */
+    public String getPollIntervalMs() {
+        return pollIntervalMs;
+    }
+
+    public void setPollIntervalMs(String pollIntervalMs) {
+        this.pollIntervalMs = orDefault(pollIntervalMs, this.pollIntervalMs);
     }
 }

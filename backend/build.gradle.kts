@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "studio.aoji"
-version = "1.0.1"
+version = "1.1.0"
 description = "Aoji Studio Server"
 
 java {

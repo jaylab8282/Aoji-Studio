@@ -16,9 +16,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import studio.aoji.events.EventRepository;
 import studio.aoji.events.EventRow;
-import studio.aoji.legacy.CollectHeaderDecision;
-import studio.aoji.legacy.LegacyNames;
-import studio.aoji.legacy.LegacyWarnings;
 import studio.aoji.live.HookEventReceived;
 import studio.aoji.live.HookPayload;
 import studio.aoji.live.Masker;
@@ -28,7 +25,7 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Claude Code hook 수집 (api-spec {@code POST /hooks/events}, FR-003).
- * Origin 규칙 없이 {@code X-AojiStudio-Collect-Token}(v1.0.x 동안 옛 헤더도 수용, ADR-54) + {@code Content-Type: application/json}만
+ * Origin 규칙 없이 {@code X-AojiStudio-Collect-Token}+ {@code Content-Type: application/json}만
  * 검사한다(architecture.md §5, ADR-02). {@code /api/**}가 아니므로 {@code OriginFilter}·
  * {@code BrowserTokenFilter}를 거치지 않는다.
  *
@@ -54,7 +51,6 @@ public class HookCollectController {
     private final Masker masker;
     private final EventRepository eventRepository;
     private final ApplicationEventPublisher eventPublisher;
-    private final LegacyWarnings legacyWarnings;
 
     public HookCollectController(
             CollectTokenStore collectTokenStore,
@@ -62,34 +58,25 @@ public class HookCollectController {
             SummaryBuilder summaryBuilder,
             Masker masker,
             EventRepository eventRepository,
-            ApplicationEventPublisher eventPublisher,
-            LegacyWarnings legacyWarnings) {
+            ApplicationEventPublisher eventPublisher) {
         this.collectTokenStore = collectTokenStore;
         this.objectMapper = objectMapper;
         this.summaryBuilder = summaryBuilder;
         this.masker = masker;
         this.eventRepository = eventRepository;
         this.eventPublisher = eventPublisher;
-        this.legacyWarnings = legacyWarnings;
     }
 
     @PostMapping(value = "/hooks/events")
     public ResponseEntity<Void> collect(
             @RequestHeader(value = "X-AojiStudio-Collect-Token", required = false) String collectToken,
-            @RequestHeader(value = LegacyNames.LEGACY_COLLECT_TOKEN_HEADER, required = false) String legacyCollectToken,
             HttpServletRequest request) {
 
         if (!isJsonContentType(request.getContentType())) {
             return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).build();
         }
-        CollectHeaderDecision decision = CollectHeaderDecision.decide(collectToken, legacyCollectToken);
-        if (!collectTokenStore.matches(decision.tokenToCheck())) {
+        if (!collectTokenStore.matches(collectToken)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        switch (decision.warningOnSuccess()) {
-            case LEGACY_USED -> legacyWarnings.collectHeaderUsed();
-            case LEGACY_IGNORED -> legacyWarnings.collectHeaderIgnored();
-            case NONE -> { }
         }
 
         String body;
