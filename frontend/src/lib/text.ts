@@ -282,8 +282,6 @@ export const HEADER_META_SKILLS = " · 스킬 ";
 export function seatLabel(name: string, statusText: string): string {
   return `${name} · ${statusText}`;
 }
-/** 03 첫 스냅샷 전(04-2) 스켈레톤 접근 이름. */
-export const OFFICE_LOADING_LABEL = "오피스 로딩 중";
 export const OFFICE_TITLE = "오피스";
 export const OFFICE_SUBTITLE = "에이전트 1명 = 캐릭터 1개 · 팀장 첫 자리, 나머지 이름순";
 export const EMPTY_SEAT_TEXT = "빈 자리";

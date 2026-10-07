@@ -36,7 +36,7 @@ const IMPLEMENTATION_SOURCES: ReadonlyArray<readonly [string, string]> = SOURCES
 /**
  * hover·`:focus-visible` 클래스를 가질 수 있는 파일 전수(conventions.md §7 MUST, ADR-46 A, ADR-49):
  * 공용 컴포넌트 3개(`Sidebar`·`Button`·`Link` — 입력 4종은 ADR-69로 hover가 없어졌다) + 화면 전용 클릭 영역 3곳(01 대표 카드,
- * 02 책상 칸(`Desk.tsx`), 03 오피스 칸) + ④ 링크 1곳(03 브레드크럼).
+ * 02 책상 칸(`Desk.tsx`), 03 오피스 칸(`OfficeCell.tsx`)) + ④ 링크 1곳(03 브레드크럼).
  * 05-R 목록 행(`ImportAgentTable.tsx`)은 행에 클릭 동작이 없어 목록에서 빠졌다(ADR-49 1).
  */
 const HOVER_FOCUS_FILES: ReadonlyArray<string> = [
@@ -45,26 +45,8 @@ const HOVER_FOCUS_FILES: ReadonlyArray<string> = [
   "src/components/ui/Link.tsx",
   "src/screens/home/FeaturedWorkflows.tsx",
   "src/screens/workflow-detail/Breadcrumb.tsx",
-  "src/screens/workflow-detail/Office.tsx",
+  "src/screens/workflow-detail/OfficeCell.tsx",
   "src/screens/workflows/Desk.tsx",
-];
-
-/**
- * 화면 전용 클릭 영역의 hover·focus **값**을 고정한다(01 대표 카드는 ADR-69로 배경이 아니라 테두리라 아래 별도 단언이 맡는다)(ui-spec.md §공통 표 ①, ADR-46 A, ADR-49).
- * 세 곳 모두 부류 ①(표면이 `bg/selected`를 선택 표시로 쓰지 않는 곳)이라 값은 `bg-selected`뿐이고
- * 모두 자신이 키보드 포커스를 받으므로 `:focus-visible`에도 같은 표현이 있어야 한다.
- * 값이 다른 배경 토큰으로 바뀌면 hover와 선택이 구분되지 않는다(A-22 핵심 제약).
- * 파일 존재만 보는 위 단언으로는 값 교체를 못 잡는다.
- */
-interface ScreenHoverValue {
-  path: string;
-  /** 그 화면이 쓸 수 있는 유일한 hover 배경 값. */
-  expected: string;
-}
-
-const SCREEN_HOVER_VALUES: ReadonlyArray<ScreenHoverValue> = [
-  // 03 오피스 비선택 칸(`<button>`) — 표면 `bg/card-alt`
-  { path: "src/screens/workflow-detail/Office.tsx", expected: "bg-selected" },
 ];
 
 /** 출처(호스트명·포트·스킴)를 바꾸는 이동 코드. `location`·`loc` 두 이름 모두 본다. */
@@ -192,17 +174,10 @@ describe("정적 단언", () => {
     expect(HOVER_FOCUS_FILES).toHaveLength(7);
   });
 
-  it("[ADR-49] 화면 전용 클릭 영역(03 오피스 칸 1곳, 01·02는 별도 ADR-69 단언)의 hover 값이 bg-selected로 고정되고 같은 표현이 focus-visible:에도 있다", () => {
-    expect(SCREEN_HOVER_VALUES).toHaveLength(1);
-    for (const { path, expected } of SCREEN_HOVER_VALUES) {
-      const text = sourceOf(path);
-      const hoverClasses = [...text.matchAll(/hover:([a-z0-9-]+)/g)].map((match) => match[1]);
-      // 그 화면이 쓰는 hover 배경 값은 규정된 하나뿐이다(다른 배경 토큰을 섞지 않는다).
-      const backgrounds = hoverClasses.filter((cls) => cls !== undefined && cls.startsWith("bg-"));
-      expect(backgrounds, `${path} hover 배경`).toEqual([expected]);
-      // 세 곳 모두 자신이 포커스를 받으므로 `:focus-visible`에도 같은 표현이 있다(conventions.md §7 MUST).
-      expect(text, `${path} focus-visible`).toContain(`focus-visible:${expected}`);
-    }
+  it("[ADR-69] 03 오피스 칸의 hover는 테두리 border-dashed 하나뿐이고 배경·글자색을 바꾸지 않으며 focus-visible 별도 표현이 없다(공통 초점 링이 맡는다)", () => {
+    const text = sourceOf("src/screens/workflow-detail/OfficeCell.tsx");
+    const values = [...text.matchAll(/(?:^|[\s"`])((?:group-)?(?:hover|focus-visible|focus):[a-z0-9-]+(?:-[a-z0-9]+)*)/g)].map((match) => match[1]);
+    expect(values).toEqual(["hover:border-border-dashed"]);
   });
 
   it("[ADR-69] 02 책상 칸의 hover는 배경 bg-soft 하나뿐이고 focus-visible 별도 표현이 없다(공통 초점 링이 맡는다)", () => {

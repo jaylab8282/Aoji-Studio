@@ -10,7 +10,9 @@ import {
   AGENT_REMOVE_TRASH_NOTE,
   APP_WORDMARK,
   IMPORT_NOTICE_TRASH,
-  PANEL_FOOTNOTE_TRASH,
+  PANEL_FOOTNOTE_LEAD,
+  PANEL_FOOTNOTE_TAIL,
+  PANEL_FOOTNOTE_TRASH_PATH,
   WORKFLOWS_SUMMARY_PROJECT_LABEL,
   WORKFLOW_ADD_DESCRIPTION,
   agentFilePathLabel,
@@ -282,7 +284,9 @@ describe("[ADR-60][NFR-11] 이름·경로 문구 상수", () => {
     expect(agentFilePathLabel(".claude/agents/dev-lead.md")).toBe("AojiStudio/.claude/agents/dev-lead.md");
     expect(WORKFLOW_ADD_DESCRIPTION).toBe("구성 파일 .aojistudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다.");
     expect(workflowDeleteConfigNote("개발부서")).toBe("구성 파일 .aojistudio/teams/개발부서.json이 삭제됩니다");
-    expect(PANEL_FOOTNOTE_TRASH).toBe("제거 = 휴지통(.aojistudio/trash/)으로 이동 · 원문 로그 보기 없음");
+    expect(`${PANEL_FOOTNOTE_LEAD}${PANEL_FOOTNOTE_TRASH_PATH}${PANEL_FOOTNOTE_TAIL}`).toBe(
+      "제거하면 정의 파일이 .aojistudio/trash/로 이동합니다 · 작업 지시는 터미널에서 팀장에게 직접 합니다",
+    );
     expect(IMPORT_NOTICE_TRASH).toContain("휴지통(.aojistudio/trash/)");
     expect(AGENT_REMOVE_TRASH_NOTE).toBe("정의 파일이 .aojistudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).");
   });

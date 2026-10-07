@@ -4,12 +4,11 @@
  * - 팀장이 첫 자리, 나머지는 name 오름차순(`agentOrder`)
  * - 정의 없는 서브에이전트는 **부모 칸 바로 다음 칸**에 작은 캐릭터로 넣는다. 부모가 이 워크플로우
  *   소속이 아니면(로비 세션 부모 포함) 03에 표시하지 않는다(ADR-10, D-005)
- * - 그리드는 3열이라 마지막 줄의 남는 칸은 `빈 자리`로 채운다: (3 - n % 3) % 3
+ * - 마지막 줄의 남는 칸은 모두 `빈 자리`로 채운다: (columns - n % columns) % columns, 인원 0이면 한 줄 전체.
+ *   열 수는 CSS(`office-grid`)가 정하므로 화면이 그리드에서 읽어 `columns`로 넘긴다(ADR-66)
  */
 import type { UndefinedSubagent } from "../../api/types";
 import { agentOrder } from "./agentOrder";
-
-export const OFFICE_COLUMNS = 3;
 
 export interface AgentSeat {
   kind: "agent";
@@ -39,7 +38,13 @@ function compareSubagents(a: UndefinedSubagent, b: UndefinedSubagent): number {
   return a.agentId < b.agentId ? -1 : a.agentId > b.agentId ? 1 : 0;
 }
 
-export function officeSeats({ lead, members, undefinedSubagents }: OfficeSeatsInput): Seat[] {
+export interface OfficeSeatsFillInput extends OfficeSeatsInput {
+  /** 오피스 그리드의 현재 열 수(1~6). */
+  columns: number;
+}
+
+/** 에이전트·정의 없는 서브에이전트 칸만(빈 자리 없음). 선택 대상 판정에 쓴다. */
+export function agentSeats({ lead, members, undefinedSubagents }: OfficeSeatsInput): Seat[] {
   const names = agentOrder({ lead, members });
   const seats: Seat[] = [];
 
@@ -53,9 +58,14 @@ export function officeSeats({ lead, members, undefinedSubagents }: OfficeSeatsIn
     }
   }
 
-  // 인원 0이면 한 줄(3칸) 모두 `빈 자리`다(ui-spec.md SCR-03 오피스 그리드 행의 빈 열).
-  const emptyCount =
-    seats.length === 0 ? OFFICE_COLUMNS : (OFFICE_COLUMNS - (seats.length % OFFICE_COLUMNS)) % OFFICE_COLUMNS;
+  return seats;
+}
+
+/** 칸 배치 전부: `agentSeats` + 마지막 줄 `빈 자리`(인원 0이면 한 줄 전체, ui-spec SCR-03 빈 자리 칸 행). */
+export function officeSeats({ columns, ...input }: OfficeSeatsFillInput): Seat[] {
+  const seats = agentSeats(input);
+  const perRow = Math.max(1, columns);
+  const emptyCount = seats.length === 0 ? perRow : (perRow - (seats.length % perRow)) % perRow;
   for (let index = 0; index < emptyCount; index += 1) {
     seats.push({ kind: "empty", key: `empty:${index}` });
   }

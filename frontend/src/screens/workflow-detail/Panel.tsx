@@ -1,34 +1,34 @@
 /**
- * ui-spec.md SCR-03 오른쪽 선택 패널(360px): 제목 → name·경로 → 상태 표 → 최근 이벤트 →
- * `정의 수정`·`제거` → 각주 두 줄. FR-007-AC4·AC5·AC6·AC7, FR-011-AC5, FR-012-AC6, FR-001-E2.
+ * ui-spec.md SCR-03 선택 패널 (`03-8`·`03-9`): 머리 → 정보(name·경로·값 표) → 최근 이벤트 → 동작 줄(`정의 수정`·`제거`, 사유 한 줄) → 각주.
+ * FR-007-AC4·AC5·AC6·AC7, FR-011-AC5, FR-012-AC6, FR-001-E2. 가로형은 오른쪽 열(`w-panel`)에서 최근 이벤트만 안에서 스크롤하고,
+ * 세로형은 오피스 바로 아래 전체 폭 2칸(왼쪽 정보 + 동작 / 오른쪽 세로 구분선 뒤 최근 이벤트)이다(ADR-66).
  *
- * 04-4 표시 중에는 `상태`·`현재 도구`만 대기로 고정하고 세션 시작·서브에이전트·작업 폴더는 값 그대로다(ADR-17).
- * 수정·제거 버튼의 비활성 판정은 표시 상태가 아니라 실제 `live` 상태를 쓴다 — 서버가 `AGENT_BUSY`로
- * 막는 조건과 같아야 하고, ADR-17의 고정 범위는 표시 요소(캐릭터·상태 글자·패널 상태·현재 도구)뿐이다.
+ * 04-4 표시 중에는 `상태`·`현재 도구`만 대기로 고정하고 세션 시작·서브에이전트·작업 폴더·최근 이벤트는 값 그대로다(ADR-68).
+ * 수정·제거 버튼의 비활성 판정은 표시 상태가 아니라 실제 `live` 상태를 쓴다 — 서버가 `AGENT_BUSY`로 막는 조건과 같아야 하고,
+ * 고정 범위는 표시 요소뿐이다. 그래서 04-4 + 실제 `idle`이면 두 버튼 활성·사유 줄 없음, 실제 작업 중이면 비활성 + 사유(ADR-68).
  */
-import { useEffect, useRef, type ReactNode } from "react";
-import type { AgentDef, AgentLive, Live, Registry } from "../../api/types";
+import { useEffect, useId, useRef, type ReactNode } from "react";
+import type { AgentDef, AgentLive, Live, Registry, Status } from "../../api/types";
+import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
-import { MonoText } from "../../components/ui/MonoText";
+import { Icon } from "../../components/ui/Icon";
 import { Skeleton } from "../../components/ui/Skeleton";
-import { StatusLabel } from "../../components/ui/StatusLabel";
+import { StatusDot } from "../../components/ui/StatusDot";
 import { displayStatus } from "../../lib/derive/collectorDown";
-import { pathSummary } from "../../lib/derive/pathSummary";
 import { useDialogNavigate } from "../../lib/dialogNavigate";
-import { ellipsis } from "../../lib/format/ellipsis";
-import { formatHm, formatHms } from "../../lib/format/time";
+import { formatHms } from "../../lib/format/time";
 import {
-  EDIT_AGENT_BUSY_REASON,
   EDIT_AGENT_BUTTON_LABEL,
   EMPTY_VALUE_TEXT,
   LEAD_BADGE_TEXT,
-  PANEL_FOOTNOTE_TERMINAL_EMPHASIS,
-  PANEL_FOOTNOTE_TERMINAL_PREFIX,
-  PANEL_FOOTNOTE_TERMINAL_SUFFIX,
-  PANEL_FOOTNOTE_TRASH,
+  PANEL_BUSY_REASON,
+  PANEL_FOOTNOTE_LEAD,
+  PANEL_FOOTNOTE_TAIL,
+  PANEL_FOOTNOTE_TRASH_PATH,
   PANEL_NO_AGENT_TEXT,
   PANEL_RECENT_EVENTS_EMPTY,
   PANEL_RECENT_EVENTS_ERROR,
+  PANEL_RECENT_EVENTS_NOTE,
   PANEL_RECENT_EVENTS_TITLE,
   PANEL_ROW_CHILD_COUNT,
   PANEL_ROW_CURRENT_TOOL,
@@ -37,177 +37,206 @@ import {
   PANEL_ROW_STATUS,
   PANEL_SUBTITLE,
   PANEL_TITLE,
-  REMOVE_AGENT_BUSY_REASON,
   REMOVE_AGENT_BUTTON_LABEL,
   RETRY_BUTTON_LABEL,
+  STATUS_LABEL_TEXT,
   WRITABLE_FALSE_REASON,
-  FLOOR_NO_LEAD_TEXT,
   currentToolLabel,
-  leadAgentCommand,
 } from "../../lib/text";
 import { agentEventsStore, useAgentEventsStore } from "../../state/agentEventsStore";
 import { useConnectionStore } from "../../state/connectionStore";
 
 const EVENTS_SKELETON_ROWS = 4;
 
-interface PanelProps {
-  selectedName: string | null;
-  registry: Registry;
-  live: Live;
-  hostPath: string;
-  lead: string | null;
-  /** 04-4 표시 중이면 `상태`·`현재 도구`만 대기로 고정한다(ADR-17). */
-  collectorDown: boolean;
-}
+const PANEL_CLASSES =
+  "flex min-h-0 min-w-0 flex-col gap-4 overflow-hidden rounded-card border border-border bg-card p-4 portrait:grid portrait:grid-cols-2 portrait:gap-x-6 portrait:gap-y-3 portrait:overflow-visible";
+const INFO_CLASSES = "flex min-h-0 min-w-0 flex-col gap-2 portrait:col-start-1 portrait:row-start-2";
+const EVENTS_CLASSES =
+  "flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden border-t border-border pt-3 portrait:col-start-2 portrait:row-span-2 portrait:row-start-2 portrait:border-t-0 portrait:border-l portrait:pt-0 portrait:pl-6";
+const ACTIONS_CLASSES =
+  "flex min-w-0 flex-none flex-col gap-2 border-t border-border pt-3 portrait:col-start-1 portrait:row-start-3";
+const VALUES_CLASSES = "kv-grid text-aux";
 
-export function Panel({ selectedName, registry, live, hostPath, lead, collectorDown }: PanelProps) {
+const STATUS_VALUE_CLASSES: Record<Status, string> = {
+  running: "text-live",
+  waiting: "text-waiting",
+  idle: "text-text-muted",
+};
+
+function PanelFrame({ children, busy = false }: { children: ReactNode; busy?: boolean }) {
   return (
-    <aside className="flex h-full w-panel shrink-0 flex-col rounded-card border border-border bg-card">
-      <div className="flex items-baseline gap-3 border-b border-border px-card py-3">
+    <aside aria-label={PANEL_TITLE} aria-busy={busy ? true : undefined} data-wf="03-8" className={PANEL_CLASSES}>
+      <div className="flex min-w-0 items-center gap-2 whitespace-nowrap portrait:col-span-full">
         <h2 className="text-section font-semibold text-text">{PANEL_TITLE}</h2>
-        <p className="text-aux text-text-muted">{PANEL_SUBTITLE}</p>
+        <p className="min-w-0 truncate text-aux text-text-muted">{PANEL_SUBTITLE}</p>
       </div>
-
-      {selectedName === null ? (
-        <div className="flex min-h-0 flex-1 flex-col gap-4 px-card py-4">
-          <p className="text-body text-text-secondary">{PANEL_NO_AGENT_TEXT}</p>
-        </div>
-      ) : (
-        <PanelBody
-          selectedName={selectedName}
-          agentDef={registry.agents.find((agent) => agent.name === selectedName)}
-          agentLive={live.agents[selectedName]}
-          collectorDown={collectorDown}
-          writable={registry.writable}
-          hostPath={hostPath}
-          isLead={lead === selectedName}
-        />
-      )}
-
-      <div className="flex flex-col gap-2 border-t border-border px-card py-4">
-        <p className="text-aux text-text-faint">{PANEL_FOOTNOTE_TRASH}</p>
-        <p className="text-aux text-text-faint">
-          {PANEL_FOOTNOTE_TERMINAL_PREFIX}
-          <span className="font-semibold text-running">{PANEL_FOOTNOTE_TERMINAL_EMPHASIS}</span>
-          {PANEL_FOOTNOTE_TERMINAL_SUFFIX}
-          {lead === null ? FLOOR_NO_LEAD_TEXT : <MonoText>{leadAgentCommand(lead)}</MonoText>}
-        </p>
-      </div>
+      {children}
     </aside>
   );
 }
 
-interface PanelBodyProps {
+/** 값 표 한 줄: 라벨(`text-muted`) + 값(`text-secondary`, 줄바꿈 허용). 고정폭 값은 `mono`. */
+function ValueRow({ label, mono = false, children }: { label: string; mono?: boolean; children: ReactNode }) {
+  return (
+    <>
+      <dt className="text-text-muted">{label}</dt>
+      <dd className={`min-w-0 wrap-anywhere ${mono ? "font-mono text-text-mono" : "text-text-secondary"}`}>
+        {children}
+      </dd>
+    </>
+  );
+}
+
+function Footnote() {
+  return (
+    <span data-testid="panel-footnote" className="text-aux text-text-muted">
+      {PANEL_FOOTNOTE_LEAD}
+      <span className="font-mono text-text-mono">{PANEL_FOOTNOTE_TRASH_PATH}</span>
+      {PANEL_FOOTNOTE_TAIL}
+    </span>
+  );
+}
+
+interface PanelProps {
+  selectedName: string | null;
+  registry: Registry;
+  live: Live;
+  lead: string | null;
+  /** 04-4 표시 중이면 `상태`·`현재 도구`만 대기로 고정한다(ADR-68). */
+  collectorDown: boolean;
+}
+
+export function Panel({ selectedName, registry, live, lead, collectorDown }: PanelProps) {
+  if (selectedName === null) {
+    return (
+      <PanelFrame>
+        <div className={INFO_CLASSES}>
+          <p className="text-body text-text-secondary">{PANEL_NO_AGENT_TEXT}</p>
+        </div>
+        <div className={ACTIONS_CLASSES} data-wf="03-9">
+          <Footnote />
+        </div>
+      </PanelFrame>
+    );
+  }
+
+  const agentDef = registry.agents.find((agent) => agent.name === selectedName);
+  const agentLive = live.agents[selectedName];
+
+  return (
+    <PanelFrame>
+      <AgentInfo
+        selectedName={selectedName}
+        agentDef={agentDef}
+        agentLive={agentLive}
+        collectorDown={collectorDown}
+        isLead={lead === selectedName}
+      />
+      <RecentEvents selectedName={selectedName} />
+      <Actions selectedName={selectedName} status={agentLive?.status ?? "idle"} writable={registry.writable} />
+    </PanelFrame>
+  );
+}
+
+interface AgentInfoProps {
   selectedName: string;
   agentDef: AgentDef | undefined;
   agentLive: AgentLive | undefined;
   collectorDown: boolean;
-  writable: boolean;
-  hostPath: string;
   isLead: boolean;
 }
 
-function PanelBody({
-  selectedName,
-  agentDef,
-  agentLive,
-  collectorDown,
-  writable,
-  hostPath,
-  isLead,
-}: PanelBodyProps) {
-  const openDialog = useDialogNavigate();
-  const liveStatus = agentLive?.status ?? "idle";
-  const shownStatus = displayStatus(liveStatus, collectorDown);
+function AgentInfo({ selectedName, agentDef, agentLive, collectorDown, isLead }: AgentInfoProps) {
+  const shownStatus = displayStatus(agentLive?.status ?? "idle", collectorDown);
   const tool = collectorDown ? null : (agentLive?.currentTool ?? null);
   const cwd = agentLive?.cwd ?? null;
 
-  const busyEditReason = liveStatus === "idle" ? undefined : EDIT_AGENT_BUSY_REASON;
-  const busyRemoveReason = liveStatus === "idle" ? undefined : REMOVE_AGENT_BUSY_REASON;
-  const editReason = writable ? busyEditReason : WRITABLE_FALSE_REASON;
-  const removeReason = writable ? busyRemoveReason : WRITABLE_FALSE_REASON;
-
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 px-card py-4">
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <h3 className="font-mono text-section font-bold text-text" title={selectedName}>
-            {ellipsis(selectedName)}
-          </h3>
-          {isLead ? (
-            <span className="rounded-badge bg-running px-1.5 py-0.5 text-min font-semibold text-on-accent">
-              {LEAD_BADGE_TEXT}
-            </span>
-          ) : null}
-        </div>
-        {agentDef === undefined ? null : (
-          <MonoText className="text-aux text-text-faint">{agentDef.filePath}</MonoText>
-        )}
+    <div className={INFO_CLASSES}>
+      <div className="flex min-w-0 items-center gap-2">
+        <h3 title={selectedName} className="min-w-0 truncate font-mono text-section font-medium text-text">
+          {selectedName}
+        </h3>
+        {isLead ? <Badge>{LEAD_BADGE_TEXT}</Badge> : null}
       </div>
-
-      <dl className="flex flex-col gap-2">
-        <PanelRow label={PANEL_ROW_STATUS}>
-          <StatusLabel status={shownStatus} />
-        </PanelRow>
-        <PanelRow label={PANEL_ROW_CURRENT_TOOL}>
-          <MonoText title={tool === null ? undefined : currentToolLabel(tool.name, tool.target)}>
-            {currentToolLabel(tool?.name ?? null, tool?.target ?? null)}
-          </MonoText>
-        </PanelRow>
-        <PanelRow label={PANEL_ROW_SESSION_STARTED}>
-          <MonoText>
-            {agentLive?.sessionStartedAt ? formatHms(agentLive.sessionStartedAt) : EMPTY_VALUE_TEXT}
-          </MonoText>
-        </PanelRow>
-        <PanelRow label={PANEL_ROW_CHILD_COUNT}>
-          <MonoText>{agentLive?.childCount ?? 0}</MonoText>
-        </PanelRow>
-        <PanelRow label={PANEL_ROW_CWD}>
-          <MonoText title={cwd ?? undefined}>{cwd === null ? EMPTY_VALUE_TEXT : pathSummary(cwd, hostPath)}</MonoText>
-        </PanelRow>
-      </dl>
-
-      <RecentEvents selectedName={selectedName} />
-
-      {/* 비활성 사유가 붙으면 360px 패널 한 줄에 버튼 둘 + 사유 둘이 들어가지 않는다.
-          사유가 있을 때만 세로로 쌓아 글자가 겹치지 않게 한다(ui-rules.md 2, docs/ui/README.md 요소 가림 금지). */}
-      {editReason === undefined && removeReason === undefined ? (
-        <div className="mt-auto flex items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <Button
-              variant="primary"
-              fullWidth
-              onClick={() => openDialog({ dialog: "agent-edit", agent: selectedName })}
-            >
-              {EDIT_AGENT_BUTTON_LABEL}
-            </Button>
-          </div>
-          <Button
-            variant="danger"
-            onClick={() => openDialog({ dialog: "agent-remove", agent: selectedName })}
-          >
-            {REMOVE_AGENT_BUTTON_LABEL}
-          </Button>
-        </div>
-      ) : (
-        <div className="mt-auto flex flex-col items-start gap-2">
-          <Button variant="primary" disabledReason={editReason}>
-            {EDIT_AGENT_BUTTON_LABEL}
-          </Button>
-          <Button variant="danger" disabledReason={removeReason}>
-            {REMOVE_AGENT_BUTTON_LABEL}
-          </Button>
-        </div>
+      {agentDef === undefined ? null : (
+        <span title={agentDef.filePath} className="truncate font-mono text-aux text-text-muted">
+          {agentDef.filePath}
+        </span>
       )}
+      <dl className={VALUES_CLASSES}>
+        <ValueRow label={PANEL_ROW_STATUS}>
+          <span className={`inline-flex items-center gap-1.5 whitespace-nowrap ${STATUS_VALUE_CLASSES[shownStatus]}`}>
+            <StatusDot status={shownStatus} />
+            {STATUS_LABEL_TEXT[shownStatus]}
+          </span>
+        </ValueRow>
+        <ValueRow label={PANEL_ROW_CURRENT_TOOL} mono>
+          {currentToolLabel(tool?.name ?? null, tool?.target ?? null)}
+        </ValueRow>
+        <ValueRow label={PANEL_ROW_SESSION_STARTED} mono>
+          {agentLive?.sessionStartedAt ? formatHms(agentLive.sessionStartedAt) : EMPTY_VALUE_TEXT}
+        </ValueRow>
+        <ValueRow label={PANEL_ROW_CHILD_COUNT} mono>
+          {agentLive?.childCount ?? 0}
+        </ValueRow>
+        <ValueRow label={PANEL_ROW_CWD} mono>
+          {cwd ?? EMPTY_VALUE_TEXT}
+        </ValueRow>
+      </dl>
     </div>
   );
 }
 
-function PanelRow({ label, children }: { label: string; children: ReactNode }) {
+interface ActionsProps {
+  selectedName: string;
+  /** 실제 상태(표시 상태 아님, ADR-68). */
+  status: Status;
+  writable: boolean;
+}
+
+/** `정의 수정`·`제거`: status ≠ idle → 둘 다 비활성 + 사유 한 줄(FR-011-AC5·FR-012-AC6), `writable=false` → `쓰기 권한 없음`(FR-001-E2). */
+function Actions({ selectedName, status, writable }: ActionsProps) {
+  const openDialog = useDialogNavigate();
+  const reasonId = useId();
+  const reason = !writable ? WRITABLE_FALSE_REASON : status === "idle" ? undefined : PANEL_BUSY_REASON;
+  const disabled = reason !== undefined;
+  const describedBy = disabled ? reasonId : undefined;
+
   return (
-    <div className="flex items-center gap-3">
-      <dt className="w-24 shrink-0 text-body text-text-muted">{label}</dt>
-      <dd className="min-w-0 truncate text-body text-text">{children}</dd>
+    <div data-wf="03-9" className={ACTIONS_CLASSES}>
+      <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1">
+          <Button
+            variant="secondary"
+            fullWidth
+            disabled={disabled}
+            aria-describedby={describedBy}
+            onClick={() => openDialog({ dialog: "agent-edit", agent: selectedName })}
+          >
+            <Icon name="pencil" />
+            {EDIT_AGENT_BUTTON_LABEL}
+          </Button>
+        </div>
+        <div className="flex min-w-0 flex-1">
+          <Button
+            variant="danger"
+            fullWidth
+            disabled={disabled}
+            aria-describedby={describedBy}
+            onClick={() => openDialog({ dialog: "agent-remove", agent: selectedName })}
+          >
+            <Icon name="trash-2" />
+            {REMOVE_AGENT_BUTTON_LABEL}
+          </Button>
+        </div>
+      </div>
+      {reason === undefined ? null : (
+        <span id={reasonId} className="text-aux text-text-muted">
+          {reason}
+        </span>
+      )}
+      <Footnote />
     </div>
   );
 }
@@ -231,33 +260,93 @@ function RecentEvents({ selectedName }: { selectedName: string }) {
   }, [connection.state, selectedName]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <h4 className="text-section font-semibold text-text">{PANEL_RECENT_EVENTS_TITLE}</h4>
+    <EventsFrame>
       {status === "loading" || agentName !== selectedName ? (
-        <div className="flex flex-col gap-2">
-          {Array.from({ length: EVENTS_SKELETON_ROWS }, (_, index) => (
-            <Skeleton key={index} className="h-4 w-full" aria-label="최근 이벤트 로딩 중" />
-          ))}
-        </div>
+        <EventsSkeletonRows />
       ) : status === "error" ? (
         <div className="flex flex-col items-start gap-2">
-          <p className="text-body text-text-secondary">{PANEL_RECENT_EVENTS_ERROR}</p>
-          <Button variant="secondary" size="sm" onClick={() => void agentEventsStore.load(selectedName)}>
+          <p className="text-aux text-text-secondary">{PANEL_RECENT_EVENTS_ERROR}</p>
+          <Button variant="secondary" onClick={() => void agentEventsStore.load(selectedName)}>
             {RETRY_BUTTON_LABEL}
           </Button>
         </div>
       ) : items.length === 0 ? (
-        <p className="text-body text-text-secondary">{PANEL_RECENT_EVENTS_EMPTY}</p>
+        <p className="text-aux text-text-secondary">{PANEL_RECENT_EVENTS_EMPTY}</p>
       ) : (
-        <ul className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto">
+        <ul className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto text-aux">
           {items.map((event) => (
-            <li key={event.id} className="flex items-baseline gap-2">
-              <MonoText className="shrink-0 text-aux text-text-faint">{formatHm(event.at)}</MonoText>
-              <span className="min-w-0 truncate text-body text-text-secondary">{event.title}</span>
+            <li key={event.id} className="flex min-w-0 gap-2">
+              <span className="w-ev-time shrink-0 font-mono text-text-muted">{formatHms(event.at)}</span>
+              <span className="min-w-0 flex-1 truncate text-text-secondary">
+                {event.title} <span className="font-mono text-text-muted">{event.summary}</span>
+              </span>
             </li>
           ))}
         </ul>
       )}
+    </EventsFrame>
+  );
+}
+
+function EventsFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className={EVENTS_CLASSES}>
+      <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
+        <h4 className="text-body font-semibold text-text">{PANEL_RECENT_EVENTS_TITLE}</h4>
+        <span className="text-aux text-text-muted">{PANEL_RECENT_EVENTS_NOTE}</span>
+      </div>
+      {children}
     </div>
+  );
+}
+
+function EventsSkeletonRows() {
+  return (
+    <div className="flex flex-col gap-2">
+      {Array.from({ length: EVENTS_SKELETON_ROWS }, (_, index) => (
+        <Skeleton key={index} className="h-4 w-full" aria-label="최근 이벤트 로딩 중" />
+      ))}
+    </div>
+  );
+}
+
+/** 03 첫 스냅샷 전(04-2): 머리·라벨·각주는 보이고 값·이벤트는 스켈레톤, 동작 줄은 비활성(이유 줄 없음, ADR-44). */
+export function PanelSkeleton() {
+  return (
+    <PanelFrame busy>
+      <div className={INFO_CLASSES}>
+        <Skeleton className="h-5 w-3/5" aria-label="에이전트 이름 로딩 중" />
+        <Skeleton className="w-4/5" aria-label="정의 파일 경로 로딩 중" />
+        <dl className={VALUES_CLASSES}>
+          {[PANEL_ROW_STATUS, PANEL_ROW_CURRENT_TOOL, PANEL_ROW_SESSION_STARTED, PANEL_ROW_CHILD_COUNT, PANEL_ROW_CWD].map(
+            (label) => (
+              <ValueRow key={label} label={label}>
+                <Skeleton className="w-2/3" aria-label={`${label} 로딩 중`} />
+              </ValueRow>
+            ),
+          )}
+        </dl>
+      </div>
+      <EventsFrame>
+        <EventsSkeletonRows />
+      </EventsFrame>
+      <div data-wf="03-9" className={ACTIONS_CLASSES}>
+        <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-1">
+            <Button variant="secondary" fullWidth disabled>
+              <Icon name="pencil" />
+              {EDIT_AGENT_BUTTON_LABEL}
+            </Button>
+          </div>
+          <div className="flex min-w-0 flex-1">
+            <Button variant="danger" fullWidth disabled>
+              <Icon name="trash-2" />
+              {REMOVE_AGENT_BUTTON_LABEL}
+            </Button>
+          </div>
+        </div>
+        <Footnote />
+      </div>
+    </PanelFrame>
   );
 }

@@ -13,6 +13,35 @@
   gap: calc(var(--spacing) * 3);
 }
 
+/* 03 본문 `[오피스 | 패널]`: 가로형 2열(패널 `w-panel`, 남은 높이를 채움), 세로형 1열(패널이 오피스 아래, 화면이 스크롤). */
+@utility detail-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--spacing-panel);
+  grid-template-rows: minmax(0, 1fr);
+  gap: calc(var(--spacing) * 4);
+  flex: 1;
+  min-height: 0;
+
+  @media (orientation: portrait) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    align-content: start;
+    flex: none;
+  }
+}
+
+/* 03 패널 값 표: 라벨 88 + 값 (`03-workflow-detail.html` `dl.kv`). */
+@utility kv-grid {
+  display: grid;
+  grid-template-columns: var(--spacing-kv-label) minmax(0, 1fr);
+  gap: calc(var(--spacing) * 1.5) calc(var(--spacing) * 3);
+}
+
+/* 03 선택 칸: 테두리 2px = 1px 테두리 + 안쪽 1px (`03-workflow-detail.html` `.cell.sel`). */
+@utility office-cell-selected {
+  box-shadow: inset 0 0 0 1px var(--color-brand-blue);
+}
+
 /* 02 캔버스 배경 격자선 (24px 간격, grid/line). */
 @utility canvas-grid {
   background-image:

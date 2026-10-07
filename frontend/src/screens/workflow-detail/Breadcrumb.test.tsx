@@ -17,7 +17,7 @@ describe("WorkflowBreadcrumb", () => {
     expect(screen.getByText("개발부서")).toBeInTheDocument();
   });
 
-  it("[ADR-49] 홈·에이전트 워크플로우 링크에 hover:underline과 focus-visible:underline이 함께 있고, 글자색 클래스(text-text-secondary)와 href가 그대로다", () => {
+  it("[ADR-49] 홈·에이전트 워크플로우 링크에 hover:underline과 focus-visible:underline이 함께 있고, 글자색 클래스(text-link)와 href가 그대로다", () => {
     render(
       <MemoryRouter>
         <WorkflowBreadcrumb name="개발부서" />
@@ -33,7 +33,7 @@ describe("WorkflowBreadcrumb", () => {
       expect(link, name).toHaveClass("hover:underline");
       expect(link, name).toHaveClass("focus-visible:underline");
       // 글자색은 바꾸지 않는다(ui-spec §공통 표 ④ — 표현은 밑줄뿐이다).
-      expect(link, name).toHaveClass("text-text-secondary");
+      expect(link, name).toHaveClass("text-link");
       expect(link.className, name).not.toMatch(/(?:hover|focus-visible):(?!underline)/);
     }
   });
@@ -46,12 +46,14 @@ describe("WorkflowBreadcrumb", () => {
     );
 
     const current = screen.getByText("개발부서");
-    expect(current.tagName).toBe("SPAN");
+    expect(current).toHaveAttribute("aria-current", "page");
+    expect(current.className).toContain("font-bold");
     expect(current.className).not.toMatch(/hover:|focus-visible:/);
 
     const separators = screen.getAllByText(BREADCRUMB_SEPARATOR);
     expect(separators).toHaveLength(2);
     for (const separator of separators) {
+      expect(separator).toHaveAttribute("aria-hidden", "true");
       expect(separator.className).not.toMatch(/hover:|focus-visible:/);
     }
   });

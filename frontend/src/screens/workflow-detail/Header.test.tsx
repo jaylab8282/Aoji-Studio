@@ -2,7 +2,7 @@ import { HELPER_TOKEN_HEADER } from "../../api/helper";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Header } from "./Header";
+import { Header, HeaderSkeleton } from "./Header";
 import type { AgentDef, AgentLive, Status, Workflow } from "../../api/types";
 import { snapshotStore } from "../../state/snapshotStore";
 import { buildSnapshotFixture } from "../../test/fixtures/snapshot";
@@ -118,6 +118,7 @@ function renderHeader(
   workflow: Workflow,
   liveAgents: Record<string, AgentLive> = {},
   registryAgents: AgentDef[] = buildAgents(["dev-lead", "dev-01", "dev-02"]),
+  collectorDown = false,
 ) {
   return render(
     <MemoryRouter>
@@ -127,6 +128,7 @@ function renderHeader(
         liveAgents={liveAgents}
         registryAgents={registryAgents}
         hostPath={HOST_PATH}
+        collectorDown={collectorDown}
       />
     </MemoryRouter>,
   );
@@ -165,12 +167,36 @@ describe("Header", () => {
     expect(screen.getByText("모두 대기")).toBeInTheDocument();
   });
 
-  it("[FR-007-AC8][FR-013-AC4] lead null → 팀장 호출 비활성 + '팀장 없음'", () => {
+  it("[FR-007-AC9][FR-007-E1] 04-4 동안 헤더 칩은 실제 값이 권한 대기·실행 중이어도 중립 '모두 대기'(ADR-68)", () => {
+    renderHeader(
+      buildWorkflow(),
+      buildLive({ "dev-lead": "running", "dev-01": "waiting", "dev-02": "idle" }),
+      buildAgents(["dev-lead", "dev-01", "dev-02"]),
+      true,
+    );
+
+    expect(screen.getByText("모두 대기")).toBeInTheDocument();
+    expect(screen.queryByText("권한 대기 1명")).not.toBeInTheDocument();
+    expect(screen.queryByText(/실행 중 \d명/)).not.toBeInTheDocument();
+  });
+
+  it("[FR-007-E1] 04-4 동안에도 팀장 호출은 실제 값 그대로 활성이다(비대상)", () => {
+    renderHeader(buildWorkflow(), {}, buildAgents(["dev-lead", "dev-01", "dev-02"]), true);
+
+    expect(screen.getByRole("button", { name: /팀장 호출 · 터미널 열기/ })).toBeEnabled();
+  });
+
+  it("[FR-007-AC8][FR-013-AC4] lead null → 팀장 호출 비활성 + 버튼 왼쪽 이유 '팀장 없음'", () => {
     renderHeader(buildWorkflow({ lead: null, members: ["dev-01"], rawMemberCount: 1 }));
 
     const button = screen.getByRole("button", { name: /팀장 호출 · 터미널 열기/ });
     expect(button).toBeDisabled();
-    expect(screen.getAllByText("팀장 없음").length).toBeGreaterThan(0);
+    const reasons = screen.getAllByText("팀장 없음");
+    expect(reasons.length).toBeGreaterThan(0);
+    // 이유 줄은 버튼 왼쪽(문서 순서상 앞)이고 aria-describedby로 이어진다.
+    const reason = document.getElementById(button.getAttribute("aria-describedby") ?? "");
+    expect(reason).toHaveTextContent("팀장 없음");
+    expect(reason?.compareDocumentPosition(button)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it("[FR-007-AC8] lead가 있으면 팀장 호출 버튼이 활성이고 팀장 name을 보여준다", () => {
@@ -181,12 +207,30 @@ describe("Header", () => {
     expect(screen.queryByText("팀장 없음")).not.toBeInTheDocument();
   });
 
-  it("[FR-007-AC9] 이름·에이전트 수·스킬 수·되돌아가기 버튼 렌더", () => {
+  it("[FR-007-AC9] 이름(h1 하나)·에이전트 수·스킬 수·‹ 되돌아가기 버튼(aria-label·title) 렌더", () => {
     renderHeader(buildWorkflow());
 
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByRole("heading", { name: "개발부서" })).toBeInTheDocument();
-    expect(screen.getByText("에이전트 3 · 스킬 4")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "에이전트 워크플로우로" })).toBeInTheDocument();
+    expect(screen.getByTestId("workflow-meta")).toHaveTextContent("에이전트 3 · 스킬 4");
+    const back = screen.getByRole("button", { name: "에이전트 워크플로우로" });
+    expect(back).toHaveAttribute("title", "에이전트 워크플로우로");
+    expect(document.querySelector("[data-wf='03-2']")).not.toBeNull();
+  });
+
+  it("[FR-007-AC9] 03 로딩(04-2): 이름·‹는 보이고 수·칩·팀장은 스켈레톤, 팀장 호출은 비활성(이유 줄 없음)", () => {
+    render(
+      <MemoryRouter>
+        <HeaderSkeleton name="개발부서" />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("heading", { name: "개발부서" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "에이전트 워크플로우로" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /팀장 호출 · 터미널 열기/ })).toBeDisabled();
+    expect(screen.getAllByRole("status").length).toBeGreaterThanOrEqual(3);
+    expect(screen.queryByText("모두 대기")).not.toBeInTheDocument();
+    expect(screen.queryByText("팀장 없음")).not.toBeInTheDocument();
   });
 
   it("[FR-013-AC2][FR-013-AC6] 팀장 호출 → 요청 URL = helperUrl + '/open', 본문 키는 target·leadName뿐, 헤더 HELPER_TOKEN_HEADER 상수 이름", async () => {
