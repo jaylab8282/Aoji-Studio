@@ -1,11 +1,12 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import { EventsTable } from "./EventsTable";
-import { EVENTS_CARD_TITLE, recentEventsSubtitle } from "../../lib/text";
-import type { EventRow, Live } from "../../api/types";
+import { connectionStore } from "../../state/connectionStore";
+import { EVENTS_CARD_SUBTITLE, EVENTS_CARD_TITLE } from "../../lib/text";
+import type { EventRow } from "../../api/types";
 
 /**
- * 브라우저 기본 포커스 표시를 지우는 클래스(ADR-46 A 금지 대상).
+ * 브라우저 기본 포커스 표시를 지우는 클래스(금지 대상).
  * 문자열을 조립해 Tailwind가 이 테스트 문구에서 죽은 유틸리티를 만들지 않게 한다.
  */
 const OUTLINE_RESET_CLASSES = [
@@ -14,10 +15,9 @@ const OUTLINE_RESET_CLASSES = [
   `focus-visible:outline-${"none"}`,
 ];
 
-// ui-spec.md SCR-01 "실시간 이벤트 표 영역"(ADR-46 C): 표는 `h-96` 고정 높이 자체 스크롤 컨테이너 안에
-// 있고 머리 행은 sticky다. 50개는 전부 DOM에 남는다(FR-005-AC6 — 페이지네이션·가상 스크롤·행 수 축소 없음).
+// ui-spec.md SCR-01 "실시간 이벤트 카드"(ADR-66): 카드가 남은 높이를 채우고 표 안에서만 세로 스크롤하며 머리 행은 sticky다.
+// 50개는 전부 DOM에 남는다(FR-005-AC6 — 페이지네이션·가상 스크롤·행 수 축소 없음).
 
-/** 서버가 이미 마스킹해 보낸 행(FR-005-AC8). 행마다 요약을 다르게 해 마지막 행까지 찾을 수 있게 한다. */
 function buildEvent(id: number): EventRow {
   return {
     id,
@@ -35,65 +35,124 @@ function buildEvent(id: number): EventRow {
   };
 }
 
-function buildLive(): Live {
-  return {
-    lastReceivedAt: "2026-09-22T10:20:30+09:00",
-    everReceived: true,
-    agents: {},
-    lobby: [],
-    undefinedSubagents: [],
-  };
-}
 
 describe("EventsTable", () => {
-  it("[ADR-46 C] 표 컨테이너에 h-96·overflow-y-auto·tabIndex=0·role=region·aria-labelledby(카드 제목 id), thead에 sticky", () => {
-    render(<EventsTable live={buildLive()} recentEvents={[buildEvent(1)]} />);
+  afterEach(() => {
+    connectionStore.reset();
+  });
 
-    const region = screen.getByRole("region");
+  it("[FR-005-AC6][ADR-66] 카드 min-h 220·남은 높이 flex-1, 표 영역 overflow-auto·tabIndex=0·role=region·aria-labelledby(카드 제목 id), 머리 칸 sticky", () => {
+    const { container } = render(<EventsTable recentEvents={[buildEvent(1)]} />);
+
+    const card = container.querySelector('[data-wf="01-6"]')!;
+    expect(card).toHaveClass("min-h-events-min", "flex-1", "flex-col");
+
+    const region = screen.getByRole("region", { name: EVENTS_CARD_TITLE });
     const classes = region.className.split(/\s+/).filter(Boolean);
-    expect(classes).toContain("h-96");
-    expect(classes).toContain("overflow-y-auto");
-    // 새 높이 토큰도 임의 픽셀 값도 쓰지 않는다(Tailwind 기본 스케일 `h-96`만).
-    expect(classes.filter((cls) => cls.includes("["))).toEqual([]);
-    // 키보드로도 스크롤된다. 포커스 표시는 브라우저 기본값을 그대로 쓴다.
+    expect(classes).toContain("overflow-auto");
+    expect(classes).toContain("min-h-0");
+    expect(classes.filter((cls) => cls.includes("h-96"))).toEqual([]);
     expect(region).toHaveAttribute("tabindex", "0");
     expect(classes.filter((cls) => OUTLINE_RESET_CLASSES.includes(cls))).toEqual([]);
-
-    // 이름은 새 문구를 만들지 않고 기존 카드 제목(`실시간 이벤트`)을 가리킨다.
     const heading = screen.getByRole("heading", { name: EVENTS_CARD_TITLE });
     expect(heading.id).not.toBe("");
     expect(region).toHaveAttribute("aria-labelledby", heading.id);
-    expect(region).toHaveAccessibleName(EVENTS_CARD_TITLE);
     expect(region).not.toHaveAttribute("aria-label");
 
-    // 표는 그 컨테이너 안에 있고, 머리 행은 스크롤 중에도 보이게 sticky + 카드 배경이다.
     const table = screen.getByRole("table");
     expect(region).toContainElement(table);
-    const thead = table.querySelector("thead");
-    const theadClasses = (thead?.className ?? "").split(/\s+/).filter(Boolean);
-    expect(theadClasses).toContain("sticky");
-    expect(theadClasses).toContain("top-0");
-    expect(theadClasses).toContain("bg-card");
+    for (const th of screen.getAllByRole("columnheader")) {
+      expect(th).toHaveClass("sticky", "top-0", "bg-card");
+    }
+    expect(screen.getAllByRole("columnheader").map((th) => th.textContent)).toEqual(["시각", "워크플로우", "에이전트", "이벤트", "요약"]);
+    const cols = [...table.querySelectorAll("col")].map((col) => col.className);
+    expect(cols).toEqual(["w-col-time", "w-col-workflow", "w-col-agent", "w-col-event", ""]);
     // 표 행에는 hover 표현이 없다(행 클릭 없음).
     const bodyRow = table.querySelectorAll("tbody tr")[0];
     expect((bodyRow?.className ?? "").split(/\s+/).filter((cls) => cls.startsWith("hover:"))).toEqual([]);
   });
 
-  it("[ADR-46 C][FR-005-AC6] 이벤트 50개 fixture → 행 50개가 모두 렌더되고 최근 50개 · 전체 로그 화면 없음 문구 유지, 페이지네이션 요소 0개", () => {
+  it("[FR-005-AC6] 이벤트 50개 → 행 50개 전부 DOM, 부제 `최근 50개 · 최신순`, 페이지네이션·링크·버튼 0개", () => {
     const events = Array.from({ length: 50 }, (_, index) => buildEvent(index + 1));
 
-    render(<EventsTable live={buildLive()} recentEvents={events} />);
+    render(<EventsTable recentEvents={events} />);
 
-    // N은 변하지 않는다(= recentEvents.length).
-    expect(screen.getByText(recentEventsSubtitle(50))).toBeInTheDocument();
-    // 머리 행 1 + 본문 50행이 모두 DOM에 있다(스크롤로 접근한다).
+    expect(EVENTS_CARD_SUBTITLE).toBe("최근 50개 · 최신순");
+    expect(screen.getByText("최근 50개 · 최신순")).toBeInTheDocument();
     expect(screen.getAllByRole("row")).toHaveLength(51);
     expect(screen.getAllByRole("cell")).toHaveLength(50 * 5);
-    // 스크롤로 가려지는 마지막 행도 레이아웃 상자를 갖는다.
     expect(screen.getByText("export TOKEN=•••••••• #50")).toBeVisible();
-    // 페이지네이션·전체 로그 이동 요소를 만들지 않는다.
     expect(screen.queryAllByRole("button")).toHaveLength(0);
     expect(screen.queryAllByRole("link")).toHaveLength(0);
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    expect(screen.queryByText(/전체 로그 화면 없음/)).not.toBeInTheDocument();
+  });
+
+  it("[FR-005-AC6] 행은 입력 순서(최신순) 그대로이고 시각은 hh:mm:ss", () => {
+    const first = buildEvent(2);
+    const second = { ...buildEvent(1), at: "2026-09-22T10:20:29+09:00" };
+
+    render(<EventsTable recentEvents={[first, second]} />);
+
+    const rows = screen.getAllByRole("row").slice(1);
+    expect(rows.map((row) => within(row).getAllByRole("cell")[4]?.textContent)).toEqual([
+      "export TOKEN=•••••••• #2",
+      "export TOKEN=•••••••• #1",
+    ]);
+    expect(within(rows[0]!).getAllByRole("cell")[0]?.textContent).toMatch(/^\d{2}:\d{2}:\d{2}$/);
+  });
+
+  it("[FR-005-AC7] 워크플로우 밖 행(workflow null)은 워크플로우 열이 `-`, 있으면 이름", () => {
+    render(<EventsTable recentEvents={[{ ...buildEvent(1), workflow: null }, buildEvent(2)]} />);
+
+    const rows = screen.getAllByRole("row").slice(1);
+    expect(within(rows[0]!).getAllByRole("cell")[1]).toHaveTextContent(/^-$/);
+    expect(within(rows[1]!).getAllByRole("cell")[1]).toHaveTextContent(/^dev-team$/);
+  });
+
+  it("[FR-005-AC8] 요약·에이전트는 고정폭 말줄임(truncate) + title 같은 문자열, 마스킹된 `••••••••` 유지, 원문 없음", () => {
+    const masked = "export TOKEN=••••••••";
+    render(<EventsTable recentEvents={[{ ...buildEvent(1), summary: masked }]} />);
+
+    const summary = screen.getByText(masked);
+    expect(summary).toHaveAttribute("title", masked);
+    expect(summary).toHaveClass("truncate", "font-mono");
+    const agent = screen.getByText("dev-lead");
+    expect(agent).toHaveAttribute("title", "dev-lead");
+    expect(agent).toHaveClass("truncate", "font-mono");
+    expect(document.body.innerHTML).not.toContain("sk-live");
+  });
+
+  it("[FR-005-AC8] 각주 `token·key·password 같은 민감 값은 ••••••••로 가립니다`", () => {
+    render(<EventsTable recentEvents={[buildEvent(1)]} />);
+
+    expect(screen.getByText("token·key·password 같은 민감 값은 ••••••••로 가립니다")).toBeInTheDocument();
+  });
+
+  it("[FR-005-AC6] kind permission 행의 `이벤트` 칸만 text-waiting 600, 그 밖 kind는 아니다", () => {
+    const permission: EventRow = { ...buildEvent(1), kind: "permission", title: "권한 요청 · Bash" };
+    const denied: EventRow = { ...buildEvent(2), kind: "permission-denied", title: "권한 거부 · Bash" };
+    const tool = buildEvent(3);
+
+    render(<EventsTable recentEvents={[permission, denied, tool]} />);
+
+    expect(screen.getByText("권한 요청 · Bash")).toHaveClass("text-waiting", "font-semibold");
+    expect(screen.getByText("권한 거부 · Bash")).not.toHaveClass("text-waiting");
+    expect(screen.getByText("도구 실행 · Bash")).not.toHaveClass("text-waiting");
+    expect(document.querySelectorAll("td.text-waiting")).toHaveLength(1);
+  });
+
+  it("[FR-005-AC6] 연결 표시: connected → 시안 `실시간 연결됨`, 끊김 → 빨강 `연결 끊김`", () => {
+    connectionStore.setConnected();
+    render(<EventsTable recentEvents={[buildEvent(1)]} />);
+
+    expect(screen.getByTestId("connection-indicator")).toHaveTextContent("실시간 연결됨");
+    expect(screen.getByTestId("connection-indicator")).toHaveClass("text-live");
+
+    act(() => connectionStore.setDisconnected(3));
+
+    expect(screen.getByTestId("connection-indicator")).toHaveTextContent("연결 끊김");
+    expect(screen.getByTestId("connection-indicator")).toHaveClass("text-danger");
+    expect(screen.queryByText("실시간 연결됨")).not.toBeInTheDocument();
   });
 });

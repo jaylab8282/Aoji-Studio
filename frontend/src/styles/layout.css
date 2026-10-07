@@ -141,6 +141,11 @@
   max-width: 56ch;
 }
 
+/* 04-1 안내 카드 본문 최대 폭 60ch (와이어프레임 `04-1-no-events.html` `.empty-ev p`). */
+@utility events-empty-body {
+  max-width: 60ch;
+}
+
 /* 라디오 켬 표현: `action` 채움 + 안쪽 4px `bg-card` (ui-spec §공통 Radio, `_base.css:113`). */
 @utility radio-on {
   box-shadow: inset 0 0 0 4px var(--color-card);

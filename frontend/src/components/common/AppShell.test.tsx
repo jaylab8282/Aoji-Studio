@@ -30,6 +30,20 @@ describe("AppShell", () => {
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
+  it("[FR-005-AC9] ownLoading → ready 전에도 화면(children)을 그리고 셸 공통 스켈레톤은 없다, main은 1개", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AppShell breadcrumb="홈" ownLoading>
+          <div>화면 자체 로딩</div>
+        </AppShell>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("화면 자체 로딩")).toBeInTheDocument();
+    expect(screen.queryByTestId("app-shell-skeleton")).not.toBeInTheDocument();
+    expect(container.querySelectorAll("main")).toHaveLength(1);
+  });
+
   it("[FR-005-AC9] snapshotStore.ready true → 본문(children) 렌더, 스켈레톤 없음", () => {
     snapshotStore.replace(buildSnapshotFixture());
 

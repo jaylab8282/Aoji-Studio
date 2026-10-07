@@ -579,8 +579,9 @@ test("[FR-003-AC4][FR-003-AC10][FR-003-E2][FR-004-AC6][FR-004-AC7][FR-005-AC1][F
 
   // FR-005-AC1: 실행 중 = ops-lead·ops-member·freelancer 3명, 전체 = 정상 정의 파일 5개, 권한·입력 대기 = dev-member 1명.
   const kpiCard = (title: string) => home.getByText(title, { exact: true }).locator("xpath=..");
-  await expect(kpiCard("실행 중 에이전트")).toContainText("3 / 5");
-  await expect(kpiCard("실행 중 에이전트")).toContainText("hook 이벤트 기준 · 권한·입력 대기 1");
+  await expect(home.getByTestId("kpi-running-value")).toHaveText("3");
+  await expect(home.getByTestId("kpi-running-total")).toHaveText("/ 5");
+  await expect(kpiCard("실행 중 에이전트")).toContainText("권한·입력 대기 1 · hook 이벤트 기준");
   await expect(kpiCard("에이전트 수")).toContainText("5");
   await expect(kpiCard("스킬 수")).toContainText("1");
   await expect(kpiCard("수집 상태")).toContainText("hook 설정됨");
@@ -588,24 +589,24 @@ test("[FR-003-AC4][FR-003-AC10][FR-003-E2][FR-004-AC6][FR-004-AC7][FR-005-AC1][F
 
   // FR-005-AC2: 상태 막대 세 수의 합 = 정상 정의 파일 수(3 + 1 + 1 = 5).
   await expect(home.getByText("작업 중 3", { exact: true })).toBeVisible();
-  await expect(home.getByText("입력·권한 대기 1", { exact: true })).toBeVisible();
+  await expect(home.getByText("권한·입력 대기 1", { exact: true })).toBeVisible();
   await expect(home.getByText("대기 1", { exact: true })).toBeVisible();
 
   // FR-005-AC6: 최신순, 재생한 28건 모두(50개 이하).
-  await expect(home.getByText(`최근 ${SCENARIO_LINE_COUNT}개 · 전체 로그 화면 없음`, { exact: true })).toBeVisible();
+  await expect(home.getByText("최근 50개 · 최신순", { exact: true })).toBeVisible();
   await expect(rows).toHaveCount(SCENARIO_LINE_COUNT);
   await expect(
-    home.getByText("token·key·password 등 기본 패턴은 ••••••••로 가림", { exact: true }),
+    home.getByText("token·key·password 같은 민감 값은 ••••••••로 가립니다", { exact: true }),
   ).toBeVisible();
 
   // FR-005-AC3: 실행 중·권한 대기가 있는 워크플로우 먼저, 그다음 최근 활동 내림차순(ops-team이 27줄로 더 최신).
   // FR-005-AC4: 카드의 스킬 수는 전체 스킬 수와 같다.
-  const cards = home.locator('a[href="/workflows"]').filter({ hasText: "워크플로우 보기 →" });
+  const cards = home.locator('a[href="/workflows"]').filter({ hasText: "워크플로우 보기" });
   await expect(cards).toHaveCount(2);
   await expect(cards.nth(0)).toContainText(OPS_TEAM);
   await expect(cards.nth(0)).toContainText("실행 중 2명");
   await expect(cards.nth(0)).toContainText("에이전트 2 · 스킬 1");
-  await expect(cards.nth(0)).toContainText(`최근 활동 · 도구 실행 · Bash · ${maskedSummary}`);
+  await expect(cards.nth(0)).toContainText(`최근 활동 · 도구 실행 · Bash ${maskedSummary}`);
   await expect(cards.nth(1)).toContainText(DEV_TEAM);
   await expect(cards.nth(1)).toContainText("권한 대기 1명");
 

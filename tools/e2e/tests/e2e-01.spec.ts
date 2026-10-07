@@ -40,7 +40,7 @@ test("[FR-005-AC9][E2E-01] 01 첫 진입 → 04-2 공통 스켈레톤이 먼저 
     const flags = window as unknown as { __e2e01SkeletonSeen?: boolean };
     flags.__e2e01SkeletonSeen = false;
     const check = () => {
-      if (document.querySelector('[data-testid="app-shell-skeleton"]') !== null) {
+      if (document.querySelector('[data-testid="home-skeleton"]') !== null) {
         flags.__e2e01SkeletonSeen = true;
       }
     };
@@ -52,12 +52,12 @@ test("[FR-005-AC9][E2E-01] 01 첫 진입 → 04-2 공통 스켈레톤이 먼저 
   await expect(page.getByText("에이전트 수", { exact: true })).toBeVisible({
     timeout: SETUP_REFLECT_TIMEOUT_MS,
   });
-  await expect(page.getByTestId("app-shell-skeleton")).toHaveCount(0);
+  await expect(page.getByTestId("home-skeleton")).toHaveCount(0);
 
   const skeletonSeen = await page.evaluate(
     () => (window as unknown as { __e2e01SkeletonSeen?: boolean }).__e2e01SkeletonSeen === true,
   );
-  expect(skeletonSeen, "첫 스냅샷 전 04-2 공통 스켈레톤이 한 번도 렌더되지 않았습니다").toBe(true);
+  expect(skeletonSeen, "첫 스냅샷 전 04-2 01 스켈레톤(home-skeleton)이 한 번도 렌더되지 않았습니다").toBe(true);
 });
 
 test("[FR-005-AC1][E2E-01] 01 KPI = 실행 중 0 / 2, 에이전트 수 2, 스킬 수 1, 수집 상태 hook 설정 안 됨", async ({
@@ -67,12 +67,13 @@ test("[FR-005-AC1][E2E-01] 01 KPI = 실행 중 0 / 2, 에이전트 수 2, 스킬
   const body = page.locator("main").first();
   const kpiCard = (title: string) => body.getByText(title, { exact: true }).locator("xpath=..");
 
-  await expect(kpiCard("실행 중 에이전트")).toContainText("0 / 2");
-  await expect(kpiCard("실행 중 에이전트")).toContainText("hook 이벤트 기준 · 권한·입력 대기 0");
+  await expect(body.getByTestId("kpi-running-value")).toHaveText("0");
+  await expect(body.getByTestId("kpi-running-total")).toHaveText("/ 2");
+  await expect(kpiCard("실행 중 에이전트")).toContainText("권한·입력 대기 0 · hook 이벤트 기준");
   await expect(kpiCard("에이전트 수")).toContainText("2");
-  await expect(kpiCard("에이전트 수")).toContainText(".claude/agents 정의 파일 수");
+  await expect(kpiCard("에이전트 수")).toContainText(".claude/agents 정의 파일");
   await expect(kpiCard("스킬 수")).toContainText("1");
-  await expect(kpiCard("스킬 수")).toContainText(".claude/skills 스킬 수");
+  await expect(kpiCard("스킬 수")).toContainText(".claude/skills 스킬 폴더");
   await expect(kpiCard("수집 상태")).toContainText("hook 설정 안 됨");
   await expect(kpiCard("수집 상태")).toContainText("마지막 수신 없음");
 
@@ -99,18 +100,23 @@ test("[FR-005-E1][E2E-01] 이벤트 0건 → 01 실시간 이벤트 표 대신 0
   await expect(body.getByText("아직 수집된 활동이 없습니다", { exact: true })).toBeVisible();
   await expect(
     body.getByText(
-      "프로젝트 폴더에서 Claude Code를 실행하면 에이전트 활동이 여기에 나타납니다.",
+      "AojiStudio 폴더에서 Claude Code를 실행하면 에이전트 활동이 여기에 나타납니다. hook 설정이 없으면 이벤트를 받을 수 없습니다.",
       { exact: true },
     ),
   ).toBeVisible();
-  await expect(body.getByRole("link", { name: "설정 화면", exact: true })).toBeVisible();
+  // 명령 줄은 링크가 아니다(04-1 다섯 문구).
   await expect(
-    body.getByText("에이전트 정의는 이벤트와 무관하게 워크플로우 탭에 표시", { exact: true }),
+    body.getByText(".claude/settings.json — 설정 화면의 hook 설정 예시를 복사해 붙여 넣으세요", { exact: true }),
+  ).toBeVisible();
+  await expect(body.getByRole("link", { name: "설정 화면" })).toHaveCount(0);
+  await expect(
+    body.getByText("에이전트 수·스킬 수는 이벤트와 상관없이 정의 파일 기준으로 보입니다", { exact: true }),
   ).toBeVisible();
 
-  // 표 자리가 04-1로 대체되었으므로 열 제목이 없다.
+  // 표 자리가 04-1로 대체되었으므로 열 제목이 없다. 카드 자리는 04-1-1(실시간 이벤트 section)이다.
   await expect(body.getByRole("columnheader", { name: "시각" })).toHaveCount(0);
-  await expect(body.getByText("최근 0개 · 전체 로그 화면 없음", { exact: true })).toBeVisible();
+  await expect(body.locator('[data-wf="04-1-1"]')).toBeVisible();
+  await expect(body.getByText("최근 50개 · 최신순", { exact: true })).toHaveCount(0);
 });
 
 test("[FR-005-AC5][FR-006-E3][E2E-01] 워크플로우 0개 → 01 대표 영역과 02 층 그리드 자리에 04-7 카드", async ({

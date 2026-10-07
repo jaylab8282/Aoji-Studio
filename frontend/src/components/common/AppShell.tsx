@@ -3,7 +3,8 @@
  * 본문 열 = `TopBar` → `DisconnectBanner`(끊김 시) → 화면(본문). 04-3 띠는 여기서 한 번만 그린다(conventions.md §7).
  * FR-005-AC9 / SCR-04-2: 첫 `snapshot`(`snapshotStore.ready`) 전에는 본문을 스켈레톤으로 채우고
  * `0`이나 빈 문구를 먼저 보여주지 않는다.
- * 본문 스크롤: 이행 중인 화면(T-R3-12~T-R3-19가 화면별 스크롤로 바꾼다)은 본문 칸이 세로 스크롤을 맡는다.
+ * 본문 스크롤: 이행 중인 화면(T-R3-13~T-R3-19가 화면별 스크롤로 바꾼다)은 본문 칸이 세로 스크롤을 맡는다.
+ * 01은 `ownLoading`으로 자기 스켈레톤(04-2)을 그린다(T-R3-12).
  */
 import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
@@ -19,10 +20,12 @@ interface AppShellProps {
   showProjectChip?: boolean;
   /** 상단 바 `data-wf` 영역 이름(`01-1` 등). 라우트 handle에서 내려온다. */
   topBarWf?: string;
+  /** 화면이 첫 `snapshot` 전 스켈레톤(04-2)을 직접 그린다(01). true면 `ready` 전에도 화면을 그린다. 라우트 handle에서 내려온다. */
+  ownLoading?: boolean;
   children: ReactNode;
 }
 
-export function AppShell({ breadcrumb, rightExtra, showProjectChip = false, topBarWf, children }: AppShellProps) {
+export function AppShell({ breadcrumb, rightExtra, showProjectChip = false, topBarWf, ownLoading = false, children }: AppShellProps) {
   const { ready } = useSnapshotStore();
 
   return (
@@ -31,7 +34,7 @@ export function AppShell({ breadcrumb, rightExtra, showProjectChip = false, topB
       <div className="flex h-screen min-h-0 min-w-0 flex-col">
         <TopBar breadcrumb={breadcrumb} rightExtra={rightExtra} showProjectChip={showProjectChip} wf={topBarWf} />
         <DisconnectBanner />
-        <main className="min-h-0 flex-1 overflow-y-auto">{ready ? children : <AppShellSkeleton />}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto">{ready || ownLoading ? children : <AppShellSkeleton />}</main>
       </div>
     </div>
   );

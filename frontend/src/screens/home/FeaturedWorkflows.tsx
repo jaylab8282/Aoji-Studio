@@ -1,60 +1,99 @@
 /**
- * ui-spec.md SCR-01 대표 워크플로우 3개. FR-005-AC3·AC4·AC5.
+ * ui-spec.md SCR-01 대표 워크플로우 섹션 (`01-5`). FR-005-AC3·AC4·AC5·AC10, FR-015-AC2.
+ * 가로형 3열 / 세로형 1열(카드 안 2칸: 왼쪽 이름·칩·설명·수, 오른쪽 세로 구분선 뒤 활동 줄·`워크플로우 보기`).
+ * 카드 전체가 `/workflows` 링크이고 hover·focus 테두리는 `border-dashed`다(ADR-69). 시안 카드 테두리 같은 상태색은 쓰지 않는다.
+ * 워크플로우 0개면 04-7 카드 한 장(전체 폭).
  */
 import { Link } from "react-router-dom";
 import type { Live, Registry } from "../../api/types";
 import { EmptyWorkflowCard } from "../../components/ui/EmptyWorkflowCard";
+import { Icon } from "../../components/ui/Icon";
+import { Skeleton } from "../../components/ui/Skeleton";
 import { WorkflowChip } from "../../components/ui/WorkflowChip";
 import { featuredWorkflows, type FeaturedWorkflow } from "../../lib/derive/featuredWorkflows";
-import { workflowCardBorder } from "../../lib/derive/workflowCardBorder";
-import { formatDateHm } from "../../lib/format/time";
+import { formatTimestamp } from "../../lib/format/time";
 import {
   FEATURED_WORKFLOWS_SUBTITLE,
   FEATURED_WORKFLOWS_TITLE,
+  LAST_ACTIVITY_LEAD,
   NO_ACTIVITY_TEXT,
-  VIEW_ALL_WORKFLOWS_LINK_LABEL,
+  RECENT_ACTIVITY_LEAD,
   WORKFLOW_CARD_VIEW_LINK_LABEL,
   lastActivityLabel,
   recentActivityLabel,
-  workflowCardCountsLabel,
 } from "../../lib/text";
 
-function activityText(activity: FeaturedWorkflow["activity"]): string {
-  if (activity.kind === "recent") return recentActivityLabel(activity.title, activity.summary);
-  if (activity.kind === "last") return lastActivityLabel(formatDateHm(activity.at));
-  return NO_ACTIVITY_TEXT;
+const GRID = "grid grid-cols-3 gap-3 portrait:grid-cols-1";
+const CARD_BASE = "grid min-w-0 content-start gap-2 rounded-card border border-border bg-card p-4";
+const ACT_BASE = "flex min-w-0 items-center gap-3 border-t border-border pt-2";
+const ACT_PORTRAIT =
+  "portrait:col-start-2 portrait:row-span-3 portrait:row-start-1 portrait:flex-col portrait:items-start portrait:justify-center portrait:border-t-0 portrait:border-l portrait:pt-0 portrait:pl-4";
+const CARD_PORTRAIT = "portrait:grid-cols-2 portrait:gap-x-6";
+
+function SectionHead() {
+  return (
+    <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
+      <h2 className="text-section font-semibold">{FEATURED_WORKFLOWS_TITLE}</h2>
+      <span className="min-w-0 truncate text-aux text-text-muted">{FEATURED_WORKFLOWS_SUBTITLE}</span>
+    </div>
+  );
+}
+
+/** 활동 줄: 보이는 글자와 `title`이 같은 하나의 (서버가 마스킹한) 문자열이다(FR-015-AC2). 요약·시각은 고정폭이다. */
+function ActivityLine({ activity }: { activity: FeaturedWorkflow["activity"] }) {
+  const text =
+    activity.kind === "recent"
+      ? recentActivityLabel(activity.title, activity.summary)
+      : activity.kind === "last"
+        ? lastActivityLabel(formatTimestamp(activity.at))
+        : NO_ACTIVITY_TEXT;
+  return (
+    <p
+      data-testid="activity-line"
+      data-clamp
+      title={text}
+      className="min-w-0 flex-1 truncate text-aux text-text-muted portrait:max-w-full portrait:flex-none"
+    >
+      {activity.kind === "recent" ? (
+        <>
+          {RECENT_ACTIVITY_LEAD}
+          {activity.title} <span className="font-mono text-text-secondary">{activity.summary}</span>
+        </>
+      ) : activity.kind === "last" ? (
+        <>
+          {LAST_ACTIVITY_LEAD}
+          <span className="font-mono text-text-secondary">{formatTimestamp(activity.at)}</span>
+        </>
+      ) : (
+        NO_ACTIVITY_TEXT
+      )}
+    </p>
+  );
 }
 
 function WorkflowCard({ workflow }: { workflow: FeaturedWorkflow }) {
-  // ADR-46 B: 화면에 보이는 문자열과 `title` 문자열이 같다. 서버가 이미 마스킹해 보낸
-  // `lastEvent.title`·`summary`로 만든 값이므로 마스킹 전 원문을 얻는 경로가 없다(FR-015-AC2, FR-005-AC8).
-  const activity = activityText(workflow.activity);
-  // 테두리 색은 01·02 공용 규칙 하나로만 정한다(ADR-24, conventions.md §7 MUST). 01 카드에는 팀장 없음 표시가 없다.
-  const borderClass = workflowCardBorder({
-    running: workflow.counts.running,
-    waiting: workflow.counts.waiting,
-    leadMissing: false,
-  });
-
   return (
     <Link
       to="/workflows"
-      // 부류 ①(ADR-46 A): hover 값은 그대로 두고 키보드 포커스에도 같은 표현을 준다(NFR-12, ui-rules 8).
-      className={`rounded-card border ${borderClass} bg-card p-card flex flex-col gap-2 hover:bg-selected focus-visible:bg-selected`}
+      aria-label={`${workflow.name} · ${workflow.chip.label} · ${WORKFLOW_CARD_VIEW_LINK_LABEL}`}
+      className={`group ${CARD_BASE} ${CARD_PORTRAIT} transition-colors duration-120 ease-standard hover:border-border-dashed focus-visible:border-border-dashed`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-section font-semibold text-text">{workflow.name}</p>
+      <div className="flex min-w-0 items-center gap-2">
+        <h3 className="min-w-0 flex-1 truncate text-section font-semibold text-text">{workflow.name}</h3>
         <WorkflowChip result={workflow.chip} />
       </div>
-      <p className="text-body text-text-secondary">{workflow.description}</p>
-      <p className="text-aux text-text-faint">{workflowCardCountsLabel(workflow.agentCount, workflow.skillCount)}</p>
-      <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-2">
-        {/* 한 줄 clamp(ADR-46 B): 폭을 넘으면 `…`로 자르고 `title`로 (마스킹된) 전체를 보여준다.
-            글자 수 상수로 DOM 텍스트를 자르지 않는다. 옆 링크가 쪼개지지 않게 링크는 줄어들지 않는다. */}
-        <p className="min-w-0 truncate text-aux text-text-secondary" title={activity}>
-          {activity}
-        </p>
-        <span className="shrink-0 text-aux text-link">{WORKFLOW_CARD_VIEW_LINK_LABEL}</span>
+      <span className="truncate text-text-secondary">{workflow.description}</span>
+      <span className="text-aux text-text-muted">
+        에이전트 <b className="font-mono font-medium text-text-secondary">{workflow.agentCount}</b> · 스킬{" "}
+        <b className="font-mono font-medium text-text-secondary">{workflow.skillCount}</b>
+      </span>
+      <div className={`${ACT_BASE} ${ACT_PORTRAIT}`}>
+        <ActivityLine activity={workflow.activity} />
+        {/* 카드 전체가 링크라 안쪽은 링크 모양의 글자다(`<a>` 안에 `<a>`를 두지 않는다). */}
+        <span className="inline-flex min-h-control shrink-0 items-center gap-1.5 font-semibold whitespace-nowrap text-link underline decoration-action-border underline-offset-3 group-hover:decoration-link">
+          {WORKFLOW_CARD_VIEW_LINK_LABEL}
+          <Icon name="arrow-right" />
+        </span>
       </div>
     </Link>
   );
@@ -64,26 +103,38 @@ export function FeaturedWorkflows({ registry, live }: { registry: Registry; live
   const workflows = featuredWorkflows(registry, live);
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between">
-        <span className="flex items-baseline gap-2">
-          <h2 className="text-section font-semibold text-text">{FEATURED_WORKFLOWS_TITLE}</h2>
-          <span className="text-aux text-text-faint">{FEATURED_WORKFLOWS_SUBTITLE}</span>
-        </span>
-        {/* 텍스트 링크의 hover·`:focus-visible`은 밑줄만 더한다(ADR-46 A ④, 더 밝은 링크 토큰이 없다). */}
-        <Link to="/workflows" className="text-aux text-link hover:underline focus-visible:underline">
-          {VIEW_ALL_WORKFLOWS_LINK_LABEL}
-        </Link>
-      </div>
+    <section aria-label={FEATURED_WORKFLOWS_TITLE} data-wf="01-5" className="grid flex-none gap-3">
+      <SectionHead />
       {registry.workflows.length === 0 ? (
         <EmptyWorkflowCard writable={registry.writable} />
       ) : (
-        <div className="grid grid-cols-3 gap-4">
+        <div className={GRID}>
           {workflows.map((workflow) => (
             <WorkflowCard key={workflow.name} workflow={workflow} />
           ))}
         </div>
       )}
+    </section>
+  );
+}
+
+/** 04-2: 카드 3장 안 스켈레톤(제목 40%·설명 70%·수 50%·활동 80%). 섹션 머리는 보인다. */
+export function FeaturedWorkflowsSkeleton() {
+  return (
+    <section aria-label={FEATURED_WORKFLOWS_TITLE} aria-busy="true" data-wf="01-5" className="grid flex-none gap-3">
+      <SectionHead />
+      <div className={GRID}>
+        {[0, 1, 2].map((index) => (
+          <div key={index} className={`${CARD_BASE} ${CARD_PORTRAIT}`}>
+            <Skeleton className="h-4 w-2/5" aria-label="워크플로우 이름 로딩 중" />
+            <Skeleton className="w-7/10" aria-label="워크플로우 설명 로딩 중" />
+            <Skeleton className="w-1/2" aria-label="워크플로우 수 로딩 중" />
+            <div className={`${ACT_BASE} ${ACT_PORTRAIT}`}>
+              <Skeleton className="w-4/5" aria-label="워크플로우 활동 로딩 중" />
+            </div>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }

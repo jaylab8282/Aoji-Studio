@@ -162,4 +162,22 @@ describe("featuredWorkflows", () => {
 
     expect(result[0]?.activity).toEqual({ kind: "none" });
   });
+
+  it("[FR-005-AC3] 권한 대기만 있는 워크플로우도 활성: 모두 대기·이벤트 있는 워크플로우보다 앞에 오고 활동은 recent", () => {
+    const idleOld = buildWorkflow("a-idle", "idle-lead");
+    const waiting = buildWorkflow("z-waiting", "wait-lead");
+    const registry = buildRegistry([idleOld, waiting]);
+    const newest = buildEvent(2, "2026-09-22T09:30:00+09:00");
+    const live = buildLive({
+      "idle-lead": buildAgentLive("idle-lead", "idle", buildEvent(1, "2026-09-22T10:30:00+09:00")),
+      "wait-lead": buildAgentLive("wait-lead", "waiting", newest),
+    });
+
+    const result = featuredWorkflows(registry, live);
+
+    expect(result.map((workflow) => workflow.name)).toEqual(["z-waiting", "a-idle"]);
+    expect(result[0]?.activity).toEqual({ kind: "recent", title: newest.title, summary: newest.summary });
+    expect(result[0]?.chip.label).toBe("권한 대기 1명");
+    expect(result[1]?.activity.kind).toBe("last");
+  });
 });

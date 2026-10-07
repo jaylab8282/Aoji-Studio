@@ -160,7 +160,7 @@ interface DeskMetric {
   labelRight: number;
   labelWidth: number;
   /**
-   * 상태 줄(`DeskSprite.tsx` 마지막 줄 `작업 중`/`대기`/`작업 중 · 부모 <라벨>`)의 문구와 좌·우 끝·폭.
+   * 상태 줄(`DeskFigure.tsx` 마지막 줄 `작업 중`/`대기`/`작업 중 · 부모 <라벨>`)의 문구와 좌·우 끝·폭.
    * 같은 책상에서 이름 칩(12자 + `…`로 제한)보다 **넓어질 수 있는 유일한 요소**라 번짐 판정에 함께 쓴다
    * (T-024 리뷰 Minor 6).
    */
@@ -218,7 +218,7 @@ async function deskMetrics(page: Page, workflowName: string): Promise<DeskMetric
         const root = svg.parentElement;
         const labelSpan = root?.querySelector("span[title] > span") ?? null;
         const labelRect = paintExtent(labelSpan);
-        // 상태 줄은 책상 묶음(`DeskSprite`)의 마지막 자식 span이다. 선택 결과는 호출하는 쪽에서
+        // 상태 줄은 책상 묶음(`DeskFigure`)의 마지막 자식 span이다. 선택 결과는 호출하는 쪽에서
         // `statusText`로 검증한다(구조가 바뀌면 빈 문구로 드러난다).
         const statusSpan = root?.lastElementChild ?? null;
         const statusRect = paintExtent(statusSpan);
@@ -331,8 +331,8 @@ function floorCardByName(page: Page, workflowName: string): Locator {
 
 async function featuredCardNames(page: Page): Promise<string[]> {
   return page
-    .locator("a", { hasText: "워크플로우 보기 →" })
-    .evaluateAll((elements) => elements.map((element) => element.querySelector("p")?.textContent ?? ""));
+    .locator("a", { hasText: "워크플로우 보기" })
+    .evaluateAll((elements) => elements.map((element) => element.querySelector("h3")?.textContent ?? ""));
 }
 
 test.describe.configure({ mode: "serial" });
@@ -373,16 +373,18 @@ test("[DoD 화면 대조][E2E-13] 01 홈 — showcase 22줄 재생 상태를 단
   });
 
   // KPI 1·2·3 (FR-005-AC1·AC2): 실행 중 6 / 17, 에이전트 17, 스킬 2.
-  await expect(page.getByText(`${RUNNING_COUNT} / ${AGENT_COUNT}`, { exact: true })).toBeVisible();
-  await expect(
-    page.getByText(`hook 이벤트 기준 · 권한·입력 대기 ${WAITING_COUNT}`, { exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText(".claude/agents 정의 파일 수", { exact: true })).toBeVisible();
-  await expect(page.getByText(".claude/skills 스킬 수", { exact: true })).toBeVisible();
+  // `/ 전체`는 수치와 다른 요소(D-125 이후 KPI 1 두 요소)라 각각 단언한다.
+  await expect(page.getByTestId("kpi-running-value")).toHaveText(String(RUNNING_COUNT));
+  await expect(page.getByTestId("kpi-running-total")).toHaveText(`/ ${AGENT_COUNT}`);
+  await expect(page.getByTestId("kpi-running-sub")).toHaveText(
+    `권한·입력 대기 ${WAITING_COUNT} · hook 이벤트 기준`,
+  );
+  await expect(page.getByText(".claude/agents 정의 파일", { exact: true })).toBeVisible();
+  await expect(page.getByText(".claude/skills 스킬 폴더", { exact: true })).toBeVisible();
 
   // 상태 막대 범례 3상태 합 = 에이전트 수.
   await expect(page.getByText(`작업 중 ${RUNNING_COUNT}`, { exact: true })).toBeVisible();
-  await expect(page.getByText(`입력·권한 대기 ${WAITING_COUNT}`, { exact: true })).toBeVisible();
+  await expect(page.getByText(`권한·입력 대기 ${WAITING_COUNT}`, { exact: true })).toBeVisible();
   await expect(page.getByText(`대기 ${IDLE_COUNT}`, { exact: true })).toBeVisible();
   expect(RUNNING_COUNT + WAITING_COUNT + IDLE_COUNT).toBe(AGENT_COUNT);
 
@@ -395,12 +397,12 @@ test("[DoD 화면 대조][E2E-13] 01 홈 — showcase 22줄 재생 상태를 단
 
   // 실시간 이벤트: 재생한 22건 + 연결 표시 + 마스킹(FR-005-AC6·AC8, FR-015-AC1).
   await expect(
-    page.getByText(`최근 ${SHOWCASE_LINE_COUNT}개 · 전체 로그 화면 없음`, { exact: true }),
+    page.getByText("최근 50개 · 최신순", { exact: true }),
   ).toBeVisible();
   await expect(page.getByText("실시간 연결됨", { exact: true })).toBeVisible();
   await expect(page.getByText("export TOKEN=••••••••", { exact: true })).toBeVisible();
   await expect(
-    page.getByText("token·key·password 등 기본 패턴은 ••••••••로 가림", { exact: true }),
+    page.getByText("token·key·password 같은 민감 값은 ••••••••로 가립니다", { exact: true }),
   ).toBeVisible();
 
 });
@@ -713,7 +715,7 @@ test("[E2E-13][T-015 m6][FR-006-AC4] 13자 이름을 가장 좁은 열(span-1 4�
       "title",
       LONG_NAME,
     );
-    // ADR-50 B: 이름 칩도 칸 폭에서 잘린다(ui-spec §공통 `DeskSprite` "두 글자 줄은 그리드 칸 폭을 넘지 않는다").
+    // ADR-50 B: 이름 칩도 칸 폭에서 잘린다(ui-spec §공통 `DeskFigure` "두 글자 줄은 그리드 칸 폭을 넘지 않는다").
     expect(
       round2(longDesk.labelWidth),
       "13자 이름 칩이 열 폭을 넘습니다",

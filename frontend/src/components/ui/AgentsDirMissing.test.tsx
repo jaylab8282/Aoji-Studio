@@ -32,6 +32,28 @@ describe("AgentsDirMissing", () => {
     expect(screen.getByText("/Users/jaybee/Desktop/AojiStudio/.claude/agents")).toBeInTheDocument();
   });
 
+  it("[SCR-04-5][FR-001-E1] NoticeCard error: role=alert·`04-5-1`·folder-x, 본문은 ui-rules 04-5 문구, 경로는 명령 줄, 버튼 secondary/accent", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AgentsDirMissing hostPath="/Users/jaybee/Desktop/AojiStudio" />
+      </MemoryRouter>,
+    );
+
+    const card = screen.getByRole("alert");
+    expect(card).toBe(container.querySelector('[data-wf="04-5-1"]'));
+    expect(card).toHaveClass("border-danger-border");
+    expect(card.querySelector("svg")).not.toBeNull();
+    expect(
+      screen.getByText(
+        "컨테이너를 실행할 때 마운트한 AojiStudio 폴더에 .claude/agents가 없습니다. 폴더를 만든 뒤 다시 읽기를 누르세요. 마운트 경로는 설정에서 확인할 수 있습니다.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("/Users/jaybee/Desktop/AojiStudio/.claude/agents").tagName).toBe("CODE");
+    expect(screen.getByRole("button", { name: "다시 읽기" })).toHaveClass("bg-soft");
+    expect(screen.getByRole("button", { name: "설정 열기" })).toHaveClass("bg-action-soft", "text-link");
+    expect(card).not.toHaveTextContent(/쓰기 권한이 없으면|있는지 확인하세요/);
+  });
+
   it("[FR-001-AC4] '다시 읽기' 클릭 → rescan 성공 시 snapshotStore.registry 갱신", async () => {
     snapshotStore.replace(buildSnapshotFixture());
     const newRegistry = { ...buildSnapshotFixture().registry, agentsDirMissing: false, revision: 2 };

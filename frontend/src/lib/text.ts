@@ -100,8 +100,8 @@ export const AGENTS_DIR_MISSING_TITLE = "에이전트 폴더를 찾을 수 없�
 export function agentsDirMissingPath(hostPath: string): string {
   return `${hostPath}/.claude/agents`;
 }
-export const AGENTS_DIR_MISSING_BODY_1 = "컨테이너 실행 시 마운트한 폴더에 .claude가 있는지 확인하세요.";
-export const AGENTS_DIR_MISSING_BODY_2 = "쓰기 권한이 없으면 추가·수정·삭제 버튼은 비활성.";
+export const AGENTS_DIR_MISSING_BODY =
+  "컨테이너를 실행할 때 마운트한 AojiStudio 폴더에 .claude/agents가 없습니다. 폴더를 만든 뒤 다시 읽기를 누르세요. 마운트 경로는 설정에서 확인할 수 있습니다.";
 export const RESCAN_BUTTON_LABEL = "다시 읽기";
 export const RESCAN_BUTTON_LOADING_LABEL = "다시 읽는 중…";
 export const OPEN_SETTINGS_BUTTON_LABEL = "설정 열기";
@@ -111,57 +111,65 @@ export function rescanFailedMessage(message: string): string {
 
 // EmptyWorkflowCard (SCR-04-7, 01·02 공통)
 export const EMPTY_WORKFLOW_TITLE = "아직 워크플로우가 없습니다";
+export const EMPTY_WORKFLOW_BODY =
+  "워크플로우를 만들면 팀장과 팀원이 층으로 보입니다. 지금은 모든 에이전트가 워크플로우 밖에 있어 로비에만 나타납니다.";
 export const ADD_WORKFLOW_BUTTON_LABEL = "워크플로우 추가";
 export const WRITABLE_FALSE_REASON = "쓰기 권한 없음";
 
 // NoEventsYet (SCR-04-1, 01)
 export const NO_EVENTS_TITLE = "아직 수집된 활동이 없습니다";
-export const NO_EVENTS_BODY = "프로젝트 폴더에서 Claude Code를 실행하면 에이전트 활동이 여기에 나타납니다.";
-export const NO_EVENTS_HOOK_SETUP_PREFIX = "hook 설정: .claude/settings.json · ";
-export const NO_EVENTS_HOOK_SETUP_LINK_LABEL = "설정 화면";
-export const NO_EVENTS_HOOK_SETUP_SUFFIX = "에서 예시 복사";
-export const NO_EVENTS_FOOTNOTE = "에이전트 정의는 이벤트와 무관하게 워크플로우 탭에 표시";
+export const NO_EVENTS_BODY =
+  "AojiStudio 폴더에서 Claude Code를 실행하면 에이전트 활동이 여기에 나타납니다. hook 설정이 없으면 이벤트를 받을 수 없습니다.";
+export const NO_EVENTS_COMMAND = ".claude/settings.json — 설정 화면의 hook 설정 예시를 복사해 붙여 넣으세요";
+export const NO_EVENTS_FOOTNOTE = "에이전트 수·스킬 수는 이벤트와 상관없이 정의 파일 기준으로 보입니다";
+/** 상태 막대 이유 줄(04-1, `04-1-2`). */
+export const NO_EVENTS_STATUS_BAR_REASON = "hook 이벤트를 받기 전이라 모든 에이전트를 대기로 표시합니다";
 
 // SCR-01 홈
 export const HOME_TITLE = "에이전트 관제";
 export const HOME_SUBTITLE = "Claude Code 에이전트 활동을 실시간으로 봅니다. 웹에서 에이전트를 실행하지 않습니다.";
-export const OPEN_WORKFLOWS_BUTTON_LABEL = "에이전트 워크플로우 열기 →";
+export const OPEN_WORKFLOWS_BUTTON_LABEL = "에이전트 워크플로우 열기";
 
 export const KPI_RUNNING_TITLE = "실행 중 에이전트";
+// 보조 줄은 수(고정폭)를 따로 그리므로 앞뒤 글자를 나눠 둔다.
+export const KPI_RUNNING_SUB_LEAD = "권한·입력 대기 ";
+export const KPI_RUNNING_SUB_TAIL = " · hook 이벤트 기준";
 export function kpiRunningSubtitle(waiting: number): string {
-  return `hook 이벤트 기준 · 권한·입력 대기 ${waiting}`;
+  return `${KPI_RUNNING_SUB_LEAD}${waiting}${KPI_RUNNING_SUB_TAIL}`;
 }
 export const KPI_AGENT_COUNT_TITLE = "에이전트 수";
-export const KPI_AGENT_COUNT_SUBTITLE = ".claude/agents 정의 파일 수";
+export const KPI_AGENT_COUNT_PATH = ".claude/agents";
+export const KPI_AGENT_COUNT_SUFFIX = " 정의 파일";
 export const KPI_SKILL_COUNT_TITLE = "스킬 수";
-export const KPI_SKILL_COUNT_SUBTITLE = ".claude/skills 스킬 수";
+export const KPI_SKILL_COUNT_PATH = ".claude/skills";
+export const KPI_SKILL_COUNT_SUFFIX = " 스킬 폴더";
 export const KPI_COLLECTOR_TITLE = "수집 상태";
 
 export const STATUS_BAR_TITLE = "에이전트 상태";
 export const STATUS_BAR_SUBTITLE = "hook 이벤트 기준";
 export const STATUS_BAR_LEGEND_RUNNING = "작업 중";
-export const STATUS_BAR_LEGEND_WAITING = "입력·권한 대기";
+export const STATUS_BAR_LEGEND_WAITING = "권한·입력 대기";
 export const STATUS_BAR_LEGEND_IDLE = "대기";
 
 export const FEATURED_WORKFLOWS_TITLE = "에이전트 워크플로우";
-export const FEATURED_WORKFLOWS_SUBTITLE = "대표 3개 · 실행 중 에이전트가 있는 워크플로우 → 최근 활동순";
-export const VIEW_ALL_WORKFLOWS_LINK_LABEL = "전체 보기 →";
-export const WORKFLOW_CARD_VIEW_LINK_LABEL = "워크플로우 보기 →";
+export const FEATURED_WORKFLOWS_SUBTITLE = "대표 3개 · 실행 중·권한 대기가 있는 워크플로우 → 최근 활동순";
+export const WORKFLOW_CARD_VIEW_LINK_LABEL = "워크플로우 보기";
 export function workflowCardCountsLabel(agentCount: number, skillCount: number): string {
   return `에이전트 ${agentCount} · 스킬 ${skillCount}`;
 }
+// 활동 줄(01 대표 카드): 요약·시각은 고정폭으로 따로 그리므로 앞 글자를 나눠 둔다. `title` 속성은 전체 문자열이다.
+export const RECENT_ACTIVITY_LEAD = "최근 활동 · ";
+export const LAST_ACTIVITY_LEAD = "마지막 활동 · ";
 export function recentActivityLabel(title: string, summary: string): string {
-  return `최근 활동 · ${title} · ${summary}`;
+  return `${RECENT_ACTIVITY_LEAD}${title} ${summary}`;
 }
-export function lastActivityLabel(dateHm: string): string {
-  return `마지막 활동 · ${dateHm}`;
+export function lastActivityLabel(timestamp: string): string {
+  return `${LAST_ACTIVITY_LEAD}${timestamp}`;
 }
-export const NO_ACTIVITY_TEXT = "활동 없음";
+export const NO_ACTIVITY_TEXT = "최근 활동 없음";
 
 export const EVENTS_CARD_TITLE = "실시간 이벤트";
-export function recentEventsSubtitle(count: number): string {
-  return `최근 ${count}개 · 전체 로그 화면 없음`;
-}
+export const EVENTS_CARD_SUBTITLE = "최근 50개 · 최신순";
 export const LIVE_CONNECTED_TEXT = "실시간 연결됨";
 export const LIVE_DISCONNECTED_TEXT = "연결 끊김";
 export const EVENTS_TABLE_COL_TIME = "시각";
@@ -169,7 +177,7 @@ export const EVENTS_TABLE_COL_WORKFLOW = "워크플로우";
 export const EVENTS_TABLE_COL_AGENT = "에이전트";
 export const EVENTS_TABLE_COL_EVENT = "이벤트";
 export const EVENTS_TABLE_COL_SUMMARY = "요약";
-export const EVENTS_TABLE_FOOTNOTE = "token·key·password 등 기본 패턴은 ••••••••로 가림";
+export const EVENTS_TABLE_FOOTNOTE = "token·key·password 같은 민감 값은 ••••••••로 가립니다";
 export const EMPTY_VALUE_TEXT = "-";
 
 // SCR-02 에이전트 워크플로우 층 뷰

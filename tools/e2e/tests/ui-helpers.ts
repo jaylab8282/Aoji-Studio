@@ -213,9 +213,19 @@ function escapeRegExp(value: string): string {
 
 // ── 화면 준비·대기 ────────────────────────────────────────────────────────────────
 
-/** 상대 경로로 열고 04-2 공통 스켈레톤이 끝날 때까지(첫 스냅샷 수신) 기다린다. */
+/**
+ * 상대 경로로 열고 04-2 스켈레톤이 끝날 때까지(첫 스냅샷 수신) 기다린다.
+ * 01(`/`)은 셸 스켈레톤을 쓰지 않고 화면 자체 스켈레톤(`home-skeleton`)을 쓰므로(T-R3-12), 시작부터
+ * `app-shell-skeleton`이 0개라 거짓 통과한다. 01은 `home`이 나타나고 `home-skeleton`이 0개가 될 때까지 기다린다.
+ * 02·03·07은 `app-shell-skeleton` 0개를 기다린다.
+ */
 export async function gotoReady(page: Page, path: string): Promise<void> {
   await page.goto(path);
+  if (new URL(path, "http://placeholder.invalid").pathname === "/") {
+    await expect(page.getByTestId("home")).toBeVisible({ timeout: SETUP_REFLECT_TIMEOUT_MS });
+    await expect(page.getByTestId("home-skeleton")).toHaveCount(0);
+    return;
+  }
   await expect(page.getByTestId("app-shell-skeleton")).toHaveCount(0, {
     timeout: SETUP_REFLECT_TIMEOUT_MS,
   });

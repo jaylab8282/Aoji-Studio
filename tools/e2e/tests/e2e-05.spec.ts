@@ -19,6 +19,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { E2E_DIR, composeEnv, readE2eState } from "../lib/e2e-state";
 import { delay } from "../lib/harness-utils";
+import { replayScenarioLines } from "../lib/replay";
 import {
   SETUP_REFLECT_TIMEOUT_MS,
   agentFile,
@@ -217,6 +218,14 @@ test("[FR-016-AC1][FR-016-AC2][FR-016-AC3][FR-016-AC4][E2E-05] 컨테이너 paus
   });
 
   try {
+    // A-26 / ADR-76 결정 2: states.jsonl 1줄(dev-lead SessionStart)을 먼저 재생해 이벤트가 있는 01 상태에서 시작한다.
+    expect(replayScenarioLines({ from: 1, to: 1 }).sent).toBe(1);
+    await gotoReady(page, "/");
+    await expect(page.locator('[data-wf="04-1-1"]')).toHaveCount(0);
+    await expect(
+      page.locator('[data-wf="01-6"]').getByTestId("connection-indicator").getByText("실시간 연결됨", { exact: true }),
+    ).toBeVisible();
+
     await gotoReady(page, "/workflows");
     await expect(page.getByRole("heading", { level: 3, name: DEV_TEAM, exact: true })).toBeVisible();
     await expect(spriteSvg(page, "dev-lead")).toBeVisible();
@@ -308,9 +317,11 @@ test("[FR-016-AC1][FR-016-AC2][FR-016-AC3][FR-016-AC4][E2E-05] 컨테이너 paus
 
     // FR-016-AC1 "모든 화면 상단에": 화면을 옮겨도 배너가 그대로 있고 01은 `연결 끊김`으로 표시한다.
     await page.getByRole("link", { name: "홈", exact: true }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "에이전트 관제", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "에이전트 관제", exact: true })).toBeVisible();
     await expect(disconnectBanner(page)).toBeVisible();
-    await expect(page.getByText("연결 끊김", { exact: true })).toBeVisible();
+    await expect(
+      page.locator('[data-wf="01-6"]').getByTestId("connection-indicator").getByText("연결 끊김", { exact: true }),
+    ).toBeVisible();
     await page.getByRole("link", { name: "에이전트 워크플로우", exact: true }).click();
     await expect(page.getByRole("heading", { level: 3, name: DEV_TEAM, exact: true })).toBeVisible();
     await expect(disconnectBanner(page)).toBeVisible();
@@ -383,7 +394,9 @@ test("[FR-016-AC1][FR-016-AC2][FR-016-AC3][FR-016-AC4][E2E-05] 컨테이너 paus
 
     // 01의 연결 표시도 `실시간 연결됨`으로 돌아온다(ui-spec SCR-01 실시간 이벤트 카드 행).
     await page.getByRole("link", { name: "홈", exact: true }).click();
-    await expect(page.getByText("실시간 연결됨", { exact: true })).toBeVisible();
+    await expect(
+      page.locator('[data-wf="01-6"]').getByTestId("connection-indicator").getByText("실시간 연결됨", { exact: true }),
+    ).toBeVisible();
     await expect(disconnectBanner(page)).toHaveCount(0);
   } finally {
     // 실패해도 컨테이너와 fixture를 원래대로 돌린다(afterAll이 한 번 더 확인한다).

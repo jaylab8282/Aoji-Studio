@@ -17,7 +17,7 @@ export const routes: RouteObject[] = [
   {
     element: <App />,
     children: [
-      { path: "/", element: <HomeScreen />, handle: { breadcrumb: SIDEBAR_TAB_HOME, showProjectChip: true, topBarWf: "01-1" } },
+      { path: "/", element: <HomeScreen />, handle: { breadcrumb: SIDEBAR_TAB_HOME, showProjectChip: true, topBarWf: "01-1", ownLoading: true } },
       {
         path: "/workflows",
         element: <WorkflowsScreen />,

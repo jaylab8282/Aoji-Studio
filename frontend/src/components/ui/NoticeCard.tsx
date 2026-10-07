@@ -17,14 +17,17 @@ interface NoticeCardProps {
   children?: ReactNode;
   /** 버튼 줄. */
   actions?: ReactNode;
+  /** 화면 원본의 `data-wf` 영역 이름(`04-5-1`·`04-7-1` 등). */
+  wf?: string;
 }
 
-export function NoticeCard({ kind, icon, title, children, actions }: NoticeCardProps) {
+export function NoticeCard({ kind, icon, title, children, actions, wf }: NoticeCardProps) {
   const isError = kind === "error";
   return (
     <section
       role={isError ? "alert" : undefined}
       data-kind={kind}
+      data-wf={wf}
       className={`grid min-w-0 justify-items-center gap-2 rounded-card border bg-card px-6 py-8 text-center ${
         isError ? "border-danger-border" : "border-dashed border-border-dashed"
       }`}

@@ -3,6 +3,7 @@
  * waiting>0 → 권한 대기(주황) / running>0 → 실행 중(시안) / 둘 다 0 → 모두 대기(중립).
  */
 import { Chip, type ChipTone } from "./Chip";
+import { StatusDot, type DotStatus } from "./StatusDot";
 import type { WorkflowChipResult } from "../../lib/derive/workflowChip";
 
 const TONE_BY_VARIANT: Record<WorkflowChipResult["variant"], ChipTone> = {
@@ -11,6 +12,17 @@ const TONE_BY_VARIANT: Record<WorkflowChipResult["variant"], ChipTone> = {
   idle: "neutral",
 };
 
+const DOT_BY_VARIANT: Record<WorkflowChipResult["variant"], DotStatus> = {
+  waiting: "waiting",
+  running: "running",
+  idle: "idle",
+};
+
 export function WorkflowChip({ result }: { result: WorkflowChipResult }) {
-  return <Chip tone={TONE_BY_VARIANT[result.variant]}>{result.label}</Chip>;
+  return (
+    <Chip tone={TONE_BY_VARIANT[result.variant]}>
+      <StatusDot status={DOT_BY_VARIANT[result.variant]} />
+      {result.label}
+    </Chip>
+  );
 }

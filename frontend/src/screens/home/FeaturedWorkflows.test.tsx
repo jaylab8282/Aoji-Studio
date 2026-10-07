@@ -1,9 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-import { FeaturedWorkflows } from "./FeaturedWorkflows";
-import { workflowCardBorder } from "../../lib/derive/workflowCardBorder";
+import { FeaturedWorkflows, FeaturedWorkflowsSkeleton } from "./FeaturedWorkflows";
 import { recentActivityLabel } from "../../lib/text";
+import { formatTimestamp } from "../../lib/format/time";
 import type { AgentLive, EventRow, Live, Registry, Status, Workflow } from "../../api/types";
 
 function buildWorkflow(name: string, lead: string, members: string[]): Workflow {
@@ -83,7 +83,30 @@ function renderFeatured(live: Live) {
 }
 
 describe("FeaturedWorkflows", () => {
-  it("[FR-006-AC5] 대표 카드 테두리도 02와 같은 `workflowCardBorder`를 쓴다: running>0·waiting>0 → running-border", () => {
+  it("[FR-005-AC3] 섹션 머리 `에이전트 워크플로우` + 부제 `대표 3개 · 실행 중·권한 대기가 있는 워크플로우 → 최근 활동순`, `전체 보기` 없음", () => {
+    const { container } = renderFeatured(buildLive({}));
+
+    expect(container.querySelector('[data-wf="01-5"]')).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "에이전트 워크플로우" })).toBeInTheDocument();
+    expect(screen.getByText("대표 3개 · 실행 중·권한 대기가 있는 워크플로우 → 최근 활동순")).toBeInTheDocument();
+    expect(screen.queryByText(/전체 보기/)).not.toBeInTheDocument();
+  });
+
+  it("[FR-005-AC4] 카드: 이름·칩(점 포함)·설명·`에이전트 N · 스킬 N`·`워크플로우 보기` + arrow-right 아이콘, 카드 전체가 /workflows 링크", () => {
+    renderFeatured(buildLive({ "dev-lead": buildAgentLive("dev-lead", "waiting") }));
+
+    const card = screen.getByRole("link", { name: "워크플로우A · 권한 대기 1명 · 워크플로우 보기" });
+    expect(card).toHaveAttribute("href", "/workflows");
+    expect(within(card).getByRole("heading", { level: 3, name: "워크플로우A" })).toBeInTheDocument();
+    expect(within(card).getByText("권한 대기 1명")).toBeInTheDocument();
+    expect(within(card).getByText("워크플로우A 설명")).toBeInTheDocument();
+    expect(card).toHaveTextContent("에이전트 2 · 스킬 4");
+    expect(within(card).getByText("워크플로우 보기")).toBeInTheDocument();
+    expect(card.querySelectorAll("svg")).toHaveLength(1);
+    expect(card).not.toHaveTextContent("→");
+  });
+
+  it("[FR-005-AC1] 카드 테두리는 상태색이 아니다: 실행 중·대기가 있어도 border-border 하나(시안·주황 테두리 없음)", () => {
     renderFeatured(
       buildLive({
         "dev-lead": buildAgentLive("dev-lead", "running"),
@@ -92,28 +115,23 @@ describe("FeaturedWorkflows", () => {
     );
 
     const card = screen.getByRole("link", { name: /워크플로우A/ });
-    const expected = workflowCardBorder({ running: 1, waiting: 1, leadMissing: false });
-
-    expect(expected).toBe("border-running-border");
-    expect(card.className).toContain(expected);
-    // 칩은 권한 대기를 우선하지만(문구 유지) 테두리는 running이 우선한다.
+    expect(card).toHaveClass("border-border");
+    expect(card.className).not.toMatch(/border-(live|running|waiting)/);
+    // 칩은 권한 대기를 우선한다(문구 유지).
     expect(screen.getByText("권한 대기 1명")).toBeInTheDocument();
-    expect(card.className).not.toContain("border-waiting");
   });
 
-  it("[ADR-46 A] 대표 카드 클릭 영역 hover·focus 표현이 같다: hover:bg-selected + focus-visible:bg-selected", () => {
+  it("[ADR-69] 대표 카드 hover·focus 표현이 같다: 테두리 border-dashed, 배경은 바꾸지 않는다", () => {
     renderFeatured(buildLive({}));
 
     const card = screen.getByRole("link", { name: /워크플로우A/ });
     const classes = card.className.split(/\s+/).filter(Boolean);
-    // 표면이 `bg/card`이고 선택 표시에 `bg/selected`를 쓰지 않는 부류 ①이다(ADR-46 A).
-    expect(classes).toContain("hover:bg-selected");
-    // 키보드 포커스에도 같은 표현을 준다(conventions.md §7 MUST, NFR-12).
-    expect(classes).toContain("focus-visible:bg-selected");
-    expect(classes).not.toContain("hover:bg-soft");
+    expect(classes).toContain("hover:border-border-dashed");
+    expect(classes).toContain("focus-visible:border-border-dashed");
+    expect(classes.filter((cls) => /^(hover|focus-visible):bg-/.test(cls))).toEqual([]);
   });
 
-  it("[ADR-46 B] 활동 줄에 truncate + title, title 문자열 = 화면 텍스트와 동일", () => {
+  it("[FR-005-AC3] 활동 줄 ① 실행 중·대기가 있으면 `최근 활동 · <title> <summary>`, 한 줄 clamp + title(같은 문자열, data-clamp)", () => {
     const title = "도구 실행 · Bash";
     const summary = "cd /Users/jay/very/long/path && ./gradlew build --info --stacktrace 로그를 남긴다";
     renderFeatured(
@@ -122,22 +140,38 @@ describe("FeaturedWorkflows", () => {
       }),
     );
 
-    // DOM 텍스트는 자르지 않는다(글자 수 상수 없음) — 잘림은 CSS가 한다.
     const expected = recentActivityLabel(title, summary);
-    const line = screen.getByText(expected);
-    const classes = line.className.split(/\s+/).filter(Boolean);
-    expect(classes).toContain("truncate");
-    expect(classes).toContain("min-w-0");
+    expect(expected).toBe(`최근 활동 · ${title} ${summary}`);
+    const line = screen.getByTestId("activity-line");
+    expect(line).toHaveTextContent(expected);
     expect(line.textContent).toBe(expected);
-    // 마우스를 올리면 보이는 값도 화면 문자열과 같은 하나의 문자열이다.
     expect(line).toHaveAttribute("title", expected);
-    expect(line.getAttribute("title")).toBe(line.textContent);
+    expect(line).toHaveAttribute("data-clamp");
+    expect(line).toHaveClass("truncate", "min-w-0");
+    // 요약은 고정폭 글자다.
+    expect(within(line).getByText(summary)).toHaveClass("font-mono");
   });
 
-  it("[ADR-46 B][FR-015-AC2] summary에 ••••••••가 있으면 title에도 ••••••••가 들어가고 마스킹 전 원문 문자열은 DOM·title 어디에도 없다", () => {
+  it("[FR-005-AC3] 활동 줄 ② 모두 대기이고 이벤트가 있으면 `마지막 활동 · <시각>`(ADR-72 형식), ③ 이벤트 없으면 `최근 활동 없음`", () => {
+    const event = { ...buildEvent("도구 실행 · Bash", "x"), at: "2026-01-02T03:04:05+09:00" };
+    const withEvent = renderFeatured(buildLive({ "dev-lead": withLastEvent(buildAgentLive("dev-lead", "idle"), event) }));
+
+    const stamp = formatTimestamp(event.at);
+    expect(stamp).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+    expect(screen.getByTestId("activity-line")).toHaveTextContent(`마지막 활동 · ${stamp}`);
+    expect(screen.getByTestId("activity-line")).toHaveAttribute("title", `마지막 활동 · ${stamp}`);
+    withEvent.unmount();
+
+    renderFeatured(buildLive({ "dev-lead": buildAgentLive("dev-lead", "idle") }));
+    expect(screen.getByTestId("activity-line")).toHaveTextContent(/^최근 활동 없음$/);
+    expect(screen.getByTestId("activity-line")).toHaveAttribute("title", "최근 활동 없음");
+    expect(screen.queryByText(/^활동 없음$/)).not.toBeInTheDocument();
+  });
+
+  it("[FR-015-AC2] summary에 ••••••••가 있으면 title에도 ••••••••가 들어가고 마스킹 전 원문 문자열은 DOM·title 어디에도 없다", () => {
     const masked = "export TOKEN=••••••••";
     // 서버가 가린 원문. 프론트에 오지 않으므로 툴팁을 만드는 어떤 경로에도 나타날 수 없다
-    // (`docs/ui/ui-rules.md:52`: 가리기 전 원문은 마우스 오버로도 보여주지 않는다).
+    // (`docs/ui/ui-rules.md`: 가리기 전 원문은 마우스 오버로도 보여주지 않는다).
     const raw = "export TOKEN=sk-live-0123456789abcdef";
     renderFeatured(
       buildLive({
@@ -145,25 +179,39 @@ describe("FeaturedWorkflows", () => {
       }),
     );
 
-    const line = screen.getByText(recentActivityLabel("도구 실행 · Bash", masked));
+    const line = screen.getByTestId("activity-line");
     const tooltip = line.getAttribute("title");
     expect(tooltip).toContain("••••••••");
     expect(tooltip).toBe(line.textContent);
+    expect(tooltip).toBe(recentActivityLabel("도구 실행 · Bash", masked));
     expect(tooltip).not.toContain("sk-live-0123456789abcdef");
     expect(document.body.innerHTML).not.toContain(raw);
     expect(document.body.innerHTML).not.toContain("sk-live-0123456789abcdef");
   });
 
-  it("[FR-006-AC5] 대표 카드 테두리: running=0·waiting>0 → waiting, 모두 대기 → border", () => {
-    const waitingOnly = renderFeatured(buildLive({ "dev-02": buildAgentLive("dev-02", "waiting") }));
-    expect(screen.getByRole("link", { name: /워크플로우A/ }).className).toContain(
-      workflowCardBorder({ running: 0, waiting: 1, leadMissing: false }),
+  it("[FR-005-AC5] workflows 0 → 카드 대신 04-7 카드 한 장(`04-7-1`)", () => {
+    const registry = buildRegistry([]);
+    const { container } = render(
+      <MemoryRouter>
+        <FeaturedWorkflows registry={registry} live={buildLive({})} />
+      </MemoryRouter>,
     );
-    waitingOnly.unmount();
 
-    renderFeatured(buildLive({}));
-    expect(screen.getByRole("link", { name: /워크플로우A/ }).className).toContain(
-      workflowCardBorder({ running: 0, waiting: 0, leadMissing: false }),
-    );
+    expect(container.querySelectorAll('[data-wf="04-7-1"]')).toHaveLength(1);
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "워크플로우 추가" })).toBeEnabled();
+  });
+
+  it("[FR-005-AC3] 로딩 스켈레톤: 카드 3장 안 4줄(제목 2/5·설명 7/10·수 1/2·활동 4/5), 섹션 머리는 보인다", () => {
+    const { container } = render(<FeaturedWorkflowsSkeleton />);
+
+    expect(screen.getByText("에이전트 워크플로우")).toBeInTheDocument();
+    const cards = container.querySelectorAll('[data-wf="01-5"] > .grid > div');
+    expect(cards).toHaveLength(3);
+    for (const card of cards) {
+      const widths = [...card.querySelectorAll("[data-skeleton]")].map((el) => el.className.match(/w-[0-9/]+/)?.[0]);
+      expect(widths).toEqual(["w-2/5", "w-7/10", "w-1/2", "w-4/5"]);
+    }
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
   });
 });

@@ -7,16 +7,18 @@ interface SkeletonProps {
   /** 큰 값(KPI 수치 등) 자리. 높이 28. */
   big?: boolean;
   "aria-label"?: string;
+  /** 표 칸처럼 개수가 많은 자리: 보조 기술에 알리지 않는다(`aria-hidden`, 역할 없음). 영역 단위로 `aria-busy`를 둔다. */
+  decorative?: boolean;
 }
 
 const OWN_HEIGHT = /(?:^|\s)(?:h|size|min-h)-/;
 
-export function Skeleton({ className = "", big = false, "aria-label": ariaLabel }: SkeletonProps) {
+export function Skeleton({ className = "", big = false, "aria-label": ariaLabel, decorative = false }: SkeletonProps) {
   const height = OWN_HEIGHT.test(className) ? "" : big ? "h-7" : "h-3";
   return (
     <div
-      role="status"
-      aria-label={ariaLabel ?? "로딩 중"}
+      {...(decorative ? { "aria-hidden": true } : { role: "status", "aria-label": ariaLabel ?? "로딩 중" })}
+      data-skeleton=""
       className={`rounded-chip bg-soft ${height} ${className}`}
     />
   );

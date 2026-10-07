@@ -12,6 +12,8 @@ type RouteHandle = {
   showProjectChip?: boolean;
   /** TopBar `data-wf` 영역 이름(`01-1`·`02-1`·`03-1`·`07-1`, 화면 원본과 같다). */
   topBarWf?: string;
+  /** 화면이 첫 `snapshot` 전 스켈레톤(04-2)을 직접 그린다(01). true면 셸 공통 스켈레톤 대신 화면을 그린다. */
+  ownLoading?: boolean;
 };
 
 // AppShell(사이드 탭·상단 바·04-3 띠)은 모든 라우트가 공유한다. 브레드크럼·오른쪽 추가 버튼·프로젝트 칩 표시 여부는 각 라우트의 `handle`에서 가져온다.
@@ -32,6 +34,7 @@ export function App() {
         rightExtra={rightExtra}
         showProjectChip={handle?.showProjectChip === true}
         topBarWf={handle?.topBarWf}
+        ownLoading={handle?.ownLoading === true}
       >
         <Outlet />
       </AppShell>

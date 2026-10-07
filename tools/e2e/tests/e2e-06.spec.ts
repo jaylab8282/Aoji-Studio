@@ -48,10 +48,10 @@ test.describe("[E2E-06] project-no-agents-dir — 04-5 에이전트 폴더 읽�
     await expect(body.getByText("에이전트 폴더를 찾을 수 없습니다", { exact: true })).toBeVisible();
     await expect(body.getByText(`${hostPath}/.claude/agents`, { exact: true })).toBeVisible();
     await expect(
-      body.getByText("컨테이너 실행 시 마운트한 폴더에 .claude가 있는지 확인하세요.", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      body.getByText("쓰기 권한이 없으면 추가·수정·삭제 버튼은 비활성.", { exact: true }),
+      body.getByText(
+        "컨테이너를 실행할 때 마운트한 AojiStudio 폴더에 .claude/agents가 없습니다. 폴더를 만든 뒤 다시 읽기를 누르세요. 마운트 경로는 설정에서 확인할 수 있습니다.",
+        { exact: true },
+      ),
     ).toBeVisible();
     // ADR-42: 01·02의 04-5에는 `설정 열기`가 있다.
     await expect(body.getByRole("button", { name: "다시 읽기", exact: true })).toBeEnabled();

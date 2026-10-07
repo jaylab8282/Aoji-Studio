@@ -232,3 +232,44 @@ describe("Tooltip", () => {
     expect(screen.queryByText("수집 상태")).not.toBeInTheDocument();
   });
 });
+
+describe("T-R3-12 공용 컴포넌트 보강", () => {
+  it("[FR-005-AC9] Skeleton decorative: 역할·라벨 없이 aria-hidden, data-skeleton 표시. 기본은 role=status", () => {
+    const { container } = render(
+      <>
+        <Skeleton decorative className="w-1/2" />
+        <Skeleton aria-label="값 로딩 중" />
+      </>,
+    );
+    const [decorative, status] = [...container.children] as HTMLElement[];
+    expect(decorative).toHaveAttribute("aria-hidden", "true");
+    expect(decorative).not.toHaveAttribute("role");
+    expect(decorative).toHaveAttribute("data-skeleton");
+    expect(status).toHaveAttribute("role", "status");
+    expect(status).toHaveAttribute("data-skeleton");
+  });
+
+  it("[FR-005-E1] NoticeCard wf → data-wf", () => {
+    const { container } = render(<NoticeCard kind="empty" icon="building" title="제목" wf="04-7-1" />);
+    expect(container.querySelector('[data-wf="04-7-1"]')).not.toBeNull();
+  });
+
+  it("[FR-005-AC3] WorkflowChip: 상태 사각형 + 글자(권한 대기 주황·실행 중 시안·모두 대기 중립)", async () => {
+    const { WorkflowChip } = await import("./WorkflowChip");
+    const { container } = render(
+      <>
+        <WorkflowChip result={{ label: "권한 대기 1명", variant: "waiting" }} />
+        <WorkflowChip result={{ label: "실행 중 2명", variant: "running" }} />
+        <WorkflowChip result={{ label: "모두 대기", variant: "idle" }} />
+      </>,
+    );
+    const chips = [...container.children] as HTMLElement[];
+    expect(chips.map((chip) => chip.textContent)).toEqual(["권한 대기 1명", "실행 중 2명", "모두 대기"]);
+    expect(chips[0]).toHaveClass("bg-waiting-soft", "text-waiting");
+    expect(chips[1]).toHaveClass("bg-live-soft", "text-live");
+    expect(chips[2]).toHaveClass("bg-selected", "text-text-muted");
+    expect(chips[0]!.firstElementChild).toHaveClass("bg-waiting");
+    expect(chips[1]!.firstElementChild).toHaveClass("bg-live", "shadow-glow");
+    expect(chips[2]!.firstElementChild).toHaveClass("bg-idle");
+  });
+});

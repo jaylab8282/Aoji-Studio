@@ -50,7 +50,7 @@ const HOVER_FOCUS_FILES: ReadonlyArray<string> = [
 ];
 
 /**
- * 화면 전용 클릭 영역 3곳의 hover·focus **값**을 고정한다(ui-spec.md §공통 표 ①, ADR-46 A, ADR-49).
+ * 화면 전용 클릭 영역의 hover·focus **값**을 고정한다(01 대표 카드는 ADR-69로 배경이 아니라 테두리라 아래 별도 단언이 맡는다)(ui-spec.md §공통 표 ①, ADR-46 A, ADR-49).
  * 세 곳 모두 부류 ①(표면이 `bg/selected`를 선택 표시로 쓰지 않는 곳)이라 값은 `bg-selected`뿐이고
  * 모두 자신이 키보드 포커스를 받으므로 `:focus-visible`에도 같은 표현이 있어야 한다.
  * 값이 다른 배경 토큰으로 바뀌면 hover와 선택이 구분되지 않는다(A-22 핵심 제약).
@@ -63,8 +63,6 @@ interface ScreenHoverValue {
 }
 
 const SCREEN_HOVER_VALUES: ReadonlyArray<ScreenHoverValue> = [
-  // 01 대표 워크플로우 카드(카드 전체 클릭 영역, `<a>`) — 표면 `bg/card`
-  { path: "src/screens/home/FeaturedWorkflows.tsx", expected: "bg-selected" },
   // 02 층 안 책상 칸(`<button>`) — 표면 `bg/inset`
   { path: "src/screens/workflows/Floor.tsx", expected: "bg-selected" },
   // 03 오피스 비선택 칸(`<button>`) — 표면 `bg/card-alt`
@@ -197,7 +195,7 @@ describe("정적 단언", () => {
   });
 
   it("[ADR-49] 화면 전용 클릭 영역 3곳의 hover 값이 bg-selected로 고정되고 같은 표현이 focus-visible:에도 있다", () => {
-    expect(SCREEN_HOVER_VALUES).toHaveLength(3);
+    expect(SCREEN_HOVER_VALUES).toHaveLength(2);
     for (const { path, expected } of SCREEN_HOVER_VALUES) {
       const text = sourceOf(path);
       const hoverClasses = [...text.matchAll(/hover:([a-z0-9-]+)/g)].map((match) => match[1]);
@@ -207,6 +205,14 @@ describe("정적 단언", () => {
       // 세 곳 모두 자신이 포커스를 받으므로 `:focus-visible`에도 같은 표현이 있다(conventions.md §7 MUST).
       expect(text, `${path} focus-visible`).toContain(`focus-visible:${expected}`);
     }
+  });
+
+  it("[ADR-69] 01 대표 카드의 hover·focus는 테두리 border-dashed 하나뿐이고 배경·글자색을 바꾸지 않는다", () => {
+    const text = sourceOf("src/screens/home/FeaturedWorkflows.tsx");
+    const values = [...text.matchAll(/(?:^|[\s"`])((?:group-)?(?:hover|focus-visible):[a-z0-9-]+(?:-[a-z0-9]+)*)/g)].map((match) => match[1]);
+
+    // 카드(`<a>`) hover + focus-visible 2개, 안쪽 링크 모양 글자의 group-hover 밑줄 색 1개.
+    expect([...values].sort()).toEqual(["focus-visible:border-border-dashed", "group-hover:decoration-link", "hover:border-border-dashed"]);
   });
 
   it("[ADR-49] 03 브레드크럼 링크의 hover·focus 표현은 밑줄뿐이고 글자색을 바꾸지 않는다", () => {

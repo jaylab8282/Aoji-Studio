@@ -1,5 +1,5 @@
 /**
- * ui-spec.md SCR-04-5 에이전트 폴더 읽기 실패 (01 KPI 1·2 자리, 02 층 그리드 자리, 07 프로젝트 폴더 카드).
+ * ui-spec.md SCR-04-5 에이전트 폴더 읽기 실패 (01 KPI 1·2 자리, 02 캔버스 자리, 07 프로젝트 폴더 카드). `NoticeCard error`(`04-5-1`).
  * `registry.agentsDirMissing === true`일 때 쓴다. FR-001-E1, FR-001-AC4.
  *
  * `설정 열기`는 01·02에서만 그린다(07은 이 버튼의 도착지 자신이라 그리지 않는다 — ADR-42,
@@ -12,10 +12,11 @@ import { apiPost, ApiError } from "../../api/client";
 import { snapshotStore } from "../../state/snapshotStore";
 import type { Registry } from "../../api/types";
 import { Button } from "./Button";
-import { MonoText } from "./MonoText";
+import { CommandLine } from "./CommandLine";
+import { Icon } from "./Icon";
+import { NoticeCard } from "./NoticeCard";
 import {
-  AGENTS_DIR_MISSING_BODY_1,
-  AGENTS_DIR_MISSING_BODY_2,
+  AGENTS_DIR_MISSING_BODY,
   AGENTS_DIR_MISSING_TITLE,
   OPEN_SETTINGS_BUTTON_LABEL,
   RESCAN_BUTTON_LABEL,
@@ -54,25 +55,29 @@ export function AgentsDirMissing({ hostPath, showOpenSettings = true }: AgentsDi
   }
 
   return (
-    <div className="h-full rounded-card border border-dashed border-danger-border bg-card p-card flex flex-col gap-2 justify-center">
-      <div className="flex items-center gap-2.5">
-        <span aria-hidden="true" className="inline-block h-4 w-4 rounded-badge border border-dashed border-danger" />
-        <p className="text-section font-semibold text-text">{AGENTS_DIR_MISSING_TITLE}</p>
-      </div>
-      <MonoText className="text-aux">{agentsDirMissingPath(hostPath)}</MonoText>
-      <p className="text-aux text-text-secondary">{AGENTS_DIR_MISSING_BODY_1}</p>
-      <p className="text-aux text-text-secondary">{AGENTS_DIR_MISSING_BODY_2}</p>
-      {errorMessage ? <p className="text-aux text-danger">{errorMessage}</p> : null}
-      <div className="flex items-center gap-2">
-        <Button variant="secondary" size="sm" onClick={handleRescan} disabled={rescanning}>
-          {rescanning ? RESCAN_BUTTON_LOADING_LABEL : RESCAN_BUTTON_LABEL}
-        </Button>
-        {showOpenSettings ? (
-          <Button variant="primary" size="sm" onClick={() => navigate("/settings")}>
-            {OPEN_SETTINGS_BUTTON_LABEL}
+    <NoticeCard
+      kind="error"
+      icon="folder-x"
+      title={AGENTS_DIR_MISSING_TITLE}
+      wf="04-5-1"
+      actions={
+        <>
+          <Button variant="secondary" onClick={handleRescan} disabled={rescanning}>
+            <Icon name="refresh-cw" />
+            {rescanning ? RESCAN_BUTTON_LOADING_LABEL : RESCAN_BUTTON_LABEL}
           </Button>
-        ) : null}
-      </div>
-    </div>
+          {showOpenSettings ? (
+            <Button variant="accent" onClick={() => navigate("/settings")}>
+              <Icon name="settings" />
+              {OPEN_SETTINGS_BUTTON_LABEL}
+            </Button>
+          ) : null}
+        </>
+      }
+    >
+      <CommandLine>{agentsDirMissingPath(hostPath)}</CommandLine>
+      <p>{AGENTS_DIR_MISSING_BODY}</p>
+      {errorMessage ? <p className="text-danger">{errorMessage}</p> : null}
+    </NoticeCard>
   );
 }
