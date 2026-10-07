@@ -72,13 +72,13 @@ function openButton(): HTMLElement {
 }
 
 /**
- * `Button variant="secondary"`의 활성·비활성 **기준 모양**을 Button 자신에게서 얻는다.
+ * `Button variant="primary"`의 활성·비활성 **기준 모양**을 Button 자신에게서 얻는다.
  * 클래스명 문자열(`border-border-strong`·`border-dashed`)을 이 테스트가 직접 들고 있으면 Button
  * 내부 구현에 결합돼 리팩터링마다 깨진다(T-FIX-09 리뷰 Suggestion) — 값 대신 "기준과 같은가"를 본다.
  */
 function referenceButtonClassName(disabled: boolean): string {
   const reference = render(
-    <Button variant="secondary" disabled={disabled}>
+    <Button variant="primary" disabled={disabled}>
       기준
     </Button>,
   );
@@ -113,7 +113,18 @@ describe("WorkflowsHeader", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
-  it("[ADR-44][FR-013-AC1][FR-013-AC6] 스냅샷 수신 후 → 버튼 활성(secondary), 누르면 config.helperUrl + '/open'으로 {target:'default'} 1회", async () => {
+  it("[FR-013-AC1] 주 동작은 primary(파랑 바탕) + square-terminal 아이콘 + 'Claude 열기 · 기본 세션', 화면에 주 동작은 이 하나", () => {
+    stubFetch();
+    render(<WorkflowsHeader />);
+
+    const button = openButton();
+    expect(button.querySelector("svg.lucide-square-terminal")).not.toBeNull();
+    expect(button).toHaveTextContent("Claude 열기 · 기본 세션");
+    expect(button.className).toContain("bg-action");
+    expect(button.className).not.toContain("bg-soft");
+  });
+
+  it("[ADR-44][FR-013-AC1][FR-013-AC6] 스냅샷 수신 후 → 버튼 활성(primary), 누르면 config.helperUrl + '/open'으로 {target:'default'} 1회", async () => {
     const calls = stubFetch();
     render(<WorkflowsHeader />);
 
@@ -135,7 +146,7 @@ describe("WorkflowsHeader", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("[ADR-44][ADR-29] 시각 표현 — 스냅샷 전은 Button 비활성 기준 모양, 스냅샷 후는 secondary 활성 기준 모양", () => {
+  it("[ADR-44][ADR-29] 시각 표현 — 스냅샷 전은 Button 비활성 기준 모양, 스냅샷 후는 primary 활성 기준 모양", () => {
     const enabledReference = referenceButtonClassName(false);
     const disabledReference = referenceButtonClassName(true);
     // 두 기준이 실제로 다른 모양이어야 이 단언이 뜻을 갖는다(ADR-29: 비활성은 variant 표현을 대체한다).

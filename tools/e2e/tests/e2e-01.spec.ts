@@ -130,7 +130,7 @@ test("[FR-005-AC5][FR-006-E3][E2E-01] 워크플로우 0개 → 01 대표 영역�
   await gotoReady(page, "/workflows");
   const workflows = page.locator("main").first();
   await expect(workflows.getByText("아직 워크플로우가 없습니다", { exact: true })).toBeVisible();
-  await expect(workflows.getByRole("button", { name: "워크플로우 추가", exact: true })).toBeEnabled();
+  await expect(workflows.locator(`[data-wf="02-3"]`).getByRole("button", { name: "워크플로우 추가", exact: true })).toBeEnabled();
   await expect(workflows.getByText("에이전트 2 · 스킬 1 · 워크플로우 0", { exact: true })).toBeVisible();
   // 층 선택 드롭다운은 `<select>`라 선택지 글자는 option 안에 있다(ui-spec SCR-02 "`<select>` 네이티브").
   await expect(workflows.getByLabel("층 선택")).toContainText("전체 층 (0개)");
@@ -141,7 +141,7 @@ test("[FR-007-E1][E2E-01] 워크플로우 추가 후 03 진입 → 04-4 배너 +
 }, testInfo) => {
   await gotoReady(page, "/workflows");
 
-  // 02 `+ 워크플로우 추가` → 05-L → 만들기. 팀장이 없으므로 층에 경고가 함께 나온다.
+  // 02 `워크플로우 추가` → 05-L → 만들기. 팀장이 없으므로 층에 경고가 함께 나온다.
   await addWorkflowViaUi(page, WORKFLOW);
   await expect(floorCard(page, WORKFLOW)).toContainText("팀장이 없습니다 · 팀장을 만들거나 가져오세요");
 
@@ -162,8 +162,8 @@ test("[FR-007-E1][E2E-01] 워크플로우 추가 후 03 진입 → 04-4 배너 +
   await expect(spriteSvg(page, LEAD)).toBeVisible({ timeout: SETUP_REFLECT_TIMEOUT_MS });
   await expect(spriteSvg(page, MEMBER)).toBeVisible({ timeout: SETUP_REFLECT_TIMEOUT_MS });
 
-  // 층 헤더 `상세 →` → 03
-  await floorHeader(page, WORKFLOW).getByRole("button", { name: "상세 →", exact: true }).click();
+  // 층 헤더 `상세` → 03
+  await floorHeader(page, WORKFLOW).getByRole("button", { name: `${WORKFLOW} 상세`, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/workflows/${encodeURIComponent(WORKFLOW)}$`));
 
   // 04-4 배너: hook 설정도 없고 수신 이력도 없다.

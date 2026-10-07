@@ -21,6 +21,38 @@
   background-size: 24px 24px;
 }
 
+/* 02 책상 영역: 칸 100px 고정, 카드 폭이 허락하는 만큼 한 줄에 놓는다 (screen-flow.md 배치 규칙, ADR-66). */
+@utility desk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--spacing-desk));
+}
+
+/* 02 책상 글자 줄 높이 (`02-workflows.html` `.dn`·`.ds` line-height 1.4). */
+@utility desk-line {
+  line-height: 1.4;
+}
+
+/* 02 검색 칸: 폭 200~320(남는 폭에서 줄어든다). 세로형은 남는 폭 전부(`02-workflows.html` `.search`). */
+@utility search-box {
+  flex: 0 1 320px;
+  min-width: var(--spacing-search-min);
+
+  @media (orientation: portrait) {
+    flex: 1 1 auto;
+  }
+}
+
+/* 02 층 드롭다운 칸: 폭 220 고정. 안쪽 `Select` 래퍼를 칸 폭에 맞춘다. */
+@utility floor-select {
+  width: var(--spacing-floor-select);
+  flex: none;
+
+  & > span {
+    display: flex;
+    width: 100%;
+  }
+}
+
 /* 02 층 헤더: 층 카드(컨테이너) 폭 440px 이하면 줄바꿈하고 사유 줄을 아래 줄 오른쪽에 둔다. */
 @utility floor-container {
   container-type: inline-size;

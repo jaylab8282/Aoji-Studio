@@ -498,7 +498,7 @@ test("[FR-003-AC5][FR-006-AC9][FR-004-AC6][FR-004-E1][E2E-04] states.jsonl 21~24
 }, testInfo) => {
   await gotoReady(page, "/workflows");
   const lobby = lobbyCard(page);
-  await expect(lobby).toContainText("에이전트 지정 없이 실행 중인 Claude Code 세션");
+  await expect(lobby).toContainText("에이전트 지정 없이 실행 중인 세션 · 워크플로우 밖 에이전트");
 
   // 15~19줄의 서브에이전트 이벤트는 SessionStart 없이 왔으므로 부모 세션이 그 이벤트로 새로 만들어졌고
   // (FR-004-E1), agent_type이 없는 세션이라 로비 항목이 된다(FR-003-AC5). 번호는 만들어진 순서대로다.

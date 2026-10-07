@@ -18,12 +18,11 @@
 // 화면 대조 캡처는 T-R3-21이 새 기준으로 다시 정의한다.
 //
 // 목킹 없음: 실제 컨테이너·실제 재생 도구·실제 fixture 파일만 쓴다(conventions.md §8).
-import { mkdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { E2E_DIR, readE2eState } from "../lib/e2e-state";
+import { readE2eState } from "../lib/e2e-state";
 import { SCENARIOS_DIR, replayScenarioLines, scenarioLines } from "../lib/replay";
 import {
   PIXEL_FILL,
@@ -74,14 +73,9 @@ function panelFootnoteTerminal(lead: string): string {
   return `작업 지시는 상단 팀장 호출로 연 터미널에서 직접 한다 · claude --agent ${lead}`;
 }
 
-/** 산출물 폴더(PNG는 커밋 대상). */
-const SCREENSHOT_DIR = join(E2E_DIR, "screenshots");
-/**
- * span-1 열 clamp 상태 리뷰 대조용 산출물 폴더. 공식 캡처 시점의 화면이 아니라 따로 남긴다
- * (T-FIX-14 리뷰 Minor 정리 — 폴더가 태스크 ID로 고정돼 있으면 그 태스크가 끝난 뒤에도 매 실행이
- * 같은 폴더를 다시 쓰게 되므로, 이름을 태스크 중립으로 바꾸고 `SCREENSHOT_DIR` 아래로 옮긴다).
- */
-const SPAN1_CLAMP_SCREENSHOT_DIR = join(SCREENSHOT_DIR, "02-span1-clamp");
+/** 02 책상 칸 폭(`auto-fill 100px`, ui-spec SCR-02). 이름 줄은 이 폭, 상태 줄은 `STATUS_MAX_WIDTH`까지다. */
+const COLUMN_PITCH = 100;
+const STATUS_MAX_WIDTH = 96;
 
 /** `project-showcase` fixture 실물 수치. 값이 바뀌면 이 spec의 단언 근거가 깨진다. */
 const AGENT_COUNT = 17;
@@ -138,12 +132,6 @@ function settingsFile(): string {
   return fixturePath(...SETTINGS_FILE_SEGMENTS);
 }
 
-/** 실측 수치를 테스트 주석과 실행 로그에 함께 남긴다(리뷰 보고의 근거가 되는 산출물이다). */
-function logMeasurement(testInfo: { annotations: { type: string; description?: string }[] }, type: string, description: string): void {
-  testInfo.annotations.push({ type, description });
-  process.stdout.write(`[E2E-13 실측] ${type}: ${description}\n`);
-}
-
 // ── 02 책상 격자 실측 (T-015 m5·m1·m6) ────────────────────────────────────────────
 
 interface DeskMetric {
@@ -160,7 +148,7 @@ interface DeskMetric {
   labelRight: number;
   labelWidth: number;
   /**
-   * 상태 줄(`DeskFigure.tsx` 마지막 줄 `작업 중`/`대기`/`작업 중 · 부모 <라벨>`)의 문구와 좌·우 끝·폭.
+   * 상태 줄(`Desk.tsx` 마지막 줄 `작업 중`/`대기`/`작업 중 · 부모 <라벨>`)의 문구와 좌·우 끝·폭.
    * 같은 책상에서 이름 칩(12자 + `…`로 제한)보다 **넓어질 수 있는 유일한 요소**라 번짐 판정에 함께 쓴다
    * (T-024 리뷰 Minor 6).
    */
@@ -188,7 +176,7 @@ async function deskMetrics(page: Page, workflowName: string): Promise<DeskMetric
   return page
     .getByRole("heading", { level: 3, name: workflowName, exact: true })
     .evaluate((heading) => {
-      // h3 → 이름·인원 묶음 → 헤더 행 → 층 카드
+      // h3 → 헤더 행 1줄 → 헤더 div → 층 카드
       const card = heading.parentElement?.parentElement?.parentElement;
       if (card === null || card === undefined) return [];
       /**
@@ -216,9 +204,9 @@ async function deskMetrics(page: Page, workflowName: string): Promise<DeskMetric
       return [...card.querySelectorAll("svg[data-testid='pixel-char']")].map((svg) => {
         const box = svg.getBoundingClientRect();
         const root = svg.parentElement;
-        const labelSpan = root?.querySelector("span[title] > span") ?? null;
+        const labelSpan = root?.querySelector("span[title]") ?? null;
         const labelRect = paintExtent(labelSpan);
-        // 상태 줄은 책상 묶음(`DeskFigure`)의 마지막 자식 span이다. 선택 결과는 호출하는 쪽에서
+        // 상태 줄은 책상 묶음(`Desk`)의 마지막 자식 span이다. 선택 결과는 호출하는 쪽에서
         // `statusText`로 검증한다(구조가 바뀌면 빈 문구로 드러난다).
         const statusSpan = root?.lastElementChild ?? null;
         const statusRect = paintExtent(statusSpan);
@@ -240,29 +228,6 @@ async function deskMetrics(page: Page, workflowName: string): Promise<DeskMetric
         };
       });
     });
-}
-
-/** 같은 줄(중심 y가 같은) 책상들의 가로 pitch 목록. */
-function horizontalPitches(desks: DeskMetric[]): number[] {
-  const firstRow = desks.filter((desk) => Math.abs(desk.centerY - (desks[0] as DeskMetric).centerY) < 2);
-  const pitches: number[] = [];
-  for (let index = 1; index < firstRow.length; index += 1) {
-    pitches.push(
-      (firstRow[index] as DeskMetric).centerX - (firstRow[index - 1] as DeskMetric).centerX,
-    );
-  }
-  return pitches;
-}
-
-/** 첫 줄과 두 번째 줄의 중심 y 차이 = 세로 pitch. 두 번째 줄이 없으면 던진다. */
-function verticalPitch(desks: DeskMetric[]): number {
-  const firstRowY = (desks[0] as DeskMetric).centerY;
-  const nextRow = desks.filter((desk) => desk.centerY > firstRowY + 2);
-  if (nextRow.length === 0) {
-    throw new Error("두 번째 줄이 없어 세로 pitch를 잴 수 없습니다");
-  }
-  const nextRowY = Math.min(...nextRow.map((desk) => desk.centerY));
-  return nextRowY - firstRowY;
 }
 
 function round2(value: number): number {
@@ -299,19 +264,6 @@ function statusOverlaps(desks: DeskMetric[]): string[] {
     }
   }
   return found;
-}
-
-/** 상태 줄이 자기 열(중심 ± pitch/2) 밖으로 나간 양. 양수면 번짐. */
-function statusBleed(desk: DeskMetric, columnPitch: number): { left: number; right: number } {
-  return {
-    left: round2(desk.centerX - columnPitch / 2 - desk.statusLeft),
-    right: round2(desk.statusRight - (desk.centerX + columnPitch / 2)),
-  };
-}
-
-/** 상태 줄이 가장 넓은 책상(가림이 먼저 일어나는 지점). */
-function widestStatusDesk(desks: DeskMetric[]): DeskMetric {
-  return [...desks].sort((a, b) => b.statusWidth - a.statusWidth)[0] as DeskMetric;
 }
 
 /** 상태 줄 문구 형식(`lib/text.ts agentStatusWithParent`). 선택자가 엉뚱한 요소를 잡으면 여기서 드러난다. */
@@ -419,7 +371,7 @@ test("[DoD 화면 대조][E2E-13] 02 워크플로우 층 뷰 — 로비 2세션�
       { exact: true },
     ),
   ).toBeVisible();
-  await expect(page.getByText("워크플로우 밖 에이전트 0", { exact: true })).toBeVisible();
+  await expect(page.getByText("워크플로우 밖 에이전트 0 · 가져오기", { exact: true })).toBeVisible();
 
   // 로비 2세션(대응표 1~4줄). 로비 waiting은 `입력 대기` 표기다(ui-spec.md SCR-02 로비 행).
   const lobby = page.locator("section").filter({ hasText: "로비 · 메인 세션" });
@@ -554,123 +506,10 @@ test("[DoD 화면 대조][E2E-13][D-032] 03 04-4 변형 — hook 설정을 지�
 });
 
 
-test("[E2E-13][T-015 m5][T-015 m1] 02 책상 가로·세로 pitch 실측 — span-3(9열) 층과 span-1(4열) 층", async ({
+test("[E2E-13][T-015 m6][FR-006-AC4] 13자 이름을 보통 층 첫 줄 두 번째 칸(책상 칸 100px)에 놓고 이웃 칸 번짐·겹침을 확인한다", async ({
   page,
-}, testInfo) => {
-  // 공식 캡처를 모두 끝낸 뒤에만 실행한다(serial 선언 순서). fixture 변경은 측정 후 되돌린다.
-  //
-  // 가로 pitch는 "책상 격자 안쪽 폭 / 열 수"로 정해지고 열 수는 층 span에 따라 9열(인원 7 이상) 또는
-  // 4열이다(`Floor.tsx`, FR-006-AC2). 기준 PNG의 86px과 비교할 수 있는 쪽은 4열 층이므로 두 경우를
-  // 모두 재서 남긴다.
-  const SPAN1_TEAM = "video-team";
-  const DEV_EXTRA = ["dev-09", "dev-10"]; // span-3 층을 9칸 넘겨 두 번째 줄을 만든다
-  const VIDEO_EXTRA = ["video-05"]; // span-1 층을 4칸 넘겨 두 번째 줄을 만든다
-  const originalDevTeam = readFixtureFile(teamFile(DEV_TEAM));
-  const originalVideoTeam = readFixtureFile(teamFile(SPAN1_TEAM));
-
-  try {
-    await gotoReady(page, "/workflows");
-
-    // ① 공식 캡처와 같은 상태의 가로 pitch (dev-team 8명 = span-3 9열 / video-team 4명 = span-1 4열).
-    const capturedSpan3 = await deskMetrics(page, DEV_TEAM);
-    expect(capturedSpan3.map((desk) => desk.name)).toEqual([
-      "dev-lead",
-      "dev-02",
-      "dev-03",
-      "dev-04",
-      "dev-05",
-      "dev-06",
-      "dev-07",
-      "dev-08",
-    ]);
-    const span3Pitches = horizontalPitches(capturedSpan3);
-    expect(span3Pitches).toHaveLength(7);
-    const span3Pitch = round2(span3Pitches[0] as number);
-    for (const pitch of span3Pitches) {
-      expect(Math.abs(pitch - span3Pitch), "span-3 층의 가로 pitch가 균일하지 않습니다").toBeLessThan(1);
-    }
-
-    const capturedSpan1 = await deskMetrics(page, SPAN1_TEAM);
-    expect(capturedSpan1.map((desk) => desk.name)).toEqual([
-      "video-lead",
-      "video-02",
-      "video-03",
-      "video-04",
-    ]);
-    const span1Pitches = horizontalPitches(capturedSpan1);
-    expect(span1Pitches).toHaveLength(3);
-    const span1Pitch = round2(span1Pitches[0] as number);
-    for (const pitch of span1Pitches) {
-      expect(Math.abs(pitch - span1Pitch), "span-1 층의 가로 pitch가 균일하지 않습니다").toBeLessThan(1);
-    }
-
-    logMeasurement(
-      testInfo,
-      "T-015 m5 가로 pitch",
-      `span-1(4열, ${SPAN1_TEAM} 4명) ${span1Pitch}px [기준 PNG 실측값 86px → 차이 ` +
-        `${round2(span1Pitch - 86)}px] / span-3(9열, ${DEV_TEAM} 8명) ${span3Pitch}px. ` +
-        `표본 span-1 ${span1Pitches.map((pitch) => round2(pitch)).join(", ")} · ` +
-        `span-3 ${span3Pitches.map((pitch) => round2(pitch)).join(", ")}. ` +
-        `원인으로 지목된 토큰 --spacing-card(16px, 기준 10px)는 01·03과 공유하므로 값을 바꾸지 않았다`,
-    );
-
-    // ② 줄이 두 개가 되게 인원을 늘려 세로 pitch를 잰다(열 수는 그대로이므로 가로 pitch는 변하지 않는다).
-    for (const name of [...DEV_EXTRA, ...VIDEO_EXTRA]) {
-      writeFixtureFile(
-        agentFile(name),
-        agentFileContent({ name, description: `T-024 pitch 실측용 (${name})`, body: "측정용." }),
-      );
-    }
-    const devTeam = JSON.parse(originalDevTeam) as { members: string[] };
-    devTeam.members = [...devTeam.members, ...DEV_EXTRA].sort();
-    writeFixtureFile(teamFile(DEV_TEAM), `${JSON.stringify(devTeam, null, 2)}\n`);
-    const videoTeam = JSON.parse(originalVideoTeam) as { members: string[] };
-    videoTeam.members = [...videoTeam.members, ...VIDEO_EXTRA].sort();
-    writeFixtureFile(teamFile(SPAN1_TEAM), `${JSON.stringify(videoTeam, null, 2)}\n`);
-
-    for (const name of [...DEV_EXTRA, ...VIDEO_EXTRA]) {
-      await expect(spriteSvg(page, name)).toBeVisible({ timeout: SETUP_REFLECT_TIMEOUT_MS });
-    }
-
-    const widenedSpan3 = await deskMetrics(page, DEV_TEAM);
-    expect(widenedSpan3).toHaveLength(10);
-    expect(Math.abs((horizontalPitches(widenedSpan3)[0] as number) - span3Pitch)).toBeLessThan(1);
-    const span3Vertical = round2(verticalPitch(widenedSpan3));
-
-    const widenedSpan1 = await deskMetrics(page, SPAN1_TEAM);
-    expect(widenedSpan1).toHaveLength(5);
-    expect(Math.abs((horizontalPitches(widenedSpan1)[0] as number) - span1Pitch)).toBeLessThan(1);
-    const span1Vertical = round2(verticalPitch(widenedSpan1));
-
-    logMeasurement(
-      testInfo,
-      "T-015 m1 세로 pitch",
-      `span-1(4열, ${SPAN1_TEAM} 5명 → 4+1줄) ${span1Vertical}px / ` +
-        `span-3(9열, ${DEV_TEAM} 10명 → 9+1줄) ${span3Vertical}px ` +
-        `(둘 다 책상 묶음 높이 + gap-y-2 8px). 토큰 값은 바꾸지 않았다`,
-    );
-    // 두 층의 책상 묶음 구조가 같으므로 세로 pitch도 같아야 한다(균일성 확인).
-    expect(Math.abs(span1Vertical - span3Vertical), "층 span에 따라 세로 pitch가 다릅니다").toBeLessThan(1);
-  } finally {
-    writeFixtureFile(teamFile(DEV_TEAM), originalDevTeam);
-    writeFixtureFile(teamFile(SPAN1_TEAM), originalVideoTeam);
-    for (const name of [...DEV_EXTRA, ...VIDEO_EXTRA]) {
-      removeFixturePath(agentFile(name));
-    }
-  }
-
-  // fixture가 원래대로 돌아왔는지 화면으로 확인한다.
-  await gotoReady(page, "/workflows");
-  await expect(floorCardByName(page, DEV_TEAM).getByText("8명", { exact: true })).toBeVisible({
-    timeout: SETUP_REFLECT_TIMEOUT_MS,
-  });
-  await expect(floorCardByName(page, SPAN1_TEAM).getByText("4명", { exact: true })).toBeVisible();
-});
-
-test("[E2E-13][T-015 m6][FR-006-AC4] 13자 이름을 가장 좁은 열(span-1 4열) 가운데에 놓고 인접 열 번짐을 실측한다", async ({
-  page,
-}, testInfo) => {
-  // 가장 좁은 열 = span-1 층의 4열. 여기서 번지지 않으면 span-3 9열에서도 번지지 않는다.
+}) => {
+  // 기준 폭은 책상 칸 100px(이름 줄 100, 상태 줄 최대 96). 보통 층(video-team)과 넓은 층(dev-team) 모두 확인한다.
   const SPAN1_TEAM = "video-team";
   const LONG_NAME = "vid-longname1"; // 13자 — FR-006-AC4 경계(12자 초과 → 12자 + …)
   const originalVideoTeam = readFixtureFile(teamFile(SPAN1_TEAM));
@@ -678,8 +517,6 @@ test("[E2E-13][T-015 m6][FR-006-AC4] 13자 이름을 가장 좁은 열(span-1 4�
 
   try {
     await gotoReady(page, "/workflows");
-    const before = await deskMetrics(page, SPAN1_TEAM);
-    const columnPitch = round2(horizontalPitches(before)[0] as number);
 
     writeFixtureFile(
       agentFile(LONG_NAME),
@@ -708,18 +545,18 @@ test("[E2E-13][T-015 m6][FR-006-AC4] 13자 이름을 가장 좁은 열(span-1 4�
     const longDesk = desks.find((desk) => desk.name === LONG_NAME) as DeskMetric;
     // FR-006-AC4: 12자 초과 → 12자 + `…`, 전체 이름은 title로.
     expect(longDesk.label, "12자 초과 이름이 말줄임되지 않았습니다").toBe(`${LONG_NAME.slice(0, 12)}…`);
-    // 선택자는 **이름 칩의 `Tooltip` 래퍼**(안에 글자 span을 품은 `span[title]`)로 좁힌다 — 부모 접미가
-    // 붙은 책상은 상태 줄에도 `title`이 생기므로(ADR-50 B) 책상 안 `title` 요소를 세는 선택자는
-    // strict 위반이 된다. 이 상태의 span-1 층에는 접미가 없다(아래 상태 줄 문구 단언이 확인한다).
-    await expect(spriteBox(page, LONG_NAME).locator("span[title]:has(span)")).toHaveAttribute(
+    // 선택자는 이름 span(`span[title][data-clamp]`)으로 좁힌다 — 부모 접미가 붙은 책상은 상태 줄에도
+    // `title`이 생기므로(ADR-50 B) 책상 안 `title` 요소를 세는 선택자는 strict 위반이 된다.
+    // 이 상태의 보통 층에는 접미가 없다(아래 상태 줄 문구 단언이 확인한다).
+    await expect(spriteBox(page, LONG_NAME).locator("span[title][data-clamp]")).toHaveAttribute(
       "title",
       LONG_NAME,
     );
-    // ADR-50 B: 이름 칩도 칸 폭에서 잘린다(ui-spec §공통 `DeskFigure` "두 글자 줄은 그리드 칸 폭을 넘지 않는다").
+    // ADR-50 B: 이름 칩도 칸 폭에서 잘린다(ui-spec §공통 `Desk` "두 글자 줄은 그리드 칸 폭을 넘지 않는다").
     expect(
       round2(longDesk.labelWidth),
-      "13자 이름 칩이 열 폭을 넘습니다",
-    ).toBeLessThanOrEqual(columnPitch + 1);
+      "13자 이름 칩이 칸 폭을 넘습니다",
+    ).toBeLessThanOrEqual(COLUMN_PITCH + 1);
 
     const neighbours = desks.filter(
       (desk) => desk.name === "video-lead" || desk.name === "video-02",
@@ -728,78 +565,29 @@ test("[E2E-13][T-015 m6][FR-006-AC4] 13자 이름을 가장 좁은 열(span-1 4�
     const overlaps = neighbours.filter(
       (desk) => longDesk.labelLeft < desk.labelRight && longDesk.labelRight > desk.labelLeft,
     );
-    const bleedLeft = round2(longDesk.centerX - columnPitch / 2 - longDesk.labelLeft);
-    const bleedRight = round2(longDesk.labelRight - (longDesk.centerX + columnPitch / 2));
-    const gapToNeighbour = round2(
-      Math.min(
-        ...neighbours.map((desk) =>
-          desk.centerX < longDesk.centerX
-            ? longDesk.labelLeft - desk.labelRight
-            : desk.labelLeft - longDesk.labelRight,
-        ),
-      ),
-    );
-
-    logMeasurement(
-      testInfo,
-      "T-015 m6 13자 이름 열 번짐",
-      `표기 "${longDesk.label}" 이름 칩 폭 ${round2(longDesk.labelWidth)}px vs 열 폭 ${columnPitch}px ` +
-        `(span-1 4열 = 가장 좁은 열) → 열 경계 밖으로 왼쪽 ${bleedLeft}px · 오른쪽 ${bleedRight}px ` +
-        `(양수면 번짐), 인접 이름 칩과의 최소 간격 ${gapToNeighbour}px, 겹침 ${overlaps.length}건`,
-    );
-
-    // ui-spec.md SCR-02 책상 행 + docs/ui/README.md(요소 가림은 결함): 인접 열 이름을 가리면 안 된다.
+    // ui-spec.md SCR-02 책상 행 + docs/ui/README.md(요소 가림은 결함): 이웃 칸 이름을 가리면 안 된다.
     expect(
       overlaps.map((desk) => desk.name),
-      "13자 이름 칩이 인접 열의 이름 칩과 겹칩니다",
+      "13자 이름 칩이 이웃 칸의 이름 칩과 겹칩니다",
     ).toEqual([]);
 
-    // ── 상태 줄 번짐 (T-024 리뷰 Minor 6) ──────────────────────────────────────────
-    // 한 책상에서 이름 칩보다 넓어질 수 있는 요소는 상태 줄뿐이다(이름 칩은 12자 + `…`로 잘리지만
-    // 상태 줄은 `작업 중 · 부모 <라벨>`까지 길어진다). 가장 좁은 열(span-1 4열)에서 먼저 재고,
-    // 이 fixture 상태의 span-1 층에는 부모 접미가 붙는 책상이 없으므로 **실제로 접미가 붙은 span-3 층
-    // (dev-team의 dev-07)의 상태 줄 폭**을 함께 재서 같은 문구가 span-1 열 폭에 놓였을 때까지 수치로 남긴다
-    // (두 층의 상태 줄 글꼴·크기가 같아 폭은 열과 무관하다).
+    // ── 상태 줄 폭·겹침 (T-024 리뷰 Minor 6) ──────────────────────────────────────
+    // 한 책상에서 이름 칩보다 넓어질 수 있는 요소는 상태 줄뿐이다. 보통 층·넓은 층 모두 문구 형식·폭 > 0·겹침 0을 본다.
     for (const desk of desks) {
       expect(desk.statusText, `${desk.name} 상태 줄 문구`).toMatch(STATUS_LINE_PATTERN);
       expect(desk.statusWidth, `${desk.name} 상태 줄 폭`).toBeGreaterThan(0);
     }
-    const span1Widest = widestStatusDesk(desks);
-    const span1Bleed = statusBleed(span1Widest, columnPitch);
-    const span1Overlaps = statusOverlaps(desks);
+    const normalOverlaps = statusOverlaps(desks);
 
-    const span3Desks = await deskMetrics(page, DEV_TEAM);
-    const span3Pitch = round2(horizontalPitches(span3Desks)[0] as number);
-    for (const desk of span3Desks) {
+    const wideDesks = await deskMetrics(page, DEV_TEAM);
+    for (const desk of wideDesks) {
       expect(desk.statusText, `${desk.name} 상태 줄 문구`).toMatch(STATUS_LINE_PATTERN);
     }
-    const span3Widest = widestStatusDesk(span3Desks);
-    const span3Bleed = statusBleed(span3Widest, span3Pitch);
-    const span3Overlaps = statusOverlaps(span3Desks);
-    // clamp(ADR-50 B) 이전이라면 같은 문구를 가장 좁은 열(span-1)에 놓았을 때 한쪽으로 나갔을 양
-    // (중앙 정렬이라 좌우 대칭). **이 값은 투영이며 판정 근거가 아니다** — 판정은 다음 테스트의 실측이다.
-    const projectedSpan1Bleed = round2((span3Widest.statusWidth - columnPitch) / 2);
-    // 그 문구를 가진 책상이 span-1에서 **나란히 두 개**일 때 겹쳤을 양(둘 다 좌우로 번지므로 폭−열 폭).
-    const projectedSpan1Overlap = round2(span3Widest.statusWidth - columnPitch);
+    const wideOverlaps = statusOverlaps(wideDesks);
 
-    logMeasurement(
-      testInfo,
-      "T-024 Minor 6 상태 줄 번짐",
-      `span-1(4열, 열 폭 ${columnPitch}px) 최대 상태 줄 "${span1Widest.statusText}"(${span1Widest.name}) ` +
-        `폭 ${round2(span1Widest.statusWidth)}px → 열 경계 밖 왼쪽 ${span1Bleed.left}px · 오른쪽 ${span1Bleed.right}px, ` +
-        `겹침 ${span1Overlaps.length}건${span1Overlaps.length === 0 ? "" : ` [${span1Overlaps.join(" / ")}]`} | ` +
-        `span-3(9열, 열 폭 ${span3Pitch}px) 최대 상태 줄 "${span3Widest.statusText}"(${span3Widest.name}) ` +
-        `폭 ${round2(span3Widest.statusWidth)}px → 열 경계 밖 왼쪽 ${span3Bleed.left}px · 오른쪽 ${span3Bleed.right}px, ` +
-        `겹침 ${span3Overlaps.length}건${span3Overlaps.length === 0 ? "" : ` [${span3Overlaps.join(" / ")}]`} | ` +
-        `clamp가 없었다면 같은 문구가 span-1 열 폭(${columnPitch}px)에서 좌·우로 각 ` +
-        `${projectedSpan1Bleed}px 번지고 그런 책상이 나란히 두 개면 ${projectedSpan1Overlap}px 겹쳤을 값이다` +
-        `(양수면 번짐·겹침. 이 상태의 span-1 층에는 부모 접미가 붙는 책상이 없다 — ` +
-        `접미가 붙은 책상을 span-1 인접 열에 실제로 놓은 **실측**은 다음 [ADR-50 B] 테스트가 한다)`,
-    );
-
-    // 열 경계 번짐(pitch에서 비롯한 수치)은 ADR-48 C가 현행 확정했으나 **요소 가림은 결함 기준**이다.
-    expect(span1Overlaps, "span-1 층에서 상태 줄이 인접 열 상태 줄과 겹칩니다").toEqual([]);
-    expect(span3Overlaps, "span-3 층에서 상태 줄이 인접 열 상태 줄과 겹칩니다").toEqual([]);
+    // 요소 가림은 결함 기준이다.
+    expect(normalOverlaps, "보통 층에서 상태 줄이 이웃 칸 상태 줄과 겹칩니다").toEqual([]);
+    expect(wideOverlaps, "넓은 층에서 상태 줄이 이웃 칸 상태 줄과 겹칩니다").toEqual([]);
   } finally {
     writeFixtureFile(teamFile(SPAN1_TEAM), originalVideoTeam);
     removeFixturePath(agentFile(LONG_NAME));
@@ -812,35 +600,20 @@ test("[E2E-13][T-015 m6][FR-006-AC4] 13자 이름을 가장 좁은 열(span-1 4�
 });
 
 /**
- * 층 카드 한 장을 리뷰 대조용으로 남긴다(`screenshots/02-span1-clamp/`). 공식 기준 캡처
- * (`screenshots/02-workflows.png`)는 이 재생 **전**의 화면이라 span-1 clamp 상태가 찍히지 않으므로
- * 리뷰어가 볼 수 있게 따로 남긴다. 기준 이미지 폴더(`docs/ui/`)는 읽지도 쓰지도 않는다.
- */
-async function captureFloorCard(page: Page, workflowName: string, fileName: string): Promise<void> {
-  mkdirSync(SPAN1_CLAMP_SCREENSHOT_DIR, { recursive: true });
-  const path = join(SPAN1_CLAMP_SCREENSHOT_DIR, fileName);
-  await floorCardByName(page, workflowName).screenshot({ path });
-  expect(statSync(path).size, "리뷰 캡처 파일이 비었습니다").toBeGreaterThan(0);
-}
-
-/**
- * span-1(4열) 인접 두 열에 부모 접미가 붙은 책상을 실제로 놓고 상태 줄 clamp를 실측한다(ADR-50 B).
+ * 보통 층의 이웃 두 칸(책상 칸 100px)에 부모 접미가 붙은 책상을 실제로 놓고 상태 줄 clamp를 단언한다(ADR-50 B).
  *
- * 한 번 호출로 T-FIX-12 Done when의 ①~④(13자 라벨 단계에서는 ⑤)를 모두 단언하고, ⑥ 실측 수치를
- * `logMeasurement`로 남긴다. 투영값은 쓰지 않는다 — 두 책상이 같은 행의 인접 열에 실제로 있고
- * 접미가 실제로 붙은 상태에서 잰 값만 쓴다.
+ * 한 번 호출로 T-FIX-12 Done when의 ①~④(13자 라벨 단계에서는 ⑤)를 모두 단언한다.
+ * 투영값은 쓰지 않는다 — 두 책상이 같은 줄의 이웃 칸에 실제로 있고 접미가 실제로 붙은 상태에서 잰 값만 쓴다.
  */
 async function assertSpan1SuffixPair(options: {
   page: Page;
-  testInfo: { annotations: { type: string; description?: string }[] };
   workflowName: string;
   pair: readonly [string, string];
   parentLabel: string;
   phase: string;
 }): Promise<void> {
-  const { page, testInfo, workflowName, pair, parentLabel, phase } = options;
+  const { page, workflowName, pair, parentLabel, phase } = options;
   const desks = await deskMetrics(page, workflowName);
-  const columnPitch = round2(horizontalPitches(desks)[0] as number);
   const expectedStatus = `작업 중 · 부모 ${parentLabel}`;
 
   // 측정 대상 두 책상(구조 전제 — 이것이 없으면 아래 실측 자체가 성립하지 않는다).
@@ -850,29 +623,6 @@ async function assertSpan1SuffixPair(options: {
   expect(right, `${phase} ${pair[1]} 책상을 찾지 못했습니다`).toBeDefined();
   const pairDesks = [left as DeskMetric, right as DeskMetric];
   const overlaps = statusOverlaps(desks);
-
-  // ⑥ 실측 수치는 **어떤 판정 단언보다 먼저** 남긴다 — 실패해도 로그·annotation에 실제 폭·겹침 px이 남는다.
-  logMeasurement(
-    testInfo,
-    `T-FIX-12 span-1 부모 접미 상태 줄 실측(${phase})`,
-    `span-1 4열 열 폭 ${columnPitch}px · 책상 ${desks.length}개 | ` +
-      pairDesks
-        .map((desk) => {
-          const bleed = statusBleed(desk, columnPitch);
-          return (
-            `${desk.name} "${desk.statusText}"(부모 라벨 ${parentLabel.length}자) 그려진 상태 줄 폭 ` +
-            `${round2(desk.statusWidth)}px(자르지 않은 글자 폭 ${desk.statusScrollWidth}px, 칸 폭 ` +
-            `${desk.statusClientWidth}px) → 열 경계 밖 왼쪽 ${bleed.left}px · ` +
-            `오른쪽 ${bleed.right}px, title "${desk.statusTitle}"`
-          );
-        })
-        .join(" | ") +
-      ` | 두 책상 centerX 차이 ${round2((right as DeskMetric).centerX - (left as DeskMetric).centerX)}px` +
-      `(= 열 pitch 1칸) · 그려진 이름 칩 폭 ${round2((left as DeskMetric).labelWidth)}px / ` +
-      `${round2((right as DeskMetric).labelWidth)}px | ` +
-      `상태 줄 겹침 ${overlaps.length}건${overlaps.length === 0 ? "" : ` [${overlaps.join(" / ")}]`} ` +
-      `(투영이 아니라 이 상태에서 실제로 잰 값이다)`,
-  );
 
   // 선택자가 엉뚱한 요소를 잡지 않았는지 고정한다(모든 책상의 상태 줄이 조립 규칙대로다).
   for (const desk of desks) {
@@ -888,23 +638,23 @@ async function assertSpan1SuffixPair(options: {
   // ③ 그려진 상태 줄끼리 겹치지 않는다(요소 가림 판정 — `docs/ui/README.md`, FR-006-AC10).
   expect(overlaps, `${phase} span-1 층에서 상태 줄이 인접 열 상태 줄과 겹칩니다`).toEqual([]);
 
-  // ④ 그려진 상태 줄이 열 폭 안에 있다.
+  // ④ 그려진 상태 줄이 상태 줄 최대 폭(96) 안에 있다(책상 칸 100px 안).
   for (const desk of pairDesks) {
     expect(
       round2(desk.statusWidth),
-      `${phase} ${desk.name} 상태 줄 폭이 열 폭을 넘습니다`,
-    ).toBeLessThanOrEqual(columnPitch + 1);
+      `${phase} ${desk.name} 상태 줄 폭이 칸 폭을 넘습니다`,
+    ).toBeLessThanOrEqual(STATUS_MAX_WIDTH + 1);
   }
 
-  // ② 두 책상은 같은 행의 인접 열이다(centerX 차이 = 열 pitch 1칸). 가림 판정(③·④) **뒤**에 둔다 —
+  // ② 두 책상은 같은 줄의 이웃 칸이다(centerX 차이 = 책상 칸 100px). 가림 판정(③·④) **뒤**에 둔다 —
   // clamp를 되돌리면 책상 묶음이 칸 밖으로 번져 행·열 계산도 함께 흔들리는데, 그때 먼저 드러나야 하는
   // 사실은 "글자가 겹쳤다"이기 때문이다.
   const [leftDesk, rightDesk] = pairDesks as [DeskMetric, DeskMetric];
   expect(Math.abs(leftDesk.centerY - rightDesk.centerY), `${phase} 두 책상이 같은 행이 아닙니다`).toBeLessThan(2);
   expect(
-    Math.abs(rightDesk.centerX - leftDesk.centerX - columnPitch),
-    `${phase} 두 책상이 인접 열이 아닙니다(centerX 차이 ${round2(rightDesk.centerX - leftDesk.centerX)}px, ` +
-      `열 pitch ${columnPitch}px)`,
+    Math.abs(rightDesk.centerX - leftDesk.centerX - COLUMN_PITCH),
+    `${phase} 두 책상이 이웃 칸이 아닙니다(centerX 차이 ${round2(rightDesk.centerX - leftDesk.centerX)}px, ` +
+      `칸 폭 ${COLUMN_PITCH}px)`,
   ).toBeLessThan(1);
 
   // 잘린 전체 문구는 같은 요소의 네이티브 title로 본다(FR-006-AC4와 같은 방식). 가림 판정(③·④)보다
@@ -922,9 +672,9 @@ async function assertSpan1SuffixPair(options: {
   }
 }
 
-test("[E2E-13][FR-006-AC10][FR-006-AC4][ADR-50 B] span-1 열(4열)에 부모 접미 책상을 나란히 두 개 놓고 상태 줄 clamp를 실측한다", async ({
+test("[E2E-13][FR-006-AC10][FR-006-AC4][ADR-50 B] 보통 층 이웃 두 칸에 부모 접미 책상을 놓고 상태 줄 clamp를 확인한다", async ({
   page,
-}, testInfo) => {
+}) => {
   // 기준 캡처(01·02·03)와 기존 단언을 모두 끝낸 뒤에만 실행한다(serial 선언 순서) — 이 재생이 남기는
   // live 상태가 캡처 대상 화면을 바꾸지 않게 하기 위해서다. `showcase.jsonl`은 건드리지 않는다.
   const SPAN1_TEAM = "video-team";
@@ -957,13 +707,11 @@ test("[E2E-13][FR-006-AC10][FR-006-AC4][ADR-50 B] span-1 열(4열)에 부모 접
     }
     await assertSpan1SuffixPair({
       page,
-      testInfo,
       workflowName: SPAN1_TEAM,
       pair: PAIR,
       parentLabel: SHORT_PARENT,
       phase: `부모 ${SHORT_PARENT}(${SHORT_PARENT.length}자)`,
     });
-    await captureFloorCard(page, SPAN1_TEAM, `02-span1-parent-${SHORT_PARENT}.png`);
 
     // ── 2단계: 13자 부모 라벨 — 4~5줄로 1단계 서브를 비우고 6~8줄 재생 ──────────────
     expect(replayScenarioLines({ scenarioPath: SPAN1_CLAMP_SCENARIO, from: 4, to: 5 }).sent).toBe(2);
@@ -1006,13 +754,11 @@ test("[E2E-13][FR-006-AC10][FR-006-AC4][ADR-50 B] span-1 열(4열)에 부모 접
     ]);
     await assertSpan1SuffixPair({
       page,
-      testInfo,
       workflowName: SPAN1_TEAM,
       pair: PAIR,
       parentLabel: LONG_PARENT,
       phase: `부모 ${LONG_PARENT}(${LONG_PARENT.length}자)`,
     });
-    await captureFloorCard(page, SPAN1_TEAM, `02-span1-parent-${LONG_PARENT}.png`);
   } finally {
     writeFixtureFile(teamFile(SPAN1_TEAM), originalVideoTeam);
     removeFixturePath(agentFile(LONG_PARENT));

@@ -1,6 +1,6 @@
 /**
  * ui-spec.md SCR-02 미니맵(하단 컨트롤 영역 오른쪽 끝): 층 그리드 축소 사각형 + 현재 뷰포트 테두리(running).
- * 사각형은 층 그리드와 같은 3열 비율·span(FR-006-AC2, `workflowLayout.ts`)으로 놓고 색은 중립
+ * 사각형은 층 그리드와 같은 3열 비율·span(FR-006-AC2, `floorLayout.ts`)으로 놓고 색은 중립
  * (`bg-selected`)이다. 워크플로우 단위의 작업 상태는 표시하지 않는다(FR-006-AC5, conventions.md §3
  * "색만 있는 상태 표시 금지"). 워크플로우 0개면 숨긴다.
  *
@@ -16,7 +16,7 @@
  */
 import { useEffect, useState, type MouseEvent, type RefObject } from "react";
 import type { Workflow } from "../../api/types";
-import { floorColumnSpan } from "../../lib/derive/workflowLayout";
+import { floorColumnSpan } from "../../lib/derive/floorLayout";
 
 /** 테두리가 사라지지 않도록 하는 최소 높이(%). ui-spec.md SCR-02 미니맵 행. */
 const MIN_VIEWPORT_PERCENT = 4;

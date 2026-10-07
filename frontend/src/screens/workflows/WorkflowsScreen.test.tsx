@@ -161,6 +161,93 @@ describe("WorkflowsScreen", () => {
     expect(minimapViewportHeightPercent()).toBeLessThan(before);
   });
 
+  it("[D-125][NFR-11] 화면 자체 <main>·<h1> 없음(셸이 하나), 루트는 본문 칸을 채우는 flex(h-full)이고 h-body-viewport를 쓰지 않는다", () => {
+    const fixture = buildSnapshotFixture();
+    snapshotStore.replace({ ...fixture, registry: { ...fixture.registry, workflows: [buildWorkflow()] } });
+
+    const { container } = renderWorkflowsScreen();
+
+    expect(container.querySelector("main")).toBeNull();
+    expect(container.querySelector("h1")).toBeNull();
+    const root = screen.getByTestId("workflows");
+    expect(root.className).toContain("h-full");
+    expect(root.className).toContain("min-h-0");
+    expect(root.className).not.toContain("h-body-viewport");
+    // 스크롤하는 곳은 층 스크롤 영역 하나다(본문 칸이 이중 스크롤하지 않게 루트는 overflow를 갖지 않는다).
+    expect(root.className).not.toContain("overflow");
+    expect(screen.getByTestId("floor-scroll-area").className).toContain("overflow-auto");
+  });
+
+  it("[FR-006-AC7] data-wf 02-2·02-3·02-4·02-6 영역이 순서대로 있고 로비는 줌 대상 영역 밖에 있다", () => {
+    const fixture = buildSnapshotFixture();
+    snapshotStore.replace({ ...fixture, registry: { ...fixture.registry, workflows: [buildWorkflow()] } });
+
+    const { container } = renderWorkflowsScreen();
+
+    const areas = Array.from(container.querySelectorAll("[data-wf]")).map((el) => el.getAttribute("data-wf"));
+    expect(areas.slice(0, 3)).toEqual(["02-2", "02-3", "02-4"]);
+    expect(areas).toContain("02-6");
+    expect(screen.getByTestId("floor-scroll-area")).not.toContainElement(screen.getByRole("region", { name: "로비" }));
+  });
+
+  it("[FR-006-AC2] 층 그리드는 가로형 3열·세로형 2열, 인원 7명 이상 층은 한 줄 전체 폭(col-span-full), 층은 위에 붙는다", () => {
+    const fixture = buildSnapshotFixture();
+    const wideMembers = ["m1", "m2", "m3", "m4", "m5", "m6"];
+    snapshotStore.replace({
+      ...fixture,
+      registry: {
+        ...fixture.registry,
+        workflows: [
+          buildWorkflow({ name: "넓은층", lead: "lead", members: wideMembers, rawMemberCount: 7 }),
+          buildWorkflow({ name: "보통층", lead: null, members: [], rawMemberCount: 0 }),
+        ],
+        agents: [],
+      },
+    });
+
+    renderWorkflowsScreen();
+
+    const grid = screen.getByTestId("floor-grid");
+    expect(grid.className).toContain("grid-cols-3");
+    expect(grid.className).toContain("portrait:grid-cols-2");
+    expect(grid.className).toContain("items-start");
+    const wide = screen.getByRole("region", { name: "넓은층 층" }).parentElement as HTMLElement;
+    const normal = screen.getByRole("region", { name: "보통층 층" }).parentElement as HTMLElement;
+    expect(wide.className).toContain("col-span-full");
+    expect(normal.className).not.toContain("col-span");
+  });
+
+  it("[FR-001-E2] writable=false → 다섯 버튼(에이전트 만들기·워크플로우 추가·층 가져오기·만들기·삭제) 비활성 '쓰기 권한 없음'", () => {
+    const fixture = buildSnapshotFixture();
+    snapshotStore.replace({
+      ...fixture,
+      registry: { ...fixture.registry, writable: false, workflows: [buildWorkflow({ rawMemberCount: 0 })] },
+    });
+
+    renderWorkflowsScreen();
+
+    for (const name of ["에이전트 만들기", "워크플로우 추가", "가져오기", "만들기", "삭제"]) {
+      expect(screen.getByRole("button", { name }), name).toBeDisabled();
+    }
+    expect(screen.getAllByText("쓰기 권한 없음")).toHaveLength(5);
+  });
+
+  it("[FR-006-AC7] 안내 줄은 범례·필터 줄 아래, 로비 위에 box 모양 한 줄로 나온다 (FR-010-AC6)", () => {
+    const fixture = buildSnapshotFixture();
+    snapshotStore.replace({ ...fixture, registry: { ...fixture.registry, workflows: [buildWorkflow()] } });
+    const router = createMemoryRouter([{ path: "/workflows", element: <WorkflowsScreen /> }], {
+      initialEntries: [{ pathname: "/workflows", state: AGENT_CREATED_NAV_STATE }],
+    });
+    const { container } = render(<RouterProvider router={router} />);
+
+    const notice = screen.getByText("Claude Code가 새 정의를 바로 인식하지 못하면 재시작이 필요할 수 있습니다");
+    const filters = container.querySelector("[data-wf='02-3']") as HTMLElement;
+    const lobby = container.querySelector("[data-wf='02-4']") as HTMLElement;
+    expect(notice.className).toContain("bg-inset");
+    expect(filters.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(notice.compareDocumentPosition(lobby) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("workflows 1개 이상 → 층 카드 렌더", () => {
     const fixture = buildSnapshotFixture();
     snapshotStore.replace({

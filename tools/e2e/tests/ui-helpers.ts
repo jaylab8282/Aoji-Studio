@@ -147,7 +147,7 @@ export function teamFileContent(options: {
 
 /**
  * 02 층 카드의 헤더 행. `Floor.tsx` 구조: h3(이름) → 부모(이름·인원·요약 묶음) → 조부모(헤더 행)이며
- * 헤더 행에 `가져오기`·`+ 만들기`·`상세 →`·`삭제` 버튼이 있다.
+ * 헤더 행에 `가져오기`·`만들기`·`상세`·`삭제` 버튼이 있다.
  */
 export function floorHeader(page: Page, workflowName: string): Locator {
   return floorName(page, workflowName).locator("xpath=../..");
@@ -288,9 +288,9 @@ export async function measureFileChangeReflection(
 
 // ── UI를 거치는 공통 조작 (변경 API는 반드시 화면 버튼으로 호출한다) ──────────────────
 
-/** 02 `+ 워크플로우 추가` → 05-L → `만들기`. 층이 나타날 때까지 기다린다(FR-008-AC4). */
+/** 02 `워크플로우 추가` → 05-L → `만들기`. 층이 나타날 때까지 기다린다(FR-008-AC4). */
 export async function addWorkflowViaUi(page: Page, workflowName: string): Promise<void> {
-  await page.getByRole("button", { name: "+ 워크플로우 추가", exact: true }).click();
+  await page.locator(`[data-wf="02-3"]`).getByRole("button", { name: "워크플로우 추가", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "워크플로우 추가" });
   await dialog.getByLabel("이름", { exact: true }).fill(workflowName);
   await dialog.getByRole("button", { name: "만들기", exact: true }).click();
@@ -299,14 +299,14 @@ export async function addWorkflowViaUi(page: Page, workflowName: string): Promis
 }
 
 /**
- * 02 층 헤더 `+ 만들기` → 06 폼 → `저장`. 성공하면 02로 돌아가 새 책상이 보인다(FR-010-AC5).
+ * 02 층 헤더 `만들기` → 06 폼 → `저장`. 성공하면 02로 돌아가 새 책상이 보인다(FR-010-AC5).
  * `tools`는 `전체 상속`을 고른다(FR-010-AC2: 방식을 명시해야 `저장`이 활성).
  */
 export async function createAgentViaUi(
   page: Page,
   options: { workflowName: string; name: string; description: string; role: "팀장" | "팀원" },
 ): Promise<void> {
-  await floorHeader(page, options.workflowName).getByRole("button", { name: "+ 만들기", exact: true }).click();
+  await floorHeader(page, options.workflowName).getByRole("button", { name: "만들기", exact: true }).click();
   const form = page.getByTestId("agent-form-dialog");
   await expect(form).toBeVisible();
   await form.getByLabel("이름 (name)", { exact: true }).fill(options.name);

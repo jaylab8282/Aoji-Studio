@@ -1,75 +1,76 @@
 /**
- * ui-spec.md SCR-02 요약 줄: `AojiStudio`·`.claude` 라벨 + 통계 + 워크플로우 밖 에이전트 링크
- * + "+ 에이전트 만들기" 버튼 + 범례. FR-006-AC*, FR-001-E1, FR-004-AC7.
+ * ui-spec.md SCR-02 요약 줄(`02-2`): `AojiStudio` + `.claude` + 구분선 + `에이전트 N · 스킬 N · 워크플로우 N`(수는 고정폭 500),
+ * 오른쪽 끝에 링크 `워크플로우 밖 에이전트 N · 가져오기`와 추가 버튼 `에이전트 만들기`(`plus`). FR-004-AC7, FR-001-E1·E2.
+ * 링크는 N = 0이어도 활성이고(05-R 빈 상태로 연다, FR-009-AC6·AC7) 에이전트 폴더 읽기 실패면 수가 `-`다.
+ * 한 줄, 줄바꿈 없음. 범례·필터는 `Legend`·`FilterBar`(`02-3`)가 맡는다.
  */
-import type { Live, Registry } from "../../api/types";
+import type { Registry } from "../../api/types";
 import { Button } from "../../components/ui/Button";
-import { StatusDot } from "../../components/ui/StatusDot";
-import { countAllStatuses } from "../../lib/derive/counts";
-import { useDialogNavigate } from "../../lib/dialogNavigate";
+import { Icon } from "../../components/ui/Icon";
+import { LinkButton } from "../../components/ui/Link";
 import { outsideAgents } from "../../lib/derive/importCandidates";
+import { useDialogNavigate } from "../../lib/dialogNavigate";
 import {
   CREATE_AGENT_BUTTON_LABEL,
   EMPTY_VALUE_TEXT,
-  STATUS_LABEL_TEXT,
+  SUMMARY_SEPARATOR,
+  WORKFLOWS_SUMMARY_AGENT_LABEL,
   WORKFLOWS_SUMMARY_CLAUDE_LABEL,
   WORKFLOWS_SUMMARY_PROJECT_LABEL,
+  WORKFLOWS_SUMMARY_SKILL_LABEL,
+  WORKFLOWS_SUMMARY_WORKFLOW_LABEL,
   WRITABLE_FALSE_REASON,
   outsideAgentsLinkLabel,
-  workflowsSummaryCountsLabel,
 } from "../../lib/text";
 
-export function SummaryBar({ registry, live }: { registry: Registry; live: Live }) {
+function Count({ children }: { children: string | number }) {
+  return <b className="font-mono font-medium text-text">{children}</b>;
+}
+
+function Separator() {
+  return (
+    <span aria-hidden="true" className="text-text-muted">
+      {SUMMARY_SEPARATOR}
+    </span>
+  );
+}
+
+export function SummaryBar({ registry }: { registry: Registry }) {
   const openDialog = useDialogNavigate();
-  const counts = countAllStatuses(registry, live.agents);
-  const outsideCount = outsideAgents(registry.agents).length;
+  const missing = registry.agentsDirMissing;
+  const agentCount = missing ? EMPTY_VALUE_TEXT : (registry.agentCount ?? 0);
+  const outsideCount = missing ? EMPTY_VALUE_TEXT : outsideAgents(registry.agents).length;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="text-body text-text-secondary">{WORKFLOWS_SUMMARY_PROJECT_LABEL}</span>
-        <span className="text-body text-text-faint">{WORKFLOWS_SUMMARY_CLAUDE_LABEL}</span>
-        <span className="text-body text-text-secondary">
-          {workflowsSummaryCountsLabel(
-            registry.agentsDirMissing ? EMPTY_VALUE_TEXT : (registry.agentCount ?? 0),
-            registry.skillCount,
-            registry.workflows.length,
-          )}
+    <div data-wf="02-2" className="flex min-w-0 flex-none items-center gap-3 whitespace-nowrap">
+      <h2 className="text-section font-bold text-text">{WORKFLOWS_SUMMARY_PROJECT_LABEL}</h2>
+      <span className="font-mono text-aux text-text-muted">{WORKFLOWS_SUMMARY_CLAUDE_LABEL}</span>
+      <span aria-hidden="true" className="h-5 w-px flex-none bg-border" />
+      <span data-testid="workflows-counts" className="flex items-center gap-1.5 text-text-secondary">
+        <span>
+          {WORKFLOWS_SUMMARY_AGENT_LABEL} <Count>{agentCount}</Count>
         </span>
-        <button
-          type="button"
-          disabled={outsideCount === 0}
-          aria-disabled={outsideCount === 0}
-          onClick={() => openDialog({ dialog: "import" })}
-          className={`text-aux underline decoration-1 underline-offset-2 disabled:no-underline ${
-            outsideCount === 0 ? "text-text-faint" : "text-link"
-          }`}
-        >
-          {outsideAgentsLinkLabel(outsideCount)}
-        </button>
-        <Button
-          variant="add"
-          size="sm"
-          disabledReason={registry.writable ? undefined : WRITABLE_FALSE_REASON}
-          onClick={() => openDialog({ dialog: "agent-new" })}
-        >
-          {CREATE_AGENT_BUTTON_LABEL}
-        </Button>
-      </div>
-      <div className="flex items-center gap-4">
-        <span className="inline-flex items-center gap-1.5 text-aux text-text-secondary">
-          <StatusDot status="running" />
-          {STATUS_LABEL_TEXT.running} {counts.running}
+        {" "}
+        <Separator />{" "}
+        <span>
+          {WORKFLOWS_SUMMARY_SKILL_LABEL} <Count>{registry.skillCount}</Count>
         </span>
-        <span className="inline-flex items-center gap-1.5 text-aux text-text-secondary">
-          <StatusDot status="waiting" />
-          {STATUS_LABEL_TEXT.waiting} {counts.waiting}
+        {" "}
+        <Separator />{" "}
+        <span>
+          {WORKFLOWS_SUMMARY_WORKFLOW_LABEL} <Count>{registry.workflows.length}</Count>
         </span>
-        <span className="inline-flex items-center gap-1.5 text-aux text-text-secondary">
-          <StatusDot status="idle" />
-          {STATUS_LABEL_TEXT.idle} {counts.idle}
-        </span>
-      </div>
+      </span>
+      <span className="flex-1" />
+      <LinkButton onClick={() => openDialog({ dialog: "import" })}>{outsideAgentsLinkLabel(outsideCount)}</LinkButton>
+      <Button
+        variant="add"
+        disabledReason={registry.writable ? undefined : WRITABLE_FALSE_REASON}
+        onClick={() => openDialog({ dialog: "agent-new" })}
+      >
+        <Icon name="plus" />
+        {CREATE_AGENT_BUTTON_LABEL}
+      </Button>
     </div>
   );
 }

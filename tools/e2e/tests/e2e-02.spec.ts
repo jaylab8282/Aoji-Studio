@@ -2,8 +2,8 @@
 // fixture: `project-basic` (워크플로우 밖 에이전트 architect·developer 2명).
 // 검증 ID: FR-008-AC1~AC4·E1·E2, FR-009-AC1·AC4·AC5·AC7, FR-010-AC1·AC2·AC5·AC6·AC7, FR-006-AC1·AC3.
 //
-// 흐름: 02 `+ 워크플로우 추가` → 05-L → 만들기 → 층 + 팀장 없음 경고 → `가져오기`로 팀장·팀원 지정
-//       → `+ 만들기`로 새 에이전트 → 파일 내용 확인.
+// 흐름: 02 `워크플로우 추가` → 05-L → 만들기 → 층 + 팀장 없음 경고 → `가져오기`로 팀장·팀원 지정
+//       → `만들기`로 새 에이전트 → 파일 내용 확인.
 // 변경은 모두 화면 버튼으로 한다(API 직접 호출로 상태를 만들지 않는다). 목킹 없음(conventions.md §8).
 import { expect, test } from "@playwright/test";
 
@@ -25,7 +25,7 @@ const WORKFLOW = "e2e02-워크플로우";
 /** 05-R로 가져올 fixture 에이전트(name 오름차순으로 architect → developer). */
 const IMPORT_LEAD = "architect";
 const IMPORT_MEMBER = "developer";
-/** 06 `+ 만들기`로 새로 만드는 에이전트. */
+/** 06 `만들기`로 새로 만드는 에이전트. */
 const NEW_AGENT = "e2e02-new-agent";
 const NEW_AGENT_DESCRIPTION = "E2E-02에서 만든 에이전트";
 const NEW_AGENT_BODY = "새 에이전트 지침 본문.";
@@ -34,7 +34,7 @@ test("[FR-008-AC2][FR-008-AC3][FR-008-AC4][FR-006-AC3][E2E-02] 05-L 구성 확�
   page,
 }) => {
   await gotoReady(page, "/workflows");
-  await page.getByRole("button", { name: "+ 워크플로우 추가", exact: true }).click();
+  await page.locator(`[data-wf="02-3"]`).getByRole("button", { name: "워크플로우 추가", exact: true }).click();
 
   const dialog = page.getByRole("dialog", { name: "워크플로우 추가" });
   await expect(dialog.getByRole("heading", { name: "워크플로우 추가", exact: true })).toBeVisible();
@@ -74,7 +74,8 @@ test("[FR-008-AC2][FR-008-AC3][FR-008-AC4][FR-006-AC3][E2E-02] 05-L 구성 확�
   // FR-006-AC3 층 경고 줄 + 요약 자리의 `팀장 없음`
   await expect(card).toContainText("팀장이 없습니다 · 팀장을 만들거나 가져오세요");
   await expect(card).toContainText("팀장 없음");
-  await expect(card).toContainText("에이전트가 없습니다 · 만들거나 가져오세요");
+  // 인원 0 층은 책상 영역 자체가 없다(옛 `에이전트가 없습니다 · 만들거나 가져오세요` 문구는 ui-spec SCR-02로 폐기).
+  await expect(card.getByTestId("floor-desks")).toHaveCount(0);
   await expect(card).toContainText("0명");
 
   expect(fixturePathExists(teamFile(WORKFLOW)), `${WORKFLOW}.json이 만들어지지 않았습니다`).toBe(true);
@@ -90,7 +91,7 @@ test("[FR-008-AC2][FR-008-AC3][FR-008-AC4][FR-006-AC3][E2E-02] 05-L 구성 확�
 
 test("[FR-008-E2][E2E-02] 허용하지 않는 문자 → 필드에 사유, 구성 파일을 만들지 않는다", async ({ page }) => {
   await gotoReady(page, "/workflows");
-  await page.getByRole("button", { name: "+ 워크플로우 추가", exact: true }).click();
+  await page.locator(`[data-wf="02-3"]`).getByRole("button", { name: "워크플로우 추가", exact: true }).click();
 
   const dialog = page.getByRole("dialog", { name: "워크플로우 추가" });
   await dialog.getByLabel("이름", { exact: true }).fill("bad/name");
@@ -112,7 +113,7 @@ test("[FR-008-AC1][FR-008-E1][E2E-02] 대소문자만 다른 같은 이름 → 4
   // 앞 테스트가 만든 층이 있어야 중복을 검증할 수 있다.
   await expect(floorCard(page, WORKFLOW)).toBeVisible();
 
-  await page.getByRole("button", { name: "+ 워크플로우 추가", exact: true }).click();
+  await page.locator(`[data-wf="02-3"]`).getByRole("button", { name: "워크플로우 추가", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "워크플로우 추가" });
   const duplicateWithOtherCase = WORKFLOW.toUpperCase();
   await dialog.getByLabel("이름", { exact: true }).fill(duplicateWithOtherCase);
@@ -220,7 +221,7 @@ test("[FR-010-AC1][FR-010-AC2][E2E-02] 06 검증: name 규칙 위반·중복, �
   page,
 }) => {
   await gotoReady(page, "/workflows");
-  await floorHeader(page, WORKFLOW).getByRole("button", { name: "+ 만들기", exact: true }).click();
+  await floorHeader(page, WORKFLOW).getByRole("button", { name: "만들기", exact: true }).click();
   const form = page.getByTestId("agent-form-dialog");
   await expect(form).toBeVisible();
 
@@ -251,11 +252,11 @@ test("[FR-010-AC1][FR-010-AC2][E2E-02] 06 검증: name 규칙 위반·중복, �
   await expect(form).toHaveCount(0);
 });
 
-test("[FR-010-AC2][FR-010-AC5][FR-010-AC6][FR-010-AC7][E2E-02] 06 `+ 만들기` 저장 → 02 새 책상·안내 줄, 정의 파일·구성 파일 내용 확인", async ({
+test("[FR-010-AC2][FR-010-AC5][FR-010-AC6][FR-010-AC7][E2E-02] 06 `만들기` 저장 → 02 새 책상·안내 줄, 정의 파일·구성 파일 내용 확인", async ({
   page,
 }) => {
   await gotoReady(page, "/workflows");
-  await floorHeader(page, WORKFLOW).getByRole("button", { name: "+ 만들기", exact: true }).click();
+  await floorHeader(page, WORKFLOW).getByRole("button", { name: "만들기", exact: true }).click();
   const form = page.getByTestId("agent-form-dialog");
   await expect(form).toBeVisible();
 

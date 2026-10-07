@@ -41,7 +41,7 @@
 - e2e (공개 포트 `127.0.0.1:4185` — `4190`은 쓰지 않는다: WHATWG Fetch bad port, ADR-45):
   - (사전 1회) `cd tools/e2e && npm install && npx playwright install chromium`
   - 전체: `cd tools/e2e && ./scripts/run-e2e.sh`
-    - 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 10배치(55·16·4·3·9·12·1·7·7·3 = 117)를 순서대로 돈다.
+    - 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 10배치(55·16·4·3·9·12·1·6·7·3 = 116)를 순서대로 돈다.
     - `globalSetup`이 fixture 임시 복사 → `compose.e2e.yaml up -d --build` → dry-run 도우미(4191) → 다른 Origin 페이지 서버(4192)까지 준비하고, `globalTeardown`이 컨테이너·프로세스·임시 폴더를 정리한다. 사전 준비 명령 없음
     - 기동 전에 4185·4191·4192 선점 검사를 한다 — 낡은 스택이 남아 있으면 소유 pid와 정리 명령을 출력하고 즉시 실패한다
   - 배치 단독 실행(fixture가 다른 시나리오는 실행을 나눈다):

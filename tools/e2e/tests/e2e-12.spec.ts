@@ -237,7 +237,7 @@ test(`[FR-006-AC7][E2E-12] 워크플로우 ${WORKFLOW_COUNT}개여도 검색·�
 }) => {
   const searchBox = await page.getByLabel("워크플로우·에이전트 이름 검색").boundingBox();
   const selectBox = await page.getByLabel("층 선택").boundingBox();
-  const addBox = await page.getByRole("button", { name: "+ 워크플로우 추가", exact: true }).boundingBox();
+  const addBox = await page.getByRole("button", { name: "워크플로우 추가", exact: true }).boundingBox();
   expect(searchBox).not.toBeNull();
   expect(selectBox).not.toBeNull();
   expect(addBox).not.toBeNull();

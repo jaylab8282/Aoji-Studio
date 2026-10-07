@@ -183,30 +183,27 @@ export const EMPTY_VALUE_TEXT = "-";
 // SCR-02 에이전트 워크플로우 층 뷰
 export const WORKFLOWS_SUMMARY_PROJECT_LABEL = "AojiStudio";
 export const WORKFLOWS_SUMMARY_CLAUDE_LABEL = ".claude";
-export function workflowsSummaryCountsLabel(
-  agentCount: number | string,
-  skillCount: number,
-  workflowCount: number,
-): string {
-  return `에이전트 ${agentCount} · 스킬 ${skillCount} · 워크플로우 ${workflowCount}`;
+/** 요약 줄 수 라벨(`02-2`). 값은 호출부가 `<b>`로 감싸 고정폭으로 그리고, 에이전트 폴더 읽기 실패면 `-`다. */
+export const WORKFLOWS_SUMMARY_AGENT_LABEL = "에이전트";
+export const WORKFLOWS_SUMMARY_SKILL_LABEL = "스킬";
+export const WORKFLOWS_SUMMARY_WORKFLOW_LABEL = "워크플로우";
+export const SUMMARY_SEPARATOR = "·";
+// N = 0이어도 링크는 그대로 활성이다(05-R 빈 상태로 연다, FR-009-AC6·AC7). 폴더 읽기 실패면 N = `-`.
+export function outsideAgentsLinkLabel(count: number | string): string {
+  return `워크플로우 밖 에이전트 ${count} · 가져오기`;
 }
-// N=0이면 링크가 비활성이라 "· 가져오기"를 붙이지 않는다(ui-spec.md SCR-02 "워크플로우 밖 에이전트" 행).
-export function outsideAgentsLinkLabel(count: number): string {
-  const base = `워크플로우 밖 에이전트 ${count}`;
-  return count === 0 ? base : `${base} · 가져오기`;
-}
-export const CREATE_AGENT_BUTTON_LABEL = "+ 에이전트 만들기";
+export const CREATE_AGENT_BUTTON_LABEL = "에이전트 만들기";
 export const OPEN_DEFAULT_SESSION_BUTTON_LABEL = "Claude 열기 · 기본 세션";
 
 export const SEARCH_PLACEHOLDER = "워크플로우·에이전트 이름 검색";
 export function floorSelectAllLabel(count: number): string {
   return `전체 층 (${count}개)`;
 }
-export const ADD_WORKFLOW_HEADER_BUTTON_LABEL = "+ 워크플로우 추가";
+export const ADD_WORKFLOW_HEADER_BUTTON_LABEL = "워크플로우 추가";
 export const SEARCH_NO_RESULTS_TEXT = "검색 결과가 없습니다";
 
 export const LOBBY_TITLE = "로비 · 메인 세션";
-export const LOBBY_SUBTITLE = "에이전트 지정 없이 실행 중인 Claude Code 세션";
+export const LOBBY_SUBTITLE = "에이전트 지정 없이 실행 중인 세션 · 워크플로우 밖 에이전트";
 export const LOBBY_EMPTY_TEXT = "실행 중인 메인 세션 없음";
 // 로비 전용 짧은 표기: waiting은 "입력 대기"(ui-spec SCR-02 로비 표, 02 PNG). 다른 화면의
 // STATUS_LABEL_TEXT_SHORT("권한 대기")와 문구가 다르다.
@@ -220,12 +217,19 @@ export function floorMemberCountLabel(count: number): string {
   return `${count}명`;
 }
 export const FLOOR_NO_LEAD_TEXT = "팀장 없음";
-/** 층 헤더 요약(FR-006-AC5). 집계는 `lib/derive/floorSummary.ts`가 하고 여기서는 문구만 만든다. */
+/** 층 헤더 요약 조각(FR-006-AC5). 조각마다 상태 사각형이 붙어 호출부가 따로 그린다. */
+export function floorRunningLabel(count: number): string {
+  return `실행 중 ${count}명`;
+}
+export function floorWaitingLabel(count: number): string {
+  return `권한 대기 ${count}명`;
+}
+/** 층 헤더 요약 한 줄 문구(FR-006-AC5). 집계는 `lib/derive/floorSummary.ts`가 하고 여기서는 문구만 만든다. */
 export function floorSummaryLabel(summary: FloorSummary): string {
   if (summary.allIdle) return WORKFLOW_CHIP_ALL_IDLE_TEXT;
   const parts: string[] = [];
-  if (summary.running > 0) parts.push(`실행 중 ${summary.running}명`);
-  if (summary.waiting > 0) parts.push(`권한 대기 ${summary.waiting}명`);
+  if (summary.running > 0) parts.push(floorRunningLabel(summary.running));
+  if (summary.waiting > 0) parts.push(floorWaitingLabel(summary.waiting));
   return parts.join(" · ");
 }
 export const FLOOR_NO_LEAD_WARNING = "팀장이 없습니다 · 팀장을 만들거나 가져오세요";
@@ -236,10 +240,9 @@ export const FLOOR_NO_LEAD_WARNING = "팀장이 없습니다 · 팀장을 만들
 export function floorDuplicateWarning(name: string): string {
   return `${name}이(가) 여러 워크플로우에 있습니다 · 구성 파일을 확인하세요`;
 }
-export const FLOOR_EMPTY_TEXT = "에이전트가 없습니다 · 만들거나 가져오세요";
 export const FLOOR_IMPORT_BUTTON_LABEL = "가져오기";
-export const FLOOR_CREATE_BUTTON_LABEL = "+ 만들기";
-export const FLOOR_DETAIL_BUTTON_LABEL = "상세 →";
+export const FLOOR_CREATE_BUTTON_LABEL = "만들기";
+export const FLOOR_DETAIL_BUTTON_LABEL = "상세";
 export const FLOOR_DELETE_BUTTON_LABEL = "삭제";
 export const FLOOR_DELETE_DISABLED_REASON = "팀원을 먼저 제거하세요";
 export const LEAD_BADGE_TEXT = "팀장";

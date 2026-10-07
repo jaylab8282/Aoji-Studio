@@ -120,7 +120,7 @@ run_batch "배치 7 — project-configured (E2E-05 04-3 재연결 · pause/unpau
 # `screenshots/`에 캡처한다. 이벤트 0건인 새 컨테이너에서 시작해야 재생 결과 수치(실시간 이벤트 22개,
 # 상태 집계)가 맞으므로 다른 spec과 합치지 않는다. fixture의 `settings.json`·구성 파일을 쓰지만 모두
 # 자기 배치 안에서 되돌린다.
-run_batch "배치 8 — project-showcase (E2E-13 스크린샷 · pitch·이름 실측)" project-showcase \
+run_batch "배치 8 — project-showcase (E2E-13 스크린샷 · 이름 실측)" project-showcase \
   tests/e2e-13.spec.ts
 
 # 배치 9 — project-large(에이전트 100·워크플로우 30). E2E-12는 30개 층이 모두 있는 상태에서 줌·미니맵·
