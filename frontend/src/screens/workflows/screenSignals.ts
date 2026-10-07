@@ -1,7 +1,7 @@
 /**
  * 06 팝업이 라우터 state로 넘긴 신호를 02가 한 번 처리한다(`lib/workflowsNavState.ts`).
  * - `useAgentCreatedNotice`: FR-010-AC6 재시작 안내 줄을 8초 동안 보여준다.
- * - `useFormatErrorScroll`: FR-011-E3 형식 오류 파일 수정 시도 → 04-6 목록으로 스크롤한다.
+ * - `useFormatErrorScroll`: FR-011-E3·FR-002-AC3 형식 오류 파일 수정 시도 → 04-6 카드로 스크롤하고 초점을 준다.
  *
  * 같은 라우트에 머문 채 navigate하는 경우(`/workflows?dialog=agent-new` → `/workflows`)에도
  * 화면이 다시 마운트되지 않으므로 `location.key`가 바뀔 때마다 신호를 다시 읽는다.
@@ -29,14 +29,17 @@ export function useAgentCreatedNotice(): boolean {
   return visible;
 }
 
-export function useFormatErrorScroll(elementId: string): void {
+export function useFormatErrorScroll(elementId: string, ready: boolean = true): void {
   const location = useLocation();
   const scrollTo = readWorkflowsNavState(location.state).scrollToFormatErrors === true;
 
   useEffect(() => {
-    if (!scrollTo) return;
+    // 첫 스냅샷 전(02 로딩)에는 카드가 아직 없다 → 도착한 뒤 한 번 처리한다.
+    if (!scrollTo || !ready) return;
     const element = document.getElementById(elementId);
     // jsdom에는 scrollIntoView가 없으므로 있을 때만 부른다.
-    if (element && typeof element.scrollIntoView === "function") element.scrollIntoView();
-  }, [scrollTo, location.key, elementId]);
+    if (element === null) return;
+    if (typeof element.scrollIntoView === "function") element.scrollIntoView();
+    element.focus({ preventScroll: true });
+  }, [scrollTo, ready, location.key, elementId]);
 }

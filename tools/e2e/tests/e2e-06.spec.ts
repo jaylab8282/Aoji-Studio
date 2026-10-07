@@ -129,7 +129,7 @@ test.describe("[E2E-06] project-no-agents-dir — 04-5 에이전트 폴더 읽�
 });
 
 test.describe("[E2E-06] project-format-errors — 04-6 정의 파일 형식 오류", () => {
-  /** FR-002-AC1의 5종 + AC5 깨진 참조 + AC6 구성 파일 오류. 02 04-6 목록의 확정 표시 순서다. */
+  /** FR-002-AC1의 5종 + AC5 깨진 참조 + AC6 구성 파일 오류. 02 04-6 카드의 확정 표시 순서다. */
   const FORMAT_ERROR_ROWS = [
     "Invalid-Name.md · name 형식 위반",
     "bad-utf8.md · UTF-8 인코딩 오류",
@@ -152,13 +152,22 @@ test.describe("[E2E-06] project-format-errors — 04-6 정의 파일 형식 오�
     await gotoReady(page, "/workflows");
     const body = page.locator("main").first();
 
-    await expect(body.getByText("읽지 못한 정의 파일 9개", { exact: true })).toBeVisible();
-    const rows = body.locator("li").filter({ hasText: "·" });
-    await expect(rows).toHaveText(FORMAT_ERROR_ROWS);
+    await expect(body.getByText("읽지 못한 정의·구성 파일 9개", { exact: true })).toBeVisible();
+    // 04-6 카드: role=alert·data-wf 04-6-1, 두 열 표(파일 | 사유) — 한 행을 `파일 · 사유`로 읽어 표시 순서까지 대조한다.
+    const card = body.locator(`[data-wf="04-6-1"]`);
+    await expect(card).toHaveAttribute("role", "alert");
+    const rows = await card
+      .getByTestId("format-error-table")
+      .locator("tr")
+      .evaluateAll((trs) =>
+        trs.map((tr) => Array.from(tr.querySelectorAll("td")).map((td) => td.textContent ?? "").join(" · ")),
+      );
+    expect(rows).toEqual(FORMAT_ERROR_ROWS);
     await expect(
-      body.getByText("오류 파일은 층에 표시하지 않고 목록만 표시 · 수정은 에디터에서", { exact: true }),
+      card.getByText("층·에이전트 수·가져오기 목록에서 뺐습니다 · 에디터에서 고쳐 저장하면 2초 안에 반영됩니다", {
+        exact: true,
+      }),
     ).toBeVisible();
-    await expect(body.getByText("정상 파일은 수정 팝업에서 편집 →", { exact: true })).toBeVisible();
 
     // FR-002-AC2·AC5·AC6: 오류 파일·깨진 참조는 에이전트 수와 층에서 제외된다.
     await expect(body.getByText("에이전트 2 · 스킬 0 · 워크플로우 3", { exact: true })).toBeVisible();
@@ -179,8 +188,12 @@ test.describe("[E2E-06] project-format-errors — 04-6 정의 파일 형식 오�
     // 06 폼은 열리지 않고 `?dialog`가 사라진 02로 대체된다(FR-011-E3, ADR-14).
     await expect(page.getByTestId("agent-form-dialog")).toHaveCount(0);
     await expect(page).toHaveURL(/\/workflows$/);
-    await expect(page.getByText("읽지 못한 정의 파일 9개", { exact: true })).toBeVisible();
-    await expect(page.getByText("missing-name.md · name 누락", { exact: true })).toBeVisible();
+    await expect(page.getByText("읽지 못한 정의·구성 파일 9개", { exact: true })).toBeVisible();
+    const row = page.getByTestId("format-error-table").locator("tr").filter({ hasText: "missing-name.md" });
+    await expect(row.locator("td").nth(0)).toHaveText("missing-name.md");
+    await expect(row.locator("td").nth(1)).toHaveText("name 누락");
+    // FR-002-AC3: 04-6 카드로 스크롤하고 초점을 준다.
+    await expect(page.locator(`[data-wf="04-6-1"]`)).toBeFocused();
   });
 
   test("[FR-002-AC4][E2E-06] description이 없는 정의 파일은 형식 오류가 아니라 정상 파일이고 설명이 비어 보인다", async ({
@@ -188,7 +201,7 @@ test.describe("[E2E-06] project-format-errors — 04-6 정의 파일 형식 오�
   }) => {
     const agent = "e2e06-no-description";
     await gotoReady(page, "/workflows");
-    await expect(page.getByText("읽지 못한 정의 파일 9개", { exact: true })).toBeVisible();
+    await expect(page.getByText("읽지 못한 정의·구성 파일 9개", { exact: true })).toBeVisible();
 
     try {
       writeFixtureFile(agentFile(agent), `---\nname: ${agent}\n---\n\ndescription 없는 정상 파일.\n`);
@@ -196,7 +209,7 @@ test.describe("[E2E-06] project-format-errors — 04-6 정의 파일 형식 오�
       await expect(page.getByText("에이전트 3 · 스킬 0 · 워크플로우 3", { exact: true })).toBeVisible({
         timeout: SETUP_REFLECT_TIMEOUT_MS,
       });
-      await expect(page.getByText("읽지 못한 정의 파일 9개", { exact: true })).toBeVisible();
+      await expect(page.getByText("읽지 못한 정의·구성 파일 9개", { exact: true })).toBeVisible();
       await expect(page.getByText(`${agent}.md`, { exact: false })).toHaveCount(0);
 
       // 05-R 가져오기 목록(워크플로우 밖 에이전트)에서 설명 칸이 비어 있다.

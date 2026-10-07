@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WorkflowsScreen } from "./WorkflowsScreen";
@@ -25,7 +25,7 @@ function buildWorkflow(overrides: Partial<Workflow> = {}): Workflow {
  * 미니맵 뷰포트 테두리의 height(%). `Minimap`이 `style`에 %로 적는다(ui-spec.md SCR-02 미니맵 행).
  */
 function minimapViewportHeightPercent(): number {
-  const viewport = screen.getByRole("img", { name: "미니맵" }).querySelector<HTMLElement>("div.absolute");
+  const viewport = screen.queryByTestId("minimap-viewport");
   expect(viewport, "미니맵 뷰포트 테두리를 찾지 못했다").not.toBeNull();
   expect(viewport!.style.height).toMatch(/%$/);
   return Number.parseFloat(viewport!.style.height);
@@ -58,14 +58,17 @@ describe("WorkflowsScreen", () => {
     expect(screen.queryByText("아직 워크플로우가 없습니다")).not.toBeInTheDocument();
   });
 
-  it("[FR-006-E2] formatErrors>0 → 층 위 목록", () => {
+  it("[FR-006-E2] formatErrors>0 → 캔버스 맨 위 04-6 카드(role=alert, data-wf 04-6-1)", () => {
     const fixture = buildSnapshotFixture();
     const formatErrors: FormatError[] = [{ kind: "agent", file: "broken.md", message: "name 누락" }];
     snapshotStore.replace({ ...fixture, registry: { ...fixture.registry, formatErrors, workflows: [] } });
 
     renderWorkflowsScreen();
 
-    expect(screen.getByText("읽지 못한 정의 파일 1개")).toBeInTheDocument();
+    expect(screen.getByText("읽지 못한 정의·구성 파일 1개")).toBeInTheDocument();
+    const card = screen.getByRole("alert", { name: "" });
+    expect(card).toHaveAttribute("data-wf", "04-6-1");
+    expect(screen.getByTestId("floor-scroll-area")).toContainElement(card);
   });
 
   it("[FR-006-E3] workflows 0 → EmptyWorkflowCard", () => {
@@ -77,7 +80,7 @@ describe("WorkflowsScreen", () => {
     expect(screen.getByText("아직 워크플로우가 없습니다")).toBeInTheDocument();
   });
 
-  it("[FR-006-AC10] 줌·미니맵은 층 스크롤 영역 밖 하단 컨트롤 영역에 있고 층 그리드 위에 겹치는 fixed/sticky 요소가 없다", () => {
+  it("[FR-006-AC10][FR-006-AC6] 줌·미니맵은 캔버스 위에 떠 있다(캔버스 형제 absolute 16px) — 캔버스는 격자·위쪽만 둥근 테두리·자체 스크롤이고 아래 여백 160으로 마지막 층을 줌·미니맵 위로 올릴 수 있다", () => {
     const fixture = buildSnapshotFixture();
     snapshotStore.replace({
       ...fixture,
@@ -99,27 +102,169 @@ describe("WorkflowsScreen", () => {
 
     const { container } = renderWorkflowsScreen();
 
-    const scrollArea = screen.getByTestId("floor-scroll-area");
-    const bottomControls = screen.getByTestId("bottom-controls");
-    const zoomControls = screen.getByRole("group", { name: "줌 조절" });
-    const minimap = screen.getByRole("img", { name: "미니맵" });
+    const canvas = screen.getByTestId("floor-scroll-area");
+    const zoomControls = screen.getByRole("group", { name: "줌" });
+    const minimap = screen.getByRole("button", { name: "미니맵 · 누른 곳으로 이동" });
+    const wrap = canvas.parentElement as HTMLElement;
 
-    // 층 그리드는 자체 스크롤 영역 안에, 줌·미니맵은 그 밖 하단 컨트롤 영역(176px) 안에 있다.
-    expect(scrollArea.className).toContain("overflow-auto");
-    expect(scrollArea).toContainElement(screen.getByRole("heading", { name: "워크플로우A" }));
-    expect(scrollArea).not.toContainElement(zoomControls);
-    expect(scrollArea).not.toContainElement(minimap);
-    expect(bottomControls).toContainElement(zoomControls);
-    expect(bottomControls).toContainElement(minimap);
-    expect(bottomControls.className).toContain("h-44");
-    expect(scrollArea.nextElementSibling).toBe(bottomControls);
-
-    // 층 콘텐츠 위에 띄우는 오버레이 금지(ADR-23, conventions.md §7 MUST).
+    expect(wrap).toHaveAttribute("data-wf", "02-5");
+    expect(wrap.className).toContain("relative");
+    // 캔버스: bg-page + 24px 격자, 위쪽만 둥근 테두리(아래 테두리 없음), 안 여백 16, 자체 스크롤, 남은 높이.
+    for (const cls of ["canvas-grid", "bg-page", "rounded-t-card", "border-b-0", "p-4", "overflow-auto", "flex-1"]) {
+      expect(canvas.className.split(/\s+/), cls).toContain(cls);
+    }
+    expect(canvas).toHaveAttribute("aria-label", "층 캔버스 · 줌 100%");
+    expect(canvas).toHaveAttribute("tabindex", "0");
+    expect(canvas).toContainElement(screen.getByRole("heading", { name: "워크플로우A" }));
+    // 줌·미니맵은 캔버스 안(스크롤 내용)이 아니라 같은 래퍼의 형제 — 스크롤해도 제자리에 떠 있다.
+    expect(canvas).not.toContainElement(zoomControls);
+    expect(canvas).not.toContainElement(minimap);
+    expect(wrap).toContainElement(zoomControls);
+    expect(wrap).toContainElement(minimap);
+    expect(zoomControls.className).toContain("absolute");
+    expect(zoomControls.className).toContain("bottom-4");
+    expect(zoomControls.className).toContain("left-4");
+    expect(minimap.className).toContain("right-4");
+    expect(minimap.className).toContain("bottom-4");
+    // 하단 전용 영역(옛 176px)은 없다.
+    expect(screen.queryByTestId("bottom-controls")).toBeNull();
+    // 줌 대상 래퍼의 아래 여백 160(토큰 canvas-tail)은 줌과 같이 커진다.
+    expect(canvas.querySelector('[style*="scale"]')?.className).toContain("pb-canvas-tail");
+    // 층 위 fixed/sticky 오버레이는 없다(떠 있는 것은 absolute 둘뿐).
     for (const element of container.querySelectorAll("*")) {
       const classAttribute = element.getAttribute("class") ?? "";
       expect(classAttribute).not.toMatch(/(?:^|[\s:])(?:fixed|sticky)(?:\s|$)/);
-      expect(element.getAttribute("style") ?? "").not.toMatch(/position:\s*(?:fixed|sticky)/);
     }
+  });
+
+  it("[FR-006-AC6] 줌 묶음: 확대·축소(아이콘, aria-label)·맞춤(title) — 50~200%, 10% 단계, 한계에서 해당 버튼 비활성, 캔버스 이름에 현재 줌", () => {
+    const fixture = buildSnapshotFixture();
+    snapshotStore.replace({ ...fixture, registry: { ...fixture.registry, workflows: [buildWorkflow()] } });
+    renderWorkflowsScreen();
+
+    const zoomIn = screen.getByRole("button", { name: "확대" });
+    const zoomOut = screen.getByRole("button", { name: "축소" });
+    const fit = screen.getByRole("button", { name: /맞춤/ });
+    expect(fit).toHaveAttribute("title", "모든 층이 보이게 맞춤");
+    expect(zoomIn.querySelector("svg.lucide-zoom-in")).not.toBeNull();
+    expect(zoomOut.querySelector("svg.lucide-zoom-out")).not.toBeNull();
+    expect(fit.querySelector("svg.lucide-scan")).not.toBeNull();
+
+    const canvas = screen.getByTestId("floor-scroll-area");
+    fireEvent.click(zoomIn);
+    expect(canvas).toHaveAttribute("aria-label", "층 캔버스 · 줌 110%");
+    for (let i = 0; i < 20; i += 1) fireEvent.click(zoomIn);
+    expect(canvas).toHaveAttribute("aria-label", "층 캔버스 · 줌 200%");
+    expect(zoomIn).toBeDisabled();
+    for (let i = 0; i < 20; i += 1) fireEvent.click(zoomOut);
+    expect(canvas).toHaveAttribute("aria-label", "층 캔버스 · 줌 50%");
+    expect(zoomOut).toBeDisabled();
+    expect(zoomIn).toBeEnabled();
+  });
+
+  it("[FR-006-E1][FR-001-E1] agentsDirMissing → 캔버스 가운데 04-5 카드(폭 min(620,100%)·위 24), 줌·미니맵 숨김, 요약 에이전트 수 '-'", () => {
+    const fixture = buildSnapshotFixture();
+    snapshotStore.replace({
+      ...fixture,
+      registry: { ...fixture.registry, agentsDirMissing: true, agentCount: null, agents: [], workflows: [] },
+    });
+    renderWorkflowsScreen();
+
+    const card = screen.getByRole("alert");
+    expect(card).toHaveAttribute("data-wf", "04-5-1");
+    expect(card.parentElement?.className).toContain("max-w-notice");
+    expect(card.parentElement?.className).toContain("mt-6");
+    expect(screen.getByTestId("floor-scroll-area").className).toContain("justify-items-center");
+    expect(screen.queryByRole("group", { name: "줌" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "미니맵 · 누른 곳으로 이동" })).not.toBeInTheDocument();
+    expect(screen.getByTestId("workflows-counts").textContent).toMatch(/^에이전트 - · /);
+    expect(screen.getByRole("button", { name: "워크플로우 밖 에이전트 - · 가져오기" })).toBeEnabled();
+  });
+
+  it("[FR-006-E3] workflows 0 → 캔버스 가운데 04-7 카드(data-wf 04-7-1)·'워크플로우 추가'(accent), 줌·미니맵 숨김", () => {
+    const fixture = buildSnapshotFixture();
+    snapshotStore.replace({ ...fixture, registry: { ...fixture.registry, workflows: [] } });
+    renderWorkflowsScreen();
+
+    const card = document.querySelector("[data-wf='04-7-1']") as HTMLElement;
+    expect(card).not.toBeNull();
+    expect(card.parentElement?.className).toContain("max-w-notice");
+    const add = within(card).getByRole("button", { name: "워크플로우 추가" });
+    expect(add.className).toContain("bg-action-soft");
+    expect(card).toHaveAttribute("data-kind", "empty");
+    expect(screen.queryByRole("group", { name: "줌" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("minimap-viewport")).not.toBeInTheDocument();
+  });
+
+  it("[FR-006-AC8] 검색 결과 0 → 캔버스 층 자리 '검색 결과가 없습니다'(muted), 줌·미니맵은 그대로", () => {
+    const fixture = buildSnapshotFixture();
+    snapshotStore.replace({ ...fixture, registry: { ...fixture.registry, workflows: [buildWorkflow()] } });
+    renderWorkflowsScreen();
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "zzzz-없음" } });
+
+    expect(screen.getByText("검색 결과가 없습니다")).toHaveClass("text-text-muted");
+    expect(screen.getByRole("group", { name: "줌" })).toBeInTheDocument();
+  });
+
+  it("[FR-006-AC6] 미니맵은 검색·층 선택 필터를 무시하고 모든 층을 그린다", () => {
+    const fixture = buildSnapshotFixture();
+    snapshotStore.replace({
+      ...fixture,
+      registry: {
+        ...fixture.registry,
+        workflows: [buildWorkflow({ name: "가층" }), buildWorkflow({ name: "나층", lead: null, rawMemberCount: 0 })],
+      },
+    });
+    renderWorkflowsScreen();
+    expect(document.querySelectorAll("[data-block]")).toHaveLength(2);
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "가층" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "층 선택" }), { target: { value: "가층" } });
+
+    expect(screen.queryByRole("heading", { name: "나층" })).not.toBeInTheDocument();
+    expect(document.querySelectorAll("[data-block]")).toHaveLength(2);
+  });
+
+  it("[FR-006-AC5] 로딩(첫 스냅샷 전) → 02 자체 스켈레톤: 정적 글자·주 동작은 보이고 수치·범례·로비 칩·층 2개는 스켈레톤, 스냅샷 값 버튼은 비활성(이유 없음), 줌 활성, 미니맵 없음", () => {
+    snapshotStore.reset();
+    const { container } = renderWorkflowsScreen();
+
+    const root = screen.getByTestId("workflows-skeleton");
+    expect(root).toHaveAttribute("aria-busy", "true");
+    expect(container.querySelector("main")).toBeNull();
+    expect(screen.getByRole("heading", { name: "AojiStudio" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "로비 · 메인 세션" })).toBeInTheDocument();
+    expect(screen.getByRole("searchbox")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "에이전트 만들기" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "워크플로우 추가" })).toBeDisabled();
+    expect(screen.queryByText("쓰기 권한 없음")).not.toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "에이전트 수 로딩 중" })).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "작업 중 수 로딩 중" })).toBeInTheDocument();
+    expect(screen.getAllByRole("status", { name: "로비 세션 로딩 중" })).toHaveLength(2);
+    expect(screen.getByRole("region", { name: "층 로딩 중 1" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "층 로딩 중 2" })).toBeInTheDocument();
+    // 책상 칸 스켈레톤 100×110, 상태 색(범례·칩) 없음.
+    expect(root.querySelectorAll("[data-skeleton].w-desk")).toHaveLength(8);
+    expect(root.querySelector(".text-live, .text-waiting")).toBeNull();
+    expect(screen.getByRole("group", { name: "줌" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "확대" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "미니맵 · 누른 곳으로 이동" })).not.toBeInTheDocument();
+  });
+
+  it("[FR-006-AC5] 스냅샷이 오면 스켈레톤이 실제 화면으로 바뀐다(검색어는 유지)", () => {
+    snapshotStore.reset();
+    renderWorkflowsScreen();
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "개발" } });
+
+    const fixture = buildSnapshotFixture();
+    act(() => {
+      snapshotStore.replace({ ...fixture, registry: { ...fixture.registry, workflows: [buildWorkflow()] } });
+    });
+
+    expect(screen.queryByTestId("workflows-skeleton")).not.toBeInTheDocument();
+    expect(screen.getByTestId("workflows")).toBeInTheDocument();
+    expect(screen.getByRole("searchbox")).toHaveValue("개발");
   });
 
   it("[FR-006-AC6][T-FIX-10] 미니맵 zoom 호출처 배선 — 줌 버튼을 누르면 뷰포트 테두리가 새 배율의 scrollHeight로 다시 계산된다", () => {
@@ -152,7 +297,7 @@ describe("WorkflowsScreen", () => {
     expect(before).toBeCloseTo((CLIENT_HEIGHT / BASE_SCROLL_HEIGHT) * 100, 2);
 
     // 확대만 하고 스크롤은 일으키지 않는다 — 배율 변경 자체가 재측정의 방아쇠다(T-FIX-10).
-    fireEvent.click(screen.getByRole("button", { name: "확대 (현재 100%)" }));
+    fireEvent.click(screen.getByRole("button", { name: "확대" }));
     expect(currentScale()).toBeCloseTo(1.1, 5);
 
     // 화면이 `zoom`을 미니맵에 넘기지 않으면(배선 누락) 이 값은 before 그대로 남는다

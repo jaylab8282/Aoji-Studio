@@ -1,29 +1,23 @@
 /**
- * ui-spec.md SCR-02 미니맵(하단 컨트롤 영역 오른쪽 끝): 층 그리드 축소 사각형 + 현재 뷰포트 테두리(running).
- * 사각형은 층 그리드와 같은 3열 비율·span(FR-006-AC2, `floorLayout.ts`)으로 놓고 색은 중립
- * (`bg-selected`)이다. 워크플로우 단위의 작업 상태는 표시하지 않는다(FR-006-AC5, conventions.md §3
- * "색만 있는 상태 표시 금지"). 워크플로우 0개면 숨긴다.
- *
- * 기준 컨테이너는 window가 아니라 **층 스크롤 영역**이다(ADR-23, ui-spec.md SCR-02 미니맵 행):
- * 테두리 위치 = `scrollTop / scrollHeight`, 높이 = `clientHeight / scrollHeight`(같은 좌표계 = 줌 배율이
- * 적용된 층 스크롤 영역 기준, 최소 4%). 클릭하면 층 스크롤 영역을 그 위치로 스크롤한다.
- *
- * 줌(`zoom`)은 층 영역에 `transform: scale`로 걸리므로 배율이 바뀌면 층 스크롤 영역의 `scrollHeight`가
- * 함께 바뀐다(`clientHeight`는 스크롤 컨테이너 자신의 크기라 그대로다). 그래서 `zoom`을 prop으로 받아
- * 측정 effect의 의존성에 둔다 — 스크롤 이벤트가 없어도 배율 변경만으로 다시 계산된다(T-FIX-10,
- * 이연 Minor T-015 m2: 예전에는 줌 아웃 시 브라우저의 `scrollTop` clamp가 내는 scroll 이벤트에 우연히
- * 의존했다).
+ * ui-spec.md SCR-02 미니맵(`02-10`): 캔버스 위 오른쪽 아래 16px에 **떠 있는** `button`(`bg-chrome`, `border-strong`, 안 여백 8).
+ * 크기 3단계 = 토큰 `--spacing-minimap-w/h`(가로형 200×124, 폭 1599 이하 가로형 168×104, 세로형 160×200 · 블록 2열).
+ * 블록 표현(FR-006-AC2·AC5): 층 = `bg-selected` 사각형(상태색 없음), 인원 7명 이상 층은 전체 폭, 팀장 없는 층은 점선 사각형.
+ * 블록은 `registry.workflows` 전체를 그린다 — 검색·층 선택 필터는 무시한다.
+ * 보이는 영역 테두리(`brand-blue` 2px) 기준 컨테이너는 **캔버스**(`scrollTop`·`clientHeight`·`scrollHeight`, 줌 배율이 적용된 값, 최소 4%).
+ * 재측정 시점(전수, ADR-48 A): ① 마운트 ② 캔버스 `scroll` ③ `window` `resize` ④ `workflows` 변경 ⑤ `zoom` 변경.
+ * 검색·층 선택·`live.lobby`로는 다시 재지 않는다. 누르면 누른 위치로 캔버스를 스크롤한다. 워크플로우 0개면 숨긴다.
  */
 import { useEffect, useState, type MouseEvent, type RefObject } from "react";
 import type { Workflow } from "../../api/types";
 import { floorColumnSpan } from "../../lib/derive/floorLayout";
+import { MINIMAP_LABEL } from "../../lib/text";
 
 /** 테두리가 사라지지 않도록 하는 최소 높이(%). ui-spec.md SCR-02 미니맵 행. */
 const MIN_VIEWPORT_PERCENT = 4;
 
 interface MinimapProps {
   workflows: Workflow[];
-  /** 층 스크롤 영역(04-6 목록·로비·층 그리드를 담는 자체 스크롤 컨테이너). */
+  /** 캔버스(04-6 카드·층 그리드를 담는 자체 스크롤 컨테이너). */
   scrollRef: RefObject<HTMLDivElement | null>;
   /**
    * 현재 줌 배율(%). 층 영역의 `transform: scale`이 바뀌면 층 스크롤 영역의 `scrollHeight`도 바뀌므로
@@ -36,9 +30,11 @@ function agentCountOf(workflow: Workflow): number {
   return (workflow.lead ? 1 : 0) + workflow.members.length;
 }
 
-/** 층 카드가 넓을수록(3칸) 세로도 길다: 층 그리드의 축소 비율을 그대로 옮긴다. */
+/** 블록 한 칸: 넓은 층(7명 이상)은 전체 폭, 팀장 없는 층은 점선 사각형(색은 중립 `bg-selected` 하나). */
 function blockClass(workflow: Workflow): string {
-  return floorColumnSpan(agentCountOf(workflow)) === 3 ? "col-span-3 h-10" : "col-span-1 h-6";
+  const wide = floorColumnSpan(agentCountOf(workflow)) === 3 ? "minimap-block-wide " : "";
+  const look = workflow.lead === null ? "border border-dashed border-border-dashed" : "bg-selected";
+  return `${wide}rounded-dot ${look}`;
 }
 
 export function Minimap({ workflows, scrollRef, zoom }: MinimapProps) {
@@ -67,7 +63,7 @@ export function Minimap({ workflows, scrollRef, zoom }: MinimapProps) {
     };
   }, [scrollRef, workflows, zoom]);
 
-  function handleClick(event: MouseEvent<HTMLDivElement>) {
+  function handleClick(event: MouseEvent<HTMLButtonElement>) {
     const scrollArea = scrollRef.current;
     if (scrollArea === null) return;
     const mapRect = event.currentTarget.getBoundingClientRect();
@@ -81,21 +77,25 @@ export function Minimap({ workflows, scrollRef, zoom }: MinimapProps) {
   if (workflows.length === 0) return null;
 
   return (
-    <div
-      role="img"
-      aria-label="미니맵"
+    <button
+      type="button"
+      data-wf="02-10"
+      aria-label={MINIMAP_LABEL}
+      title={MINIMAP_LABEL}
       onClick={handleClick}
-      className="relative h-24 w-36 cursor-pointer overflow-hidden rounded-control border border-border bg-inset"
+      className="absolute right-4 bottom-4 z-10 h-minimap-h w-minimap-w cursor-pointer overflow-hidden rounded-card border border-border-strong bg-chrome p-2 text-left"
     >
-      <div className="grid grid-cols-3 content-start gap-1 p-1.5">
+      <span className="minimap-grid">
         {workflows.map((workflow) => (
-          <span key={workflow.name} className={`rounded-dot bg-selected ${blockClass(workflow)}`} />
+          <span key={workflow.name} data-block={workflow.name} className={blockClass(workflow)} />
         ))}
-      </div>
-      <div
-        className="absolute inset-x-1 rounded-dot border border-running"
+      </span>
+      <span
+        aria-hidden="true"
+        data-testid="minimap-viewport"
+        className="absolute inset-x-1 rounded-dot border-2 border-brand-blue"
         style={{ top: `${viewport.top}%`, height: `${viewport.height}%` }}
       />
-    </div>
+    </button>
   );
 }

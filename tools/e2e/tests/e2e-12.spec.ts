@@ -2,8 +2,8 @@
 // fixture: `project-large` (에이전트 100·워크플로우 30. floor-01만 인원 7 → span 3, 나머지는 span 1).
 // 검증 ID: FR-006-AC6·AC7·AC8 (+ 이연 Minor T-015 m2 "미니맵 줌 반응").
 //
-// 기준: ui-spec.md SCR-02 "줌 버튼"·"미니맵"·"검색 입력"·"층 선택 드롭다운" 행과 ADR-23
-// (줌·미니맵의 기준 컨테이너는 window가 아니라 **층 스크롤 영역**이다).
+// 기준: ui-spec.md SCR-02 "줌 묶음"·"미니맵"·"검색 입력"·"층 선택 드롭다운" 행과 ADR-66
+// (줌·미니맵은 캔버스 위에 떠 있고, 기준 컨테이너는 window가 아니라 **캔버스(층 스크롤 영역)**다).
 //
 // 목킹 없음: 실제 컨테이너(공개 포트는 `.e2e-state.json`의 baseUrl)가 제공하는 빌드 결과를 실제
 // 브라우저로 쓴다. `page.route` 가로채기 없음(conventions.md §8). 주소·포트 literal 없음.
@@ -16,7 +16,7 @@ import { gotoReady } from "./ui-helpers";
 const WORKFLOW_COUNT = 30;
 const AGENT_COUNT = 100;
 
-/** `WorkflowsScreen.tsx`의 줌 상수(ui-spec.md SCR-02 줌 버튼 행, FR-006-AC6). */
+/** `WorkflowsScreen.tsx`의 줌 상수(ui-spec.md SCR-02 줌 묶음 행, FR-006-AC6). */
 const ZOOM_MIN = 50;
 const ZOOM_MAX = 200;
 const ZOOM_STEP = 10;
@@ -30,22 +30,22 @@ function floorName(index: number): string {
 }
 
 function zoomInButton(page: Page): Locator {
-  return page.getByRole("button", { name: /^확대 \(현재 \d+%\)$/ });
+  return page.getByRole("button", { name: "확대", exact: true });
 }
 
 function zoomOutButton(page: Page): Locator {
-  return page.getByRole("button", { name: /^축소 \(현재 \d+%\)$/ });
+  return page.getByRole("button", { name: "축소", exact: true });
 }
 
 function zoomFitButton(page: Page): Locator {
-  return page.getByRole("button", { name: "화면에 맞춤" });
+  return page.getByRole("button", { name: "맞춤", exact: true });
 }
 
-/** 줌 버튼 `aria-label`에 실린 현재 배율(ui-spec.md SCR-02 "각 버튼 aria-label"). */
+/** 캔버스 `aria-label`(`층 캔버스 · 줌 N%`)에 실린 현재 배율(ui-spec.md SCR-02 캔버스 행). 줌 버튼 이름에는 배율이 없다. */
 async function currentZoomPercent(page: Page): Promise<number> {
-  const label = await zoomInButton(page).getAttribute("aria-label");
-  const matched = /(\d+)%/.exec(label ?? "");
-  expect(matched, `확대 버튼 aria-label에서 배율을 읽을 수 없습니다: ${label}`).not.toBeNull();
+  const label = await scrollArea(page).getAttribute("aria-label");
+  const matched = /줌 (\d+)%/.exec(label ?? "");
+  expect(matched, `캔버스 aria-label에서 배율을 읽을 수 없습니다: ${label}`).not.toBeNull();
   return Number((matched as RegExpExecArray)[1]);
 }
 
@@ -54,7 +54,7 @@ function scrollArea(page: Page): Locator {
   return page.getByTestId("floor-scroll-area");
 }
 
-/** `transform: scale(...)`이 걸린 층 영역 래퍼(로비 + 층 그리드). */
+/** `transform: scale(...)`이 걸린 층 영역 래퍼(층 그리드 + 아래 여백 160. 04-6 카드·로비는 줌 대상이 아니다). */
 function zoomedContent(page: Page): Locator {
   return scrollArea(page).locator("div[style*='transform']");
 }
@@ -70,12 +70,12 @@ async function appliedScale(page: Page): Promise<number> {
 }
 
 function minimap(page: Page): Locator {
-  return page.getByRole("img", { name: "미니맵" });
+  return page.getByRole("button", { name: "미니맵 · 누른 곳으로 이동", exact: true });
 }
 
-/** 미니맵 안의 현재 뷰포트 테두리(`Minimap.tsx`의 `absolute inset-x-1` 사각형). */
+/** 미니맵 안의 현재 뷰포트 테두리(`Minimap.tsx`의 `data-testid="minimap-viewport"` 사각형). */
 function minimapViewport(page: Page): Locator {
-  return minimap(page).locator("> div").nth(1);
+  return minimap(page).getByTestId("minimap-viewport");
 }
 
 async function minimapViewportPercent(page: Page): Promise<{ top: number; height: number }> {
@@ -157,7 +157,9 @@ test(`[FR-006-AC6][E2E-12] 줌 +/− → 10%p 단위로 층 영역 transform sca
     await zoomInButton(page).click();
   }
   expect(await currentZoomPercent(page)).toBe(ZOOM_MAX);
-  await zoomInButton(page).click();
+  expect(await currentZoomPercent(page)).toBe(ZOOM_MAX);
+  // 한계에 닿은 방향의 버튼은 눌러도 달라지지 않으므로 비활성이다(눌러도 아무 일 없는 활성 버튼 금지).
+  await expect(zoomInButton(page)).toBeDisabled();
   expect(await currentZoomPercent(page)).toBe(ZOOM_MAX);
   expect(await appliedScale(page)).toBeCloseTo(ZOOM_MAX / 100, 2);
 
@@ -167,7 +169,7 @@ test(`[FR-006-AC6][E2E-12] 줌 +/− → 10%p 단위로 층 영역 transform sca
     await zoomOutButton(page).click();
   }
   expect(await currentZoomPercent(page)).toBe(ZOOM_MIN);
-  await zoomOutButton(page).click();
+  await expect(zoomOutButton(page)).toBeDisabled();
   expect(await currentZoomPercent(page)).toBe(ZOOM_MIN);
   expect(await appliedScale(page)).toBeCloseTo(ZOOM_MIN / 100, 2);
 });
@@ -191,7 +193,8 @@ test("[FR-006-AC6][E2E-12] `맞춤` — 층 30개는 하한 50%까지만 줄고,
   expect(zoom).toBeLessThanOrEqual(ZOOM_MAX);
 
   const fits = await scrollArea(page).evaluate((area) => {
-    const content = area.querySelector<HTMLElement>("div[style*='transform']");
+    // `맞춤`은 층 그리드(줌 래퍼의 안쪽 요소)만 잰다 — 래퍼의 아래 여백 160은 제외한다(ui-spec 줌 묶음 행).
+    const content = area.querySelector<HTMLElement>("div[style*='transform'] > div");
     if (content === null) return null;
     const rect = content.getBoundingClientRect();
     return {
@@ -237,7 +240,10 @@ test(`[FR-006-AC7][E2E-12] 워크플로우 ${WORKFLOW_COUNT}개여도 검색·�
 }) => {
   const searchBox = await page.getByLabel("워크플로우·에이전트 이름 검색").boundingBox();
   const selectBox = await page.getByLabel("층 선택").boundingBox();
-  const addBox = await page.getByRole("button", { name: "워크플로우 추가", exact: true }).boundingBox();
+  const addBox = await page
+    .locator(`[data-wf="02-3"]`)
+    .getByRole("button", { name: "워크플로우 추가", exact: true })
+    .boundingBox();
   expect(searchBox).not.toBeNull();
   expect(selectBox).not.toBeNull();
   expect(addBox).not.toBeNull();

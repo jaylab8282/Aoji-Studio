@@ -53,6 +53,35 @@
   }
 }
 
+/*
+ * 02 미니맵 블록 (`02-workflows.html` `.minimap`): 3열(세로형 2열), 행 22px, 넓은 층 전체 폭 높이 30.
+ * 폭 1599 이하 가로형은 행 18·넓은 층 24 (미니맵 크기 토큰이 같은 조건으로 168×104가 된다).
+ */
+@utility minimap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 22px;
+  gap: calc(var(--spacing) * 1);
+  align-content: start;
+
+  @media (max-width: 1599px) and (orientation: landscape) {
+    grid-auto-rows: 18px;
+  }
+
+  @media (orientation: portrait) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@utility minimap-block-wide {
+  grid-column: 1 / -1;
+  height: 30px;
+
+  @media (max-width: 1599px) and (orientation: landscape) {
+    height: 24px;
+  }
+}
+
 /* 02 층 헤더: 층 카드(컨테이너) 폭 440px 이하면 줄바꿈하고 사유 줄을 아래 줄 오른쪽에 둔다. */
 @utility floor-container {
   container-type: inline-size;

@@ -247,15 +247,22 @@ export const FLOOR_DELETE_BUTTON_LABEL = "삭제";
 export const FLOOR_DELETE_DISABLED_REASON = "팀원을 먼저 제거하세요";
 export const LEAD_BADGE_TEXT = "팀장";
 
+/** 04-6 카드 머리·보조 줄(`04-6-1`, FR-002-AC2). */
 export function formatErrorListTitle(count: number): string {
-  return `읽지 못한 정의 파일 ${count}개`;
+  return `읽지 못한 정의·구성 파일 ${count}개`;
 }
-export const FORMAT_ERROR_FOOTNOTE = "오류 파일은 층에 표시하지 않고 목록만 표시 · 수정은 에디터에서";
-export const FORMAT_ERROR_EDIT_LINK_LABEL = "정상 파일은 수정 팝업에서 편집 →";
+export const FORMAT_ERROR_NOTE = "층·에이전트 수·가져오기 목록에서 뺐습니다 · 에디터에서 고쳐 저장하면 2초 안에 반영됩니다";
 
-export const ZOOM_IN_LABEL = "+";
-export const ZOOM_OUT_LABEL = "−";
+/** 줌 묶음(`02-9`)·미니맵(`02-10`)·캔버스(`02-5`) 접근 이름(FR-006-AC6). 줌 글자 `+`/`−`는 없고 아이콘 버튼이다. */
+export const ZOOM_GROUP_LABEL = "줌";
+export const ZOOM_IN_LABEL = "확대";
+export const ZOOM_OUT_LABEL = "축소";
 export const ZOOM_FIT_LABEL = "맞춤";
+export const ZOOM_FIT_TITLE = "모든 층이 보이게 맞춤";
+export const MINIMAP_LABEL = "미니맵 · 누른 곳으로 이동";
+export function canvasLabel(zoom: number): string {
+  return `층 캔버스 · 줌 ${zoom}%`;
+}
 
 /** 책상·오피스 캐릭터 상태 글자 + 서브에이전트 부모 접미(FR-006-AC1·AC3, FR-007-AC3). */
 export function agentStatusWithParent(status: Status, parentLabel: string | null): string {
@@ -268,16 +275,29 @@ export const BACK_TO_WORKFLOWS_LABEL = "에이전트 워크플로우로";
 export const LEAD_TERMINAL_BUTTON_LABEL = "팀장 호출 · 터미널 열기";
 export const WORKFLOW_NOT_FOUND_TEXT = "워크플로우를 찾을 수 없습니다";
 
+/** 03 헤더 `에이전트 N · 스킬 N`: 수는 고정폭으로 따로 그리므로 글자를 나눠 둔다. */
+export const HEADER_META_AGENTS = "에이전트 ";
+export const HEADER_META_SKILLS = " · 스킬 ";
+/** 03 오피스 캐릭터 칸의 `title`·`aria-label`: `<name> · <상태 줄>`. */
+export function seatLabel(name: string, statusText: string): string {
+  return `${name} · ${statusText}`;
+}
+/** 03 첫 스냅샷 전(04-2) 스켈레톤 접근 이름. */
+export const OFFICE_LOADING_LABEL = "오피스 로딩 중";
 export const OFFICE_TITLE = "오피스";
 export const OFFICE_SUBTITLE = "에이전트 1명 = 캐릭터 1개 · 팀장 첫 자리, 나머지 이름순";
 export const EMPTY_SEAT_TEXT = "빈 자리";
 
 export const OFFICE_LEGEND_TITLE = "동작 매핑";
-export const OFFICE_LEGEND_TYPING = "타이핑 = Edit·Write";
-export const OFFICE_LEGEND_READING = "읽기 = Read·Grep·Glob";
-export const OFFICE_LEGEND_WAITING = "주황 말풍선 = 권한 요청";
-export const OFFICE_LEGEND_IDLE = "회색 = 대기";
-export const OFFICE_LEGEND_SUBAGENT = "작은 캐릭터 = 서브에이전트";
+/** 범례 견본(`03-7`): 말풍선 견본 + 뜻. 말풍선 색 계열은 `Bubble tone`이다. */
+export const OFFICE_LEGEND_ITEMS: ReadonlyArray<{ tone: Status; sample: string; meaning: string }> = [
+  { tone: "running", sample: "타이핑 · Edit", meaning: "Edit·Write·NotebookEdit" },
+  { tone: "running", sample: "읽기 · Read", meaning: "Read·Grep·Glob" },
+  { tone: "waiting", sample: "권한 요청", meaning: "권한·입력 대기" },
+  { tone: "idle", sample: "대기", meaning: "대기" },
+  { tone: "running", sample: "Bash", meaning: "그 밖 도구 = 도구 이름" },
+];
+export const OFFICE_LEGEND_SUBAGENT = "작은 캐릭터 = 정의 없는 서브에이전트";
 
 /** 말풍선 문구(FR-007-AC2). 조립은 `lib/derive/actionLabel.ts`가 한다. */
 export const ACTION_LABEL_PERMISSION = "권한 요청";
@@ -288,13 +308,11 @@ export function readingActionLabel(tool: string): string {
   return `읽기 · ${tool}`;
 }
 
-// 04-4 수집 중단 배너 (SCR-04-4, FR-007-E1)
-export function collectorDownBannerMessage(lastReceivedDateHm: string | null): string {
-  return `hook 이벤트 수신 없음 · ${lastReceivedLabel(lastReceivedDateHm)}`;
-}
-export const COLLECTOR_DOWN_FOOTNOTE = "Claude Code 미실행 또는 컨테이너 재시작 · 캐릭터는 모두 회색 대기";
+// 04-4 수집 중단 띠 (SCR-04-4, FR-007-E1). 시각은 고정폭으로 따로 그리므로 앞 글자를 나눠 둔다(시각 `없음` 포함).
+export const COLLECTOR_DOWN_LEAD = "hook 이벤트 수신 없음 · 마지막 수신 ";
+export const COLLECTOR_DOWN_WHY = "Claude Code가 꺼졌거나 hook 설정이 없으면 캐릭터를 모두 대기로 표시합니다";
 
-// 선택 패널 (SCR-03 오른쪽 360px)
+// 선택 패널 (SCR-03 가로형 오른쪽 열 / 세로형 오피스 아래 2칸)
 export const PANEL_TITLE = "선택한 에이전트";
 export const PANEL_SUBTITLE = "기본 선택 = 팀장";
 export const PANEL_NO_AGENT_TEXT = "선택할 에이전트가 없습니다";
@@ -308,6 +326,7 @@ export function currentToolLabel(toolName: string | null, target: string | null)
   return toolName === null ? EMPTY_VALUE_TEXT : `${toolName} · ${target ?? ""}`.trimEnd();
 }
 export const PANEL_RECENT_EVENTS_TITLE = "최근 이벤트";
+export const PANEL_RECENT_EVENTS_NOTE = "최신 10개";
 export const PANEL_RECENT_EVENTS_EMPTY = "최근 이벤트 없음";
 export const PANEL_RECENT_EVENTS_ERROR = "최근 이벤트를 불러오지 못했습니다";
 export const RETRY_BUTTON_LABEL = "다시 시도";
@@ -315,13 +334,12 @@ export const EDIT_AGENT_BUTTON_LABEL = "정의 수정";
 export const REMOVE_AGENT_BUTTON_LABEL = "제거";
 export const EDIT_AGENT_BUSY_REASON = "작업 중에는 수정할 수 없습니다";
 export const REMOVE_AGENT_BUSY_REASON = "작업 중에는 제거할 수 없습니다";
-export const PANEL_FOOTNOTE_TRASH = "제거 = 휴지통(.aojistudio/trash/)으로 이동 · 원문 로그 보기 없음";
-export const PANEL_FOOTNOTE_TERMINAL_PREFIX = "작업 지시는 상단 ";
-export const PANEL_FOOTNOTE_TERMINAL_EMPHASIS = "팀장 호출";
-export const PANEL_FOOTNOTE_TERMINAL_SUFFIX = "로 연 터미널에서 직접 한다 · ";
-export function leadAgentCommand(lead: string): string {
-  return `claude --agent ${lead}`;
-}
+/** 패널 동작 줄 사유 한 줄(두 버튼 공통, FR-011-AC5·FR-012-AC6). */
+export const PANEL_BUSY_REASON = `${EDIT_AGENT_BUSY_REASON} · ${REMOVE_AGENT_BUSY_REASON}`;
+/** 패널 각주(`03-9`): 경로는 고정폭으로 따로 그리므로 앞뒤 글자를 나눠 둔다. */
+export const PANEL_FOOTNOTE_LEAD = "제거하면 정의 파일이 ";
+export const PANEL_FOOTNOTE_TRASH_PATH = ".aojistudio/trash/";
+export const PANEL_FOOTNOTE_TAIL = "로 이동합니다 · 작업 지시는 터미널에서 팀장에게 직접 합니다";
 
 // 05·06 공통 팝업 (ui-spec.md SCR-05·SCR-06)
 export const CANCEL_BUTTON_LABEL = "취소";

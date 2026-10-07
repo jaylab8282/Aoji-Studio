@@ -223,8 +223,10 @@ describe("AgentForm", () => {
     // 409 뒤 팝업이 사라지는 것은 라우터 state 변경 **뒤**의 리렌더다 — DOM을 먼저 기다린다(간헐 실패 방지).
     await waitFor(() => expect(screen.queryByTestId("agent-form-dialog")).not.toBeInTheDocument());
     expect(router.state.location.search).toBe("");
-    expect(screen.getByText("읽지 못한 정의 파일 1개")).toBeInTheDocument();
+    expect(screen.getByText("읽지 못한 정의·구성 파일 1개")).toBeInTheDocument();
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+    // FR-002-AC3: 04-6 카드로 스크롤할 뿐 아니라 초점도 준다.
+    await waitFor(() => expect(document.getElementById("format-error-list")).toHaveFocus());
   });
 
   it("[FR-010-E1] 400 fields → 필드별 사유", async () => {

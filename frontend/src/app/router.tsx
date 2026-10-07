@@ -12,6 +12,7 @@ import { SIDEBAR_TAB_HOME, SIDEBAR_TAB_SETTINGS, SIDEBAR_TAB_WORKFLOWS } from ".
 // ui-spec.md §공통: 라우트 4개. 알 수 없는 경로 → `/`로 이동.
 // `handle.breadcrumb`은 App.tsx가 TopBar에 넘긴다. `handle.rightExtra`는 TopBar 오른쪽 추가 버튼
 // (02는 "Claude 열기 · 기본 세션", ui-spec.md §공통 TopBar).
+// `handle.ownLoading`은 화면이 첫 스냅샷 전 스켈레톤(04-2)을 직접 그리는 라우트(01·02)다.
 // `handle.showProjectChip`은 프로젝트 칩 표시 여부로, 01·02만 true다(ADR-30). 03·07에는 칩을 두지 않는다.
 export const routes: RouteObject[] = [
   {
@@ -26,6 +27,7 @@ export const routes: RouteObject[] = [
           rightExtra: () => <WorkflowsHeader />,
           showProjectChip: true,
           topBarWf: "02-1",
+          ownLoading: true,
         },
       },
       {
