@@ -292,8 +292,8 @@ describe("ImportDialog", () => {
       "개발부서",
       "마케팅부서",
     ]);
-    // ADR-38: `?workflow`가 없어도 제목은 드롭다운 현재 선택값(첫 워크플로우)을 따른다.
-    expect(screen.getByRole("heading", { name: "개발부서(으)로 기존 에이전트 가져오기" })).toBeInTheDocument();
+    // ADR-71: 헤더 링크로 열면 제목은 드롭다운과 상관없이 고정이다.
+    expect(screen.getByRole("heading", { name: "기존 에이전트 가져오기" })).toBeInTheDocument();
     unmount();
 
     renderDialog("개발부서");
@@ -321,32 +321,30 @@ describe("ImportDialog", () => {
     expect(screen.queryByText(/쓰기 권한 없음/)).not.toBeInTheDocument();
   });
 
-  it("[FR-009-AC7][ADR-38] ?workflow 없음 + 드롭다운 기본 선택 → 제목에 첫 워크플로우 이름", () => {
+  it("[FR-009-AC7][ADR-71] ?workflow 없음 + 드롭다운 기본 선택 → 제목 고정 `기존 에이전트 가져오기`", () => {
     setRegistry([buildAgent({ name: "agent-02" })], [buildWorkflow(), buildWorkflow({ name: "마케팅부서" })]);
     renderDialog(null);
 
-    // 기본 선택은 `registry.workflows`의 첫 항목이고 제목이 그 대상을 말한다(ADR-38).
     expect(screen.getByLabelText("대상 워크플로우")).toHaveValue("개발부서");
-    expect(screen.getByRole("heading", { name: "개발부서(으)로 기존 에이전트 가져오기" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "기존 에이전트 가져오기" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toHaveAccessibleName("기존 에이전트 가져오기");
   });
 
-  it("[ADR-38] 드롭다운을 바꾸면 제목도 바뀐다", () => {
+  it("[ADR-71] 드롭다운을 바꿔도 제목은 `기존 에이전트 가져오기` 그대로", () => {
     setRegistry([buildAgent({ name: "agent-02" })], [buildWorkflow(), buildWorkflow({ name: "마케팅부서" })]);
     renderDialog(null);
 
     fireEvent.change(screen.getByLabelText("대상 워크플로우"), { target: { value: "마케팅부서" } });
 
-    expect(screen.getByRole("heading", { name: "마케팅부서(으)로 기존 에이전트 가져오기" })).toBeInTheDocument();
-    expect(
-      screen.queryByRole("heading", { name: "개발부서(으)로 기존 에이전트 가져오기" }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "기존 에이전트 가져오기" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /\(으\)로/ })).not.toBeInTheDocument();
   });
 
-  it("[ADR-38] 워크플로우 0개 → 제목 '기존 에이전트 가져오기'", () => {
+  it("[ADR-71] 워크플로우 0개 → 제목 '기존 에이전트 가져오기'", () => {
     setRegistry([buildAgent({ name: "agent-02" })], []);
     renderDialog(null);
 
-    // 대상이 하나도 없을 때만 대상 미정 문구를 쓴다(ADR-38).
+    // 헤더로 열면 대상이 없어도 같은 고정 제목이다(ADR-71).
     expect(screen.getByRole("heading", { name: "기존 에이전트 가져오기" })).toBeInTheDocument();
     expect(screen.getByText("먼저 워크플로우를 추가하세요")).toBeInTheDocument();
   });

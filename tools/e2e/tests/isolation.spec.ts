@@ -37,6 +37,10 @@ const HARNESS_FILES = [
   join("scripts", "check-old-names.sh"),
   join("scripts", "check-port.sh"),
   join("scripts", "run-e2e.sh"),
+  join("tests", "container-helpers.ts"),
+  join("tests", "desk-metrics.ts"),
+  join("tests", "screen-helpers.ts"),
+  join("tests", "showcase-helpers.ts"),
   join("tests", "ui-helpers.ts"),
 ];
 

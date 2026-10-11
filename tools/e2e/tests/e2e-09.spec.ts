@@ -53,6 +53,7 @@ import {
   agentFile,
   fixturePathExists,
   gotoReady,
+  helperInstalledPattern,
   readFixtureFile,
   removeFixturePath,
   writeFixtureFile,
@@ -94,7 +95,7 @@ const HELPER_MISSING_ROW_TEXT = "미설치 · helper/install.sh로 설치";
 const NO_LEAD_TEXT = "팀장 없음";
 const OPEN_DEFAULT_SESSION_LABEL = "Claude 열기 · 기본 세션";
 const LEAD_TERMINAL_LABEL = "팀장 호출 · 터미널 열기";
-const TEST_OPEN_LABEL = "테스트로 열기 (도우미 설치 후)";
+const TEST_OPEN_LABEL = "테스트로 열기";
 
 // 도우미 정지·토큰 교체는 프로세스·파일 상태를 공유한다. 파일 안 실행 순서를 고정해 원복 순서를 보장한다.
 test.describe.configure({ mode: "serial" });
@@ -380,7 +381,7 @@ test("[FR-013-AC4][E2E-09] 팀장 없는 워크플로우의 03 → `팀장 호�
   const button = page.getByRole("button", { name: LEAD_TERMINAL_LABEL, exact: true });
   await expect(button).toBeDisabled();
   // 비활성 이유가 버튼 옆에 보인다(ui-spec SCR-03 `lead === null` → 비활성 + `팀장 없음`, ADR-35).
-  await expect(button.locator("xpath=..").getByText(NO_LEAD_TEXT, { exact: true })).toBeVisible();
+  await expect(button).toHaveAccessibleDescription(NO_LEAD_TEXT);
 
   // 비활성이므로 눌러도 도우미가 호출되지 않는다(force click으로 확인한다).
   await button.click({ force: true });
@@ -403,10 +404,10 @@ test("[FR-013-AC9][FR-013-AC10][FR-013-E1][E2E-09] 도우미 정지 → 07 `열�
   expect(helperPid, ".e2e-state.json에 helperPid가 없습니다").not.toBeNull();
   const pid = helperPid as number;
 
-  // 정지 전: 응답하는 도우미이므로 `설치됨 · 응답 확인 hh:mm:ss` + `테스트로 열기` 활성(FR-013-AC10 진입 확인).
+  // 정지 전: 응답하는 도우미이므로 `설치됨 · <도우미 호스트:포트>` + `테스트로 열기` 활성(FR-013-AC10 진입 확인).
   await gotoReady(page, "/settings");
   const helperRow = page.getByTestId("settings-row-helper");
-  await expect(helperRow).toContainText(/설치됨 · 응답 확인 \d{2}:\d{2}:\d{2}/);
+  await expect(helperRow).toContainText(helperInstalledPattern());
   const testOpenButton = page.getByRole("button", { name: TEST_OPEN_LABEL, exact: true });
   await expect(testOpenButton).toBeEnabled();
 
@@ -455,7 +456,7 @@ test("[FR-013-AC9][FR-013-AC10][FR-013-E1][E2E-09] 도우미 정지 → 07 `열�
   // 원복 확인: 07을 다시 열면 설치됨으로 돌아오고 `테스트로 열기`가 실제로 도우미를 호출한다.
   await gotoReady(page, "/settings");
   await expect(page.getByTestId("settings-row-helper")).toContainText(
-    /설치됨 · 응답 확인 \d{2}:\d{2}:\d{2}/,
+    helperInstalledPattern(),
     { timeout: HELPER_TIMEOUT_BUDGET_MS },
   );
   const afterResume = dryRunCount();
@@ -558,7 +559,7 @@ test("[FR-013-E4][E2E-09] 팀장 정의 파일이 사라지면 도우미를 호�
     expect(fixturePathExists(leadFile)).toBe(false);
 
     await expect(button).toBeDisabled({ timeout: SETUP_REFLECT_TIMEOUT_MS });
-    await expect(button.locator("xpath=..").getByText(NO_LEAD_TEXT, { exact: true })).toBeVisible();
+    await expect(button).toHaveAccessibleDescription(NO_LEAD_TEXT);
 
     // 이 상태에서 눌러도 도우미를 호출하지 않는다.
     await button.click({ force: true });

@@ -100,7 +100,7 @@ export function Header({ workflow, skillCount, liveAgents, registryAgents, hostP
         <span className="font-mono font-medium text-text">{skillCount}</span>
       </p>
       <WorkflowChip result={workflowChip(counts)} />
-      <p className="min-w-0 truncate text-text-muted">
+      <p data-clamp className="min-w-0 truncate text-text-muted">
         {lead === null ? (
           FLOOR_NO_LEAD_TEXT
         ) : (

@@ -134,7 +134,7 @@ export function Floor({ workflow, registryAgents, live, writable, matchedAgentNa
     >
       <div data-wf="02-6" className="grid gap-2 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
-          <h3 className="min-w-0 truncate text-section font-semibold text-text" title={workflow.name}>
+          <h3 data-clamp className="min-w-0 truncate text-section font-semibold text-text" title={workflow.name}>
             {workflow.name}
           </h3>
           <Chip>

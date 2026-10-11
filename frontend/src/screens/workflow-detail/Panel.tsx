@@ -68,7 +68,7 @@ function PanelFrame({ children, busy = false }: { children: ReactNode; busy?: bo
     <aside aria-label={PANEL_TITLE} aria-busy={busy ? true : undefined} data-wf="03-8" className={PANEL_CLASSES}>
       <div className="flex min-w-0 items-center gap-2 whitespace-nowrap portrait:col-span-full">
         <h2 className="text-section font-semibold text-text">{PANEL_TITLE}</h2>
-        <p className="min-w-0 truncate text-aux text-text-muted">{PANEL_SUBTITLE}</p>
+        <p data-clamp className="min-w-0 truncate text-aux text-text-muted">{PANEL_SUBTITLE}</p>
       </div>
       {children}
     </aside>
@@ -154,13 +154,13 @@ function AgentInfo({ selectedName, agentDef, agentLive, collectorDown, isLead }:
   return (
     <div className={INFO_CLASSES}>
       <div className="flex min-w-0 items-center gap-2">
-        <h3 title={selectedName} className="min-w-0 truncate font-mono text-section font-medium text-text">
+        <h3 title={selectedName} data-clamp className="min-w-0 truncate font-mono text-section font-medium text-text">
           {selectedName}
         </h3>
         {isLead ? <Badge>{LEAD_BADGE_TEXT}</Badge> : null}
       </div>
       {agentDef === undefined ? null : (
-        <span title={agentDef.filePath} className="truncate font-mono text-aux text-text-muted">
+        <span title={agentDef.filePath} data-clamp className="truncate font-mono text-aux text-text-muted">
           {agentDef.filePath}
         </span>
       )}
@@ -277,7 +277,7 @@ function RecentEvents({ selectedName }: { selectedName: string }) {
           {items.map((event) => (
             <li key={event.id} className="flex min-w-0 gap-2">
               <span className="w-ev-time shrink-0 font-mono text-text-muted">{formatHms(event.at)}</span>
-              <span className="min-w-0 flex-1 truncate text-text-secondary">
+              <span data-clamp className="min-w-0 flex-1 truncate text-text-secondary">
                 {event.title} <span className="font-mono text-text-muted">{event.summary}</span>
               </span>
             </li>

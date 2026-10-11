@@ -35,7 +35,7 @@ function OfficeFrame({ children, busy = false }: { children: ReactNode; busy?: b
     >
       <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
         <h2 className="text-section font-semibold text-text">{OFFICE_TITLE}</h2>
-        <p className="min-w-0 truncate text-aux text-text-muted">{OFFICE_SUBTITLE}</p>
+        <p data-clamp className="min-w-0 truncate text-aux text-text-muted">{OFFICE_SUBTITLE}</p>
       </div>
       {children}
       <div data-wf="03-7" className="flex flex-none flex-wrap items-center gap-x-4 gap-y-1 text-aux text-text-secondary">

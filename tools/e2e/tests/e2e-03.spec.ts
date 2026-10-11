@@ -9,6 +9,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 import {
   SETUP_REFLECT_TIMEOUT_MS,
+  choose,
   agentFile,
   agentFileContent,
   fixturePath,
@@ -101,7 +102,7 @@ test("[FR-011-AC1][FR-011-AC2][FR-011-AC6][FR-007-AC7][E2E-03] 03 `정의 수정
   await gotoReady(page, `/workflows/${encodeURIComponent(workflow)}?agent=${before}`);
   // FR-007-AC7: 패널 `정의 수정`이 06을 연다.
   await page.getByRole("button", { name: "정의 수정", exact: true }).click();
-  const form = page.getByTestId("agent-form-dialog");
+  const form = page.locator('[data-wf="06-1"]');
   await expect(form).toBeVisible();
   await expect(form.getByRole("heading", { name: "에이전트 수정", exact: true })).toBeVisible();
   await expect(form.getByLabel("이름 (name)", { exact: true })).toHaveValue(before);
@@ -115,7 +116,7 @@ test("[FR-011-AC1][FR-011-AC2][FR-011-AC6][FR-007-AC7][E2E-03] 03 `정의 수정
   );
   // 각주(FR-011-AC1·AC2)
   await expect(
-    form.getByText("이름 변경 시 파일명도 변경 · 폼에 없는 필드(permissionMode 등)는 기존 값 보존", {
+    form.getByText("폼에 없는 항목(permissionMode, skills 등)은 값과 순서를 그대로 둡니다", {
       exact: true,
     }),
   ).toBeVisible();
@@ -161,10 +162,10 @@ test("[FR-011-AC3][E2E-03] 06에서 소속 워크플로우를 바꾸면 이전 �
 
   await gotoReady(page, `/workflows/${encodeURIComponent(from)}?agent=${agent}`);
   await page.getByRole("button", { name: "정의 수정", exact: true }).click();
-  const form = page.getByTestId("agent-form-dialog");
+  const form = page.locator('[data-wf="06-1"]');
   await expect(form.getByLabel("소속 워크플로우", { exact: true })).toHaveValue(from);
   await form.getByLabel("소속 워크플로우", { exact: true }).selectOption(to);
-  await form.getByRole("radio", { name: "팀원", exact: true }).check();
+  await choose(form.getByRole("radio", { name: "팀원", exact: true }));
   await form.getByRole("button", { name: "저장", exact: true }).click();
   await expect(form).toHaveCount(0);
 
@@ -174,7 +175,7 @@ test("[FR-011-AC3][E2E-03] 06에서 소속 워크플로우를 바꾸면 이전 �
 
   // FR-011-AC3 뒷부분: 워크플로우 밖 에이전트를 수정할 때는 소속을 비워 둘 수 있다(`(없음)`).
   await gotoReady(page, "/workflows?dialog=agent-edit&agent=freelancer");
-  const outsideForm = page.getByTestId("agent-form-dialog");
+  const outsideForm = page.locator('[data-wf="06-1"]');
   await expect(outsideForm.getByLabel("소속 워크플로우", { exact: true })).toHaveValue("");
   await expect(
     outsideForm.getByLabel("소속 워크플로우", { exact: true }).locator("option", { hasText: "(없음)" }),
@@ -193,7 +194,7 @@ test("[FR-011-AC4][E2E-03] 저장 직전 파일이 바뀌면 06-5 → `최신 �
   });
 
   await gotoReady(page, `/workflows?dialog=agent-edit&agent=${agent}`);
-  const form = page.getByTestId("agent-form-dialog");
+  const form = page.locator('[data-wf="06-1"]');
   await expect(form.getByLabel("설명 (description)", { exact: true })).toHaveValue("충돌 전 설명");
 
   // 폼을 연 뒤 바깥에서 같은 파일을 수정한다(길이가 달라 revision이 반드시 바뀐다).
@@ -206,13 +207,17 @@ test("[FR-011-AC4][E2E-03] 저장 직전 파일이 바뀌면 06-5 → `최신 �
   await form.getByLabel("설명 (description)", { exact: true }).fill("폼에서 바꾼 설명");
   await form.getByRole("button", { name: "저장", exact: true }).click();
 
-  const conflict = page.getByTestId("save-conflict-dialog");
+  // 06-5는 폼 위에 한 겹 더 뜨는 `alertdialog`다(ui-spec SCR-06-5, `data-wf="06-5-1"`).
+  const conflict = page.getByRole("alertdialog", { name: "파일이 다른 곳에서 수정되었습니다", exact: true });
   await expect(conflict).toBeVisible();
+  await expect(conflict).toHaveAttribute("data-wf", "06-5-1");
   await expect(
     conflict.getByRole("heading", { name: "파일이 다른 곳에서 수정되었습니다", exact: true }),
   ).toBeVisible();
-  await expect(conflict).toContainText(`${agent}.md이 이 창을 연 뒤 `);
-  await expect(conflict).toContainText("에 변경되었습니다. 저장하면 그 변경이 사라집니다.");
+  await expect(conflict).toContainText(`${agent}.md가 이 창을 연 뒤 `);
+  await expect(conflict).toContainText(
+    "에 바뀌었습니다. 덮어쓰면 그 변경이 사라집니다. 최신 파일을 다시 불러오면 지금 폼에 적은 내용이 사라집니다.",
+  );
 
   await conflict.getByRole("button", { name: "최신 파일 다시 불러오기", exact: true }).click();
   await expect(conflict).toHaveCount(0);
@@ -235,7 +240,7 @@ test("[FR-011-AC4][FR-011-AC1][E2E-03] 06-5 `덮어쓰기` → 폼 값으로 저
   const originalBody = bodyOf(readFixtureFile(agentFile(agent)));
 
   await gotoReady(page, `/workflows?dialog=agent-edit&agent=${agent}`);
-  const form = page.getByTestId("agent-form-dialog");
+  const form = page.locator('[data-wf="06-1"]');
   await expect(form.getByLabel("설명 (description)", { exact: true })).toHaveValue("덮어쓰기 전 설명");
 
   writeFixtureFile(
@@ -251,10 +256,10 @@ test("[FR-011-AC4][FR-011-AC1][E2E-03] 06-5 `덮어쓰기` → 폼 값으로 저
   await form.getByLabel("설명 (description)", { exact: true }).fill("폼에서 저장한 설명");
   await form.getByRole("button", { name: "저장", exact: true }).click();
 
-  const conflict = page.getByTestId("save-conflict-dialog");
+  const conflict = page.getByRole("alertdialog", { name: "파일이 다른 곳에서 수정되었습니다", exact: true });
   await expect(conflict).toBeVisible();
   await conflict.getByRole("button", { name: "덮어쓰기", exact: true }).click();
-  await expect(page.getByTestId("agent-form-dialog")).toHaveCount(0);
+  await expect(page.locator('[data-wf="06-1"]')).toHaveCount(0);
   await expect(page).toHaveURL(/\/workflows$/);
 
   const saved = readFixtureFile(agentFile(agent));
@@ -285,7 +290,7 @@ test("[FR-011-E2][E2E-03] 새 name이 이미 있으면 필드 사유 `이미 있
   });
 
   await gotoReady(page, `/workflows?dialog=agent-edit&agent=${agent}`);
-  const form = page.getByTestId("agent-form-dialog");
+  const form = page.locator('[data-wf="06-1"]');
   await expect(form.getByLabel("이름 (name)", { exact: true })).toHaveValue(agent);
   await form.getByLabel("이름 (name)", { exact: true }).fill(taken);
   await form.getByRole("button", { name: "저장", exact: true }).click();
@@ -316,30 +321,31 @@ test("[FR-012-AC1][FR-012-AC2][FR-012-AC3][FR-007-AC7][E2E-03] 03 `제거` → 0
 
   await gotoReady(page, `/workflows/${encodeURIComponent(workflow)}`);
   // FR-007-AC4: 기본 선택은 팀장이다. FR-007-AC7: 패널 `제거`가 06-6을 연다.
-  await expect(page.getByRole("heading", { level: 3, name: lead, exact: true })).toBeVisible();
+  await expect(page.locator('[data-wf="03-4"]').getByText(lead, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "제거", exact: true }).click();
 
-  const confirm = page.getByTestId("confirm-by-name-dialog");
+  const confirm = page.locator('[data-wf="06-6-1"]');
   await expect(confirm).toBeVisible();
   await expect(
     confirm.getByRole("heading", { name: `${lead}을(를) ${workflow}에서 제거할까요?`, exact: true }),
   ).toBeVisible();
   await expect(
-    confirm.getByText("정의 파일이 .aojistudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).", {
+    confirm.getByText("정의 파일이 .aojistudio/trash/로 이동합니다 (파일을 옮겨 복구할 수 있습니다)", {
       exact: true,
     }),
   ).toBeVisible();
   // FR-012-AC3 팀장 안내 줄
   await expect(
-    confirm.getByText(`팀장을 제거하면 ${workflow} 층에 팀장 없음이 표시됩니다.`, { exact: true }),
+    confirm.getByText(`팀장을 제거하면 ${workflow} 층에 팀장 없음이 표시됩니다`, { exact: true }),
   ).toBeVisible();
 
   // FR-012-AC1: name이 정확히 일치할 때만 활성이다.
-  const confirmButton = confirm.getByRole("button", { name: "제거 (이름 일치 시 활성)", exact: true });
+  const confirmButton = confirm.getByRole("button", { name: "제거", exact: true });
+  await expect(confirm.getByText(`${lead}을(를) 똑같이 입력하면 제거 버튼이 켜집니다`, { exact: true })).toBeVisible();
   await expect(confirmButton).toBeDisabled();
-  await confirm.getByLabel("확인을 위해 이름 입력", { exact: true }).fill(`${lead}x`);
+  await confirm.getByLabel("확인을 위해 name 입력", { exact: true }).fill(`${lead}x`);
   await expect(confirmButton).toBeDisabled();
-  await confirm.getByLabel("확인을 위해 이름 입력", { exact: true }).fill(lead);
+  await confirm.getByLabel("확인을 위해 name 입력", { exact: true }).fill(lead);
   await expect(confirmButton).toBeEnabled();
   await confirmButton.click();
   await expect(confirm).toHaveCount(0);
@@ -416,9 +422,9 @@ test("[FR-012-E1][E2E-03] 휴지통 이동이 실패하면 사유를 보여주�
   try {
     await gotoReady(page, `/workflows/${encodeURIComponent(workflow)}?agent=${agent}`);
     await page.getByRole("button", { name: "제거", exact: true }).click();
-    const confirm = page.getByTestId("confirm-by-name-dialog");
-    await confirm.getByLabel("확인을 위해 이름 입력", { exact: true }).fill(agent);
-    await confirm.getByRole("button", { name: "제거 (이름 일치 시 활성)", exact: true }).click();
+    const confirm = page.locator('[data-wf="06-6-1"]');
+    await confirm.getByLabel("확인을 위해 name 입력", { exact: true }).fill(agent);
+    await confirm.getByRole("button", { name: "제거", exact: true }).click();
 
     await expect(
       confirm.getByText("정의 파일을 휴지통으로 옮기지 못했습니다 · 아무것도 바꾸지 않았습니다", {
@@ -443,9 +449,9 @@ test("[FR-012-E1][E2E-03] 휴지통 이동이 실패하면 사유를 보여주�
 /** 03 패널 `제거` → 06-6 → 이름 입력 → 제거. */
 async function removeAgentFromPanel(page: Page, agentName: string): Promise<void> {
   await page.getByRole("button", { name: "제거", exact: true }).click();
-  const confirm = page.getByTestId("confirm-by-name-dialog");
+  const confirm = page.locator('[data-wf="06-6-1"]');
   await expect(confirm).toBeVisible();
-  await confirm.getByLabel("확인을 위해 이름 입력", { exact: true }).fill(agentName);
-  await confirm.getByRole("button", { name: "제거 (이름 일치 시 활성)", exact: true }).click();
+  await confirm.getByLabel("확인을 위해 name 입력", { exact: true }).fill(agentName);
+  await confirm.getByRole("button", { name: "제거", exact: true }).click();
   await expect(confirm).toHaveCount(0);
 }

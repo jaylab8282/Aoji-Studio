@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "name": "개발부서",
+  "description": "웹 서비스 기획·설계·구현·검증",
+  "lead": "web-develop-tech-lead",
+  "members": [
+    "web-architect",
+    "web-backend-dev",
+    "web-db-designer",
+    "web-frontend-dev",
+    "web-reviewer",
+    "web-security-reviewer",
+    "web-tester"
+  ],
+  "createdAt": "2026-09-20T10:00:00+09:00",
+  "updatedAt": "2026-09-20T10:00:00+09:00"
+}

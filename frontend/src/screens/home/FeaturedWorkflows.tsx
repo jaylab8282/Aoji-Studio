@@ -34,7 +34,7 @@ function SectionHead() {
   return (
     <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
       <h2 className="text-section font-semibold">{FEATURED_WORKFLOWS_TITLE}</h2>
-      <span className="min-w-0 truncate text-aux text-text-muted">{FEATURED_WORKFLOWS_SUBTITLE}</span>
+      <span data-clamp className="min-w-0 truncate text-aux text-text-muted">{FEATURED_WORKFLOWS_SUBTITLE}</span>
     </div>
   );
 }
@@ -79,10 +79,10 @@ function WorkflowCard({ workflow }: { workflow: FeaturedWorkflow }) {
       className={`group ${CARD_BASE} ${CARD_PORTRAIT} transition-colors duration-120 ease-standard hover:border-border-dashed focus-visible:border-border-dashed`}
     >
       <div className="flex min-w-0 items-center gap-2">
-        <h3 className="min-w-0 flex-1 truncate text-section font-semibold text-text">{workflow.name}</h3>
+        <h3 data-clamp className="min-w-0 flex-1 truncate text-section font-semibold text-text">{workflow.name}</h3>
         <WorkflowChip result={workflow.chip} />
       </div>
-      <span className="truncate text-text-secondary">{workflow.description}</span>
+      <span data-clamp className="truncate text-text-secondary">{workflow.description}</span>
       <span className="text-aux text-text-muted">
         에이전트 <b className="font-mono font-medium text-text-secondary">{workflow.agentCount}</b> · 스킬{" "}
         <b className="font-mono font-medium text-text-secondary">{workflow.skillCount}</b>

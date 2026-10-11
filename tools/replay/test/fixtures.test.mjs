@@ -229,20 +229,28 @@ test("[fixtures] project-large: 인원 7 이상인 층이 있다(FR-006-AC2 span
 // project-showcase (신규): E2E-13 스크린샷 짝 fixture
 // ---------------------------------------------------------------------------
 
-test("[fixtures] project-showcase: 워크플로우 4개(팀장 없는 층 포함), 형식 오류 없음", () => {
+test("[fixtures] project-showcase: 워크플로우 4개(개발 8·디자인 4·영상제작 0·투자 4, 팀장 없는 층 포함), 워크플로우 밖 5명, 스킬 12, 형식 오류 없음", () => {
   const result = scanFixtureProject(fixture("project-showcase"));
   assert.equal(result.agentsDirMissing, false);
   assert.equal(result.agentFormatErrors.length, 0);
   assert.equal(result.workflowFormatErrors.length, 0);
   assert.equal(result.brokenRefFormatErrors.length, 0);
   assert.equal(result.workflows.length, 4);
+  assert.equal(result.agents.length, 21);
+  assert.equal(result.skillCount, 12);
 
-  const opsTeam = result.workflows.find((w) => w.name === "ops-team");
-  assert.equal(opsTeam.lead, null, "ops-team은 팀장 없음 시나리오(02 워크플로우 D 대응)");
+  const population = (w) => (w.lead ? 1 : 0) + w.members.length;
+  const byName = Object.fromEntries(result.workflows.map((w) => [w.name, w]));
+  assert.equal(population(byName["개발부서"]), 8, "개발부서 8명(span 전체 폭 시연: 인원 7 이상)");
+  assert.equal(byName["개발부서"].lead, "web-develop-tech-lead");
+  assert.equal(population(byName["디자인부서"]), 4);
+  assert.equal(population(byName["투자부서"]), 4);
+  assert.equal(byName["영상제작부서"].lead, null, "영상제작부서는 팀장 없음·0명(02 팀장 없음 경고, 삭제 가능)");
+  assert.equal(population(byName["영상제작부서"]), 0);
 
-  const devTeam = result.workflows.find((w) => w.name === "dev-team");
-  const devPopulation = (devTeam.lead ? 1 : 0) + devTeam.members.length;
-  assert.ok(devPopulation >= 7, "dev-team은 span 3 시연을 위해 인원 7 이상이어야 한다");
+  const assigned = new Set(result.workflows.flatMap((w) => [...(w.lead ? [w.lead] : []), ...w.members]));
+  const outside = result.agents.map((a) => a.name).filter((name) => !assigned.has(name)).sort();
+  assert.deepEqual(outside, ["code-explainer", "docs-writer", "release-manager", "test-runner", "video-editor"]);
 });
 
 test("[fixtures] project-showcase: settings.json에 hook 설정이 있다", () => {

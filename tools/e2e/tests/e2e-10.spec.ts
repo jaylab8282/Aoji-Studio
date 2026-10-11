@@ -68,18 +68,18 @@ test("[FR-017-AC1][FR-017-AC2][FR-017-AC3][FR-017-AC4][FR-007-E2][E2E-10] 인원
 
   // FR-017-AC2·AC3: 05-3 구성과 이름 일치 판정
   await floorHeader(page, workflow).getByRole("button", { name: "삭제", exact: true }).click();
-  const confirm = page.getByTestId("confirm-by-name-dialog");
+  const confirm = page.locator('[data-wf="05-3-1"]');
   await expect(
     confirm.getByRole("heading", { name: `${workflow} 워크플로우를 삭제할까요?`, exact: true }),
   ).toBeVisible();
   await expect(
     confirm.getByText(`구성 파일 .aojistudio/teams/${workflow}.json이 삭제됩니다`, { exact: true }),
   ).toBeVisible();
-  const deleteButton = confirm.getByRole("button", { name: "삭제 (이름 일치 시 활성)", exact: true });
+  const deleteButton = confirm.getByRole("button", { name: "삭제", exact: true });
   await expect(deleteButton).toBeDisabled();
-  await confirm.getByLabel("확인을 위해 이름 입력", { exact: true }).fill(`${workflow}x`);
+  await confirm.getByLabel("확인을 위해 워크플로우 이름 입력", { exact: true }).fill(`${workflow}x`);
   await expect(deleteButton).toBeDisabled();
-  await confirm.getByLabel("확인을 위해 이름 입력", { exact: true }).fill(workflow);
+  await confirm.getByLabel("확인을 위해 워크플로우 이름 입력", { exact: true }).fill(workflow);
   await expect(deleteButton).toBeEnabled();
   await deleteButton.click();
 
@@ -108,9 +108,9 @@ test("[FR-017-E1][E2E-10] 확인 사이에 팀원이 추가되면 삭제를 거�
 
   // 05-3을 열어 이름까지 입력한 뒤(= 확인 중) 바깥에서 구성 파일에 팀원을 넣는다.
   await floorHeader(page, workflow).getByRole("button", { name: "삭제", exact: true }).click();
-  const confirm = page.getByTestId("confirm-by-name-dialog");
-  await confirm.getByLabel("확인을 위해 이름 입력", { exact: true }).fill(workflow);
-  const deleteButton = confirm.getByRole("button", { name: "삭제 (이름 일치 시 활성)", exact: true });
+  const confirm = page.locator('[data-wf="05-3-1"]');
+  await confirm.getByLabel("확인을 위해 워크플로우 이름 입력", { exact: true }).fill(workflow);
+  const deleteButton = confirm.getByRole("button", { name: "삭제", exact: true });
   await expect(deleteButton).toBeEnabled();
 
   writeFixtureFile(

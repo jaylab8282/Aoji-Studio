@@ -64,6 +64,7 @@ export function ToolsField({ values, error, disabled, onChange }: ToolsFieldProp
       <div className="grid grid-cols-5 gap-x-2 font-mono text-aux text-text-mono">
         {TOOL_CHECKBOXES.map((tool) => (
           <Checkbox
+            dense
             key={tool}
             label={tool}
             checked={values.checkedTools.includes(tool)}
@@ -73,6 +74,7 @@ export function ToolsField({ values, error, disabled, onChange }: ToolsFieldProp
         ))}
         <span className="font-sans text-text-secondary">
           <Checkbox
+            dense
             label={AGENT_TOOLS_OTHER_LABEL}
             checked={values.otherChecked}
             disabled={disabled || !explicit}

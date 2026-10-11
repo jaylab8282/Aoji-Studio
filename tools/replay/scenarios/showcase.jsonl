@@ -1,22 +1,30 @@
 {"session_id":"sess-lobby-1","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","permission_mode":"default","source":"startup"}
 {"session_id":"sess-lobby-1","cwd":"/workspace/AojiStudio","hook_event_name":"UserPromptSubmit","permission_mode":"default"}
 {"session_id":"sess-lobby-2","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","permission_mode":"default","source":"startup"}
-{"session_id":"sess-lobby-2","cwd":"/workspace/AojiStudio","hook_event_name":"PermissionRequest","tool_name":"AskUserQuestion","permission_mode":"default"}
-{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"dev-lead","permission_mode":"acceptEdits","source":"startup"}
-{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_type":"dev-lead","tool_name":"Edit","tool_input":{"file_path":".claude/agents/dev-lead.md"},"permission_mode":"acceptEdits"}
-{"session_id":"sess-dev-02","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"dev-02","permission_mode":"default","source":"startup"}
-{"session_id":"sess-dev-02","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_type":"dev-02","tool_name":"Read","tool_input":{"file_path":"README.md"},"permission_mode":"default"}
-{"session_id":"sess-dev-03","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"dev-03","permission_mode":"default","source":"startup"}
-{"session_id":"sess-dev-03","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_type":"dev-03","tool_name":"AskUserQuestion","tool_input":{"description":"승인할까요?"},"permission_mode":"default"}
-{"session_id":"sess-dev-04","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"dev-04","permission_mode":"default","source":"startup"}
-{"session_id":"sess-dev-05","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"dev-05","permission_mode":"default","source":"startup"}
-{"session_id":"sess-dev-05","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_type":"dev-05","tool_name":"Bash","tool_input":{"command":"export TOKEN=abc123secretXYZ"},"permission_mode":"default"}
-{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"SubagentStart","agent_id":"sub-showcase-defined","agent_type":"dev-07","permission_mode":"default"}
-{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"SubagentStart","agent_id":"sub-showcase-undefined","agent_type":"Explore","permission_mode":"default"}
-{"session_id":"sess-dev-06","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"dev-06","permission_mode":"default","source":"startup"}
-{"session_id":"sess-mkt-lead","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"mkt-lead","permission_mode":"default","source":"startup"}
-{"session_id":"sess-mkt-lead","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_type":"mkt-lead","tool_name":"Bash","tool_input":{"command":"npm run build"},"permission_mode":"default"}
-{"session_id":"sess-mkt-02","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"mkt-02","permission_mode":"default","source":"startup"}
-{"session_id":"sess-mkt-03","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"mkt-03","permission_mode":"default","source":"startup"}
-{"session_id":"sess-mkt-03","cwd":"/workspace/AojiStudio","hook_event_name":"PostToolUse","agent_type":"mkt-03","tool_name":"Write","tool_input":{"file_path":"report.md"},"permission_mode":"default"}
-{"session_id":"sess-ops-01","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"ops-01","permission_mode":"default","source":"startup"}
+{"session_id":"sess-docs-writer","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"docs-writer","permission_mode":"default","source":"startup"}
+{"session_id":"sess-docs-writer","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_type":"docs-writer","tool_name":"Write","tool_input":{"file_path":"docs/guide/hook-setup.md"},"permission_mode":"default"}
+{"session_id":"sess-invest-analyst","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"invest-analyst","permission_mode":"default","source":"startup"}
+{"session_id":"sess-invest-analyst","cwd":"/workspace/AojiStudio","hook_event_name":"Stop","agent_type":"invest-analyst","permission_mode":"default"}
+{"session_id":"sess-design-motion","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"design-motion","permission_mode":"default","source":"startup"}
+{"session_id":"sess-design-motion","cwd":"/workspace/AojiStudio","hook_event_name":"Stop","agent_type":"design-motion","permission_mode":"default"}
+{"session_id":"sess-design-lead","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"design-lead","permission_mode":"default","source":"startup"}
+{"session_id":"sess-design-lead","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_type":"design-lead","tool_name":"Agent","tool_input":{"description":"design-ui"},"permission_mode":"default"}
+{"session_id":"sess-design-lead","cwd":"/workspace/AojiStudio","hook_event_name":"SubagentStart","agent_id":"sub-showcase-design-ui","agent_type":"design-ui","permission_mode":"default"}
+{"session_id":"sess-design-lead","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_id":"sub-showcase-design-ui","agent_type":"design-ui","tool_name":"Write","tool_input":{"file_path":"ui/wireframes/02-workflows.html"},"permission_mode":"default"}
+{"session_id":"sess-web-reviewer","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"web-reviewer","permission_mode":"default","source":"startup"}
+{"session_id":"sess-web-reviewer","cwd":"/workspace/AojiStudio","hook_event_name":"Stop","agent_type":"web-reviewer","permission_mode":"default"}
+{"session_id":"sess-web-db-designer","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"web-db-designer","permission_mode":"default","source":"startup"}
+{"session_id":"sess-web-tester","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"web-tester","permission_mode":"default","source":"startup"}
+{"session_id":"sess-web-tester","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_type":"web-tester","tool_name":"Bash","tool_input":{"command":"export API_KEY=abc123secretXYZ && npm test -- --run"},"permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"SessionStart","agent_type":"web-develop-tech-lead","permission_mode":"acceptEdits","source":"startup"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_type":"web-develop-tech-lead","tool_name":"Read","tool_input":{"file_path":"docs/tasks.md"},"permission_mode":"acceptEdits"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_type":"web-develop-tech-lead","tool_name":"Agent","tool_input":{"description":"web-backend-dev"},"permission_mode":"acceptEdits"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"SubagentStart","agent_id":"sub-showcase-backend","agent_type":"web-backend-dev","permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_id":"sub-showcase-backend","agent_type":"web-backend-dev","tool_name":"Edit","tool_input":{"file_path":"backend/src/main/java/aoji/AgentService.java"},"permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"SubagentStart","agent_id":"sub-showcase-frontend","agent_type":"web-frontend-dev","permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_id":"sub-showcase-frontend","agent_type":"web-frontend-dev","tool_name":"Read","tool_input":{"file_path":"frontend/src/pages/Workflows.tsx"},"permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"SubagentStart","agent_id":"sub-showcase-security","agent_type":"web-security-reviewer","permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"PermissionRequest","agent_id":"sub-showcase-security","agent_type":"web-security-reviewer","tool_name":"Bash","tool_input":{"command":"curl -s -H Authorization:abc123secret 127.0.0.1:4180/api/state"},"permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"SubagentStart","agent_id":"sub-showcase-explore","agent_type":"Explore","permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_id":"sub-showcase-explore","agent_type":"Explore","tool_name":"Grep","tool_input":{"pattern":"AgentService"},"permission_mode":"default"}
+{"session_id":"sess-dev-lead","cwd":"/workspace/AojiStudio","hook_event_name":"PreToolUse","agent_type":"web-develop-tech-lead","tool_name":"Agent","tool_input":{"description":"Explore"},"permission_mode":"acceptEdits"}

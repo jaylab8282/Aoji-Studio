@@ -23,7 +23,8 @@ tools/e2e/node_modules/
 tools/e2e/.e2e-state.json
 tools/e2e/.helper-dry-run.log
 tools/e2e/.other-origin-server.log
-!tools/e2e/screenshots/*.png
+# E2E-13 화면 대조 캡처 60장(산출물, 저장소에 올리지 않는다)
+tools/e2e/screenshots/
 tools/replay/node_modules/
 
 # SQLite
@@ -41,6 +42,6 @@ tools/replay/node_modules/
 # 설계·진행 문서 (사용자 결정 2026-10-01 — 저장소에 올리지 않는다)
 # 파일은 로컬에 그대로 둔다. 요구사항·설계·태스크·결정 이력·리뷰 38건이 여기 있고
 # develop-tech-lead는 docs/progress.md·docs/tasks.md로 작업을 재개한다.
-# 주의: tools/e2e/tests/e2e-13.spec.ts가 docs/ui/screens/*.png을 기준 이미지로 읽는다
-#       → 이 폴더가 없는 곳에서 클론하면 E2E 배치 8(7개)이 실패한다(107 → 100).
+# 참고: tools/e2e/screenshots/ 캡처 60장의 파일 이름은 docs/ui/screens/*.png 원본 이름과 같다(리뷰어가 나란히 대조).
+#       테스트가 그 PNG를 읽지는 않는다.
 docs/

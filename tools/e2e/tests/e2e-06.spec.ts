@@ -17,6 +17,7 @@ import {
   agentFile,
   fixturePath,
   gotoReady,
+  registrySummary,
   removeFixturePath,
   writeFixtureFile,
 } from "./ui-helpers";
@@ -101,30 +102,48 @@ test.describe("[E2E-06] project-no-agents-dir — 04-5 에이전트 폴더 읽�
   }, testInfo) => {
     await gotoReady(page, "/");
     await expect(page.getByText("에이전트 폴더를 찾을 수 없습니다", { exact: true })).toBeVisible();
+    const rescan = page.getByRole("button", { name: "다시 읽기", exact: true });
+    // 폴링(1초)이 04-5를 먼저 지우면 누를 버튼이 없어지므로, 파일을 만들기 전에 버튼에 초점을 두고 키보드로 누른다.
+    // 마우스 클릭은 안정성 확인(애니메이션 프레임 대기)에 시간이 들어 폴링과 겹칠 수 있다.
+    await rescan.focus();
+    await expect(rescan).toBeFocused();
+    const revisionBefore = (await registrySummary(page)).revision;
 
-    // 폴더와 정의 파일을 바깥에서 만든다. 폴링(2초)이 아니라 `다시 읽기`로 즉시 반영되는지를 본다.
-    mkdirSync(fixturePath(".claude", "agents"), { recursive: true });
-    writeFixtureFile(
-      agentFile("e2e06-recovered"),
-      "---\nname: e2e06-recovered\ndescription: 다시 읽기 확인\n---\n\n본문.\n",
-    );
+    try {
+      // 폴더와 정의 파일을 바깥에서 만든다. 폴링이 아니라 `다시 읽기`로 즉시 반영되는지를 본다.
+      mkdirSync(fixturePath(".claude", "agents"), { recursive: true });
+      writeFixtureFile(
+        agentFile("e2e06-recovered"),
+        "---\nname: e2e06-recovered\ndescription: 다시 읽기 확인\n---\n\n본문.\n",
+      );
 
-    const startedAt = Date.now();
-    await page.getByRole("button", { name: "다시 읽기", exact: true }).click();
-    await expect(page.getByText("에이전트 수", { exact: true })).toBeVisible({
-      timeout: RESCAN_DEADLINE_MS,
-    });
-    const elapsedMs = Date.now() - startedAt;
-    testInfo.annotations.push({
-      type: "FR-001-AC4 다시 읽기 응답 시간",
-      description: `${elapsedMs}ms (기한 ${RESCAN_DEADLINE_MS}ms)`,
-    });
-    expect(elapsedMs).toBeLessThanOrEqual(RESCAN_DEADLINE_MS);
+      const startedAt = Date.now();
+      await page.keyboard.press("Enter");
+      await expect(page.getByText("에이전트 수", { exact: true })).toBeVisible({
+        timeout: RESCAN_DEADLINE_MS,
+      });
+      const elapsedMs = Date.now() - startedAt;
+      testInfo.annotations.push({
+        type: "FR-001-AC4 다시 읽기 응답 시간",
+        description: `${elapsedMs}ms (기한 ${RESCAN_DEADLINE_MS}ms)`,
+      });
+      expect(elapsedMs).toBeLessThanOrEqual(RESCAN_DEADLINE_MS);
 
-    await expect(page.getByText("에이전트 폴더를 찾을 수 없습니다", { exact: true })).toHaveCount(0);
-    const body = page.locator("main").first();
-    await expect(body.getByText("실행 중 에이전트", { exact: true })).toBeVisible();
-    await expect(body.getByText("에이전트 수", { exact: true }).locator("xpath=..")).toContainText("1");
+      await expect(page.getByText("에이전트 폴더를 찾을 수 없습니다", { exact: true })).toHaveCount(0);
+      const body = page.locator("main").first();
+      await expect(body.getByText("실행 중 에이전트", { exact: true })).toBeVisible();
+      await expect(body.getByText("에이전트 수", { exact: true }).locator("xpath=..")).toContainText("1");
+    } finally {
+      // 같은 배치의 뒤 spec(E2E-13 04-5 캡처)이 `에이전트 폴더 없음` 상태를 전제로 하므로 만든 폴더를 되돌린다.
+      // 수동 재스캔은 폴링 기준선을 바꾸지 않아서, 폴링이 만든 폴더를 한 번 본 뒤(revision +2: 재스캔 + 폴링)에 되돌려야
+      // 폴링이 되돌림도 감지한다. 되돌린 뒤 04-5 상태로 돌아왔는지까지 기다린다.
+      await expect.poll(async () => (await registrySummary(page)).revision, { timeout: SETUP_REFLECT_TIMEOUT_MS }).toBeGreaterThanOrEqual(
+        revisionBefore + 2,
+      );
+      removeFixturePath(fixturePath(".claude", "agents"));
+      expect(existsSync(fixturePath(".claude", "agents"))).toBe(false);
+      await expect.poll(async () => (await registrySummary(page)).agentsDirMissing, { timeout: SETUP_REFLECT_TIMEOUT_MS }).toBe(true);
+    }
   });
 });
 
@@ -186,7 +205,7 @@ test.describe("[E2E-06] project-format-errors — 04-6 정의 파일 형식 오�
     await gotoReady(page, "/workflows?dialog=agent-edit&agent=missing-name");
 
     // 06 폼은 열리지 않고 `?dialog`가 사라진 02로 대체된다(FR-011-E3, ADR-14).
-    await expect(page.getByTestId("agent-form-dialog")).toHaveCount(0);
+    await expect(page.locator('[data-wf="06-1"]')).toHaveCount(0);
     await expect(page).toHaveURL(/\/workflows$/);
     await expect(page.getByText("읽지 못한 정의·구성 파일 9개", { exact: true })).toBeVisible();
     const row = page.getByTestId("format-error-table").locator("tr").filter({ hasText: "missing-name.md" });

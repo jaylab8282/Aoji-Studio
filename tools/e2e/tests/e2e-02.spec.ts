@@ -9,6 +9,7 @@ import { expect, test } from "@playwright/test";
 
 import {
   agentFile,
+  choose,
   fixturePath,
   fixturePathExists,
   floorCard,
@@ -43,18 +44,21 @@ test("[FR-008-AC2][FR-008-AC3][FR-008-AC4][FR-006-AC3][E2E-02] 05-L 구성 확�
       exact: true,
     }),
   ).toBeVisible();
-  await expect(dialog.getByText("이름 중복 불가 · 개수 제한 없음", { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByText("1~40자 · 한글·영문·숫자·공백·하이픈·언더스코어 · 같은 이름 불가", { exact: true }),
+  ).toBeVisible();
   // FR-008-AC3 안내 박스
   await expect(
     dialog.getByText(
-      "만든 뒤 팀장 1명을 만들거나 가져오세요. 팀장이 없으면 층에 팀장 없음이 표시됩니다.",
+      "만든 뒤 팀장 1명을 만들거나 가져오세요. 팀장이 없으면 층에 팀장 없음이 표시됩니다",
       { exact: true },
     ),
   ).toBeVisible();
 
   const nameInput = dialog.getByLabel("이름", { exact: true });
-  await expect(nameInput).toHaveAttribute("placeholder", "개발부서");
-  await expect(dialog.getByLabel("설명 (선택)", { exact: true })).toHaveAttribute(
+  // 설명은 선택 입력이다: 라벨 `설명` 옆에 `(선택)`이 따로 붙는다(접근성 이름은 `설명`).
+  await expect(dialog.getByText("(선택)", { exact: true })).toBeVisible();
+  await expect(dialog.getByLabel("설명", { exact: true })).toHaveAttribute(
     "placeholder",
     "한 줄 설명",
   );
@@ -63,7 +67,7 @@ test("[FR-008-AC2][FR-008-AC3][FR-008-AC4][FR-006-AC3][E2E-02] 05-L 구성 확�
 
   // FR-008-AC2: 앞뒤 공백은 제거되고 파일명은 이름 그대로 `<이름>.json`이다.
   await nameInput.fill(`   ${WORKFLOW}   `);
-  await dialog.getByLabel("설명 (선택)", { exact: true }).fill("E2E-02 설명");
+  await dialog.getByLabel("설명", { exact: true }).fill("E2E-02 설명");
   await dialog.getByRole("button", { name: "만들기", exact: true }).click();
 
   // FR-008-AC4: 팝업이 닫히고 02에 새 층이 팀장 없음 경고와 함께 바로 나타난다.
@@ -98,7 +102,7 @@ test("[FR-008-E2][E2E-02] 허용하지 않는 문자 → 필드에 사유, 구�
   await dialog.getByRole("button", { name: "만들기", exact: true }).click();
 
   await expect(
-    dialog.getByText("1~40자, 한글·영문·숫자·공백·하이픈·언더스코어만", { exact: true }),
+    dialog.getByText("이름은 1~40자, 한글·영문·숫자·공백·하이픈·언더스코어만 쓸 수 있습니다.", { exact: true }),
   ).toBeVisible();
   // 팝업은 그대로 열려 있고 파일은 만들어지지 않는다.
   await expect(dialog).toBeVisible();
@@ -106,7 +110,7 @@ test("[FR-008-E2][E2E-02] 허용하지 않는 문자 → 필드에 사유, 구�
   expect(fixturePathExists(teamFile("bad"))).toBe(false);
 });
 
-test("[FR-008-AC1][FR-008-E1][E2E-02] 대소문자만 다른 같은 이름 → 400 필드 사유 `이미 있는 이름입니다`", async ({
+test("[FR-008-AC1][FR-008-E1][E2E-02] 대소문자만 다른 같은 이름 → 400 필드 사유 `같은 이름의 워크플로우가 이미 있습니다…`", async ({
   page,
 }) => {
   await gotoReady(page, "/workflows");
@@ -119,7 +123,11 @@ test("[FR-008-AC1][FR-008-E1][E2E-02] 대소문자만 다른 같은 이름 → 4
   await dialog.getByLabel("이름", { exact: true }).fill(duplicateWithOtherCase);
   await dialog.getByRole("button", { name: "만들기", exact: true }).click();
 
-  await expect(dialog.getByText("이미 있는 이름입니다", { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByText("같은 이름의 워크플로우가 이미 있습니다. 다른 이름을 입력하세요. (대소문자는 구분하지 않습니다)", {
+      exact: true,
+    }),
+  ).toBeVisible();
   await expect(dialog).toBeVisible();
   // 파일이 새로 만들어지지 않았다(대소문자만 다른 이름도 같은 이름이다).
   // macOS 파일 시스템은 대소문자를 구분하지 않으므로 존재 검사 대신 폴더 목록을 대소문자 그대로 본다.
@@ -128,7 +136,7 @@ test("[FR-008-AC1][FR-008-E1][E2E-02] 대소문자만 다른 같은 이름 → 4
   expect(teamFileNames).not.toContain(`${duplicateWithOtherCase}.json`);
 });
 
-test("[FR-009-AC7][E2E-02] 헤더 `워크플로우 밖 에이전트 2 · 가져오기` → 05-R에 대상 워크플로우 드롭다운이 있고 바꾸면 제목이 함께 바뀐다", async ({
+test("[FR-009-AC7][E2E-02] 헤더 `워크플로우 밖 에이전트 2 · 가져오기` → 05-R에 대상 워크플로우 드롭다운이 있고 바꿔도 제목은 고정이다", async ({
   page,
 }) => {
   await gotoReady(page, "/workflows");
@@ -136,13 +144,14 @@ test("[FR-009-AC7][E2E-02] 헤더 `워크플로우 밖 에이전트 2 · 가져�
 
   const dialog = page.getByRole("dialog");
   await expect(dialog).toHaveCount(1);
-  // 헤더 링크로 열면 대상 워크플로우가 드롭다운이다(FR-009-AC7). 고르면 제목이 그 값을 따른다(ADR-38).
+  // 헤더 링크로 열면 대상 워크플로우가 드롭다운이다(FR-009-AC7). 제목은 드롭다운 값과 상관없이 고정이다(ADR-71).
+  const title = dialog.getByRole("heading", { name: "기존 에이전트 가져오기", exact: true });
+  await expect(title).toBeVisible();
   const target = dialog.getByLabel("대상 워크플로우", { exact: true });
   await expect(target).toBeVisible();
   await target.selectOption(WORKFLOW);
-  await expect(
-    dialog.getByRole("heading", { name: `${WORKFLOW}(으)로 기존 에이전트 가져오기`, exact: true }),
-  ).toBeVisible();
+  await expect(target).toHaveValue(WORKFLOW);
+  await expect(title).toBeVisible();
 
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -157,21 +166,19 @@ test("[FR-009-AC1][FR-009-AC5][FR-006-AC1][E2E-02] 층 `가져오기` → 대상
   const dialog = page.getByRole("dialog", { name: `${WORKFLOW}(으)로 기존 에이전트 가져오기` });
   await expect(dialog).toBeVisible();
   await expect(
-    dialog.getByText("어느 워크플로우에도 없는 정의 파일 2개 · 파일은 그대로 두고 소속만 지정", {
+    dialog.getByText("어느 워크플로우에도 없는 정의 파일 2개 · 정의 파일은 그대로 두고 소속과 역할만 구성 파일에 적습니다", {
       exact: true,
     }),
   ).toBeVisible();
-  // 층의 `가져오기`로 열면 대상이 고정 텍스트다 — 드롭다운이 아니다(FR-009-AC7).
-  const targetField = dialog.getByText("대상 워크플로우", { exact: true }).locator("xpath=../..");
-  await expect(targetField).toContainText(WORKFLOW);
-  await expect(targetField.locator("select")).toHaveCount(0);
+  // 층의 `가져오기`로 열면 대상이 제목으로 고정된다 — `대상 워크플로우` 드롭다운이 없다(FR-009-AC7, ADR-71).
+  await expect(dialog.getByText("대상 워크플로우", { exact: true })).toHaveCount(0);
 
   // FR-009-AC1: 워크플로우 밖 에이전트만 name 오름차순.
   await expect(dialog.locator("tbody tr td:nth-child(2)")).toHaveText([IMPORT_LEAD, IMPORT_MEMBER]);
 
   // FR-009-AC5: 0명이면 비활성, 고른 인원이 라벨에 들어간다.
   await expect(dialog.getByRole("button", { name: "선택한 0명 가져오기", exact: true })).toBeDisabled();
-  await dialog.getByRole("checkbox", { name: IMPORT_LEAD, exact: true }).check();
+  await choose(dialog.getByRole("checkbox", { name: `${IMPORT_LEAD} 선택`, exact: true }));
   await dialog.getByLabel(`${IMPORT_LEAD} 역할`, { exact: true }).selectOption("lead");
   await dialog.getByRole("button", { name: "선택한 1명 가져오기", exact: true }).click();
   await expect(dialog).toHaveCount(0);
@@ -205,7 +212,7 @@ test("[FR-009-AC4][E2E-02] 대상 워크플로우에 팀장이 있으면 05-R �
   await expect(roleSelect.locator("option", { hasText: "팀원" })).toBeEnabled();
   await expect(roleSelect).toHaveValue("member");
 
-  await dialog.getByRole("checkbox", { name: IMPORT_MEMBER, exact: true }).check();
+  await choose(dialog.getByRole("checkbox", { name: `${IMPORT_MEMBER} 선택`, exact: true }));
   await dialog.getByRole("button", { name: "선택한 1명 가져오기", exact: true }).click();
   await expect(dialog).toHaveCount(0);
 
@@ -222,7 +229,7 @@ test("[FR-010-AC1][FR-010-AC2][E2E-02] 06 검증: name 규칙 위반·중복, �
 }) => {
   await gotoReady(page, "/workflows");
   await floorHeader(page, WORKFLOW).getByRole("button", { name: "만들기", exact: true }).click();
-  const form = page.getByTestId("agent-form-dialog");
+  const form = page.locator('[data-wf="06-1"]');
   await expect(form).toBeVisible();
 
   // FR-010-AC1: `^[a-z0-9-]+$`, 1~64자
@@ -232,17 +239,17 @@ test("[FR-010-AC1][FR-010-AC2][E2E-02] 06 검증: name 규칙 위반·중복, �
   // FR-010-AC2: 도구 방식을 명시하지 않으면 `저장` 비활성 + 이유 줄
   await form.getByLabel("이름 (name)", { exact: true }).fill(IMPORT_MEMBER);
   await form.getByLabel("설명 (description)", { exact: true }).fill("중복 확인용");
-  await form.getByRole("radio", { name: "팀원", exact: true }).check();
+  await choose(form.getByRole("radio", { name: "팀원", exact: true }));
   await expect(form.getByRole("button", { name: "저장", exact: true })).toBeDisabled();
   await expect(form.getByText("도구 방식을 고르세요", { exact: true })).toBeVisible();
 
   // FR-010-AC2: `직접 선택`인데 0개면 사유가 붙고 `저장`은 그대로 비활성이다.
-  await form.getByRole("radio", { name: "직접 선택", exact: true }).check();
+  await choose(form.getByRole("radio", { name: "직접 선택", exact: true }));
   await expect(form.getByText("직접 선택은 1개 이상", { exact: true })).toBeVisible();
   await expect(form.getByRole("button", { name: "저장", exact: true })).toBeDisabled();
 
   // FR-010-AC1: 이미 있는 name → 서버가 필드 사유로 거부하고 폼은 열려 있다.
-  await form.getByRole("radio", { name: "전체 상속", exact: true }).check();
+  await choose(form.getByRole("radio", { name: "전체 상속", exact: true }));
   await form.getByRole("button", { name: "저장", exact: true }).click();
   await expect(form.getByText("이미 있는 name입니다", { exact: true })).toBeVisible();
   await expect(form).toBeVisible();
@@ -257,17 +264,18 @@ test("[FR-010-AC2][FR-010-AC5][FR-010-AC6][FR-010-AC7][E2E-02] 06 `만들기` �
 }) => {
   await gotoReady(page, "/workflows");
   await floorHeader(page, WORKFLOW).getByRole("button", { name: "만들기", exact: true }).click();
-  const form = page.getByTestId("agent-form-dialog");
+  const form = page.locator('[data-wf="06-1"]');
   await expect(form).toBeVisible();
 
   await form.getByLabel("이름 (name)", { exact: true }).fill(NEW_AGENT);
   await form.getByLabel("설명 (description)", { exact: true }).fill(NEW_AGENT_DESCRIPTION);
-  await form.getByRole("radio", { name: "팀원", exact: true }).check();
+  await choose(form.getByRole("radio", { name: "팀원", exact: true }));
   // FR-010-AC2 `직접 선택` + 체크박스 + `기타` 직접 입력(쉼표 구분)
-  await form.getByRole("radio", { name: "직접 선택", exact: true }).check();
-  await form.getByRole("checkbox", { name: "Read", exact: true }).check();
-  await form.getByRole("checkbox", { name: "Edit", exact: true }).check();
-  await form.getByLabel("기타", { exact: true }).fill("NotebookEdit");
+  await choose(form.getByRole("radio", { name: "직접 선택", exact: true }));
+  await choose(form.getByRole("checkbox", { name: "Read", exact: true }));
+  await choose(form.getByRole("checkbox", { name: "Edit", exact: true }));
+  await choose(form.getByRole("checkbox", { name: "기타", exact: true }));
+  await form.getByLabel("기타 도구", { exact: true }).fill("NotebookEdit");
   await form.getByLabel("지침 (본문 = 시스템 프롬프트)", { exact: true }).fill(NEW_AGENT_BODY);
   await form.getByRole("button", { name: "저장", exact: true }).click();
 

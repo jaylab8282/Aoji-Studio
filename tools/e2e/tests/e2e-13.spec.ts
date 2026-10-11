@@ -1,772 +1,643 @@
-// E2E-13 스크린샷 + 화면 대조 산출물 (architecture.md §8.2 E2E-13 행, DoD "화면 대조").
-// fixture: `project-showcase` + `tools/replay/scenarios/showcase.jsonl` 22줄 재생.
-// 검증 ID: DoD 화면 대조(리뷰어). 추가로 tasks.md T-024 `추가` 절의 이연 Minor를 실측한다
-//   - T-015 m5·m1 책상 가로·세로 pitch 실측 (토큰 값은 바꾸지 않는다 — architect 판단 영역)
-//   - T-015 m6 13자 이름 열 번짐 실측
-//   - D-032 04-4 변형(hook 미설정 03) 캡처를 공식 산출물에 포함
-//   - T-FIX-03 m4 기본 캡처 뷰포트 1440×1024 고정 (`playwright.config.ts`는 고치지 않는다)
-//   - T-024 Minor 4 01 문서 높이·사이드바 하단 `수집 상태` 카드의 프레임 내부 여부 실측 (ADR-46 C)
-//   - T-024 Minor 6 13자 이름 칩 + **상태 줄**(`작업 중 · 부모 <라벨>`) 열 번짐 실측
-//   - T-FIX-12 span-1 열(4열)에 부모 접미가 붙은 책상을 **나란히 두 개 실제로 놓고** 상태 줄 clamp를
-//     실측한다(ADR-50 B. 투영값이 아니라 실측 — `scenarios/span1-status-clamp.jsonl` 재생)
+// E2E-13 화면 대조 캡처 + 영역·배치 판정 (architecture.md §8.4, ui-spec "화면 대조 상태 표", ADR-75).
 //
-// 재생 줄 ↔ 화면 상태의 근거는 `tools/replay/scenarios/README.md`의 showcase.jsonl 22줄 대응표다.
-// 잘못된 상태를 보면 단언이 무의미하므로 **대응표대로의 상태를 먼저 단언**한다.
+// 앱 화면 20개 × 1920×1080·1440×810·1080×1920 = 60장을 `tools/e2e/screenshots/<원본 이름>@<W>x<H>.png`로 저장한다
+// (`docs/ui/screens/`의 원본 PNG와 같은 이름 — 나란히 비교). 00 사이드 탭은 앱 화면이 아니라 상태 모음 보드라
+// 캡처하지 않고, 다른 캡처의 `NAV`·`NAV-3`·`NAV-3R` 영역을 대조한다. 같은 순간에 그 화면의 `data-wf` 영역이
+// 모두 있고 보이는지, ui-spec "크기별 배치 차이" 수치(±1px)가 맞는지 자동 판정한다. 판정이 어긋나면 테스트 실패다.
 //
-// T-R3-05: 기준 이미지(`docs/ui/screens/01-home.png` 등)가 디자인 확정본 가져오기 때 삭제돼(final D-F21)
-// `captureFrame` 호출 4곳과 `captureFrame`·`pngSize`·`REFERENCE_DIR` 도우미를 지웠다. 기능 단언은 그대로다.
-// 화면 대조 캡처는 T-R3-21이 새 기준으로 다시 정의한다.
+// 실행 단위(fixture가 다른 시나리오라 실행을 나눈다. 모든 describe 제목에 fixture 이름이 들어 있다):
+//   배치 3  E2E_FIXTURE=project-no-agents-dir npx playwright test tests/e2e-06.spec.ts tests/e2e-13.spec.ts --grep "project-no-agents-dir"
+//   배치 4  E2E_FIXTURE=project-format-errors npx playwright test tests/e2e-06.spec.ts tests/e2e-13.spec.ts --grep "project-format-errors"
+//   배치 7  E2E_FIXTURE=project-configured npx playwright test tests/e2e-05.spec.ts tests/e2e-13.spec.ts --grep "E2E-05|project-configured 04-3"
+//   배치 8  E2E_FIXTURE=project-showcase npx playwright test tests/e2e-13.spec.ts tests/e2e-16.spec.ts tests/e2e-16z-e2e13-state-changes.spec.ts --grep "project-showcase"
+//   배치 11 E2E_FIXTURE=project-basic npx playwright test tests/e2e-13.spec.ts --grep "project-basic"
+// 배치 8의 캡처 순서는 ui-spec "배치별 캡처 순서" 표 그대로다: 이 파일이 순서 1~8, e2e-16.spec.ts가 순서 9(E2E-16),
+// e2e-16z-e2e13-state-changes.spec.ts가 상태를 바꾸는 순서 10~14다(파일 이름순 실행).
 //
-// 목킹 없음: 실제 컨테이너·실제 재생 도구·실제 fixture 파일만 쓴다(conventions.md §8).
-import { join } from "node:path";
+// 목킹 없음: 실제 컨테이너·재생 도구·fixture 파일만 쓴다. 유일한 예외는 04-2(첫 로딩)로, `/api/state`·`/api/stream`
+// 요청의 `route.continue()`를 늦출 뿐 응답을 바꾸지 않는다(ADR-75 6, conventions §8).
+import { chmodSync, statSync } from "node:fs";
 
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Route } from "@playwright/test";
 
-import { readE2eState } from "../lib/e2e-state";
-import { SCENARIOS_DIR, replayScenarioLines, scenarioLines } from "../lib/replay";
+import { replayScenarioLines, scenarioLines } from "../lib/replay";
+import { containerStatus, ensureUnpaused, pauseContainer } from "./container-helpers";
+import {
+  captureBaseSizes,
+  expectDialogWidth,
+  expectFloorLayout,
+  expectHomeLayout,
+  expectNavWidth,
+  expectOfficeLayout,
+  expectRegionsVisible,
+  expectSettingsLayout,
+  navRegions,
+  preloadFonts,
+  sizeLabel,
+} from "./screen-helpers";
+import {
+  AGENT_COUNT,
+  DEV,
+  DEV_LEAD,
+  HOME_REGIONS,
+  IDLE_COUNT,
+  OUTSIDE_COUNT,
+  RUNNING_COUNT,
+  SETTINGS_REGIONS,
+  SHOWCASE_LINE_COUNT,
+  SHOWCASE_SCENARIO,
+  SKILL_COUNT,
+  WAITING_COUNT,
+  WORKFLOWS_REGIONS,
+  WORKFLOW_COUNT,
+  assertFixture,
+  check,
+  detailRegions,
+  fetchLive,
+  hookSettingsJson,
+  settingsFile,
+  sidebarChip,
+} from "./showcase-helpers";
 import {
   PIXEL_FILL,
   SETUP_REFLECT_TIMEOUT_MS,
-  agentFile,
-  agentFileContent,
+  addWorkflowViaUi,
+  choose,
   fixturePath,
+  floorHeader,
   gotoReady,
   panelRowValue,
   readFixtureFile,
-  removeFixturePath,
   spriteBox,
   spriteScreenFill,
   spriteShirtFill,
   spriteSvg,
-  teamFile,
   writeFixtureFile,
 } from "./ui-helpers";
 
-/** `tools/replay/scenarios/README.md` showcase.jsonl 대응표의 줄 수. */
-const SHOWCASE_LINE_COUNT = 22;
-const SHOWCASE_SCENARIO = join(SCENARIOS_DIR, "showcase.jsonl");
+// ── 배치 8 — project-showcase 순서 1~8 ───────────────────────────────────────────────────
 
-/**
- * span-1 층(4열)에 부모 접미가 붙은 책상을 **나란히 두 개** 만드는 재생(T-FIX-12, ADR-50 B).
- * `showcase.jsonl`은 22줄 대응표·줄 수 단언·기준 캡처가 걸려 있어 고치지 않고 파일을 따로 둔다
- * (줄별 대응표는 `scenarios/README.md`의 span1-status-clamp 절).
- */
-const SPAN1_CLAMP_SCENARIO = join(SCENARIOS_DIR, "span1-status-clamp.jsonl");
-const SPAN1_CLAMP_LINE_COUNT = 8;
+test.describe("[E2E-13] project-showcase 배치 8 순서 1~8 — 01·02·03 상태 단언과 20화면 대조 캡처 일부", () => {
+  test.use({ reducedMotion: "reduce" });
+  test.describe.configure({ mode: "serial" });
 
-/**
- * 03 오피스 하단 `동작 매핑` 범례 문구(`docs/ui-spec.md` SCR-03 요소 표 원문 그대로).
- * 03 캡처 프레임보다 아래에 있어 캡처로는 보이지 않으므로 DOM으로 단언한다(T-024 리뷰 Minor 5).
- */
-const OFFICE_LEGEND_TITLE = "동작 매핑";
-const OFFICE_LEGEND_ITEMS = [
-  "타이핑 = Edit·Write",
-  "읽기 = Read·Grep·Glob",
-  "주황 말풍선 = 권한 요청",
-  "회색 = 대기",
-  "작은 캐릭터 = 서브에이전트",
-];
+  test.beforeAll(() => {
+    assertFixture("project-showcase");
+    expect(
+      scenarioLines(SHOWCASE_SCENARIO).length,
+      "showcase.jsonl 줄 수가 scenarios/README.md 대응표와 다릅니다",
+    ).toBe(SHOWCASE_LINE_COUNT);
 
-/** 03 선택 패널 각주 2줄(`docs/ui-spec.md` SCR-03 요소 표 원문. 두 번째 줄은 `workflow.lead`로 끝난다). */
-const PANEL_FOOTNOTE_TRASH = "제거 = 휴지통(.aojistudio/trash/)으로 이동 · 원문 로그 보기 없음";
-function panelFootnoteTerminal(lead: string): string {
-  return `작업 지시는 상단 팀장 호출로 연 터미널에서 직접 한다 · claude --agent ${lead}`;
-}
-
-/** 02 책상 칸 폭(`auto-fill 100px`, ui-spec SCR-02). 이름 줄은 이 폭, 상태 줄은 `STATUS_MAX_WIDTH`까지다. */
-const COLUMN_PITCH = 100;
-const STATUS_MAX_WIDTH = 96;
-
-/** `project-showcase` fixture 실물 수치. 값이 바뀌면 이 spec의 단언 근거가 깨진다. */
-const AGENT_COUNT = 17;
-const SKILL_COUNT = 2;
-const WORKFLOW_COUNT = 4;
-
-/** showcase.jsonl 22줄 재생 뒤의 상태 집계(대응표에서 도출). */
-const RUNNING_COUNT = 6;
-const WAITING_COUNT = 1;
-const IDLE_COUNT = 10;
-
-const DEV_TEAM = "dev-team";
-const SETTINGS_FILE_SEGMENTS = [".claude", "settings.json"] as const;
-
-/** FR-003-AC9 12종(architecture.md §7.1). 07 `설정 예시 복사`가 만드는 hook 설정과 같은 목록이다. */
-const HOOK_EVENT_NAMES = [
-  "SessionStart",
-  "SessionEnd",
-  "UserPromptSubmit",
-  "Stop",
-  "PreToolUse",
-  "PostToolUse",
-  "PostToolUseFailure",
-  "PermissionRequest",
-  "PermissionDenied",
-  "Notification",
-  "SubagentStart",
-  "SubagentStop",
-];
-
-/**
- * 수집 주소·토큰이 맞는 hook 설정(architecture.md §7.1 형태).
- *
- * fixture 원본의 `settings.json`은 운영 포트·placeholder 토큰을 하드코딩하고 있어 E2E 컨테이너에서는
- * `hook 설정 안 됨`이 된다(fixture의 성질. 팀장 확인 D-052). 공식 캡처는 `hook 설정됨` 화면이어야 하므로
- * **마운트된 임시 사본의** settings.json을 상태 파일의 주소·토큰으로 다시 쓴다(원본 fixture는 건드리지 않는다).
- */
-function hookSettingsJson(): string {
-  const state = readE2eState();
-  const hook = {
-    type: "http",
-    url: `${state.baseUrl}/hooks/events`,
-    headers: { "X-AojiStudio-Collect-Token": state.collectToken },
-    timeout: 3,
-  };
-  const hooks: Record<string, unknown> = {};
-  for (const eventName of HOOK_EVENT_NAMES) {
-    hooks[eventName] = [{ hooks: [hook] }];
-  }
-  return `${JSON.stringify({ hooks }, null, 2)}\n`;
-}
-
-function settingsFile(): string {
-  return fixturePath(...SETTINGS_FILE_SEGMENTS);
-}
-
-// ── 02 책상 격자 실측 (T-015 m5·m1·m6) ────────────────────────────────────────────
-
-interface DeskMetric {
-  name: string;
-  label: string;
-  /** 책상 SVG(46px 고정)의 중심. 열 중앙 정렬이므로 중심 간 거리가 곧 열 pitch다. */
-  centerX: number;
-  centerY: number;
-  /**
-   * 이름 칩에 **그려진 글자**의 좌·우 끝과 폭(요소 상자가 아니라 글자 범위 — `paintExtent` 참고).
-   * 열 번짐·가림 판정에 쓴다.
-   */
-  labelLeft: number;
-  labelRight: number;
-  labelWidth: number;
-  /**
-   * 상태 줄(`Desk.tsx` 마지막 줄 `작업 중`/`대기`/`작업 중 · 부모 <라벨>`)의 문구와 좌·우 끝·폭.
-   * 같은 책상에서 이름 칩(12자 + `…`로 제한)보다 **넓어질 수 있는 유일한 요소**라 번짐 판정에 함께 쓴다
-   * (T-024 리뷰 Minor 6).
-   */
-  statusText: string;
-  /**
-   * 상태 줄에 **그려진 글자**의 좌·우 끝과 폭. 요소 상자가 아니라 눈에 보이는 글자 범위다
-   * (clamp가 걸리면 칸 폭에서 잘린 뒤의 범위 — `paintExtent` 참고). ADR-50 B로 상태 줄 상자가 항상
-   * 칸 폭과 같아졌으므로 **상자로 재면 겹침 판정이 공허해진다**: 가림은 글자 범위로만 판정한다.
-   */
-  statusLeft: number;
-  statusRight: number;
-  statusWidth: number;
-  /**
-   * 상태 줄의 `title` 속성. 부모 접미가 있을 때만 전체 문구가 들어간다(ADR-50 B).
-   * 공용 `Tooltip` 래퍼가 아니라 **같은 요소의 네이티브 속성**이어야 clamp 기준 폭이 유지된다.
-   */
-  statusTitle: string | null;
-  /** 상태 줄의 레이아웃 폭(`clientWidth`)과 잘리지 않은 글자 폭(`scrollWidth`). 둘이 다르면 clamp가 걸린 것이다. */
-  statusClientWidth: number;
-  statusScrollWidth: number;
-}
-
-/** 층 카드 안 책상들의 실측값(DOM 순서 = FR-006-AC1 정렬 순서). */
-async function deskMetrics(page: Page, workflowName: string): Promise<DeskMetric[]> {
-  return page
-    .getByRole("heading", { level: 3, name: workflowName, exact: true })
-    .evaluate((heading) => {
-      // h3 → 헤더 행 1줄 → 헤더 div → 층 카드
-      const card = heading.parentElement?.parentElement?.parentElement;
-      if (card === null || card === undefined) return [];
-      /**
-       * 요소에 **그려진 글자**의 가로 범위. 요소 상자를 쓰지 않는 이유: ADR-50 B로 두 글자 줄의 상자가
-       * 항상 칸 폭과 같아져 상자 기준 겹침 판정이 공허해진다. 글자 범위는 `Range`로 재고, 자기 자신이나
-       * 조상이 가로로 잘라내면(`overflow-x: hidden` = clamp) 그 상자들과 교차시켜 **눈에 보이는 범위**만
-       * 남긴다(clamp를 어느 층에 걸든 같은 값이 나온다).
-       */
-      const paintExtent = (element: Element | null): { left: number; right: number; width: number } => {
-        if (element === null) return { left: 0, right: 0, width: 0 };
-        const range = document.createRange();
-        range.selectNodeContents(element);
-        const textBox = range.getBoundingClientRect();
-        range.detach();
-        let left = textBox.left;
-        let right = textBox.right;
-        for (let node: Element | null = element; node !== null; node = node.parentElement) {
-          if (getComputedStyle(node).overflowX !== "hidden") continue;
-          const clip = node.getBoundingClientRect();
-          left = Math.max(left, clip.left);
-          right = Math.min(right, clip.right);
-        }
-        return { left, right, width: Math.max(0, right - left) };
-      };
-      return [...card.querySelectorAll("svg[data-testid='pixel-char']")].map((svg) => {
-        const box = svg.getBoundingClientRect();
-        const root = svg.parentElement;
-        const labelSpan = root?.querySelector("span[title]") ?? null;
-        const labelRect = paintExtent(labelSpan);
-        // 상태 줄은 책상 묶음(`Desk`)의 마지막 자식 span이다. 선택 결과는 호출하는 쪽에서
-        // `statusText`로 검증한다(구조가 바뀌면 빈 문구로 드러난다).
-        const statusSpan = root?.lastElementChild ?? null;
-        const statusRect = paintExtent(statusSpan);
-        return {
-          name: root?.getAttribute("data-agent-name") ?? "",
-          label: labelSpan?.textContent ?? "",
-          centerX: box.left + box.width / 2,
-          centerY: box.top + box.height / 2,
-          labelLeft: labelRect.left,
-          labelRight: labelRect.right,
-          labelWidth: labelRect.width,
-          statusText: statusSpan?.textContent ?? "",
-          statusLeft: statusRect.left,
-          statusRight: statusRect.right,
-          statusWidth: statusRect.width,
-          statusTitle: statusSpan?.getAttribute("title") ?? null,
-          statusClientWidth: statusSpan?.clientWidth ?? 0,
-          statusScrollWidth: statusSpan?.scrollWidth ?? 0,
-        };
-      });
-    });
-}
-
-function round2(value: number): number {
-  return Math.round(value * 100) / 100;
-}
-
-/** 같은 줄(중심 y가 같은) 책상들의 묶음. 번짐·겹침은 줄 안에서만 일어난다. */
-function rows(desks: DeskMetric[]): DeskMetric[][] {
-  const grouped: DeskMetric[][] = [];
-  for (const desk of desks) {
-    const row = grouped.find((candidate) => Math.abs((candidate[0] as DeskMetric).centerY - desk.centerY) < 2);
-    if (row === undefined) {
-      grouped.push([desk]);
-    } else {
-      row.push(desk);
-    }
-  }
-  return grouped;
-}
-
-/**
- * 같은 줄에서 상태 줄끼리 겹치는 쌍(요소 가림 판정 — `docs/ui/README.md` "요소 가림은 결함").
- * ADR-48 C가 면제한 것은 pitch 수치뿐이고 번짐·가림은 그대로 결함 기준이다(T-024 리뷰 Minor 6).
- */
-function statusOverlaps(desks: DeskMetric[]): string[] {
-  const found: string[] = [];
-  for (const row of rows(desks)) {
-    for (let index = 1; index < row.length; index += 1) {
-      const left = row[index - 1] as DeskMetric;
-      const right = row[index] as DeskMetric;
-      if (left.statusRight > right.statusLeft) {
-        found.push(`${left.name}↔${right.name} ${round2(left.statusRight - right.statusLeft)}px`);
-      }
-    }
-  }
-  return found;
-}
-
-/** 상태 줄 문구 형식(`lib/text.ts agentStatusWithParent`). 선택자가 엉뚱한 요소를 잡으면 여기서 드러난다. */
-const STATUS_LINE_PATTERN = /^(작업 중|권한 대기|대기)( · 부모 .+)?$/;
-
-// ── 화면 조회 도우미 ──────────────────────────────────────────────────────────────
-
-function sidebar(page: Page): Locator {
-  return page.getByRole("complementary", { name: "주 메뉴" });
-}
-
-function floorCardByName(page: Page, workflowName: string): Locator {
-  return page
-    .getByRole("heading", { level: 3, name: workflowName, exact: true })
-    .locator("xpath=../../..");
-}
-
-async function featuredCardNames(page: Page): Promise<string[]> {
-  return page
-    .locator("a", { hasText: "워크플로우 보기" })
-    .evaluateAll((elements) => elements.map((element) => element.querySelector("h3")?.textContent ?? ""));
-}
-
-test.describe.configure({ mode: "serial" });
-
-let originalSettings = "";
-
-test.beforeAll(() => {
-  expect(
-    scenarioLines(SHOWCASE_SCENARIO).length,
-    "showcase.jsonl 줄 수가 scenarios/README.md 대응표(22줄)와 다릅니다",
-  ).toBe(SHOWCASE_LINE_COUNT);
-
-  originalSettings = readFixtureFile(settingsFile());
-  // 공식 캡처는 `hook 설정됨` 화면이어야 한다(D-052).
-  writeFixtureFile(settingsFile(), hookSettingsJson());
-
-  const result = replayScenarioLines({
-    scenarioPath: SHOWCASE_SCENARIO,
-    from: 1,
-    to: SHOWCASE_LINE_COUNT,
-  });
-  expect(result.sent).toBe(SHOWCASE_LINE_COUNT);
-});
-
-test.afterAll(() => {
-  // fixture 임시 사본을 원래대로 돌린다(같은 배치에 다른 spec이 들어와도 전제가 깨지지 않게).
-  writeFixtureFile(settingsFile(), originalSettings);
-});
-
-test("[DoD 화면 대조][E2E-13] 01 홈 — showcase 22줄 재생 상태를 단언한다", async ({
-  page,
-}) => {
-  await gotoReady(page, "/");
-
-  // hook 설정이 인식됐다(사이드바 탭 + KPI 4).
-  await expect(sidebar(page).getByText("hook 설정됨", { exact: true })).toBeVisible({
-    timeout: SETUP_REFLECT_TIMEOUT_MS,
-  });
-
-  // KPI 1·2·3 (FR-005-AC1·AC2): 실행 중 6 / 17, 에이전트 17, 스킬 2.
-  // `/ 전체`는 수치와 다른 요소(D-125 이후 KPI 1 두 요소)라 각각 단언한다.
-  await expect(page.getByTestId("kpi-running-value")).toHaveText(String(RUNNING_COUNT));
-  await expect(page.getByTestId("kpi-running-total")).toHaveText(`/ ${AGENT_COUNT}`);
-  await expect(page.getByTestId("kpi-running-sub")).toHaveText(
-    `권한·입력 대기 ${WAITING_COUNT} · hook 이벤트 기준`,
-  );
-  await expect(page.getByText(".claude/agents 정의 파일", { exact: true })).toBeVisible();
-  await expect(page.getByText(".claude/skills 스킬 폴더", { exact: true })).toBeVisible();
-
-  // 상태 막대 범례 3상태 합 = 에이전트 수.
-  await expect(page.getByText(`작업 중 ${RUNNING_COUNT}`, { exact: true })).toBeVisible();
-  await expect(page.getByText(`권한·입력 대기 ${WAITING_COUNT}`, { exact: true })).toBeVisible();
-  await expect(page.getByText(`대기 ${IDLE_COUNT}`, { exact: true })).toBeVisible();
-  expect(RUNNING_COUNT + WAITING_COUNT + IDLE_COUNT).toBe(AGENT_COUNT);
-
-  // 대표 워크플로우 3장: 활성(실행 중·권한 대기 있음) 워크플로우가 앞이고, 마지막은 이벤트가 있는 ops-team이다
-  // (video-team은 이벤트가 전혀 없어 마지막 순위 — scenarios/README.md showcase 절).
-  const featured = await featuredCardNames(page);
-  expect(featured).toHaveLength(3);
-  expect(new Set(featured.slice(0, 2))).toEqual(new Set([DEV_TEAM, "mkt-team"]));
-  expect(featured[2]).toBe("ops-team");
-
-  // 실시간 이벤트: 재생한 22건 + 연결 표시 + 마스킹(FR-005-AC6·AC8, FR-015-AC1).
-  await expect(
-    page.getByText("최근 50개 · 최신순", { exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText("실시간 연결됨", { exact: true })).toBeVisible();
-  await expect(page.getByText("export TOKEN=••••••••", { exact: true })).toBeVisible();
-  await expect(
-    page.getByText("token·key·password 같은 민감 값은 ••••••••로 가립니다", { exact: true }),
-  ).toBeVisible();
-
-});
-
-test("[DoD 화면 대조][E2E-13] 02 워크플로우 층 뷰 — 로비 2세션·층 4개 상태를 단언한다", async ({
-  page,
-}) => {
-  await gotoReady(page, "/workflows");
-
-  // 요약 줄·범례(fixture 실물 + 재생 결과).
-  await expect(
-    page.getByText(
-      `에이전트 ${AGENT_COUNT} · 스킬 ${SKILL_COUNT} · 워크플로우 ${WORKFLOW_COUNT}`,
-      { exact: true },
-    ),
-  ).toBeVisible();
-  await expect(page.getByText("워크플로우 밖 에이전트 0 · 가져오기", { exact: true })).toBeVisible();
-
-  // 로비 2세션(대응표 1~4줄). 로비 waiting은 `입력 대기` 표기다(ui-spec.md SCR-02 로비 행).
-  const lobby = page.locator("section").filter({ hasText: "로비 · 메인 세션" });
-  await expect(lobby.getByText("[세션 1] · 작업 중", { exact: true })).toBeVisible();
-  await expect(lobby.getByText("[세션 2] · 입력 대기", { exact: true })).toBeVisible();
-
-  // 층 4개 순서(이름 오름차순)와 각 층 헤더 요약(FR-006-AC5).
-  const floorNames = await page
-    .getByRole("heading", { level: 3 })
-    .evaluateAll((elements) => elements.map((element) => element.textContent ?? ""));
-  expect(floorNames).toEqual([DEV_TEAM, "mkt-team", "ops-team", "video-team"]);
-
-  await expect(floorCardByName(page, DEV_TEAM).getByText("8명", { exact: true })).toBeVisible();
-  await expect(
-    floorCardByName(page, DEV_TEAM).getByText("실행 중 4명 · 권한 대기 1명", { exact: true }),
-  ).toBeVisible();
-  await expect(floorCardByName(page, "mkt-team").getByText("실행 중 2명", { exact: true })).toBeVisible();
-  // 팀장 없는 층(ops-team): 요약 자리 `팀장 없음` + 경고 줄(FR-006-AC3).
-  await expect(floorCardByName(page, "ops-team").getByText("팀장 없음", { exact: true })).toBeVisible();
-  await expect(
-    floorCardByName(page, "ops-team").getByText("팀장이 없습니다 · 팀장을 만들거나 가져오세요", {
-      exact: true,
-    }),
-  ).toBeVisible();
-  await expect(floorCardByName(page, "video-team").getByText("모두 대기", { exact: true })).toBeVisible();
-
-  // 정의 있는 서브에이전트는 02 책상에서도 부모 접미가 붙는다(대응표 14줄, FR-007-AC3).
-  await expect(
-    spriteBox(page, "dev-07").getByText(`작업 중 · 부모 ${"dev-lead"}`, { exact: true }),
-  ).toBeVisible();
-
-});
-
-test("[DoD 화면 대조][E2E-13] 03 픽셀 오피스 — 말풍선·부모·작은 캐릭터를 단언한다", async ({
-  page,
-}) => {
-  await gotoReady(page, `/workflows/${DEV_TEAM}`);
-
-  // 04-4 배너는 없다(hook 설정됨 + 이벤트 수신 이력 있음).
-  await expect(page.getByRole("status").filter({ hasText: "hook 이벤트 수신 없음" })).toHaveCount(0);
-
-  // 헤더: 수치 + 칩(권한 대기 우선, FR-007-AC9) + 팀장.
-  await expect(
-    page.locator("main").first().getByText(`에이전트 8 · 스킬 ${SKILL_COUNT}`, { exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText(`권한 대기 ${WAITING_COUNT}명`, { exact: true })).toBeVisible();
-
-  // 오피스 칸 순서: 팀장 첫 자리 → 정의 없는 서브에이전트는 부모 바로 다음 칸(FR-007-AC3, ADR-28).
-  const officeNames = await page
-    .locator(".office-grid svg[data-testid='pixel-char']")
-    .evaluateAll((elements) => elements.map((element) => element.parentElement?.getAttribute("data-agent-name") ?? ""));
-  expect(officeNames).toEqual([
-    "dev-lead",
-    "Explore",
-    "dev-02",
-    "dev-03",
-    "dev-04",
-    "dev-05",
-    "dev-06",
-    "dev-07",
-    "dev-08",
-  ]);
-
-  // 말풍선(대응표 5~16줄, FR-007-AC2).
-  await expect(spriteBox(page, "dev-lead").getByText("타이핑 · Edit", { exact: true })).toBeVisible();
-  await expect(spriteBox(page, "dev-02").getByText("읽기 · Read", { exact: true })).toBeVisible();
-  await expect(spriteBox(page, "dev-03").getByText("권한 요청", { exact: true })).toBeVisible();
-  await expect(spriteBox(page, "dev-05").getByText("Bash", { exact: true })).toBeVisible();
-  await expect(spriteBox(page, "dev-04").getByText("대기", { exact: true }).first()).toBeVisible();
-  // 정의 있는/없는 서브에이전트의 부모 접미.
-  await expect(spriteBox(page, "dev-07").getByText("작업 중 · 부모 dev-lead", { exact: true })).toBeVisible();
-  await expect(spriteBox(page, "Explore").getByText("작업 중 · 부모 dev-lead", { exact: true })).toBeVisible();
-
-  // 기본 선택 = 팀장(FR-007-AC4) + 패널 값(FR-007-AC5).
-  await expect(panelRowValue(page, "상태")).toHaveText("작업 중");
-  await expect(panelRowValue(page, "현재 도구")).toHaveText("Edit · .claude/agents/dev-lead.md");
-
-  // 오피스 하단 `동작 매핑` 범례와 패널 각주 2줄 — 03 캡처 프레임보다 아래에 있어 캡처로는 확인할 수
-  // 없지만 DOM에는 있어야 한다(ui-spec.md SCR-03 요소 표. T-024 리뷰 Minor 5).
-  const officeLegend = page.getByText(OFFICE_LEGEND_TITLE, { exact: true }).locator("..");
-  await expect(officeLegend).toBeVisible();
-  for (const item of OFFICE_LEGEND_ITEMS) {
-    await expect(officeLegend.getByText(item, { exact: true })).toBeVisible();
-  }
-  await expect(page.getByText(PANEL_FOOTNOTE_TRASH, { exact: true })).toBeVisible();
-  await expect(
-    page.locator("p").filter({ hasText: panelFootnoteTerminal("dev-lead") }),
-  ).toBeVisible();
-
-});
-
-test("[DoD 화면 대조][E2E-13][D-032] 03 04-4 변형 — hook 설정을 지운 03의 04-4 표시를 단언한다", async ({
-  page,
-}) => {
-  try {
-    await gotoReady(page, `/workflows/${DEV_TEAM}`);
-    const collectorBanner = page.getByRole("status").filter({ hasText: "hook 이벤트 수신 없음" });
-    await expect(collectorBanner).toHaveCount(0);
-
-    // hook 항목을 지우면 `!registry.hookConfigured` → 04-4 표시 조건이 된다(FR-007-E1).
-    writeFixtureFile(settingsFile(), "{}\n");
-    await expect(collectorBanner).toBeVisible({ timeout: SETUP_REFLECT_TIMEOUT_MS });
-    await expect(collectorBanner.locator("p").first()).toHaveText(
-      /^hook 이벤트 수신 없음 · 마지막 수신 \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/,
-    );
-    await expect(collectorBanner).toContainText(
-      "Claude Code 미실행 또는 컨테이너 재시작 · 캐릭터는 모두 회색 대기",
-    );
-
-    // ADR-17 표시 고정: 캐릭터·상태 글자·패널 상태는 모두 `대기`, 현재 도구는 `-`.
-    await expect(spriteBox(page, "dev-lead").getByText("대기", { exact: true })).toHaveCount(2);
-    await expect(spriteBox(page, "dev-07").getByText("대기", { exact: true })).toHaveCount(2);
-    // 셔츠·모니터도 대기색이어야 한다(ui-spec.md SCR-04-4 "캐릭터 모두 회색 대기"). 캡처가 이 상태임을 증명한다.
-    // 재생 결과 실제 상태가 running/waiting인 캐릭터와 정의 없는 서브에이전트를 함께 확인한다.
-    for (const name of ["dev-lead", "dev-02", "dev-03", "dev-05", "dev-07", "Explore"]) {
-      expect(await spriteShirtFill(page, name), `${name} 셔츠 색`).toBe(PIXEL_FILL.shirtIdle);
-      expect(await spriteScreenFill(page, name), `${name} 모니터 색`).toBe(PIXEL_FILL.screenIdle);
-    }
-    await expect(panelRowValue(page, "상태")).toHaveText("대기");
-    await expect(panelRowValue(page, "현재 도구")).toHaveText("-");
-    // ADR-27 고정 비대상: 헤더 칩은 실제 live 값이라 그대로 `권한 대기 1명`이다.
-    await expect(page.getByText(`권한 대기 ${WAITING_COUNT}명`, { exact: true })).toBeVisible();
-  } finally {
+    // 공식 캡처는 `hook 설정됨` 화면이어야 한다(D-052).
     writeFixtureFile(settingsFile(), hookSettingsJson());
-  }
 
-  // 되돌렸는지 화면으로 확인한다.
-  await gotoReady(page, `/workflows/${DEV_TEAM}`);
-  await expect(page.getByRole("status").filter({ hasText: "hook 이벤트 수신 없음" })).toHaveCount(0, {
-    timeout: SETUP_REFLECT_TIMEOUT_MS,
+    const result = replayScenarioLines({ scenarioPath: SHOWCASE_SCENARIO, from: 1, to: SHOWCASE_LINE_COUNT });
+    expect(result.sent).toBe(SHOWCASE_LINE_COUNT);
   });
-});
 
+  test("[E2E-13][FR-005-AC1][FR-005-AC2][FR-005-AC3][FR-005-AC6][FR-015-AC1][NFR-11] 순서 1 — 01-home: 상태 단언 + 3크기 캡처 + 영역·배치 판정", async ({
+    page,
+  }) => {
+    await gotoReady(page, "/");
 
-test("[E2E-13][T-015 m6][FR-006-AC4] 13자 이름을 보통 층 첫 줄 두 번째 칸(책상 칸 100px)에 놓고 이웃 칸 번짐·겹침을 확인한다", async ({
-  page,
-}) => {
-  // 기준 폭은 책상 칸 100px(이름 줄 100, 상태 줄 최대 96). 보통 층(video-team)과 넓은 층(dev-team) 모두 확인한다.
-  const SPAN1_TEAM = "video-team";
-  const LONG_NAME = "vid-longname1"; // 13자 — FR-006-AC4 경계(12자 초과 → 12자 + …)
-  const originalVideoTeam = readFixtureFile(teamFile(SPAN1_TEAM));
-  expect(LONG_NAME).toHaveLength(13);
+    // hook 설정이 인식됐다(사이드 탭 수집 상자 + KPI 4).
+    await expect(sidebarChip(page, "hook 설정됨")).toBeVisible({ timeout: SETUP_REFLECT_TIMEOUT_MS });
 
-  try {
-    await gotoReady(page, "/workflows");
+    // KPI 1·2·3 (FR-005-AC1·AC2): 실행 중 7 / 21, 에이전트 21, 스킬 12.
+    await expect(page.getByTestId("kpi-running-value")).toHaveText(String(RUNNING_COUNT));
+    await expect(page.getByTestId("kpi-running-total")).toHaveText(`/ ${AGENT_COUNT}`);
+    await expect(page.getByTestId("kpi-running-sub")).toHaveText(`권한·입력 대기 ${WAITING_COUNT} · hook 이벤트 기준`);
+    await expect(page.getByTestId("kpi-agent-count")).toHaveText(String(AGENT_COUNT));
+    await expect(page.getByTestId("kpi-skill-count")).toHaveText(String(SKILL_COUNT));
 
-    writeFixtureFile(
-      agentFile(LONG_NAME),
-      agentFileContent({
-        name: LONG_NAME,
-        description: "T-024 13자 이름 열 번짐 실측용",
-        body: "측정용.",
+    // 상태 막대 범례 3상태 합 = 에이전트 수.
+    const legend = page.locator('[data-wf="01-4"]');
+    await expect(legend).toContainText(new RegExp(`작업 중\\s*${RUNNING_COUNT}`));
+    await expect(legend).toContainText(new RegExp(`권한·입력 대기\\s*${WAITING_COUNT}`));
+    await expect(legend).toContainText(new RegExp(`대기\\s*${IDLE_COUNT}(?!\\d)`));
+    expect(RUNNING_COUNT + WAITING_COUNT + IDLE_COUNT).toBe(AGENT_COUNT);
+
+    // 대표 워크플로우 3장(FR-005-AC3): 활성(실행 중·권한 대기 있음) 워크플로우가 앞, 마지막은 이벤트가 있는 모두 대기 층.
+    // `영상제작부서`는 인원 0·이벤트 없음이라 4번째다.
+    const featured = page.locator('[data-wf="01-5"] a');
+    await expect(featured).toHaveCount(3);
+    await expect(featured.locator("h3")).toHaveText([DEV, "디자인부서", "투자부서"]);
+    await expect(featured.nth(0)).toContainText("권한 대기 1명");
+    await expect(featured.nth(1)).toContainText("실행 중 2명");
+    await expect(featured.nth(2)).toContainText("모두 대기");
+
+    // 실시간 이벤트 표: 머리 문구 + 연결 표시 + 행 수 = min(재생 줄 수, 50) + 마스킹(FR-005-AC6, FR-015-AC1).
+    const events = page.locator('[data-wf="01-6"]');
+    await expect(events.getByText("최근 50개 · 최신순", { exact: true })).toBeVisible();
+    await expect(events.getByText("실시간 연결됨", { exact: true })).toBeVisible();
+    await expect(events.locator("tbody tr")).toHaveCount(Math.min(SHOWCASE_LINE_COUNT, 50));
+    await expect(events.getByText("export API_KEY=•••••••• && npm test -- --run", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("token·key·password 같은 민감 값은 ••••••••로 가립니다", { exact: true }),
+    ).toBeVisible();
+
+    const files = await captureBaseSizes(
+      page,
+      "01-home",
+      check(page, "01 홈", HOME_REGIONS, async (size) => {
+        await expectHomeLayout(page, size);
       }),
     );
-    const videoTeam = JSON.parse(originalVideoTeam) as { members: string[] };
-    videoTeam.members = [...videoTeam.members, LONG_NAME].sort();
-    writeFixtureFile(teamFile(SPAN1_TEAM), `${JSON.stringify(videoTeam, null, 2)}\n`);
-    await expect(spriteSvg(page, LONG_NAME)).toBeVisible({ timeout: SETUP_REFLECT_TIMEOUT_MS });
+    expect(files).toHaveLength(3);
+  });
 
-    const desks = await deskMetrics(page, SPAN1_TEAM);
-    expect(desks).toHaveLength(5);
-    // FR-006-AC1: 팀장 첫 자리, 나머지 name 오름차순 → 긴 이름이 첫 줄 두 번째 칸(양쪽에 이웃이 있다).
-    expect(desks.map((desk) => desk.name)).toEqual([
-      "video-lead",
-      LONG_NAME,
-      "video-02",
-      "video-03",
-      "video-04",
+  test("[E2E-13][FR-006-AC1][FR-006-AC2][FR-006-AC5][FR-006-AC9][NFR-11] 순서 2 — 02-workflows: 로비·층 4개 상태 단언 + 3크기 캡처 + 영역·배치 판정", async ({
+    page,
+  }) => {
+    await gotoReady(page, "/workflows");
+
+    // 요약 줄·범례·검색 줄(재생 결과).
+    await expect(page.getByTestId("workflows-counts")).toHaveText(
+      new RegExp(`에이전트\\s*${AGENT_COUNT}\\s*·\\s*스킬\\s*${SKILL_COUNT}\\s*·\\s*워크플로우\\s*${WORKFLOW_COUNT}`),
+    );
+    await expect(
+      page.getByRole("button", { name: `워크플로우 밖 에이전트 ${OUTSIDE_COUNT} · 가져오기`, exact: true }),
+    ).toBeVisible();
+    const filterRow = page.locator('[data-wf="02-3"]');
+    await expect(filterRow).toContainText(new RegExp(`작업 중\\s*${RUNNING_COUNT}`));
+    await expect(filterRow).toContainText(new RegExp(`권한·입력 대기\\s*${WAITING_COUNT}`));
+    await expect(filterRow).toContainText(new RegExp(`대기\\s*${IDLE_COUNT}(?!\\d)`));
+    await expect(filterRow.getByLabel("층 선택")).toContainText(`전체 층 (${WORKFLOW_COUNT}개)`);
+
+    // 로비(FR-006-AC9): 메인 세션 2개 + 워크플로우 밖 에이전트. 로비 waiting 표기(`입력 대기`)는 E2E-04가 단언한다.
+    const lobby = page.locator('[data-wf="02-4"]').getByTestId("lobby-chip");
+    await expect(lobby).toHaveText([/\[세션 1\]\s*·\s*작업 중/, /\[세션 2\]\s*·\s*대기/, /docs-writer\s*·\s*작업 중/]);
+
+    // 층 4개 순서(이름 오름차순)와 각 층 헤더 요약(FR-006-AC5).
+    await expect(page.getByRole("heading", { level: 3 })).toHaveText([DEV, "디자인부서", "영상제작부서", "투자부서"]);
+    const floor = (name: string) => page.locator(`section[data-floor=${JSON.stringify(name)}]`);
+    await expect(floor(DEV)).toContainText("8명");
+    await expect(floor(DEV)).toContainText("실행 중 4명");
+    await expect(floor(DEV)).toContainText("권한 대기 1명");
+    await expect(floor("디자인부서")).toContainText("4명");
+    await expect(floor("디자인부서")).toContainText("실행 중 2명");
+    await expect(floor("투자부서")).toContainText("모두 대기");
+    // 팀장 없는 층(FR-006-AC3): 요약 자리 `팀장 없음` + 경고 줄. 인원 0이라 `삭제`가 활성이다.
+    await expect(floor("영상제작부서")).toContainText("0명");
+    await expect(floor("영상제작부서")).toContainText("팀장 없음");
+    await expect(floor("영상제작부서").locator('[data-wf="02-8"]')).toHaveText(
+      "팀장이 없습니다 · 팀장을 만들거나 가져오세요",
+    );
+    await expect(floorHeader(page, "영상제작부서").getByRole("button", { name: "삭제", exact: true })).toBeEnabled();
+    await expect(floorHeader(page, DEV).getByRole("button", { name: "삭제", exact: true })).toBeDisabled();
+
+    // 정의 있는 서브에이전트는 02 책상에서도 부모 접미가 붙는다(FR-007-AC3).
+    await expect(
+      spriteBox(page, "web-backend-dev").getByText(`작업 중 · 부모 ${DEV_LEAD}`, { exact: true }),
+    ).toBeVisible();
+    await expect(spriteBox(page, "web-security-reviewer")).toContainText(`권한 대기 · 부모 ${DEV_LEAD}`);
+
+    await captureBaseSizes(
+      page,
+      "02-workflows",
+      check(page, "02 워크플로우", [...WORKFLOWS_REGIONS, "02-8"], async (size) => {
+        await expectFloorLayout(page, size, [DEV]);
+      }),
+    );
+  });
+
+  test("[E2E-13][FR-007-AC1][FR-007-AC2][FR-007-AC3][FR-007-AC4][FR-007-AC5][FR-007-AC9][NFR-11] 순서 3 — 03-workflow-detail: 칸·말풍선·패널 단언 + 3크기 캡처 + 영역·배치 판정", async ({
+    page,
+  }) => {
+    await gotoReady(page, `/workflows/${encodeURIComponent(DEV)}`);
+
+    // 04-4 띠는 없다(hook 설정됨 + 이벤트 수신 이력 있음).
+    await expect(page.getByRole("status").filter({ hasText: "hook 이벤트 수신 없음" })).toHaveCount(0);
+
+    // 헤더: 수치 + 칩(권한 대기 우선, FR-007-AC9) + 팀장.
+    await expect(page.getByTestId("workflow-meta")).toHaveText(new RegExp(`에이전트\\s*8\\s*·\\s*스킬\\s*${SKILL_COUNT}`));
+    await expect(page.locator('[data-wf="03-2"]').getByText("권한 대기 1명", { exact: true })).toBeVisible();
+    await expect(page.locator('[data-wf="03-2"]')).toContainText(DEV_LEAD);
+
+    // 오피스 칸 순서: 팀장 첫 자리 → 정의 없는 서브에이전트는 부모 바로 다음 칸 → 나머지 이름순(FR-007-AC1·AC3).
+    const seatNames = await page
+      .locator('[data-wf="03-4"], [data-wf="03-5"]')
+      .evaluateAll((elements) => elements.map((element) => element.getAttribute("data-agent-name")));
+    expect(seatNames).toEqual([
+      DEV_LEAD,
+      "Explore",
+      "web-architect",
+      "web-backend-dev",
+      "web-db-designer",
+      "web-frontend-dev",
+      "web-reviewer",
+      "web-security-reviewer",
+      "web-tester",
     ]);
 
-    const longDesk = desks.find((desk) => desk.name === LONG_NAME) as DeskMetric;
-    // FR-006-AC4: 12자 초과 → 12자 + `…`, 전체 이름은 title로.
-    expect(longDesk.label, "12자 초과 이름이 말줄임되지 않았습니다").toBe(`${LONG_NAME.slice(0, 12)}…`);
-    // 선택자는 이름 span(`span[title][data-clamp]`)으로 좁힌다 — 부모 접미가 붙은 책상은 상태 줄에도
-    // `title`이 생기므로(ADR-50 B) 책상 안 `title` 요소를 세는 선택자는 strict 위반이 된다.
-    // 이 상태의 보통 층에는 접미가 없다(아래 상태 줄 문구 단언이 확인한다).
-    await expect(spriteBox(page, LONG_NAME).locator("span[title][data-clamp]")).toHaveAttribute(
-      "title",
-      LONG_NAME,
-    );
-    // ADR-50 B: 이름 칩도 칸 폭에서 잘린다(ui-spec §공통 `Desk` "두 글자 줄은 그리드 칸 폭을 넘지 않는다").
-    expect(
-      round2(longDesk.labelWidth),
-      "13자 이름 칩이 칸 폭을 넘습니다",
-    ).toBeLessThanOrEqual(COLUMN_PITCH + 1);
+    // 말풍선·상태 글자(FR-007-AC2·AC3).
+    await expect(spriteBox(page, DEV_LEAD).getByText("Agent", { exact: true })).toBeVisible();
+    await expect(spriteBox(page, DEV_LEAD).getByText("작업 중", { exact: true })).toBeVisible();
+    await expect(spriteBox(page, "web-backend-dev").getByText("타이핑 · Edit", { exact: true })).toBeVisible();
+    await expect(spriteBox(page, "web-frontend-dev").getByText("읽기 · Read", { exact: true })).toBeVisible();
+    await expect(spriteBox(page, "web-security-reviewer").getByText("권한 요청", { exact: true })).toBeVisible();
+    await expect(spriteBox(page, "web-tester").getByText("Bash", { exact: true })).toBeVisible();
+    await expect(spriteBox(page, "Explore").getByText("읽기 · Grep", { exact: true })).toBeVisible();
+    await expect(spriteBox(page, "web-reviewer").getByText("대기", { exact: true })).toHaveCount(2);
+    await expect(spriteBox(page, "web-backend-dev")).toContainText(`작업 중 · 부모 ${DEV_LEAD}`);
+    await expect(spriteBox(page, "web-security-reviewer")).toContainText(`권한 대기 · 부모 ${DEV_LEAD}`);
+    await expect(spriteBox(page, "Explore")).toContainText(`작업 중 · 부모 ${DEV_LEAD}`);
 
-    const neighbours = desks.filter(
-      (desk) => desk.name === "video-lead" || desk.name === "video-02",
-    );
-    expect(neighbours).toHaveLength(2);
-    const overlaps = neighbours.filter(
-      (desk) => longDesk.labelLeft < desk.labelRight && longDesk.labelRight > desk.labelLeft,
-    );
-    // ui-spec.md SCR-02 책상 행 + docs/ui/README.md(요소 가림은 결함): 이웃 칸 이름을 가리면 안 된다.
-    expect(
-      overlaps.map((desk) => desk.name),
-      "13자 이름 칩이 이웃 칸의 이름 칩과 겹칩니다",
-    ).toEqual([]);
+    // 기본 선택 = 팀장(FR-007-AC4) + 패널 값(FR-007-AC5).
+    await expect(page.locator('[data-wf="03-8"]').getByRole("heading", { level: 3 })).toHaveText(DEV_LEAD);
+    await expect(panelRowValue(page, "상태")).toHaveText("작업 중");
+    await expect(panelRowValue(page, "현재 도구")).toHaveText("Agent · Explore");
+    await expect(panelRowValue(page, "서브에이전트")).toHaveText("4");
+    // 작업 중인 팀장의 `정의 수정`·`제거`는 비활성이다(ADR-68 확정). 판정 자체는 E2E-04가 단언한다.
+    await expect(page.locator('[data-wf="03-9"]').getByRole("button", { name: "정의 수정", exact: true })).toBeDisabled();
 
-    // ── 상태 줄 폭·겹침 (T-024 리뷰 Minor 6) ──────────────────────────────────────
-    // 한 책상에서 이름 칩보다 넓어질 수 있는 요소는 상태 줄뿐이다. 보통 층·넓은 층 모두 문구 형식·폭 > 0·겹침 0을 본다.
-    for (const desk of desks) {
-      expect(desk.statusText, `${desk.name} 상태 줄 문구`).toMatch(STATUS_LINE_PATTERN);
-      expect(desk.statusWidth, `${desk.name} 상태 줄 폭`).toBeGreaterThan(0);
+    // 범례(03-7)와 패널 각주는 03 캡처 프레임 아래에 있어도 DOM에는 있다.
+    await expect(page.locator('[data-wf="03-7"]')).toContainText("동작 매핑");
+    await expect(page.locator('[data-wf="03-7"]')).toContainText("작은 캐릭터 = 정의 없는 서브에이전트");
+    await expect(page.getByTestId("panel-footnote")).toContainText(
+      "제거하면 정의 파일이 .aojistudio/trash/로 이동합니다 · 작업 지시는 터미널에서 팀장에게 직접 합니다",
+    );
+
+    await captureBaseSizes(
+      page,
+      "03-workflow-detail",
+      check(page, "03 워크플로우 상세", detailRegions, async (size) => {
+        await expectOfficeLayout(page, size);
+      }),
+    );
+  });
+
+  test("[E2E-13][NFR-11] 순서 4 — 05R-agent-import: 02 헤더 링크 → 대상 영상제작부서·두 행 선택·역할 팀장 → 캡처 → 취소", async ({
+    page,
+  }) => {
+    await gotoReady(page, "/workflows");
+    await page.getByRole("button", { name: `워크플로우 밖 에이전트 ${OUTSIDE_COUNT} · 가져오기`, exact: true }).click();
+    const dialog = page.locator('[data-wf="05R-1"]');
+    await expect(dialog).toBeVisible();
+    // 헤더 링크로 열면 제목은 드롭다운과 상관없이 고정이다(ADR-71).
+    await expect(dialog.getByRole("heading", { name: "기존 에이전트 가져오기", exact: true })).toBeVisible();
+    await expect(dialog).toContainText(`어느 워크플로우에도 없는 정의 파일 ${OUTSIDE_COUNT}개`);
+    // 워크플로우 밖 5명이 name 오름차순으로 보인다(FR-009-AC1).
+    await expect(dialog.locator("tbody tr td:nth-child(2)")).toHaveText([
+      "code-explainer",
+      "docs-writer",
+      "release-manager",
+      "test-runner",
+      "video-editor",
+    ]);
+
+    await dialog.getByLabel("대상 워크플로우", { exact: true }).selectOption("영상제작부서");
+    await expect(dialog.getByRole("heading", { name: "기존 에이전트 가져오기", exact: true })).toBeVisible();
+    await choose(dialog.getByRole("checkbox", { name: "docs-writer 선택", exact: true }));
+    await choose(dialog.getByRole("checkbox", { name: "video-editor 선택", exact: true }));
+    await dialog.getByLabel("video-editor 역할", { exact: true }).selectOption("lead");
+    await expect(dialog.getByRole("button", { name: "선택한 2명 가져오기", exact: true })).toBeEnabled();
+
+    await captureBaseSizes(page, "05R-agent-import", async (size) => {
+      await expectRegionsVisible(page, ["NAV", "05R-1", "05R-2", "05R-3", "05R-4", "05R-5"], `05-R ${sizeLabel(size)}`);
+      await expectDialogWidth(page, size, "05R-1", "lg");
+    });
+
+    await dialog.getByRole("button", { name: "취소", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    // 가져오지 않았다: 워크플로우 밖 에이전트는 그대로 5명이다.
+    await expect(
+      page.getByRole("button", { name: `워크플로우 밖 에이전트 ${OUTSIDE_COUNT} · 가져오기`, exact: true }),
+    ).toBeVisible();
+  });
+
+  test("[E2E-13][FR-017-AC2][NFR-11] 순서 5 — 05-3-workflow-delete: 영상제작부서 층 `삭제` → 캡처(이름 입력 전) → 취소", async ({
+    page,
+  }) => {
+    await gotoReady(page, "/workflows");
+    await floorHeader(page, "영상제작부서").getByRole("button", { name: "삭제", exact: true }).click();
+    const dialog = page.locator('[data-wf="05-3-1"]');
+    await expect(dialog.getByRole("heading", { name: "영상제작부서 워크플로우를 삭제할까요?", exact: true })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "삭제", exact: true })).toBeDisabled();
+    await expect(dialog.getByText("영상제작부서을(를) 똑같이 입력하면 삭제 버튼이 켜집니다", { exact: true })).toBeVisible();
+
+    await captureBaseSizes(page, "05-3-workflow-delete", async (size) => {
+      await expectRegionsVisible(page, ["NAV", "05-3-1", "05-3-2", "05-3-3"], `05-3 ${sizeLabel(size)}`);
+      await expectDialogWidth(page, size, "05-3-1", "sm");
+    });
+
+    await dialog.getByRole("button", { name: "취소", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('section[data-floor="영상제작부서"]')).toBeVisible();
+  });
+
+  test("[E2E-13][FR-011-AC1][NFR-11] 순서 6 — 06-agent-form: web-reviewer 정의 수정 → 캡처 → 취소", async ({ page }) => {
+    await gotoReady(page, `/workflows/${encodeURIComponent(DEV)}?dialog=agent-edit&agent=web-reviewer`);
+    const form = page.locator('[data-wf="06-1"]');
+    await expect(form.getByLabel("이름 (name)", { exact: true })).toHaveValue("web-reviewer");
+    await expect(form.getByLabel("소속 워크플로우", { exact: true })).toHaveValue(DEV);
+
+    await captureBaseSizes(page, "06-agent-form", async (size) => {
+      await expectRegionsVisible(
+        page,
+        ["NAV", "06-1", "06-2", "06-3", "06-4", "06-5", "06-6"],
+        `06 ${sizeLabel(size)}`,
+      );
+      await expectDialogWidth(page, size, "06-1", "lg");
+    });
+
+    await form.getByRole("button", { name: "취소", exact: true }).click();
+    await expect(form).toHaveCount(0);
+  });
+
+  test("[E2E-13][FR-014-AC1][NFR-11] 순서 7 — 07-settings: 3크기 캡처 + 영역·배치 판정", async ({ page }) => {
+    await gotoReady(page, "/settings");
+    await expect(page.getByRole("heading", { name: "설정", level: 2, exact: true })).toBeVisible();
+
+    await captureBaseSizes(
+      page,
+      "07-settings",
+      check(page, "07 설정", SETTINGS_REGIONS, async (size) => {
+        await expectSettingsLayout(page, size);
+      }),
+    );
+  });
+
+  test("[E2E-13][FR-007-E1][FR-007-AC8][NFR-11] 순서 8 — 04-4-collect-stopped: hook 제거 → 고정 대상 단언 → 실제 idle인 web-reviewer 캡처 → 복구", async ({
+    page,
+    request,
+  }) => {
+    const collectorBanner = page.getByRole("status").filter({ hasText: "hook 이벤트 수신 없음" });
+    try {
+      await gotoReady(page, `/workflows/${encodeURIComponent(DEV)}`);
+      await expect(collectorBanner).toHaveCount(0);
+
+      // hook 항목을 지우면 `!registry.hookConfigured` → 04-4 표시 조건이 된다(FR-007-E1).
+      writeFixtureFile(settingsFile(), "{}\n");
+      await expect(collectorBanner).toBeVisible({ timeout: SETUP_REFLECT_TIMEOUT_MS });
+      await expect(collectorBanner).toHaveAttribute("data-wf", "04-4-1");
+      await expect(collectorBanner).toContainText(/hook 이벤트 수신 없음 · 마지막 수신 (\d{2}:\d{2}:\d{2}|없음)/);
+      await expect(collectorBanner).toContainText("Claude Code가 꺼졌거나 hook 설정이 없으면 캐릭터를 모두 대기로 표시합니다");
+
+      // 고정 대상(ADR-68): 실제 작업 중·권한 대기 캐릭터와 정의 없는 서브에이전트의 말풍선·상태 글자는 `대기`,
+      // 셔츠·모니터는 대기색, 패널 `상태` `대기`·`현재 도구` `-`, 헤더 칩 중립 `모두 대기`.
+      for (const name of [DEV_LEAD, "web-backend-dev", "web-security-reviewer", "web-tester", "Explore"]) {
+        await expect(spriteBox(page, name).getByText("대기", { exact: true }), `${name} 말풍선·상태 글자`).toHaveCount(2);
+        await expect(spriteBox(page, name)).not.toContainText("부모");
+        expect(await spriteShirtFill(page, name), `${name} 셔츠 색`).toBe(PIXEL_FILL.shirtIdle);
+        expect(await spriteScreenFill(page, name), `${name} 모니터 색`).toBe(PIXEL_FILL.screenIdle);
+      }
+      await expect(panelRowValue(page, "상태")).toHaveText("대기");
+      await expect(panelRowValue(page, "현재 도구")).toHaveText("-");
+      await expect(page.locator('[data-wf="03-2"]').getByText("모두 대기", { exact: true })).toBeVisible();
+      await expect(page.locator('[data-wf="03-2"]').getByText("권한 대기 1명", { exact: true })).toHaveCount(0);
+
+      // 캡처는 실제 상태가 `idle`인 web-reviewer를 골라 찍는다(ADR-75 8). 먼저 API로 실제 상태를 단언한다.
+      expect((await fetchLive(request)).agents["web-reviewer"]?.status, "web-reviewer의 실제 상태").toBe("idle");
+
+      await page.goto(`/workflows/${encodeURIComponent(DEV)}?agent=web-reviewer`);
+      await expect(page.locator('[data-wf="03-8"]').getByRole("heading", { level: 3 })).toHaveText("web-reviewer");
+      await expect(collectorBanner).toBeVisible();
+      const actions = page.locator('[data-wf="03-9"]');
+      await expect(actions.getByRole("button", { name: "정의 수정", exact: true })).toBeEnabled();
+      await expect(actions.getByRole("button", { name: "제거", exact: true })).toBeEnabled();
+      await expect(actions.getByText("작업 중에는", { exact: false })).toHaveCount(0);
+      await expect(page.locator('[data-wf="03-2"]').getByText("모두 대기", { exact: true })).toBeVisible();
+
+      await captureBaseSizes(
+        page,
+        "04-4-collect-stopped",
+        check(page, "04-4 수집 중단", (size) => ["04-4-1", ...detailRegions(size)], async (size) => {
+          await expectOfficeLayout(page, size);
+        }),
+      );
+    } finally {
+      writeFixtureFile(settingsFile(), hookSettingsJson());
     }
-    const normalOverlaps = statusOverlaps(desks);
 
-    const wideDesks = await deskMetrics(page, DEV_TEAM);
-    for (const desk of wideDesks) {
-      expect(desk.statusText, `${desk.name} 상태 줄 문구`).toMatch(STATUS_LINE_PATTERN);
-    }
-    const wideOverlaps = statusOverlaps(wideDesks);
-
-    // 요소 가림은 결함 기준이다.
-    expect(normalOverlaps, "보통 층에서 상태 줄이 이웃 칸 상태 줄과 겹칩니다").toEqual([]);
-    expect(wideOverlaps, "넓은 층에서 상태 줄이 이웃 칸 상태 줄과 겹칩니다").toEqual([]);
-  } finally {
-    writeFixtureFile(teamFile(SPAN1_TEAM), originalVideoTeam);
-    removeFixturePath(agentFile(LONG_NAME));
-  }
-
-  await gotoReady(page, "/workflows");
-  await expect(floorCardByName(page, SPAN1_TEAM).getByText("4명", { exact: true })).toBeVisible({
-    timeout: SETUP_REFLECT_TIMEOUT_MS,
+    // 복구 단언: 띠가 사라지고 실제 상태(작업 중 팀장)로 돌아온다.
+    await page.goto(`/workflows/${encodeURIComponent(DEV)}`);
+    await expect(page.getByTestId("workflow-meta")).toBeVisible();
+    await expect(collectorBanner).toHaveCount(0, { timeout: SETUP_REFLECT_TIMEOUT_MS });
+    await expect(panelRowValue(page, "상태")).toHaveText("작업 중", { timeout: SETUP_REFLECT_TIMEOUT_MS });
+    await expect(spriteBox(page, DEV_LEAD).getByText("작업 중", { exact: true })).toBeVisible();
+    await expect(spriteSvg(page, "web-reviewer")).toBeVisible();
+    expect(readFixtureFile(settingsFile())).toBe(hookSettingsJson());
   });
 });
 
-/**
- * 보통 층의 이웃 두 칸(책상 칸 100px)에 부모 접미가 붙은 책상을 실제로 놓고 상태 줄 clamp를 단언한다(ADR-50 B).
- *
- * 한 번 호출로 T-FIX-12 Done when의 ①~④(13자 라벨 단계에서는 ⑤)를 모두 단언한다.
- * 투영값은 쓰지 않는다 — 두 책상이 같은 줄의 이웃 칸에 실제로 있고 접미가 실제로 붙은 상태에서 잰 값만 쓴다.
- */
-async function assertSpan1SuffixPair(options: {
-  page: Page;
-  workflowName: string;
-  pair: readonly [string, string];
-  parentLabel: string;
-  phase: string;
-}): Promise<void> {
-  const { page, workflowName, pair, parentLabel, phase } = options;
-  const desks = await deskMetrics(page, workflowName);
-  const expectedStatus = `작업 중 · 부모 ${parentLabel}`;
+// ── 배치 3·4 — 04-5·04-6 ────────────────────────────────────────────────────────────────
 
-  // 측정 대상 두 책상(구조 전제 — 이것이 없으면 아래 실측 자체가 성립하지 않는다).
-  const left = desks.find((desk) => desk.name === pair[0]);
-  const right = desks.find((desk) => desk.name === pair[1]);
-  expect(left, `${phase} ${pair[0]} 책상을 찾지 못했습니다`).toBeDefined();
-  expect(right, `${phase} ${pair[1]} 책상을 찾지 못했습니다`).toBeDefined();
-  const pairDesks = [left as DeskMetric, right as DeskMetric];
-  const overlaps = statusOverlaps(desks);
+test.describe("[E2E-13] project-no-agents-dir 배치 3 — 04-5 에이전트 폴더 읽기 실패 캡처", () => {
+  test.use({ reducedMotion: "reduce" });
 
-  // 선택자가 엉뚱한 요소를 잡지 않았는지 고정한다(모든 책상의 상태 줄이 조립 규칙대로다).
-  for (const desk of desks) {
-    expect(desk.statusText, `${phase} ${desk.name} 상태 줄 문구`).toMatch(STATUS_LINE_PATTERN);
-  }
+  test.beforeAll(() => {
+    assertFixture("project-no-agents-dir");
+  });
 
-  // ① 접미가 실제로 붙었다(먼저 고정해야 겹침 0건이 공허하지 않다).
-  for (const desk of pairDesks) {
-    expect(desk.statusText, `${phase} ${desk.name} 상태 줄`).toBe(expectedStatus);
-    expect(desk.statusText).toMatch(/^작업 중 · 부모 .+$/);
-  }
-
-  // ③ 그려진 상태 줄끼리 겹치지 않는다(요소 가림 판정 — `docs/ui/README.md`, FR-006-AC10).
-  expect(overlaps, `${phase} span-1 층에서 상태 줄이 인접 열 상태 줄과 겹칩니다`).toEqual([]);
-
-  // ④ 그려진 상태 줄이 상태 줄 최대 폭(96) 안에 있다(책상 칸 100px 안).
-  for (const desk of pairDesks) {
-    expect(
-      round2(desk.statusWidth),
-      `${phase} ${desk.name} 상태 줄 폭이 칸 폭을 넘습니다`,
-    ).toBeLessThanOrEqual(STATUS_MAX_WIDTH + 1);
-  }
-
-  // ② 두 책상은 같은 줄의 이웃 칸이다(centerX 차이 = 책상 칸 100px). 가림 판정(③·④) **뒤**에 둔다 —
-  // clamp를 되돌리면 책상 묶음이 칸 밖으로 번져 행·열 계산도 함께 흔들리는데, 그때 먼저 드러나야 하는
-  // 사실은 "글자가 겹쳤다"이기 때문이다.
-  const [leftDesk, rightDesk] = pairDesks as [DeskMetric, DeskMetric];
-  expect(Math.abs(leftDesk.centerY - rightDesk.centerY), `${phase} 두 책상이 같은 행이 아닙니다`).toBeLessThan(2);
-  expect(
-    Math.abs(rightDesk.centerX - leftDesk.centerX - COLUMN_PITCH),
-    `${phase} 두 책상이 이웃 칸이 아닙니다(centerX 차이 ${round2(rightDesk.centerX - leftDesk.centerX)}px, ` +
-      `칸 폭 ${COLUMN_PITCH}px)`,
-  ).toBeLessThan(1);
-
-  // 잘린 전체 문구는 같은 요소의 네이티브 title로 본다(FR-006-AC4와 같은 방식). 가림 판정(③·④)보다
-  // 뒤에 둔다 — title이 없다는 실패가 겹침 실패를 가리지 않게 하기 위해서다.
-  for (const desk of pairDesks) {
-    expect(desk.statusTitle, `${phase} ${desk.name} 상태 줄 title`).toBe(expectedStatus);
-  }
-
-  // clamp가 실제로 걸렸다 — 자르지 않은 글자 폭이 칸 폭보다 넓다(넓지 않으면 위 ③·④가 공허해진다).
-  for (const desk of pairDesks) {
-    expect(
-      desk.statusScrollWidth,
-      `${phase} ${desk.name} 상태 줄이 칸 폭을 넘지 않아 clamp 검증이 공허합니다`,
-    ).toBeGreaterThan(desk.statusClientWidth);
-  }
-}
-
-test("[E2E-13][FR-006-AC10][FR-006-AC4][ADR-50 B] 보통 층 이웃 두 칸에 부모 접미 책상을 놓고 상태 줄 clamp를 확인한다", async ({
-  page,
-}) => {
-  // 기준 캡처(01·02·03)와 기존 단언을 모두 끝낸 뒤에만 실행한다(serial 선언 순서) — 이 재생이 남기는
-  // live 상태가 캡처 대상 화면을 바꾸지 않게 하기 위해서다. `showcase.jsonl`은 건드리지 않는다.
-  const SPAN1_TEAM = "video-team";
-  // video-team(4명)의 2·3번째 열 = 양옆에 이웃이 있는 인접 두 열(FR-006-AC1 정렬 기준).
-  const PAIR = ["video-02", "video-03"] as const;
-  const SHORT_PARENT = "video-lead";
-  /** 13자 부모 라벨 — FR-006-AC4 경계(12자 초과)를 넘고 부모 접미는 잘리지 않으므로 가장 긴 상태 줄이다. */
-  const LONG_PARENT = "vid-parentxyz";
-  expect(LONG_PARENT).toHaveLength(13);
-  expect(
-    scenarioLines(SPAN1_CLAMP_SCENARIO).length,
-    "span1-status-clamp.jsonl 줄 수가 scenarios/README.md 대응표(8줄)와 다릅니다",
-  ).toBe(SPAN1_CLAMP_LINE_COUNT);
-
-  const originalVideoTeam = readFixtureFile(teamFile(SPAN1_TEAM));
-
-  try {
+  test("[E2E-13][FR-001-E1][FR-006-E1][NFR-11] 04-5-agents-dir-missing: /workflows 3크기 캡처 + 영역 판정", async ({ page }) => {
     await gotoReady(page, "/workflows");
-    // 재생 전에는 span-1 층에 접미가 없다(이 테스트가 만드는 상태임을 고정한다).
-    const before = await deskMetrics(page, SPAN1_TEAM);
-    expect(before.map((desk) => desk.name)).toEqual(["video-lead", "video-02", "video-03", "video-04"]);
-    expect(before.filter((desk) => desk.statusText.includes("· 부모 "))).toEqual([]);
+    await expect(page.locator('[data-wf="04-5-1"]')).toContainText("에이전트 폴더를 찾을 수 없습니다");
+    await captureBaseSizes(page, "04-5-agents-dir-missing", check(page, "04-5", ["04-5-1"]));
+  });
+});
 
-    // ── 1단계: 짧은 부모 라벨(video-lead, 10자) — 1~3줄 재생 ────────────────────────
-    expect(replayScenarioLines({ scenarioPath: SPAN1_CLAMP_SCENARIO, from: 1, to: 3 }).sent).toBe(3);
-    for (const name of PAIR) {
-      await expect(
-        spriteBox(page, name).getByText(`작업 중 · 부모 ${SHORT_PARENT}`, { exact: true }),
-      ).toBeVisible({ timeout: SETUP_REFLECT_TIMEOUT_MS });
-    }
-    await assertSpan1SuffixPair({
+test.describe("[E2E-13] project-format-errors 배치 4 — 04-6 정의·구성 파일 형식 오류 캡처", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test.beforeAll(() => {
+    assertFixture("project-format-errors");
+  });
+
+  test("[E2E-13][FR-002-AC2][NFR-11] 04-6-invalid-files: /workflows 3크기 캡처 + 영역 판정", async ({ page }) => {
+    await gotoReady(page, "/workflows");
+    await expect(page.locator('[data-wf="04-6-1"]')).toContainText("읽지 못한 정의·구성 파일");
+    await captureBaseSizes(page, "04-6-invalid-files", check(page, "04-6", ["04-6-1"]));
+  });
+});
+
+// ── 배치 7 — 04-3 ───────────────────────────────────────────────────────────────────────
+
+test.describe("[E2E-13] project-configured 04-3 배치 7 — 실시간 연결 끊김 캡처", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test.beforeAll(() => {
+    assertFixture("project-configured");
+  });
+
+  test.afterAll(() => {
+    // 테스트가 어디서 실패했더라도 컨테이너는 반드시 running으로 남긴다.
+    ensureUnpaused();
+    expect(containerStatus(), "테스트 종료 시 컨테이너가 running이 아닙니다").toBe("running");
+  });
+
+  test("[E2E-13][FR-016-AC1][NFR-11] 04-3-disconnected: states.jsonl 1줄 재생 → 01-6 확인 → pause → 띠·01-6 머리 `연결 끊김` → 3크기 캡처", async ({
+    page,
+  }) => {
+    // E2E-05 실행 순서에 기대지 않는다(ADR-76 결정 3): 이벤트를 한 번 받은 상태를 이 테스트가 직접 만든다.
+    expect(replayScenarioLines({ from: 1, to: 1 }).sent).toBe(1);
+    await gotoReady(page, "/");
+    await expect(page.locator('[data-wf="04-1-1"]')).toHaveCount(0);
+    await expect(page.locator('[data-wf="01-6"]')).toBeVisible();
+    await expect(page.locator('[data-wf="01-6"]').getByText("실시간 연결됨", { exact: true })).toBeVisible();
+
+    test.setTimeout(150_000);
+    // 컨테이너를 얼리면 새 글꼴 조각을 받을 수 없으므로 04-3 띠·`연결 끊김`·재연결 글자의 조각을 미리 받아 둔다.
+    await preloadFonts(
       page,
-      workflowName: SPAN1_TEAM,
-      pair: PAIR,
-      parentLabel: SHORT_PARENT,
-      phase: `부모 ${SHORT_PARENT}(${SHORT_PARENT.length}자)`,
-    });
+      "실시간 연결이 끊겼습니다 · 초 후 재연결 마지막 갱신 기준 화면을 유지합니다 지금 재연결 연결 끊김 0123456789:",
+    );
+    try {
+      pauseContainer();
+      // 끊김 판정: 마지막 메시지 후 45초 무수신(realtime-spec.md §4).
+      const banner = page.locator('[data-wf="04-3-1"]');
+      await expect(banner).toBeVisible({ timeout: 90_000 });
+      await expect(banner).toContainText("실시간 연결이 끊겼습니다");
+      await expect(page.locator('[data-wf="01-6"]').getByText("연결 끊김", { exact: true })).toBeVisible();
 
-    // ── 2단계: 13자 부모 라벨 — 4~5줄로 1단계 서브를 비우고 6~8줄 재생 ──────────────
-    expect(replayScenarioLines({ scenarioPath: SPAN1_CLAMP_SCENARIO, from: 4, to: 5 }).sent).toBe(2);
-    for (const name of PAIR) {
-      await expect(spriteBox(page, name).getByText("대기", { exact: true })).toBeVisible({
-        timeout: SETUP_REFLECT_TIMEOUT_MS,
+      await captureBaseSizes(page, "04-3-disconnected", check(page, "04-3", ["04-3-1", ...HOME_REGIONS]));
+    } finally {
+      ensureUnpaused();
+    }
+  });
+});
+
+// ── 배치 11 — project-basic (이벤트 0건·워크플로우 0개인 새 컨테이너) ─────────────────────────
+
+test.describe("[E2E-13] project-basic 배치 11 — 04-2·04-7·05-L·04-1 캡처", () => {
+  test.use({ reducedMotion: "reduce" });
+  test.describe.configure({ mode: "serial" });
+
+  test.beforeAll(() => {
+    assertFixture("project-basic");
+  });
+
+  test("[E2E-13][FR-005-AC9][NFR-11] 순서 1 — 04-2-loading: /api/state·/api/stream을 `route.continue()`로 늦춘 `/` 캡처 → 지연 해제", async ({
+    page,
+  }) => {
+    // 응답을 바꾸지 않고 `route.continue()`를 늦추기만 한다(ADR-75 6 — conventions §8의 유일한 예외).
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const delayed = async (route: Route) => {
+      await gate;
+      await route.continue();
+    };
+    await page.route("**/api/state", delayed);
+    await page.route("**/api/stream**", delayed);
+
+    try {
+      await page.goto("/");
+      await expect(page.getByTestId("home-skeleton")).toBeVisible();
+      await captureBaseSizes(page, "04-2-loading", async (size) => {
+        await expectRegionsVisible(page, navRegions(size), `04-2 ${sizeLabel(size)}`);
+        await expectNavWidth(page, size);
+        await expect(page.getByTestId("home-skeleton")).toBeVisible();
       });
+    } finally {
+      release();
     }
 
-    // 13자 부모는 같은 층의 정의 있는 에이전트로 만든다(원본 fixture는 건드리지 않는다).
-    writeFixtureFile(
-      agentFile(LONG_PARENT),
-      agentFileContent({
-        name: LONG_PARENT,
-        description: "T-FIX-12 13자 부모 라벨 실측용",
-        body: "측정용.",
+    // 지연을 풀면 실제 첫 화면으로 바뀐다.
+    await expect(page.getByTestId("home")).toBeVisible();
+    await expect(page.getByTestId("home-skeleton")).toHaveCount(0);
+    await page.unroute("**/api/state", delayed);
+    await page.unroute("**/api/stream**", delayed);
+  });
+
+  test("[E2E-13][FR-006-E3][NFR-11] 순서 2 — 04-7-no-workflows: /workflows 3크기 캡처 + 영역 판정", async ({ page }) => {
+    await gotoReady(page, "/workflows");
+    await expect(page.locator('[data-wf="04-7-1"]')).toBeVisible();
+    await captureBaseSizes(page, "04-7-no-workflows", check(page, "04-7", ["04-7-1"]));
+  });
+
+  test("[E2E-13][FR-008-AC4][NFR-11] 순서 3 — 05L-workflow-add: 이름 입력 → 캡처 → 만들기(성공)", async ({ page }) => {
+    await gotoReady(page, "/workflows");
+    await page.locator('[data-wf="02-3"], [data-wf="04-7-1"]').getByRole("button", { name: "워크플로우 추가", exact: true }).first().click();
+    const dialog = page.locator('[data-wf="05L-1"]');
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel("이름", { exact: true }).fill("영상제작부서");
+
+    await captureBaseSizes(page, "05L-workflow-add", async (size) => {
+      await expectRegionsVisible(page, ["NAV", "05L-1", "05L-2", "05L-3", "05L-4"], `05-L ${sizeLabel(size)}`);
+      await expectDialogWidth(page, size, "05L-1", "md");
+    });
+
+    await dialog.getByRole("button", { name: "만들기", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('section[data-floor="영상제작부서"]')).toBeVisible();
+  });
+
+  test("[E2E-13][FR-008-E1][NFR-11] 순서 4 — 05L-workflow-add-error: 같은 이름으로 다시 만들기 → E1 캡처 → 취소", async ({
+    page,
+  }) => {
+    await gotoReady(page, "/workflows");
+    await page.locator('[data-wf="02-3"]').getByRole("button", { name: "워크플로우 추가", exact: true }).click();
+    const dialog = page.locator('[data-wf="05L-1"]');
+    await dialog.getByLabel("이름", { exact: true }).fill("영상제작부서");
+    await dialog.getByRole("button", { name: "만들기", exact: true }).click();
+    await expect(
+      dialog.getByText("같은 이름의 워크플로우가 이미 있습니다. 다른 이름을 입력하세요. (대소문자는 구분하지 않습니다)", {
+        exact: true,
+      }),
+    ).toBeVisible();
+
+    await captureBaseSizes(page, "05L-workflow-add-error", async (size) => {
+      await expectRegionsVisible(page, ["NAV", "05L-1", "05L-2", "05L-3", "05L-4"], `05-L E1 ${sizeLabel(size)}`);
+      await expectDialogWidth(page, size, "05L-1", "md");
+      await expect(dialog.getByLabel("이름", { exact: true })).toHaveAttribute("aria-invalid", "true");
+    });
+
+    await dialog.getByRole("button", { name: "취소", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+  });
+
+  test("[E2E-13][FR-008-E3][NFR-11] 순서 5 — 05L-workflow-add-write-fail: teams 폴더 0555 → 만들기 → E3 캡처 → 0755 복구 → 만들기(성공)", async ({
+    page,
+  }) => {
+    const teamsDir = fixturePath(".aojistudio", "teams");
+    await gotoReady(page, "/workflows");
+    await page.locator('[data-wf="02-3"]').getByRole("button", { name: "워크플로우 추가", exact: true }).click();
+    const dialog = page.locator('[data-wf="05L-1"]');
+    await dialog.getByLabel("이름", { exact: true }).fill("디자인부서");
+
+    try {
+      chmodSync(teamsDir, 0o555);
+      await dialog.getByRole("button", { name: "만들기", exact: true }).click();
+      const alert = dialog.getByRole("alert");
+      await expect(alert).toContainText("구성 파일을 만들지 못했습니다.");
+      await expect(alert).toContainText("파일을 쓰는 중 오류가 났습니다. 폴더 쓰기 권한을 확인한 뒤 다시 만드세요.");
+      // 입력은 그대로이고 팝업은 열려 있다.
+      await expect(dialog.getByLabel("이름", { exact: true })).toHaveValue("디자인부서");
+
+      await captureBaseSizes(page, "05L-workflow-add-write-fail", async (size) => {
+        await expectRegionsVisible(page, ["NAV", "05L-1", "05L-2", "05L-3", "05L-4"], `05-L E3 ${sizeLabel(size)}`);
+        await expectDialogWidth(page, size, "05L-1", "md");
+        await expect(alert).toBeVisible();
+      });
+    } finally {
+      chmodSync(teamsDir, 0o755);
+    }
+    // 복구 단언 + 다시 만들기(성공).
+    expect(statSync(teamsDir).mode & 0o777, "teams 폴더 권한 복구").toBe(0o755);
+    await dialog.getByRole("button", { name: "만들기", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('section[data-floor="디자인부서"]')).toBeVisible();
+  });
+
+  test("[E2E-13][FR-005-E1][NFR-11] 순서 6 — 04-1-no-events: 투자부서를 더 만들어 워크플로우 3개 → / 3크기 캡처 + 영역·배치 판정", async ({
+    page,
+  }) => {
+    await gotoReady(page, "/workflows");
+    await addWorkflowViaUi(page, "투자부서");
+
+    await gotoReady(page, "/");
+    await expect(page.locator('[data-wf="04-1-1"]')).toBeVisible();
+    await expect(page.locator('[data-wf="04-1-2"]')).toBeVisible();
+    await expect(page.locator('[data-wf="01-5"] a')).toHaveCount(3);
+
+    await captureBaseSizes(
+      page,
+      "04-1-no-events",
+      check(page, "04-1", ["01-1", "01-2", "01-3", "01-5", "04-1-1", "04-1-2"], async (size) => {
+        await expectHomeLayout(page, size);
       }),
     );
-    const videoTeam = JSON.parse(originalVideoTeam) as { members: string[] };
-    videoTeam.members = [...videoTeam.members, LONG_PARENT].sort();
-    writeFixtureFile(teamFile(SPAN1_TEAM), `${JSON.stringify(videoTeam, null, 2)}\n`);
-    await expect(spriteSvg(page, LONG_PARENT)).toBeVisible({ timeout: SETUP_REFLECT_TIMEOUT_MS });
-
-    expect(replayScenarioLines({ scenarioPath: SPAN1_CLAMP_SCENARIO, from: 6, to: 8 }).sent).toBe(3);
-    for (const name of PAIR) {
-      await expect(
-        spriteBox(page, name).getByText(`작업 중 · 부모 ${LONG_PARENT}`, { exact: true }),
-      ).toBeVisible({ timeout: SETUP_REFLECT_TIMEOUT_MS });
-    }
-
-    // 5명이 되어 첫 줄은 `video-lead · vid-parentxyz · video-02 · video-03`, 둘째 줄은 `video-04`다
-    // → 측정 대상 두 책상은 여전히 첫 줄의 인접 열이다(열 수는 그대로 4열).
-    const widened = await deskMetrics(page, SPAN1_TEAM);
-    expect(widened.map((desk) => desk.name)).toEqual([
-      "video-lead",
-      LONG_PARENT,
-      "video-02",
-      "video-03",
-      "video-04",
-    ]);
-    await assertSpan1SuffixPair({
-      page,
-      workflowName: SPAN1_TEAM,
-      pair: PAIR,
-      parentLabel: LONG_PARENT,
-      phase: `부모 ${LONG_PARENT}(${LONG_PARENT.length}자)`,
-    });
-  } finally {
-    writeFixtureFile(teamFile(SPAN1_TEAM), originalVideoTeam);
-    removeFixturePath(agentFile(LONG_PARENT));
-  }
-
-  // fixture가 원래대로 돌아왔는지 화면으로 확인한다(live 상태는 이 배치의 마지막 테스트라 남겨 둔다).
-  await gotoReady(page, "/workflows");
-  await expect(floorCardByName(page, SPAN1_TEAM).getByText("4명", { exact: true })).toBeVisible({
-    timeout: SETUP_REFLECT_TIMEOUT_MS,
   });
 });

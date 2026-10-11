@@ -16,6 +16,9 @@ body {
   font-family: var(--font-sans);
   font-size: var(--text-body);
   line-height: 1.5;
+  /* 시안 `_base.css:6`: 한글은 어절 단위로 줄바꿈하고, 긴 토큰만 어디서든 자른다. */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 /* 키보드 초점 링 (ADR-69) */

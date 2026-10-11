@@ -174,6 +174,8 @@ describe("WorkflowsScreen", () => {
     expect(card).toHaveAttribute("data-wf", "04-5-1");
     expect(card.parentElement?.className).toContain("max-w-notice");
     expect(card.parentElement?.className).toContain("mt-6");
+    // 02의 04-5 카드는 `설정 열기` 버튼을 그린다(07만 숨긴다, ADR-42).
+    expect(within(card).getByRole("button", { name: "설정 열기" })).toBeEnabled();
     expect(screen.getByTestId("floor-scroll-area").className).toContain("justify-items-center");
     expect(screen.queryByRole("group", { name: "줌" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "미니맵 · 누른 곳으로 이동" })).not.toBeInTheDocument();

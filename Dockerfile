@@ -7,15 +7,21 @@
 FROM node:24-bookworm-slim AS frontend-build
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm ci
+# 패키지 다운로드는 BuildKit 캐시 마운트로 한 벌만 재사용한다.
+RUN --mount=type=cache,target=/root/.npm npm ci
 COPY frontend/ ./
 RUN npm run build
 
 FROM eclipse-temurin:21-jdk AS backend-build
 WORKDIR /app/backend
+# 의존성 단계: 빌드 설정 파일만 먼저 복사해 소스가 바뀌어도 이 단계는 재사용된다.
+COPY backend/gradlew ./
+COPY backend/gradle/ gradle/
+COPY backend/build.gradle.kts backend/settings.gradle.kts ./
+RUN --mount=type=cache,target=/root/.gradle ./gradlew dependencies --no-daemon -q > /dev/null
 COPY backend/ ./
 COPY --from=frontend-build /app/frontend/dist/ src/main/resources/static/
-RUN ./gradlew bootJar --no-daemon -x test
+RUN --mount=type=cache,target=/root/.gradle ./gradlew bootJar --no-daemon -x test
 
 FROM eclipse-temurin:25-jre AS runtime
 WORKDIR /app

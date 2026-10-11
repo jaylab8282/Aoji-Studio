@@ -41,13 +41,22 @@
 - e2e (공개 포트 `127.0.0.1:4185` — `4190`은 쓰지 않는다: WHATWG Fetch bad port, ADR-45):
   - (사전 1회) `cd tools/e2e && npm install && npx playwright install chromium`
   - 전체: `cd tools/e2e && ./scripts/run-e2e.sh`
-    - 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 10배치(55·16·4·3·9·12·1·6·7·3 = 116)를 순서대로 돈다.
+    - 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 **11배치**(63·16·5·4·9·12·2·25·7·3·6 = 152)를 순서대로 돈다.
     - `globalSetup`이 fixture 임시 복사 → `compose.e2e.yaml up -d --build` → dry-run 도우미(4191) → 다른 Origin 페이지 서버(4192)까지 준비하고, `globalTeardown`이 컨테이너·프로세스·임시 폴더를 정리한다. 사전 준비 명령 없음
     - 기동 전에 4185·4191·4192 선점 검사를 한다 — 낡은 스택이 남아 있으면 소유 pid와 정리 명령을 출력하고 즉시 실패한다
-  - 배치 단독 실행(fixture가 다른 시나리오는 실행을 나눈다):
-    - `cd tools/e2e && E2E_FIXTURE=project-configured npx playwright test tests/e2e-03.spec.ts tests/e2e-07.spec.ts tests/e2e-10.spec.ts`
-    - `cd tools/e2e && E2E_FIXTURE=project-no-agents-dir npx playwright test tests/e2e-06.spec.ts --grep "project-no-agents-dir"`
-    - `cd tools/e2e && E2E_FIXTURE=project-old-name npx playwright test tests/e2e-17-old-name.spec.ts`
+  - 배치 단독 실행(fixture가 다른 시나리오는 실행을 나눈다. `cd tools/e2e && ` 뒤에 쓴다):
+    - 배치 1 `E2E_FIXTURE=project-basic npx playwright test tests/e2e-01.spec.ts tests/e2e-02.spec.ts tests/e2e-08.spec.ts tests/e2e-14.spec.ts tests/health.spec.ts tests/compose-volume.spec.ts tests/isolation.spec.ts`
+    - 배치 2 `E2E_FIXTURE=project-configured npx playwright test tests/e2e-03.spec.ts tests/e2e-07.spec.ts tests/e2e-10.spec.ts`
+    - 배치 3 `E2E_FIXTURE=project-no-agents-dir npx playwright test tests/e2e-06.spec.ts tests/e2e-13.spec.ts --grep "project-no-agents-dir"`
+    - 배치 4 `E2E_FIXTURE=project-format-errors npx playwright test tests/e2e-06.spec.ts tests/e2e-13.spec.ts --grep "project-format-errors"`
+    - 배치 5 `E2E_FIXTURE=project-configured npx playwright test tests/e2e-04.spec.ts tests/e2e-15.spec.ts`
+    - 배치 6 `E2E_FIXTURE=project-configured npx playwright test tests/e2e-09.spec.ts tests/e2e-11.spec.ts`
+    - 배치 7(pause 단독, 약 3분) `E2E_FIXTURE=project-configured npx playwright test tests/e2e-05.spec.ts tests/e2e-13.spec.ts --grep "E2E-05|project-configured 04-3"`
+    - 배치 8 `E2E_FIXTURE=project-showcase npx playwright test tests/e2e-13.spec.ts tests/e2e-16.spec.ts tests/e2e-16z-e2e13-state-changes.spec.ts --grep "project-showcase"` (파일 이름순 실행에 기대는 순서: 13 → 16 → 16z)
+    - 배치 9 `E2E_FIXTURE=project-large npx playwright test tests/e2e-12.spec.ts`
+    - 배치 10 `E2E_FIXTURE=project-old-name npx playwright test tests/e2e-17-old-name.spec.ts`
+    - 배치 11 `E2E_FIXTURE=project-basic npx playwright test tests/e2e-13.spec.ts --grep "project-basic"`
+  - E2E-13 화면 대조 캡처 60장은 `tools/e2e/screenshots/<원본 이름>@<W>x<H>.png`에 남는다(`docs/ui/screens/`의 원본 PNG와 같은 이름, `.gitignore` 대상). 배치 3·4·7·8·11이 나눠 만든다.
   - x86_64 머신(WSL 등)은 위 e2e 명령 앞에 `E2E_PLATFORM=linux/amd64`를 붙인다.
   - 실패 조사: 위 명령 앞에 `E2E_KEEP_UP=1`을 붙이면 정리를 건너뛴다. 조사 후 출력된 정리 명령을 그대로 실행하고 `lsof -nP -iTCP:4185 -iTCP:4191 -iTCP:4192`로 확인한다
 

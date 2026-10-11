@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "디자인부서",
+  "description": "브랜드 스타일과 화면 UI·모션 디자인",
+  "lead": "design-lead",
+  "members": [
+    "design-motion",
+    "design-reviewer",
+    "design-ui"
+  ],
+  "createdAt": "2026-09-20T10:00:00+09:00",
+  "updatedAt": "2026-09-20T10:00:00+09:00"
+}

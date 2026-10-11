@@ -20,6 +20,7 @@ import { expect, test, type Locator, type Page, type TestInfo } from "@playwrigh
 
 import { COMPOSE_SERVICE, E2E_DIR, composeEnv, readE2eState } from "../lib/e2e-state";
 import { replayScenarioLines, scenarioLines } from "../lib/replay";
+import { distinctColumns } from "./screen-helpers";
 import {
   PIXEL_FILL,
   REFLECTION_POLL_INTERVAL_MS,
@@ -274,7 +275,7 @@ test("[FR-004-AC1][FR-004-AC2][FR-004-AC6][FR-003-AC4][FR-007-AC2][FR-007-AC5][F
   const collectorBanner = page.getByRole("status").filter({ hasText: "hook 이벤트 수신 없음" });
   await expect(collectorBanner).toContainText("hook 이벤트 수신 없음 · 마지막 수신 없음");
   await expect(collectorBanner).toContainText(
-    "Claude Code 미실행 또는 컨테이너 재시작 · 캐릭터는 모두 회색 대기",
+    "Claude Code가 꺼졌거나 hook 설정이 없으면 캐릭터를 모두 대기로 표시합니다",
   );
   await expect(page.getByRole("heading", { level: 3, name: "dev-lead", exact: true })).toBeVisible();
   await expect(panelRowValue(page, "상태")).toHaveText("대기");
@@ -409,8 +410,11 @@ test("[FR-004-AC2][FR-004-AC4][FR-004-AC6][FR-007-AC3][FR-007-AC5][E2E-04] state
   await expect(panelRowValue(page, "세션 시작")).toHaveText("-");
   await expect(panelRowValue(page, "서브에이전트")).toHaveText("0");
   await expect(panelRowValue(page, "작업 폴더")).toHaveText("-");
-  // 마지막 줄의 남는 칸은 점선 `빈 자리`다(FR-007-AC1).
-  await expect(page.locator(".office-grid").getByText("빈 자리", { exact: true })).toHaveCount(1);
+  // 마지막 줄의 남는 칸은 모두 점선 `빈 자리`다(FR-007-AC1): 칸 2개(dev-lead·dev-member) + 빈 자리 = 한 줄(열 수)이다.
+  const columns = await distinctColumns(page, '[data-wf="03-4"], [data-wf="03-5"], [data-wf="03-6"]');
+  expect(columns, "오피스 열 수").toBeGreaterThanOrEqual(2);
+  await expect(page.locator('[data-wf="03-6"]')).toHaveCount(columns - 2);
+  await expect(page.locator(".office-grid").getByText("빈 자리", { exact: true })).toHaveCount(columns - 2);
 });
 
 test("[FR-004-AC3][FR-004-AC6][FR-007-AC2][FR-007-AC3][FR-006-AC5][E2E-04] states.jsonl 15~17줄 → 한 에이전트가 두 세션이면 `권한·입력 대기`가 `작업 중`보다 우선한다", async ({
@@ -747,11 +751,11 @@ test("[FR-007-E1][FR-004-AC6][FR-001-AC3][E2E-04] 후반부 — running 상태�
     await expect(collectorBanner).toBeVisible();
     // 배너 첫 줄 = `hook 이벤트 수신 없음 · 마지막 수신 <yyyy-mm-dd hh:mm>`(ui-spec.md SCR-04-4).
     // 이번에는 수신 이력이 있으므로 `없음`이 아니라 시각이 들어간다.
-    await expect(collectorBanner.locator("p").first()).toHaveText(
-      /^hook 이벤트 수신 없음 · 마지막 수신 \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/,
+    await expect(collectorBanner.getByTestId("collector-down-message")).toHaveText(
+      /^hook 이벤트 수신 없음 · 마지막 수신 (\d{2}:\d{2}:\d{2}|\d{4}-\d{2}-\d{2} \d{2}:\d{2})$/,
     );
     await expect(collectorBanner).toContainText(
-      "Claude Code 미실행 또는 컨테이너 재시작 · 캐릭터는 모두 회색 대기",
+      "Claude Code가 꺼졌거나 hook 설정이 없으면 캐릭터를 모두 대기로 표시합니다",
     );
 
     // 고정 대상(ADR-17): 캐릭터 셔츠·모니터 색, 말풍선, 상태 글자(부모 접미 없음), 패널 `상태`·`현재 도구`.
@@ -765,12 +769,17 @@ test("[FR-007-E1][FR-004-AC6][FR-001-AC3][E2E-04] 후반부 — running 상태�
     }
     await expect(panelRowValue(page, "상태")).toHaveText("대기");
     await expect(panelRowValue(page, "현재 도구")).toHaveText("-");
-    // 고정 대상이 아닌 것(ADR-27): 헤더 칩·패널 세션 시작·작업 폴더·버튼 비활성 판정은 실제 live 값이다.
-    await expect(headerChip(page, "실행 중 2명")).toBeVisible();
+    // 헤더 칩은 04-4 동안 중립 `모두 대기`로 고정이다(ADR-68 확정, FR-007-AC9).
+    await expect(headerChip(page, "모두 대기")).toBeVisible();
+    await expect(headerChip(page, "실행 중 2명")).toHaveCount(0);
+    // 고정 대상이 아닌 것(ADR-68): 패널 세션 시작·작업 폴더·`정의 수정`·`제거` 비활성 판정은 실제 live 값이다.
     await expect(panelRowValue(page, "세션 시작")).toHaveText(/^\d{2}:\d{2}:\d{2}$/);
     await expect(panelRowValue(page, "작업 폴더")).toHaveText("/workspace");
     await expect(page.getByRole("button", { name: "정의 수정", exact: true })).toBeDisabled();
-    await expect(page.getByText("작업 중에는 수정할 수 없습니다", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "제거", exact: true })).toBeDisabled();
+    await expect(
+      page.getByText("작업 중에는 수정할 수 없습니다 · 작업 중에는 제거할 수 없습니다", { exact: true }),
+    ).toBeVisible();
 
     // 02는 고정 대상이 아니다: 책상은 그대로 `작업 중`이고 층 요약도 실제 집계다.
     await gotoReady(page, "/workflows");

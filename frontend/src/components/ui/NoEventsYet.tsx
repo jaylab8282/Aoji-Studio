@@ -14,7 +14,7 @@ export function NoEventsYet() {
     >
       <h2 className="text-section font-semibold text-text">{NO_EVENTS_TITLE}</h2>
       <p className="events-empty-body text-text-muted">{NO_EVENTS_BODY}</p>
-      <div className="w-full max-w-155">
+      <div className="max-w-155">
         <CommandLine>{NO_EVENTS_COMMAND}</CommandLine>
       </div>
       <p className="text-aux text-text-muted">{NO_EVENTS_FOOTNOTE}</p>

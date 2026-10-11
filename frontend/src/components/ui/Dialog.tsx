@@ -6,7 +6,7 @@
  * `inert`를 걸었다가 닫을 때 우리가 건 것만 되돌린다. 닫으면 열기 전 초점으로 돌아간다.
  * 제목·아래 줄 버튼 배치는 `DialogHeader`·`DialogFooter`를 쓴다(제목 `font/section` 700 + 부제 aux muted, 버튼 오른쪽 정렬·도움말은 왼쪽).
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 
@@ -53,7 +53,8 @@ export function Dialog({ title, size = "md", onClose, wf, role = "dialog", descr
     onCloseRef.current = onClose;
   });
 
-  useEffect(() => {
+  // 레이아웃 효과로 등록한다: 창이 화면에 나타난 순간부터 맨 위 창 판정에 들어가야 ESC가 아래 창을 먼저 닫는 경합이 없다.
+  useLayoutEffect(() => {
     openDialogOrders.add(order);
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;

@@ -202,13 +202,30 @@ export function spriteScreenFill(page: Page, agentName: string): Promise<string 
   return pixelPartFill(page, agentName, "screen");
 }
 
-/** 03 선택 패널(`Panel.tsx`)의 값 행: `<dt>라벨</dt><dd>값</dd>`에서 값 쪽. */
+/** 03 선택 패널(`Panel.tsx`)의 값 행: `<dl>` 안 `<dt>라벨</dt><dd>값</dd>` 쌍에서 값 쪽(`dt` 바로 뒤 `dd`). */
 export function panelRowValue(page: Page, label: string): Locator {
-  return page.locator("dt", { hasText: new RegExp(`^${escapeRegExp(label)}$`) }).locator("xpath=../dd");
+  return page.locator("dt", { hasText: new RegExp(`^${escapeRegExp(label)}$`) }).locator("xpath=following-sibling::dd[1]");
+}
+
+/** 07 `열기 도우미` 행 설치됨 표시: `설치됨 · <도우미 호스트:포트>`(`SettingsScreen`, ui-spec SCR-07). 포트는 상태 파일 값이다. */
+export function helperInstalledPattern(): RegExp {
+  return new RegExp(`설치됨 · ${escapeRegExp(new URL(readE2eState().helperUrl).host)}`);
 }
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * 화면이 받은 `GET /api/state` 스냅샷의 registry 요약(`revision`·`agentsDirMissing`). 폴링·재스캔이 지금까지 몇 번 registry를 바꿨는지
+ * 관찰할 때 쓴다(변경 API가 아니라 읽기 전용 GET이다).
+ */
+export async function registrySummary(page: Page): Promise<{ revision: number; agentsDirMissing: boolean }> {
+  return page.evaluate(async () => {
+    const response = await fetch("/api/state");
+    const body = (await response.json()) as { registry: { revision: number; agentsDirMissing: boolean } };
+    return { revision: body.registry.revision, agentsDirMissing: body.registry.agentsDirMissing };
+  });
 }
 
 // ── 화면 준비·대기 ────────────────────────────────────────────────────────────────
@@ -286,6 +303,15 @@ export async function measureFileChangeReflection(
   return elapsedMs;
 }
 
+/**
+ * 시각적으로만 숨긴 네이티브 라디오·체크박스(`sr-only` input + 원 모양 span, `Radio.tsx`·`Checkbox.tsx`)를 사용자처럼 고른다:
+ * 보이는 라벨을 눌러 켜고 결과가 켜졌는지 확인한다. input 자체는 1px로 숨겨져 있어 `check()`의 히트 판정이 앞 요소에 막힌다.
+ */
+export async function choose(input: Locator): Promise<void> {
+  await input.locator("xpath=..").click();
+  await expect(input).toBeChecked();
+}
+
 // ── UI를 거치는 공통 조작 (변경 API는 반드시 화면 버튼으로 호출한다) ──────────────────
 
 /** 02 `워크플로우 추가` → 05-L → `만들기`. 층이 나타날 때까지 기다린다(FR-008-AC4). */
@@ -307,26 +333,26 @@ export async function createAgentViaUi(
   options: { workflowName: string; name: string; description: string; role: "팀장" | "팀원" },
 ): Promise<void> {
   await floorHeader(page, options.workflowName).getByRole("button", { name: "만들기", exact: true }).click();
-  const form = page.getByTestId("agent-form-dialog");
+  const form = page.locator('[data-wf="06-1"]');
   await expect(form).toBeVisible();
   await form.getByLabel("이름 (name)", { exact: true }).fill(options.name);
   await form.getByLabel("설명 (description)", { exact: true }).fill(options.description);
-  await form.getByRole("radio", { name: options.role, exact: true }).check();
-  await form.getByRole("radio", { name: "전체 상속", exact: true }).check();
+  await choose(form.getByRole("radio", { name: options.role, exact: true }));
+  await choose(form.getByRole("radio", { name: "전체 상속", exact: true }));
   await form.getByRole("button", { name: "저장", exact: true }).click();
   await expect(form).toHaveCount(0);
   await expect(spriteSvg(page, options.name)).toBeVisible();
 }
 
 /**
- * 03 선택 패널 `제거` → 06-6 → 이름 입력 → `제거 (이름 일치 시 활성)`.
+ * 03 선택 패널 `제거` → 06-6(`data-wf="06-6-1"` 창) → name 입력 → `제거`.
  * 호출 전에 대상 에이전트가 선택된 03 화면이어야 한다.
  */
 export async function removeSelectedAgentViaUi(page: Page, agentName: string): Promise<void> {
   await page.getByRole("button", { name: "제거", exact: true }).click();
-  const confirm = page.getByTestId("confirm-by-name-dialog");
+  const confirm = page.locator('[data-wf="06-6-1"]');
   await expect(confirm).toBeVisible();
-  await confirm.getByLabel("확인을 위해 이름 입력", { exact: true }).fill(agentName);
-  await confirm.getByRole("button", { name: "제거 (이름 일치 시 활성)", exact: true }).click();
+  await confirm.getByLabel("확인을 위해 name 입력", { exact: true }).fill(agentName);
+  await confirm.getByRole("button", { name: "제거", exact: true }).click();
   await expect(confirm).toHaveCount(0);
 }

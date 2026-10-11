@@ -85,12 +85,13 @@ run_batch "배치 2 — project-configured (E2E-03·E2E-07·E2E-10)" project-con
   tests/e2e-07.spec.ts \
   tests/e2e-10.spec.ts
 
-# 배치 3·4 — E2E-06은 fixture 두 개를 쓰는 시나리오라 describe를 나누고 실행도 나눈다.
-run_batch "배치 3 — project-no-agents-dir (E2E-06 04-5)" project-no-agents-dir \
-  tests/e2e-06.spec.ts --grep "project-no-agents-dir"
+# 배치 3·4 — E2E-06은 fixture 두 개를 쓰는 시나리오라 describe를 나누고 실행도 나눈다. E2E-13의 04-5·04-6 캡처
+# (`[E2E-13] project-no-agents-dir …`·`[E2E-13] project-format-errors …`)도 같은 fixture라 `--grep`으로 함께 돈다(ADR-75).
+run_batch "배치 3 — project-no-agents-dir (E2E-06 04-5 · E2E-13 04-5 캡처)" project-no-agents-dir \
+  tests/e2e-06.spec.ts tests/e2e-13.spec.ts --grep "project-no-agents-dir"
 
-run_batch "배치 4 — project-format-errors (E2E-06 04-6)" project-format-errors \
-  tests/e2e-06.spec.ts --grep "project-format-errors"
+run_batch "배치 4 — project-format-errors (E2E-06 04-6 · E2E-13 04-6 캡처)" project-format-errors \
+  tests/e2e-06.spec.ts tests/e2e-13.spec.ts --grep "project-format-errors"
 
 # 배치 5 — project-configured. E2E-04는 **이벤트 0건인 새 컨테이너**에서 시작해야 한다
 # (`[세션 N]` 번호가 1부터 붙고 01 실시간 이벤트 수가 재생 줄 수와 같아야 한다). 그래서 배치 2와
@@ -113,15 +114,20 @@ run_batch "배치 6 — project-configured (E2E-09 터미널 열기·E2E-11 07 �
 # SSE를 끊는다(realtime-spec.md §4). 같은 배치에 다른 spec이 있으면 그 spec이 멈춘 컨테이너를 만나
 # 전부 깨진다. spec은 `finally`와 `afterAll`에서 `unpause`로 되돌리고 컨테이너 상태를 단언한다.
 # 끊김 판정 45초 × 2회를 기다리므로 이 배치만 2분 가까이 걸린다(테스트 자체 타임아웃은 spec 안에서 늘린다).
-run_batch "배치 7 — project-configured (E2E-05 04-3 재연결 · pause/unpause 단독)" project-configured \
-  tests/e2e-05.spec.ts
+# E2E-13의 04-3 캡처(`[E2E-13] project-configured 04-3 …`)도 pause를 쓰므로 같은 단독 배치에 둔다: 파일 이름순으로 E2E-05 뒤에 돌고
+# 컨테이너를 `afterAll`에서 `unpause`한다. `--grep`은 E2E-05 전체와 이 캡처 하나만 고른다(ADR-76 결정 3).
+run_batch "배치 7 — project-configured (E2E-05 04-3 재연결 · E2E-13 04-3 캡처 · pause/unpause 단독)" project-configured \
+  tests/e2e-05.spec.ts tests/e2e-13.spec.ts --grep "E2E-05|project-configured 04-3"
 
-# 배치 8 — project-showcase. E2E-13은 `showcase.jsonl` 22줄을 재생한 상태를 단언하고 01·02·03(+04-4 변형)을
-# `screenshots/`에 캡처한다. 이벤트 0건인 새 컨테이너에서 시작해야 재생 결과 수치(실시간 이벤트 22개,
-# 상태 집계)가 맞으므로 다른 spec과 합치지 않는다. fixture의 `settings.json`·구성 파일을 쓰지만 모두
-# 자기 배치 안에서 되돌린다.
-run_batch "배치 8 — project-showcase (E2E-13 스크린샷 · 이름 실측)" project-showcase \
-  tests/e2e-13.spec.ts
+# 배치 8 — project-showcase. `showcase.jsonl` 30줄을 재생한 상태에서 E2E-13(화면 대조 20화면 중 01·02·03·04-4·05-R·05-3·06·06-6·06-5·07)과
+# E2E-16(사이 크기 넘침 12경우)이 돈다. 이벤트 0건인 새 컨테이너에서 시작해야 재생 결과 수치(실시간 이벤트 30, 상태 집계 7·1·13)가
+# 맞으므로 다른 spec과 합치지 않는다. 순서는 ui-spec "배치별 캡처 순서" 표 그대로이고 **파일 이름순 실행**에 기댄다:
+#   e2e-13.spec.ts(순서 1~8) → e2e-16.spec.ts(순서 9, E2E-16) → e2e-16z-e2e13-state-changes.spec.ts(순서 10~14, 상태를 바꾼다).
+# 마지막 파일은 이름이 `e2e-16.spec.ts`보다 뒤가 되게 `e2e-16z-`로 시작한다(코드 단위·ICU 정렬 모두에서 뒤).
+run_batch "배치 8 — project-showcase (E2E-13 순서 1~14 · E2E-16 넘침 판정)" project-showcase \
+  tests/e2e-13.spec.ts \
+  tests/e2e-16.spec.ts \
+  tests/e2e-16z-e2e13-state-changes.spec.ts --grep "project-showcase"
 
 # 배치 9 — project-large(에이전트 100·워크플로우 30). E2E-12는 30개 층이 모두 있는 상태에서 줌·미니맵·
 # 검색·드롭다운을 재므로 이 fixture만 쓰는 단독 배치다. 화면만 읽고 파일·설정을 바꾸지 않는다.
@@ -141,6 +147,13 @@ run_batch "배치 9 — project-large (E2E-12 줌·미니맵·검색·드롭다�
 run_batch "배치 10 — project-old-name (E2E-17 옛 이름 미지원)" project-old-name \
   tests/e2e-17-old-name.spec.ts
 
-# E2E-01~15와 E2E-17이 위 10개 배치로 끝난다(architecture.md §8.2). 새 시나리오를 넣을 때는 fixture가 같고
+# 배치 11 — project-basic(이벤트 0건·워크플로우 0개인 새 컨테이너). E2E-13의 04-2·04-7·05-L(성공·E1·E3)·04-1 캡처를 이 순서대로 만든다
+# (`[E2E-13] project-basic …`). 04-2는 `/api/state`·`/api/stream`의 `route.continue()`만 늦추고(ADR-75 6) E3는 호스트의
+# `.aojistudio/teams/`를 0555로 만들었다 0755로 되돌린다. 다른 spec과 합치지 않는다(워크플로우 0개가 전제).
+run_batch "배치 11 — project-basic (E2E-13 04-2·04-7·05-L·04-1 캡처)" project-basic \
+  tests/e2e-13.spec.ts --grep "project-basic"
+
+# E2E-01~17이 위 11개 배치로 끝난다(architecture.md §8.2·§8.4). 새 시나리오를 넣을 때는 fixture가 같고
 # 서로의 전제를 건드리지 않는 배치에 덧붙이고, 컨테이너 상태를 바꾸는 spec(예: pause)은 단독 배치로 둔다.
 # 모든 배치가 끝날 때마다 globalTeardown이 컨테이너 로그의 옛 호환 경고 0줄을 단언한다(NFR-13 ⑥).
+# E2E-13 캡처 60장은 `tools/e2e/screenshots/<원본 이름>@<W>x<H>.png`에 남는다(.gitignore 대상).

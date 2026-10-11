@@ -92,19 +92,20 @@ export function EventsTable({ recentEvents }: { recentEvents: EventRow[] }) {
           <tbody>
             {recentEvents.map((event) => (
               <tr key={event.id} className={ROW}>
-                <td className={`${TD} font-mono text-text-secondary`}>{formatHms(event.at)}</td>
-                <td className={`${TD} text-text-secondary`}>{event.workflow ?? EMPTY_VALUE_TEXT}</td>
-                <td className={`${TD} font-mono text-text-secondary`} title={event.agentLabel}>
+                <td data-clamp className={`${TD} font-mono text-text-secondary`}>{formatHms(event.at)}</td>
+                <td data-clamp className={`${TD} text-text-secondary`}>{event.workflow ?? EMPTY_VALUE_TEXT}</td>
+                <td data-clamp className={`${TD} font-mono text-text-secondary`} title={event.agentLabel}>
                   {event.agentLabel}
                 </td>
                 <td
                   className={`${TD} ${event.kind === "permission" ? "font-semibold text-waiting" : "text-text-secondary"}`}
+                  data-clamp
                   data-kind={event.kind}
                   title={event.title}
                 >
                   {event.title}
                 </td>
-                <td className={`${TD} font-mono text-text-secondary`} title={event.summary}>
+                <td data-clamp className={`${TD} font-mono text-text-secondary`} title={event.summary}>
                   {event.summary}
                 </td>
               </tr>

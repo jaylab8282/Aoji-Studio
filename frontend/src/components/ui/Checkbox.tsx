@@ -10,9 +10,11 @@ interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "typ
   checked: boolean;
   /** 라벨 글자. 라벨 없이 표 칸 안에서 쓸 때는 `aria-label`을 넘긴다. */
   label?: string;
+  /** 06 도구 5열 격자처럼 행 높이 28인 조밀한 배치(`.tgrid .opt`). */
+  dense?: boolean;
 }
 
-export function Checkbox({ checked, label, disabled, ...rest }: CheckboxProps) {
+export function Checkbox({ checked, label, disabled, dense = false, ...rest }: CheckboxProps) {
   const box = disabled
     ? "border-dashed border-border-dashed bg-card"
     : checked
@@ -20,7 +22,7 @@ export function Checkbox({ checked, label, disabled, ...rest }: CheckboxProps) {
       : "border-border-dashed bg-soft";
   return (
     <label
-      className={`inline-flex min-h-control items-center gap-2 whitespace-nowrap ${
+      className={`inline-flex ${dense ? "min-h-7" : "min-h-control"} items-center gap-2 whitespace-nowrap ${
         disabled ? "cursor-not-allowed text-text-muted" : "cursor-pointer"
       }`}
     >

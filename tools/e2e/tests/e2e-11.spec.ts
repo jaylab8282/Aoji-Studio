@@ -28,6 +28,7 @@ import { helperDryRunLines, readE2eState } from "../lib/e2e-state";
 import {
   SETUP_REFLECT_TIMEOUT_MS,
   fixturePath,
+  helperInstalledPattern,
   gotoReady,
   listFixtureDir,
   measureFileChangeReflection,
@@ -91,10 +92,10 @@ const SETTINGS_TITLE = "설정";
 const COPY_COMMAND_LABEL = "명령 복사";
 const COPY_HOOK_EXAMPLE_LABEL = "설정 예시 복사";
 const COPIED_LABEL = "복사됨";
-const TEST_OPEN_LABEL = "테스트로 열기 (도우미 설치 후)";
+const TEST_OPEN_LABEL = "테스트로 열기";
 const RESCAN_LABEL = "다시 읽기";
 const LEAD_SESSION_HINT = "도우미가 받는 값은 팀장 name 하나 · 소문자·숫자·하이픈만 허용";
-const HOOK_CONFIGURED_TEXT = "설정됨";
+const HOOK_CONFIGURED_TEXT = "있음";
 const HOOK_MISSING_TEXT = "없음";
 const SIDEBAR_HOOK_CONFIGURED_TEXT = "hook 설정됨";
 const SIDEBAR_HOOK_NOT_CONFIGURED_TEXT = "hook 설정 안 됨";
@@ -179,18 +180,18 @@ test("[FR-014-AC4][FR-013-AC5][E2E-11] 07 카드 3개의 값 행이 실제 값�
     `.claude/skills/ · ${fixtureSkillCount()}개`,
   );
   await expect(page.getByTestId("settings-row-writable")).toContainText(
-    "✓ agents 추가·수정·삭제 가능",
+    "있음 · 에이전트 추가·수정·제거 가능",
   );
-  await expect(page.getByTestId("settings-row-format-errors")).toContainText("없음");
+  await expect(page.getByTestId("settings-row-format-errors")).toContainText("읽지 못한 정의 파일 0개");
   await expect(page.getByText("읽기 전용", { exact: true })).toBeVisible();
   await expect(
-    page.getByText("폴더는 컨테이너 실행 시 마운트로 고정 · 웹에서 변경 불가", { exact: true }),
+    page.getByText("폴더는 컨테이너를 실행할 때 마운트로 정해지며 웹에서 바꿀 수 없습니다", { exact: true }),
   ).toBeVisible();
 
   // 카드 2 Claude 열기 — FR-013-AC5: 두 명령이 07에 있다.
   await expect(
     page.getByText(
-      "02의 Claude 열기 · 기본 세션과 03의 팀장 호출 · 터미널 열기를 누르면 맥북 터미널이 열리고 프로젝트 폴더에서 claude가 실행됩니다.",
+      "에이전트 워크플로우의 Claude 열기 · 기본 세션은 claude를, 워크플로우 상세의 팀장 호출은 그 워크플로우 팀장 세션을 맥북 기본 터미널에서 AojiStudio 폴더 기준으로 엽니다.",
       { exact: true },
     ),
   ).toBeVisible();
@@ -204,7 +205,7 @@ test("[FR-014-AC4][FR-013-AC5][E2E-11] 07 카드 3개의 값 행이 실제 값�
   );
   await expect(page.getByTestId("settings-row-lead-session")).toContainText(LEAD_SESSION_HINT);
   await expect(page.getByTestId("settings-row-helper")).toContainText(
-    /설치됨 · 응답 확인 \d{2}:\d{2}:\d{2}/,
+    helperInstalledPattern(),
   );
 
   // 카드 3 수집 — 수집 주소는 이 컨테이너의 공개 주소다(ADR-45로 포트가 `4185`다).
@@ -215,7 +216,7 @@ test("[FR-014-AC4][FR-013-AC5][E2E-11] 07 카드 3개의 값 행이 실제 값�
     ".aojistudio/teams/*.json · 팀장·팀원 목록",
   );
   await expect(page.getByTestId("settings-row-trash")).toContainText(
-    ".aojistudio/trash/ · 제거한 에이전트 보관",
+    ".aojistudio/trash/ · 제거한 정의 파일 보관",
   );
   await expect(page.getByTestId("settings-row-retention")).toContainText("30일");
   await expect(
@@ -349,7 +350,7 @@ test("[FR-013-AC10][E2E-11] 07 `테스트로 열기` → dry-run 도우미가 �
   await gotoReady(page, "/settings");
   // 도우미가 응답하므로 버튼이 활성이다(FR-013-AC10: 진입 시 확인).
   await expect(page.getByTestId("settings-row-helper")).toContainText(
-    /설치됨 · 응답 확인 \d{2}:\d{2}:\d{2}/,
+    helperInstalledPattern(),
   );
   const button = page.getByRole("button", { name: TEST_OPEN_LABEL, exact: true });
   await expect(button).toBeEnabled();

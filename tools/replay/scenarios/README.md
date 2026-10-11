@@ -52,57 +52,52 @@ JSONL 파일은 JSON 표준상 줄 안에 주석을 넣을 수 없다. 이 문�
   `freelancer`)와 맞춰서 만들었다. `freelancer`는 어떤 구성 파일에도 속하지 않는 "워크플로우 밖
   에이전트"다.
 
-## showcase.jsonl — E2E-13 스크린샷용 (`project-showcase`와 짝)
+## showcase.jsonl — E2E-13·E2E-16 화면 대조용 (`project-showcase`와 짝, ADR-75 7)
 
-`docs/ui/screens/01-home.png`·`02-workflows.png`·`03-workflow-detail.png`(확정 기준 이미지,
-`[N]`·`[...]` 표기는 와이어프레임 자리표시일 뿐 실제 값이 아니다)와 **유사한 상태 구성**을
-만든다. 정확히 같은 인원 수·이름을 재현하는 것이 아니라 각 화면 요소(팀장 있는 큰 팀·팀장 없는
-팀·모두 대기인 팀·로비 2세션·마스킹된 이벤트·정의 있는/없는 서브에이전트)가 화면에 나타나게 하는
-것이 목적이다.
+`docs/ui/screens/01-home.html`·`02-workflows.html`·`03-workflow-detail.html`(확정 시안)과 **같은 구성의 상태**를
+만든다: 워크플로우 `개발부서` 8명·`디자인부서` 4명·`영상제작부서` 0명(팀장 없음)·`투자부서` 4명, 워크플로우 밖 5명
+(`code-explainer`·`docs-writer`·`release-manager`·`test-runner`·`video-editor`), 에이전트 21·스킬 12.
+재생 후 집계는 작업 중 7 · 권한·입력 대기 1 · 대기 13이다. 시안의 이벤트 시각·행 구성은 목업 값이라 맞추지 않는다.
+**30줄**이며 줄 수는 `e2e-13.spec.ts`가 단언한다(01 이벤트 표 행 수 = min(30, 50) = 30).
 
 | 줄 | 이벤트 | 대상 | 화면 대응 |
 |---|---|---|---|
 | 1~2 | SessionStart → UserPromptSubmit | sess-lobby-1 | 02 로비 `[세션 1] · 작업 중` |
-| 3~4 | SessionStart → PermissionRequest | sess-lobby-2 | 02 로비 `[세션 2] · 권한·입력 대기` |
-| 5~6 | SessionStart → PreToolUse Edit | dev-lead | 01 실시간 이벤트 `도구 실행 · Edit`, 03 `타이핑 · Edit`(팀장) |
-| 7~8 | SessionStart → PreToolUse Read | dev-02 | 03 `읽기 · Read` |
-| 9~10 | SessionStart → PreToolUse AskUserQuestion | dev-03 | 03 `권한 요청`(주황) |
-| 11 | SessionStart만 | dev-04 | 03 `대기`(회색) |
-| 12~13 | SessionStart → PreToolUse Bash(`export TOKEN=...`) | dev-05 | 01 실시간 이벤트 마스킹 시연(`export TOKEN=••••••••`) |
-| 14 | SubagentStart(agent_type=dev-07, 정의 있음) | dev-lead의 세션 | 03 "정의 있는 서브에이전트" · 부모 dev-lead |
-| 15 | SubagentStart(agent_type=Explore, 정의 없음) | dev-lead의 세션 | 03 작은 캐릭터 "서브에이전트" · 부모 dev-lead |
-| 16 | SessionStart만 | dev-06 | dev-team 인원 채움(대기) — dev-08은 이벤트가 전혀 없어 FR-004-AC1(이벤트 없는 에이전트=대기) 시연 |
-| 17~18 | SessionStart → PreToolUse Bash | mkt-lead | 02 워크플로우 C "실행 중 N명" |
-| 19 | SessionStart만 | mkt-02 | 02 워크플로우 C 대기 인원 |
-| 20~21 | SessionStart → PostToolUse | mkt-03 | 02 워크플로우 C 작업 중 인원 |
-| 22 | SessionStart만 | ops-01 | 02 워크플로우 D(팀장 없음) 대기 인원. ops-02는 이벤트 없음(대기) |
+| 3 | SessionStart | sess-lobby-2 | 02 로비 `[세션 2] · 대기` |
+| 4~5 | SessionStart → PreToolUse Write | docs-writer(워크플로우 밖) | 02 로비 `docs-writer · 작업 중`, 01 실시간 이벤트 `-` 워크플로우 |
+| 6~7 | SessionStart → Stop | invest-analyst | 투자부서 `모두 대기` + 마지막 활동(01 대표 3번째 카드) |
+| 8~9 | SessionStart → Stop | design-motion | 디자인부서 대기 책상 |
+| 10~13 | SessionStart → PreToolUse Agent → SubagentStart(design-ui) → PreToolUse Write(design-ui) | design-lead · design-ui | 디자인부서 `실행 중 2명`, design-ui `작업 중 · 부모 design-lead` |
+| 14~15 | SessionStart → Stop | web-reviewer | 개발부서 대기 책상. **배치 8 순서 6·8·10·11이 `web-reviewer`의 실제 `idle`을 전제로 한다** |
+| 16 | SessionStart | web-db-designer | 개발부서 대기 책상 (web-architect는 이벤트 없음 = 대기) |
+| 17~18 | SessionStart → PreToolUse Bash(`export API_KEY=…`) | web-tester | 03 `Bash`·`작업 중`, 01 마스킹 시연 `export API_KEY=•••••••• && npm test -- --run` |
+| 19~21 | SessionStart → PreToolUse Read → PreToolUse Agent | web-develop-tech-lead | 03 팀장 `작업 중`, 말풍선 `Agent` |
+| 22~23 | SubagentStart(web-backend-dev) → PreToolUse Edit | 팀장 세션의 서브 | 03 `타이핑 · Edit` · `작업 중 · 부모 web-develop-tech-lead` |
+| 24~25 | SubagentStart(web-frontend-dev) → PreToolUse Read | 〃 | 03 `읽기 · Read` · 부모 접미 |
+| 26~27 | SubagentStart(web-security-reviewer) → PermissionRequest Bash(`Authorization:…`) | 〃 | 03 `권한 요청`(주황) · `권한 대기 · 부모 …`, 개발부서 칩 `권한 대기 1명` |
+| 28~29 | SubagentStart(Explore, 정의 없음) → PreToolUse Grep | 〃 | 03 작은 캐릭터 `Explore`(`읽기 · Grep`) · 부모 접미 |
+| 30 | PreToolUse Agent(description=Explore) | web-develop-tech-lead | 03 패널 `현재 도구` `Agent · Explore` |
 
-- `video-lead`·`video-02`~`video-04`(video-team)는 이 시나리오에서 전혀 등장하지 않는다 →
-  "모두 대기" 워크플로우(02 워크플로우 B 대응)를 만든다.
-- `dev-team`은 `dev-lead` + `dev-02`~`dev-08`(7명)으로 인원 8명 — FR-006-AC2 "인원 7 이상 →
-  span 3" 층 카드 시연.
+- 팀장 `web-develop-tech-lead`의 서브에이전트(`childCount`)는 4(backend·frontend·security·Explore)다.
+- 01 대표 워크플로우 3장은 FR-005-AC3 규칙(활성 우선 → 최근 이벤트 내림차순)으로 `개발부서`(마지막 이벤트가 가장 뒤)·
+  `디자인부서`·`투자부서`다. `영상제작부서`는 이벤트가 없어 4번째라 01에 나오지 않는다.
+- 로비 번호: 로비 세션은 1·2줄과 3줄뿐이라 `[세션 1]`·`[세션 2]`다(서브에이전트의 부모 세션은 모두 `SessionStart`가 있다).
 
-## span1-status-clamp.jsonl — 02 span-1 열 상태 줄 clamp 실측용 (`project-showcase`와 짝, ADR-50 B)
+## span1-status-clamp.jsonl — 02 보통 층 상태 줄 clamp 실측용 (`project-showcase`와 짝, ADR-50 B)
 
-`showcase.jsonl`이 만드는 상태에는 **span-1 층(4열)에 부모 접미(`· 부모 <라벨>`)가 붙은 책상이
-나란히 두 개 있는 경우가 없다**(그래서 T-024까지의 겹침 실측은 0건이었고 가림 여부는 투영값으로만
-남았다 — D-083). 이 시나리오는 가장 좁은 열에 그 상태를 **실제로** 만들어 `e2e-13`이 clamp 결과를
-실측으로 단언하게 한다(T-FIX-12). `showcase.jsonl`은 22줄 대응표·줄 수 단언·기준 캡처가 걸려 있어
-고치지 않고 이 파일을 따로 둔다.
+`showcase.jsonl`이 만드는 상태에는 `디자인부서`의 이웃한 두 책상(`design-motion`·`design-reviewer`)에 부모 접미
+(`· 부모 <라벨>`)가 붙은 경우가 없다. 이 시나리오는 그 상태를 **실제로** 만들어 `e2e-13`(배치 8 순서 14)이 상태 줄
+clamp 결과를 실측으로 단언하게 한다. `showcase.jsonl`의 `디자인부서` 팀장 세션(`sess-design-lead`)을 그대로 부모로 쓴다.
 
 | 줄 | 이벤트 | 대상 | 화면 대응 |
 |---|---|---|---|
-| 1 | SessionStart | sess-span1-parent (agent_type=video-lead) | 부모 세션 = 정의 있는 팀장 `video-lead`(10자 라벨). 02 video-team 팀장 책상 `대기` |
-| 2 | SubagentStart(agent_type=video-02, 정의 있음) | sess-span1-parent | video-team 2번째 열 책상 → `작업 중 · 부모 video-lead` |
-| 3 | SubagentStart(agent_type=video-03, 정의 있음) | sess-span1-parent | video-team 3번째 열 책상 → `작업 중 · 부모 video-lead`. **2·3줄로 span-1 인접 두 열에 접미가 붙은 책상이 나란히 생긴다**(실측 ①~④) |
-| 4~5 | SubagentStop | sub-span1-video-02 · sub-span1-video-03 | 위 두 서브 레코드 제거(AC2 표 11행) — 13자 라벨 측정 전에 부모가 겹치지 않게 비운다 |
-| 6 | SessionStart | sess-span1-long (agent_type=vid-parentxyz) | 부모 세션 = **13자 이름** 에이전트. `e2e-13`이 같은 이름의 정의 파일을 video-team에 임시로 만들고 측정 후 지운다 |
-| 7~8 | SubagentStart(agent_type=video-02 · video-03) | sess-span1-long | 같은 두 책상 → `작업 중 · 부모 vid-parentxyz`(라벨 13자). 5명이 되어 열 순서는 `video-lead · vid-parentxyz · video-02 · video-03` + 다음 줄 `video-04`이므로 두 책상은 여전히 첫 줄 인접 열이다(실측 ⑤) |
+| 1~2 | SubagentStart(design-motion · design-reviewer) | sess-design-lead (부모 = design-lead, 11자) | 두 책상 → `작업 중 · 부모 design-lead`. 팀장 다음 이웃한 두 열 |
+| 3~4 | SubagentStop | 위 두 서브 레코드 | 두 책상 `대기` 복귀 — 13자 라벨 측정 전에 비운다 |
+| 5 | SessionStart | sess-span1-long (agent_type=des-parentxyz) | 부모 = **13자 이름** 에이전트. `e2e-13`이 같은 이름의 정의 파일을 `디자인부서`에 임시로 만들고 측정 후 지운다 |
+| 6~7 | SubagentStart(design-motion · design-reviewer) | sess-span1-long | 두 책상 → `작업 중 · 부모 des-parentxyz`(13자). 5명이 되어 열 순서는 `design-lead · des-parentxyz · design-motion · design-reviewer` + 다음 줄 `design-ui`이므로(보통 층 4열, 1920 폭) 두 책상은 여전히 첫 줄 이웃 칸이다 |
 
-- 이 시나리오는 `e2e-13`이 **기준 캡처(01·02·03)와 기존 단언을 모두 끝낸 뒤** 1~3줄 → 4~8줄 순서로
-  나눠 재생한다. 캡처 상태를 바꾸지 않으려고 순서를 그렇게 고정했다.
-- `vid-parentxyz`(13자)는 FR-006-AC4 경계(12자 초과 → 12자 + `…`)를 넘는 이름이고, 부모 접미는
-  잘리지 않으므로 상태 줄이 가장 길어지는 경우다. 이름 그대로 `e2e-13`이 정의 파일을 만들어 넣으므로
+- 이 시나리오는 `e2e-13`이 다른 캡처·단언을 모두 끝낸 **맨 끝**(live 상태를 바꾼다)에 1~2줄 → 3~7줄 순서로 재생한다.
+- `des-parentxyz`(13자)는 FR-006-AC4 경계(12자 초과)를 넘는 이름이고, 부모 접미는 잘리지 않으므로 상태 줄이 가장 길어지는 경우다.
   fixture 원본(`tools/fixtures/project-showcase`)은 수정하지 않는다.
 
 ## fixture의 `.claude/settings.json`은 E2E에서 그대로 쓰면 `hook 설정 안 됨`이다 (D-052)

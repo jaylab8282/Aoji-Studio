@@ -17,7 +17,7 @@ export function CollectorDown({ lastReceivedAt }: { lastReceivedAt: string | nul
         {COLLECTOR_DOWN_LEAD}
         <MonoText>{formatTimestamp(lastReceivedAt)}</MonoText>
       </b>
-      <span className="min-w-0 truncate text-text">{COLLECTOR_DOWN_WHY}</span>
+      <span data-clamp className="min-w-0 truncate text-text">{COLLECTOR_DOWN_WHY}</span>
     </Banner>
   );
 }

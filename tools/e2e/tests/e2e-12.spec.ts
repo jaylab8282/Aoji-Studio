@@ -41,7 +41,10 @@ function zoomFitButton(page: Page): Locator {
   return page.getByRole("button", { name: "맞춤", exact: true });
 }
 
-/** 캔버스 `aria-label`(`층 캔버스 · 줌 N%`)에 실린 현재 배율(ui-spec.md SCR-02 캔버스 행). 줌 버튼 이름에는 배율이 없다. */
+/**
+ * 캔버스 `aria-label`(`층 캔버스 · 줌 N%`)에 실린 현재 배율. 근거는 ui-spec.md SCR-02 표의 캔버스(`02-5`) 행이다:
+ * 화면에 배율 글자가 없으므로(NFR-12) 보조기기에 현재 배율을 알리는 보이지 않는 접근 이름이다. 줌 버튼 이름에는 배율이 없다.
+ */
 async function currentZoomPercent(page: Page): Promise<number> {
   const label = await scrollArea(page).getAttribute("aria-label");
   const matched = /줌 (\d+)%/.exec(label ?? "");
@@ -54,9 +57,9 @@ function scrollArea(page: Page): Locator {
   return page.getByTestId("floor-scroll-area");
 }
 
-/** `transform: scale(...)`이 걸린 층 영역 래퍼(층 그리드 + 아래 여백 160. 04-6 카드·로비는 줌 대상이 아니다). */
+/** `transform: scale(var(--zoom-scale))`이 걸린 층 영역 래퍼 `.zoom-surface`(층 그리드 + 아래 여백 160. 04-6 카드·로비는 줌 대상이 아니다). */
 function zoomedContent(page: Page): Locator {
-  return scrollArea(page).locator("div[style*='transform']");
+  return scrollArea(page).locator(".zoom-surface");
 }
 
 /** 실제로 적용된 배율. `getComputedStyle().transform`의 matrix에서 x 배율을 읽는다. */
@@ -157,10 +160,8 @@ test(`[FR-006-AC6][E2E-12] 줌 +/− → 10%p 단위로 층 영역 transform sca
     await zoomInButton(page).click();
   }
   expect(await currentZoomPercent(page)).toBe(ZOOM_MAX);
-  expect(await currentZoomPercent(page)).toBe(ZOOM_MAX);
   // 한계에 닿은 방향의 버튼은 눌러도 달라지지 않으므로 비활성이다(눌러도 아무 일 없는 활성 버튼 금지).
   await expect(zoomInButton(page)).toBeDisabled();
-  expect(await currentZoomPercent(page)).toBe(ZOOM_MAX);
   expect(await appliedScale(page)).toBeCloseTo(ZOOM_MAX / 100, 2);
 
   // 하한 50%까지 내린 뒤 더 눌러도 50%에서 멈춘다.
@@ -170,7 +171,6 @@ test(`[FR-006-AC6][E2E-12] 줌 +/− → 10%p 단위로 층 영역 transform sca
   }
   expect(await currentZoomPercent(page)).toBe(ZOOM_MIN);
   await expect(zoomOutButton(page)).toBeDisabled();
-  expect(await currentZoomPercent(page)).toBe(ZOOM_MIN);
   expect(await appliedScale(page)).toBeCloseTo(ZOOM_MIN / 100, 2);
 });
 
@@ -194,7 +194,7 @@ test("[FR-006-AC6][E2E-12] `맞춤` — 층 30개는 하한 50%까지만 줄고,
 
   const fits = await scrollArea(page).evaluate((area) => {
     // `맞춤`은 층 그리드(줌 래퍼의 안쪽 요소)만 잰다 — 래퍼의 아래 여백 160은 제외한다(ui-spec 줌 묶음 행).
-    const content = area.querySelector<HTMLElement>("div[style*='transform'] > div");
+    const content = area.querySelector<HTMLElement>(".zoom-surface > div");
     if (content === null) return null;
     const rect = content.getBoundingClientRect();
     return {

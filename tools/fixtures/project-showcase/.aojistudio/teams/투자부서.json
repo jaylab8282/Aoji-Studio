@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "투자부서",
+  "description": "시장 분석과 투자 리포트",
+  "lead": "invest-lead",
+  "members": [
+    "invest-analyst",
+    "invest-reporter",
+    "invest-risk"
+  ],
+  "createdAt": "2026-09-20T10:00:00+09:00",
+  "updatedAt": "2026-09-20T10:00:00+09:00"
+}

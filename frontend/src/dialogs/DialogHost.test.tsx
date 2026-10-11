@@ -128,10 +128,8 @@ describe("DialogHost", () => {
     ]);
     const router = renderAt("/workflows?dialog=import");
 
-    // ADR-38: `?workflow`가 없어도 제목은 드롭다운 현재 선택값(첫 워크플로우)을 따른다.
-    expect(
-      screen.getByRole("heading", { name: "개발부서(으)로 기존 에이전트 가져오기" }),
-    ).toBeInTheDocument();
+    // ADR-71: `?workflow`가 없으면 제목은 고정이다.
+    expect(screen.getByRole("heading", { name: "기존 에이전트 가져오기" })).toBeInTheDocument();
     expect(screen.getByLabelText("대상 워크플로우").tagName).toBe("SELECT");
 
     fireEvent.click(screen.getByRole("button", { name: "취소" }));

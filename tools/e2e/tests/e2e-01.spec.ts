@@ -170,7 +170,7 @@ test("[FR-007-E1][E2E-01] 워크플로우 추가 후 03 진입 → 04-4 배너 +
   const banner = page.getByRole("status").filter({ hasText: "hook 이벤트 수신 없음" });
   await expect(banner).toContainText("hook 이벤트 수신 없음 · 마지막 수신 없음");
   await expect(banner).toContainText(
-    "Claude Code 미실행 또는 컨테이너 재시작 · 캐릭터는 모두 회색 대기",
+    "Claude Code가 꺼졌거나 hook 설정이 없으면 캐릭터를 모두 대기로 표시합니다",
   );
 
   // 캐릭터 모두 대기색(셔츠·모니터) + 말풍선·상태 글자 `대기`.

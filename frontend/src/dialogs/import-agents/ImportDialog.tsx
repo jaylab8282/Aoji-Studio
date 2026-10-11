@@ -88,9 +88,9 @@ export function ImportDialog({ workflowName, onClose }: ImportDialogProps) {
     candidates.map((agent) => agent.name),
     roles,
   );
-  // ADR-38: 제목은 `?workflow`가 아니라 현재 대상(= `?workflow` ?? 드롭다운 선택값)을 따른다.
-  // 대상이 하나도 없을 때(워크플로우 0개·스냅샷 전)만 대상 미정 문구를 쓴다.
-  const title = target === null ? IMPORT_TITLE : importTitleFor(target);
+  // ADR-71(ui-spec SCR-05-R, 시안 05R-agent-import): 헤더 링크로 열면(`?workflow` 없음) 드롭다운과 상관없이 고정 제목,
+  // 층에서 열면 `<워크플로우>(으)로 …`.
+  const title = workflowName === null ? IMPORT_TITLE : importTitleFor(workflowName);
   // ADR-37: 검색에 가려진 선택이 1명 이상일 때만 안내 줄을 그린다.
   const hiddenSelected = hiddenSelectedCount(selectedNames, visibleAgents);
   // 헤더 링크로 열었을 때만 대상 드롭다운이 있다(FR-009-AC7).
