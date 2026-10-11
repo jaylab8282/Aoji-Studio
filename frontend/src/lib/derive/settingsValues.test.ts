@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { settingsDisplayValues } from "./settingsValues";
+import { settingsDisplayValues, helperHostPort } from "./settingsValues";
 import { buildSettingsFixture } from "../../test/fixtures/settings";
 import { buildSnapshotFixture } from "../../test/fixtures/snapshot";
 import type { Registry } from "../../api/types";
@@ -65,5 +65,12 @@ describe("settingsDisplayValues", () => {
     expect(values.writable).toBe(false);
     expect(values.hookConfigured).toBe(false);
     expect(values.agentCount).toBeNull();
+  });
+});
+
+describe("helperHostPort (SCR-07 열기 도우미 행)", () => {
+  it("[FR-013-AC10] helperUrl에서 host:port만 뽑고, 주소가 아니면 받은 글자 그대로", () => {
+    expect(helperHostPort("http://127.0.0.1:4181")).toBe("127.0.0.1:4181");
+    expect(helperHostPort("not a url")).toBe("not a url");
   });
 });

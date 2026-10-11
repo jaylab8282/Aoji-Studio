@@ -45,3 +45,15 @@ export function settingsDisplayValues(
     hookConfigured: registry.hookConfigured,
   };
 }
+
+/**
+ * `열기 도우미` 행의 `host:port`(ui-spec.md SCR-07, `settings.helperUrl`에서 뽑는다).
+ * 주소로 읽을 수 없는 값이면 받은 글자를 그대로 쓴다.
+ */
+export function helperHostPort(helperUrl: string): string {
+  try {
+    return new URL(helperUrl).host;
+  } catch {
+    return helperUrl;
+  }
+}

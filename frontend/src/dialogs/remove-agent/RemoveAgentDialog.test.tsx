@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, MemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { routes } from "../../app/router";
@@ -74,10 +74,19 @@ function renderDialog(agentName = "dev-lead", onClose = vi.fn(), onRemoved?: () 
 }
 
 function typeConfirmName(value: string) {
-  fireEvent.change(screen.getByLabelText("확인을 위해 이름 입력"), { target: { value } });
+  fireEvent.change(screen.getByLabelText("확인을 위해 name 입력"), { target: { value } });
 }
 
-const removeButton = () => screen.getByRole("button", { name: "제거 (이름 일치 시 활성)" });
+/** 첫 줄: 앞 글자 + 고정폭 경로 + 뒤 글자(경로만 고정폭). */
+function expectTrashLine() {
+  const path = screen.getByText(".aojistudio/trash/");
+  expect(path).toHaveClass("font-mono");
+  expect(path.parentElement).toHaveTextContent("정의 파일이 .aojistudio/trash/로 이동합니다 (파일을 옮겨 복구할 수 있습니다)");
+}
+
+/** 03의 패널 `제거`와 겹치지 않게 06-6 아래 줄(`06-6-3`) 안에서 찾는다. */
+const removeButton = () =>
+  within(document.querySelector('[data-wf="06-6-3"]') as HTMLElement).getByRole("button", { name: "제거" });
 
 describe("RemoveAgentDialog", () => {
   beforeEach(() => {
@@ -95,12 +104,20 @@ describe("RemoveAgentDialog", () => {
     const onClose = renderDialog();
 
     expect(removeButton()).toBeDisabled();
+    // 이유 줄이 버튼에 aria-describedby로 이어지고, 같아지면 사라진다.
+    expect(removeButton()).toHaveAccessibleDescription("dev-lead을(를) 똑같이 입력하면 제거 버튼이 켜집니다");
     typeConfirmName("dev");
     expect(removeButton()).toBeDisabled();
     typeConfirmName("dev-lead ");
     expect(removeButton()).toBeDisabled();
     typeConfirmName("dev-lead");
     expect(removeButton()).toBeEnabled();
+    expect(removeButton()).toHaveClass("text-danger");
+    expect(screen.queryByText("dev-lead을(를) 똑같이 입력하면 제거 버튼이 켜집니다")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("확인을 위해 name 입력")).toHaveAttribute("placeholder", "dev-lead");
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-wf", "06-6-1");
+    expect(document.querySelector('[data-wf="06-6-2"]')).toContainElement(screen.getByLabelText("확인을 위해 name 입력"));
+    expect(document.querySelector('[data-wf="06-6-3"]')).toContainElement(removeButton());
 
     fireEvent.click(removeButton());
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
@@ -111,8 +128,9 @@ describe("RemoveAgentDialog", () => {
     stubFetch(() => jsonResponse({}, 500));
     renderDialog("dev-lead");
 
-    expect(screen.getByText("정의 파일이 .aojistudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).")).toBeInTheDocument();
-    expect(screen.getByText("팀장을 제거하면 개발부서 층에 팀장 없음이 표시됩니다.")).toBeInTheDocument();
+    expectTrashLine();
+    expect(screen.getByText("개발부서 구성 파일에서 빠집니다")).toBeInTheDocument();
+    expect(screen.getByText("팀장을 제거하면 개발부서 층에 팀장 없음이 표시됩니다")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "dev-lead을(를) 개발부서에서 제거할까요?" })).toBeInTheDocument();
   });
 
@@ -121,7 +139,7 @@ describe("RemoveAgentDialog", () => {
     stubFetch(() => jsonResponse({}, 500));
     renderDialog("qa-02");
 
-    expect(screen.getByText("정의 파일이 .aojistudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).")).toBeInTheDocument();
+    expectTrashLine();
     expect(screen.queryByText(/팀장 없음이 표시됩니다/)).not.toBeInTheDocument();
   });
 
@@ -145,7 +163,9 @@ describe("RemoveAgentDialog", () => {
     fireEvent.click(removeButton());
     // 06에서 열었으면 성공 후 02로 간다(ui-spec.md SCR-06-6 이동 열).
     // 팝업 unmount는 라우터 state 변경 **뒤**의 리렌더에서 일어나므로 DOM을 먼저 기다린다(간헐 실패 방지).
-    await waitFor(() => expect(screen.queryByTestId("confirm-by-name-dialog")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "qa-01을(를) 제거할까요?" })).not.toBeInTheDocument(),
+    );
     expect(router.state.location.pathname).toBe("/workflows");
   });
 
@@ -158,7 +178,7 @@ describe("RemoveAgentDialog", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("휴지통 이동 실패 · 파일은 그대로입니다");
     expect(onClose).not.toHaveBeenCalled();
-    expect(screen.getByTestId("confirm-by-name-dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "dev-lead을(를) 개발부서에서 제거할까요?" })).toBeInTheDocument();
     expect(removeButton()).toBeEnabled();
   });
 
@@ -212,7 +232,7 @@ describe("RemoveAgentDialog", () => {
     typeConfirmName("dev-lead");
     fireEvent.click(removeButton());
 
-    await waitFor(() => expect(screen.queryByTestId("confirm-by-name-dialog")).not.toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector('[data-wf="06-6-1"]')).toBeNull());
     expect(router.state.location.pathname).toBe("/workflows/개발부서");
   });
 });

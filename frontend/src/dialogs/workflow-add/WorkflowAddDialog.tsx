@@ -1,23 +1,29 @@
 /**
- * ui-spec.md SCR-05-L 워크플로우 추가 (`?dialog=workflow-add`, FR-008).
+ * ui-spec.md SCR-05-L 워크플로우 추가 (`?dialog=workflow-add`, FR-008, `05L-workflow-add*.html`).
  * 계약: api-spec.yaml `POST /api/workflows` — 요청 `{ name, description }`, 201 `Workflow`,
- * 400 `VALIDATION`(`fields.name`), 500 `IO_FAILED`.
+ * 400 `VALIDATION`(`fields.name`), 500 `IO_FAILED`. 에러 문구는 서버 `message`가 아니라 `lib/errorMapping.ts`가
+ * ui-rules 표 글자로 만든다(D-142).
  * 새 층은 SSE `registry`로 반영되므로(FR-008-AC4) 여기서 스토어를 직접 고치지 않는다.
  */
 import { useId, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ApiError, apiPost } from "../../api/client";
 import type { Workflow } from "../../api/types";
-import { Dialog } from "../../components/ui/Dialog";
+import { Alert } from "../../components/ui/Alert";
 import { Button } from "../../components/ui/Button";
+import { Dialog, DialogFooter, DialogHeader } from "../../components/ui/Dialog";
 import { Field } from "../../components/ui/Field";
+import { Icon } from "../../components/ui/Icon";
+import { MonoText } from "../../components/ui/MonoText";
 import { TextInput } from "../../components/ui/TextInput";
-import { useSnapshotStore } from "../../state/snapshotStore";
+import { workflowCreateErrorMessage, workflowNameFieldMessage } from "../../lib/errorMapping";
 import { normalizeWorkflowName, workflowNameError } from "../../lib/validators";
 import {
   CANCEL_BUTTON_LABEL,
   UNKNOWN_ERROR_MESSAGE,
-  WORKFLOW_ADD_DESCRIPTION,
+  WORKFLOW_ADD_DESCRIPTION_LEAD,
+  WORKFLOW_ADD_DESCRIPTION_PATH,
+  WORKFLOW_ADD_DESCRIPTION_TAIL,
   WORKFLOW_ADD_LEAD_NOTICE,
   WORKFLOW_ADD_SUBMIT_LABEL,
   WORKFLOW_ADD_SUBMIT_PENDING_LABEL,
@@ -26,9 +32,9 @@ import {
   WORKFLOW_DESCRIPTION_PLACEHOLDER,
   WORKFLOW_NAME_HINT,
   WORKFLOW_NAME_LABEL,
-  WORKFLOW_NAME_PLACEHOLDER,
-  WRITABLE_FALSE_REASON,
+  WRITABLE_FALSE_POPUP_NOTICE,
 } from "../../lib/text";
+import { useSnapshotStore } from "../../state/snapshotStore";
 
 export function WorkflowAddDialog({ onClose }: { onClose: () => void }) {
   const nameId = useId();
@@ -40,9 +46,9 @@ export function WorkflowAddDialog({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [pending, setPending] = useState(false);
-  /** 필드 아래 사유: 사전 검증 문구(FR-008-E2) 또는 서버 `fields.name`(FR-008-E1·E2). */
+  /** 입력 아래 사유: 사전 검증(FR-008-E2) 또는 서버 `fields.name`을 바꾼 E1·E2 문구. */
   const [nameError, setNameError] = useState<string | null>(null);
-  /** 팝업 하단 사유: `fields`가 없는 오류의 `message`(FR-008-E3, conventions.md §4). */
+  /** 아래 줄 위 `Alert`: `fields`가 없는 오류(FR-008-E3 쓰기 실패 등). */
   const [formError, setFormError] = useState<string | null>(null);
 
   const writable = registry?.writable !== false;
@@ -78,77 +84,71 @@ export function WorkflowAddDialog({ onClose }: { onClose: () => void }) {
       }
     } catch (error) {
       const apiError = error instanceof ApiError ? error : null;
-      const fieldReason = apiError?.fields?.name;
-      if (fieldReason !== undefined) {
-        setNameError(fieldReason);
+      if (apiError?.fields?.name !== undefined) {
+        setNameError(workflowNameFieldMessage(name));
       } else {
-        // client.ts가 모든 예외를 `ApiError`로 정규화한다. 알 수 없는 오류 문구는
-        // conventions.md §4 MUST의 공통 문구 하나만 쓴다.
-        setFormError(apiError === null ? UNKNOWN_ERROR_MESSAGE : apiError.message);
+        // client.ts가 모든 예외를 `ApiError`로 정규화한다. 알 수 없는 오류 문구는 conventions.md §4 MUST의 공통 문구 하나만 쓴다.
+        setFormError(apiError === null ? UNKNOWN_ERROR_MESSAGE : workflowCreateErrorMessage(apiError.code, apiError.message));
       }
       setPending(false);
     }
   }
 
   return (
-    <Dialog title={WORKFLOW_ADD_TITLE} onClose={onClose}>
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <h2 className="text-section font-semibold text-text">{WORKFLOW_ADD_TITLE}</h2>
-          <p className="text-aux text-text-secondary">{WORKFLOW_ADD_DESCRIPTION}</p>
-        </div>
+    <Dialog title={WORKFLOW_ADD_TITLE} size="md" wf="05L-1" onClose={onClose}>
+      <DialogHeader
+        title={WORKFLOW_ADD_TITLE}
+        subtitle={
+          <>
+            {WORKFLOW_ADD_DESCRIPTION_LEAD}
+            <MonoText>{WORKFLOW_ADD_DESCRIPTION_PATH}</MonoText>
+            {WORKFLOW_ADD_DESCRIPTION_TAIL}
+          </>
+        }
+      />
 
+      <div data-wf="05L-2">
         <Field
           label={WORKFLOW_NAME_LABEL}
           htmlFor={nameId}
           hint={WORKFLOW_NAME_HINT}
           error={nameError ?? undefined}
         >
-          <TextInput
-            id={nameId}
-            value={name}
-            placeholder={WORKFLOW_NAME_PLACEHOLDER}
-            disabled={pending}
-            onChange={(event) => updateName(event.target.value)}
-          />
+          <TextInput id={nameId} value={name} disabled={pending} onChange={(event) => updateName(event.target.value)} />
         </Field>
-
-        <Field label={WORKFLOW_DESCRIPTION_LABEL} htmlFor={descriptionId}>
-          <TextInput
-            id={descriptionId}
-            value={description}
-            placeholder={WORKFLOW_DESCRIPTION_PLACEHOLDER}
-            disabled={pending}
-            onChange={(event) => setDescription(event.target.value)}
-          />
-        </Field>
-
-        {/* FR-008-AC3 안내 박스 */}
-        <p className="rounded-control bg-danger-soft px-3 py-2 text-aux text-danger">
-          {WORKFLOW_ADD_LEAD_NOTICE}
-        </p>
-
-        {formError === null ? null : (
-          <p role="alert" className="text-aux text-danger">
-            {formError}
-          </p>
-        )}
-
-        <div className="flex items-center justify-end gap-2">
-          <Button variant="secondary" size="sm" disabled={pending} onClick={onClose}>
-            {CANCEL_BUTTON_LABEL}
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={nameIsEmpty || pending}
-            disabledReason={writable ? undefined : WRITABLE_FALSE_REASON}
-            onClick={() => void handleSubmit()}
-          >
-            {pending ? WORKFLOW_ADD_SUBMIT_PENDING_LABEL : WORKFLOW_ADD_SUBMIT_LABEL}
-          </Button>
-        </div>
       </div>
+
+      <Field label={WORKFLOW_DESCRIPTION_LABEL} htmlFor={descriptionId} optional>
+        <TextInput
+          id={descriptionId}
+          value={description}
+          placeholder={WORKFLOW_DESCRIPTION_PLACEHOLDER}
+          disabled={pending}
+          onChange={(event) => setDescription(event.target.value)}
+        />
+      </Field>
+
+      {/* FR-008-AC3 안내 박스 */}
+      <p data-wf="05L-3" className="rounded-chip bg-inset px-3 py-2 text-aux text-text-secondary">
+        {WORKFLOW_ADD_LEAD_NOTICE}
+      </p>
+
+      {formError === null ? null : <Alert block message={formError} />}
+
+      <DialogFooter wf="05L-4">
+        <Button variant="secondary" disabled={pending} onClick={onClose}>
+          {CANCEL_BUTTON_LABEL}
+        </Button>
+        <Button
+          variant="primary"
+          disabled={nameIsEmpty || pending || !writable}
+          onClick={() => void handleSubmit()}
+        >
+          <Icon name="plus" />
+          {pending ? WORKFLOW_ADD_SUBMIT_PENDING_LABEL : WORKFLOW_ADD_SUBMIT_LABEL}
+        </Button>
+      </DialogFooter>
+      {writable ? null : <p className="text-right text-aux text-text-muted">{WRITABLE_FALSE_POPUP_NOTICE}</p>}
     </Dialog>
   );
 }

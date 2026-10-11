@@ -11,7 +11,8 @@ export type NoticeKind = "empty" | "error";
 
 interface NoticeCardProps {
   kind: NoticeKind;
-  icon: IconName;
+  /** 05-R 빈 상태 카드는 아이콘 없이 제목부터 시작한다(`05R-agent-import-empty.html`). */
+  icon?: IconName;
   title: string;
   /** 본문(여러 줄이면 `<p>`를 여러 개 넘긴다). */
   children?: ReactNode;
@@ -32,7 +33,9 @@ export function NoticeCard({ kind, icon, title, children, actions, wf }: NoticeC
         isError ? "border-danger-border" : "border-dashed border-border-dashed"
       }`}
     >
-      <Icon name={icon} size="lg" className={isError ? "text-danger" : "text-text-muted"} />
+      {icon === undefined ? null : (
+        <Icon name={icon} size="lg" className={isError ? "text-danger" : "text-text-muted"} />
+      )}
       <h2 className={`text-section font-semibold ${isError ? "text-danger" : "text-text"}`}>{title}</h2>
       {children === undefined ? null : <div className="notice-body grid gap-2 text-text-muted">{children}</div>}
       {actions === undefined ? null : <div className="mt-2 flex gap-2">{actions}</div>}

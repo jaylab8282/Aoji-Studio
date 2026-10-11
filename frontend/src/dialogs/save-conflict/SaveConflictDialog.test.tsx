@@ -102,21 +102,34 @@ describe("SaveConflictDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
 
     // 06-5가 폼 위에 뜬다. 본문은 `details.modifiedAt`의 hh:mm:ss다.
-    expect(await screen.findByTestId("save-conflict-dialog")).toBeInTheDocument();
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "파일이 다른 곳에서 수정되었습니다" })).toBeInTheDocument();
-    expect(
-      screen.getByText("dev-lead.md이 이 창을 연 뒤 10:20:30에 변경되었습니다. 저장하면 그 변경이 사라집니다."),
-    ).toBeInTheDocument();
+    // 본문은 ui-rules 글자 그대로이고 파일 이름·시각만 고정폭이다(조사 `가` 병기 없음).
+    const dialog = screen.getByRole("alertdialog");
+    expect(dialog).toHaveAttribute("data-wf", "06-5-1");
+    expect(dialog).toHaveClass("max-w-dialog-sm");
+    const body = screen.getByText("dev-lead.md").parentElement;
+    expect(body).toHaveTextContent(
+      "dev-lead.md가 이 창을 연 뒤 10:20:30에 바뀌었습니다. 덮어쓰면 그 변경이 사라집니다. 최신 파일을 다시 불러오면 지금 폼에 적은 내용이 사라집니다.",
+    );
+    expect(screen.getByText("dev-lead.md")).toHaveClass("font-mono");
+    expect(screen.getByText("10:20:30")).toHaveClass("font-mono");
+    expect(dialog).toHaveAttribute("aria-describedby", body?.id);
+    // 두 버튼은 06-5-2 영역: 다시 불러오기(accent) / 덮어쓰기(danger).
+    const footer = document.querySelector('[data-wf="06-5-2"]');
+    expect(footer).toContainElement(screen.getByRole("button", { name: "최신 파일 다시 불러오기" }));
+    expect(screen.getByRole("button", { name: "최신 파일 다시 불러오기" })).toHaveClass("text-link");
+    expect(screen.getByRole("button", { name: "덮어쓰기" })).toHaveClass("text-danger");
 
     // 다시 불러오기 → GET 재호출 → 폼이 파일 값으로 다시 채워지고 06-5는 닫힌다.
     fireEvent.click(screen.getByRole("button", { name: "최신 파일 다시 불러오기" }));
-    await waitFor(() => expect(screen.queryByTestId("save-conflict-dialog")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     expect(calls.filter((call) => call.method === "GET")).toHaveLength(2);
     expect(screen.getByLabelText("설명 (description)")).toHaveValue("밖에서 바뀐 설명");
 
     // 다시 저장 → 또 충돌 → 덮어쓰기는 force: true와 다시 읽은 revision으로 보낸다.
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
-    expect(await screen.findByTestId("save-conflict-dialog")).toBeInTheDocument();
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "덮어쓰기" }));
 
     await waitFor(() => expect(router.state.location.search).toBe(""));
@@ -139,7 +152,7 @@ describe("SaveConflictDialog", () => {
     // 파일을 읽는 동안 `저장`은 그려져 있지만 비활성이다(T-019 리뷰 Minor 1) — 읽기 완료를 기다린 뒤 누른다.
     await screen.findByLabelText("이름 (name)");
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
-    expect(await screen.findByTestId("save-conflict-dialog")).toBeInTheDocument();
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "덮어쓰기" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "덮어쓰기" })).toBeDisabled());
@@ -161,10 +174,10 @@ describe("SaveConflictDialog", () => {
     // 위와 같은 이유로 읽기 완료를 기다린 뒤 누른다.
     await screen.findByLabelText("이름 (name)");
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
-    expect(await screen.findByTestId("save-conflict-dialog")).toBeInTheDocument();
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "Escape" });
-    await waitFor(() => expect(screen.queryByTestId("save-conflict-dialog")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     expect(screen.getByTestId("agent-form-dialog")).toBeInTheDocument();
     expect(router.state.location.search).toContain("agent-edit");
   });

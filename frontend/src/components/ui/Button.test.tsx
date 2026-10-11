@@ -15,7 +15,7 @@ const OUTLINE_RESET_CLASSES = [
 // ui-spec.md §공통 `Button`, ADR-69, conventions.md §7 MUST.
 // 비활성은 variant 표현을 대체하는 표현이라 variant와 무관하게 모두 같은 모양이다.
 
-const ALL_VARIANTS: ButtonVariant[] = ["primary", "accent", "secondary", "add", "danger", "terminal"];
+const ALL_VARIANTS: ButtonVariant[] = ["primary", "accent", "secondary", "add", "danger"];
 
 // variant 채움 배경·강조 테두리 색 클래스(비활성일 때 하나도 남으면 안 된다).
 const VARIANT_FILL_CLASSES = [
@@ -35,7 +35,7 @@ function classesOf(name: string): string[] {
 
 describe("Button", () => {
   it("[NFR-12] variant별 활성 클래스(primary·accent·secondary·add·danger)", () => {
-    const expected: Record<Exclude<ButtonVariant, "terminal">, string[]> = {
+    const expected: Record<ButtonVariant, string[]> = {
       primary: ["bg-action", "text-on-action", "border", "border-action", "min-h-control-primary", "px-4"],
       accent: ["bg-action-soft", "text-link", "border", "border-action-border", "min-h-control"],
       secondary: ["bg-soft", "text-text", "border", "border-border-strong", "min-h-control"],
@@ -59,15 +59,6 @@ describe("Button", () => {
       if (variant !== "add") expect(shape).not.toContain("border-dashed");
       unmount();
     }
-  });
-
-  it("[NFR-12] danger size sm도 글자 굵기 600이다(T-R3-09 이월)", () => {
-    render(
-      <Button variant="danger" size="sm">
-        제거
-      </Button>,
-    );
-    expect(classesOf("제거")).toContain("font-semibold");
   });
 
   it("[NFR-12] 비활성이면 variant 무관 같은 표현(점선·bg-card·text-muted 400·cursor-not-allowed)", () => {
@@ -198,22 +189,5 @@ describe("Button", () => {
     const shape = classesOf("확대");
     expect(shape).toContain("size-control");
     expect(shape).toContain("p-0");
-  });
-
-  it("이행용: 옛 variant `terminal`은 accent 표현으로, 옛 size `sm`·`md`는 default 높이로 그린다", () => {
-    render(
-      <>
-        <Button variant="terminal" size="sm">
-          터미널
-        </Button>
-        <Button variant="secondary" size="md">
-          보조
-        </Button>
-      </>,
-    );
-    const terminal = classesOf("터미널");
-    expect(terminal).toContain("bg-action-soft");
-    expect(terminal).toContain("min-h-control");
-    expect(classesOf("보조")).toContain("min-h-control");
   });
 });

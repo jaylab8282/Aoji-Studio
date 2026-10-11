@@ -27,8 +27,8 @@ function buildWorkflow(overrides: Partial<Workflow> = {}): Workflow {
 function minimapViewportHeightPercent(): number {
   const viewport = screen.queryByTestId("minimap-viewport");
   expect(viewport, "미니맵 뷰포트 테두리를 찾지 못했다").not.toBeNull();
-  expect(viewport!.style.height).toMatch(/%$/);
-  return Number.parseFloat(viewport!.style.height);
+  expect(viewport!.style.getPropertyValue("--viewport-height")).toMatch(/%$/);
+  return Number.parseFloat(viewport!.style.getPropertyValue("--viewport-height"));
 }
 
 function renderWorkflowsScreen() {
@@ -283,7 +283,7 @@ describe("WorkflowsScreen", () => {
     const BASE_SCROLL_HEIGHT = 3351;
     const CLIENT_HEIGHT = 628;
     const currentScale = () =>
-      Number.parseFloat(/scale\(([\d.]+)\)/.exec(scaled!.style.transform)?.[1] ?? "1");
+      Number.parseFloat(scaled!.style.getPropertyValue("--zoom-scale") || "1");
     Object.defineProperty(scrollArea, "clientHeight", { configurable: true, get: () => CLIENT_HEIGHT });
     Object.defineProperty(scrollArea, "scrollHeight", {
       configurable: true,
@@ -306,7 +306,7 @@ describe("WorkflowsScreen", () => {
     expect(minimapViewportHeightPercent()).toBeLessThan(before);
   });
 
-  it("[D-125][NFR-11] 화면 자체 <main>·<h1> 없음(셸이 하나), 루트는 본문 칸을 채우는 flex(h-full)이고 h-body-viewport를 쓰지 않는다", () => {
+  it("[D-125][NFR-11] 화면 자체 <main>·<h1> 없음(셸이 하나), 루트는 본문 칸을 채우는 flex(h-full)이다", () => {
     const fixture = buildSnapshotFixture();
     snapshotStore.replace({ ...fixture, registry: { ...fixture.registry, workflows: [buildWorkflow()] } });
 
@@ -317,7 +317,6 @@ describe("WorkflowsScreen", () => {
     const root = screen.getByTestId("workflows");
     expect(root.className).toContain("h-full");
     expect(root.className).toContain("min-h-0");
-    expect(root.className).not.toContain("h-body-viewport");
     // 스크롤하는 곳은 층 스크롤 영역 하나다(본문 칸이 이중 스크롤하지 않게 루트는 overflow를 갖지 않는다).
     expect(root.className).not.toContain("overflow");
     expect(screen.getByTestId("floor-scroll-area").className).toContain("overflow-auto");

@@ -1,6 +1,7 @@
 /**
- * ui-spec.md SCR-07 설정(`/settings`, 읽기 전용). 구성: 제목 `설정` → 카드 3개
- * (프로젝트 폴더 / Claude 열기 / 수집), 와이어프레임 p.4 순서 그대로.
+ * ui-spec.md SCR-07 설정(`/settings`, 읽기 전용). 구성: 제목·부제(`07-2`) → 카드 3개. 가로형은 2열
+ * (왼쪽 프로젝트 폴더 → 수집 / 오른쪽 Claude 열기), 세로형은 1열(폴더 → 수집 → Claude 열기).
+ * 화면 자체 `<main>`·`<h1>`을 두지 않는다: `<main>`은 `AppShell` 하나, 화면 제목 `<h1>`은 상단 바 하나(D-125).
  *
  * 값은 진입 시 `GET /api/settings`로 받고, 스캔 수치는 SSE `registry`와 `다시 읽기` 응답으로
  * 갱신한다(FR-001-AC4). 두 출처의 병합은 `lib/derive/settingsValues.ts`가 정한다.
@@ -15,7 +16,7 @@ import type { Settings } from "../../api/types";
 import { HelperMissingDialog } from "../../dialogs/helper-missing/HelperMissingDialog";
 import { useHelperOpen } from "../../dialogs/helper-missing/useHelperOpen";
 import { settingsDisplayValues } from "../../lib/derive/settingsValues";
-import { SETTINGS_TITLE, UNKNOWN_ERROR_MESSAGE } from "../../lib/text";
+import { SETTINGS_SUBTITLE, SETTINGS_TITLE, UNKNOWN_ERROR_MESSAGE } from "../../lib/text";
 import { useSnapshotStore } from "../../state/snapshotStore";
 import { ClaudeOpenCard } from "./ClaudeOpenCard";
 import { CollectCard } from "./CollectCard";
@@ -30,7 +31,7 @@ import type { HelperStatus } from "./helperStatus";
 async function checkHelperStatus(helperUrl: string): Promise<HelperStatus> {
   if (!(await checkHelperHealth(helperUrl))) return { kind: "missing" };
   const token = await getHelperToken();
-  if (token.kind === "token") return { kind: "installed", checkedAt: new Date().toISOString() };
+  if (token.kind === "token") return { kind: "installed" };
   return token.kind === "no-token" ? { kind: "no-token" } : { kind: "missing" };
 }
 
@@ -41,11 +42,16 @@ export function SettingsScreen() {
   const [helperStatus, setHelperStatus] = useState<HelperStatus>({ kind: "checking" });
   const helperUrl = config === null ? null : config.helperUrl;
 
+  const [loadAttempt, setLoadAttempt] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
     apiGet<Settings>("/api/settings")
       .then((loaded) => {
-        if (!cancelled) setSettings(loaded);
+        if (!cancelled) {
+          setSettings(loaded);
+          setLoadErrorMessage(null);
+        }
       })
       .catch((error: unknown) => {
         // client.ts가 모든 예외를 `ApiError`로 정규화한다. 서버가 준 `message`를 가공 없이 쓴다
@@ -57,6 +63,12 @@ export function SettingsScreen() {
     return () => {
       cancelled = true;
     };
+  }, [loadAttempt]);
+
+  /** `다시 시도`: 에러를 지우고(값 자리는 다시 스켈레톤) `GET /api/settings`를 다시 부른다. */
+  const retryLoad = useCallback(() => {
+    setLoadErrorMessage(null);
+    setLoadAttempt((attempt) => attempt + 1);
   }, []);
 
   // 도우미 호출 결과로 `열기 도우미` 행을 갱신한다: 204면 방금 응답한 것이고(설치됨),
@@ -64,7 +76,7 @@ export function SettingsScreen() {
   const helper = useHelperOpen(
     useCallback((result: HelperOpenResult) => {
       if (result.kind === "opened") {
-        setHelperStatus({ kind: "installed", checkedAt: new Date().toISOString() });
+        setHelperStatus({ kind: "installed" });
       } else if (result.kind === "no-response") {
         setHelperStatus({ kind: "missing" });
       }
@@ -97,27 +109,26 @@ export function SettingsScreen() {
   }
 
   return (
-    <div className="px-page-x py-8">
-      {/*
-        와이어프레임 p.4의 07 카드 열은 화면 폭을 채우지 않는다(실측 819px. 01·02·03 와이어프레임은
-        1111~1127px로 꽉 채우므로 07만 좁은 열이다). 819px은 토큰이 아니고 임의값(`max-w-[819px]`)은
-        금지이므로(conventions.md §7 MUST) Tailwind 기본 스케일에서 가장 가까운 단계인
-        `max-w-3xl`(768px)을 쓴다 — ADR-40이 팝업 폭에서 택한 방식과 같다.
-      */}
-      <div className="flex max-w-3xl flex-col gap-6">
-        <h1 className="text-title font-bold text-text">{SETTINGS_TITLE}</h1>
-        <ProjectFolderCard values={values} loadErrorMessage={loadErrorMessage} />
+    <div className="flex flex-col gap-4 px-gutter py-6">
+      <section data-wf="07-2">
+        <h2 className="text-title font-bold tracking-title text-text">{SETTINGS_TITLE}</h2>
+        <p className="mt-1 text-text-muted">{SETTINGS_SUBTITLE}</p>
+      </section>
+      <div className="grid grid-cols-2 items-start gap-4 portrait:grid-cols-1">
+        <div className="grid min-w-0 gap-4">
+          <ProjectFolderCard values={values} loadErrorMessage={loadErrorMessage} onRetry={retryLoad} />
+          <CollectCard
+            settings={settings}
+            hookConfigured={values === null ? null : values.hookConfigured}
+            loadFailed={loadErrorMessage !== null}
+          />
+        </div>
         <ClaudeOpenCard
           settings={settings}
-          loadErrorMessage={loadErrorMessage}
+          loadFailed={loadErrorMessage !== null}
           helperStatus={helperStatus}
           openErrorMessage={helper.errorMessage}
           onTestOpen={handleTestOpen}
-        />
-        <CollectCard
-          settings={settings}
-          hookConfigured={values === null ? null : values.hookConfigured}
-          loadErrorMessage={loadErrorMessage}
         />
       </div>
       {helper.missingCommand === null ? null : (

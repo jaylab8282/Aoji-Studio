@@ -145,7 +145,7 @@ describe("DialogHost", () => {
     expect(screen.queryByRole("combobox", { name: "대상 워크플로우" })).not.toBeInTheDocument();
   });
 
-  it("[SCR-05-R] 05-R `+ 새로 만들기` → `?dialog=agent-new&workflow=<대상>`", () => {
+  it("[SCR-05-R] 05-R `새로 만들기` → `?dialog=agent-new&workflow=<대상>`", () => {
     replaceSnapshot([
       {
         name: "개발부서",
@@ -159,7 +159,7 @@ describe("DialogHost", () => {
     ]);
     const router = renderAt("/workflows?dialog=import&workflow=%EA%B0%9C%EB%B0%9C%EB%B6%80%EC%84%9C");
 
-    fireEvent.click(screen.getByRole("button", { name: "+ 새로 만들기" }));
+    fireEvent.click(screen.getByRole("button", { name: "새로 만들기" }));
     expect(router.state.location.search).toBe(
       "?dialog=agent-new&workflow=%EA%B0%9C%EB%B0%9C%EB%B6%80%EC%84%9C",
     );

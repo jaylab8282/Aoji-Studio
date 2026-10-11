@@ -163,9 +163,9 @@ describe("SettingsScreen (SCR-07)", () => {
     expect(screen.queryByRole("button", { name: "저장" })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual([
       "다시 읽기",
-      "테스트로 열기 (도우미 설치 후)",
-      "명령 복사",
       "설정 예시 복사",
+      "테스트로 열기",
+      "명령 복사",
     ]);
   });
 
@@ -182,11 +182,12 @@ describe("SettingsScreen (SCR-07)", () => {
     expect(await screen.findByRole("button", { name: "복사됨" })).toBeInTheDocument();
   });
 
-  it("[FR-014-AC3] hookConfigured true → '설정됨', false → '없음'", async () => {
+  it("[FR-014-AC3] hookConfigured true → '있음'(시안), false → '없음'(danger)", async () => {
     stubFetch();
     const { unmount } = renderScreen();
 
-    await waitFor(() => expect(rowText("settings-row-hook")).toContain("설정됨"));
+    await waitFor(() => expect(rowText("settings-row-hook")).toContain("있음"));
+    expect(within(screen.getByTestId("settings-row-hook")).getByText("있음")).toHaveClass("text-live");
     expect(rowText("settings-row-hook")).toContain(".claude/settings.json");
     unmount();
 
@@ -195,7 +196,7 @@ describe("SettingsScreen (SCR-07)", () => {
     renderScreen();
 
     await waitFor(() => expect(rowText("settings-row-hook")).toContain("없음"));
-    expect(rowText("settings-row-hook")).not.toContain("설정됨");
+    expect(rowText("settings-row-hook")).not.toContain("있음");
     expect(within(screen.getByTestId("settings-row-hook")).getByText("없음")).toHaveClass(
       "text-danger",
     );
@@ -210,6 +211,8 @@ describe("SettingsScreen (SCR-07)", () => {
     await waitFor(() => expect(rowText("settings-row-agents")).toContain("정의 7개"));
 
     fireEvent.click(screen.getByRole("button", { name: "다시 읽기" }));
+    // 요청 중에는 `다시 읽는 중…`이고 버튼이 잠긴다.
+    expect(screen.getByRole("button", { name: "다시 읽는 중…" })).toBeDisabled();
 
     await waitFor(() => expect(rowText("settings-row-agents")).toContain("정의 11개"));
     expect(rowText("settings-row-skills")).toContain("5개");
@@ -253,7 +256,7 @@ describe("SettingsScreen (SCR-07)", () => {
     await waitFor(() => expect(rowText("settings-row-agents")).toContain("정의 2개"));
     expect(rowText("settings-row-skills")).toContain("1개");
     expect(rowText("settings-row-hook")).toContain("없음");
-    expect(rowText("settings-row-format-errors")).toContain("! 읽지 못한 정의 파일 1 개");
+    expect(rowText("settings-row-format-errors")).toContain("읽지 못한 정의 파일 1개");
   });
 
   it("[FR-001-E1] agentsDirMissing → 프로젝트 폴더 카드에 AgentsDirMissing", async () => {
@@ -295,9 +298,9 @@ describe("SettingsScreen (SCR-07)", () => {
     stubFetch({ settings: () => jsonResponse(buildSettingsFixture({ writable: false })) });
     renderScreen();
 
-    const value = await screen.findByText("✗ 쓰기 권한 없음");
+    const value = await screen.findByText("쓰기 권한 없음");
     expect(value).toHaveClass("text-danger");
-    expect(screen.queryByText("✓ agents 추가·수정·삭제 가능")).not.toBeInTheDocument();
+    expect(screen.queryByText(/에이전트 추가·수정·제거 가능/)).not.toBeInTheDocument();
   });
 
   it("[FR-013-AC5][ADR-33] 템플릿 값 그대로 표시", async () => {
@@ -314,9 +317,7 @@ describe("SettingsScreen (SCR-07)", () => {
       "도우미가 받는 값은 팀장 name 하나 · 소문자·숫자·하이픈만 허용",
     );
     // 기본 세션 명령도 07에 함께 표시된다(FR-013-AC5 "두 명령").
-    expect(rowText("settings-row-default-session")).toBe(
-      `기본 세션${settings.defaultSessionCommand}`,
-    );
+    expect(rowText("settings-row-default-session")).toBe(settings.defaultSessionCommand);
   });
 
   it("[FR-014-AC5] 07 명령 복사 → clipboard = settings.defaultSessionCommand", async () => {
@@ -339,7 +340,7 @@ describe("SettingsScreen (SCR-07)", () => {
     renderScreen();
 
     await waitFor(() => expect(rowText("settings-row-helper")).toContain("확인 중…"));
-    const testOpen = screen.getByRole("button", { name: "테스트로 열기 (도우미 설치 후)" });
+    const testOpen = screen.getByRole("button", { name: "테스트로 열기" });
     expect(testOpen).toBeDisabled();
     // 확인 중은 ADR-35가 이유 문구를 지정한 지점이 아니므로 이유 줄을 붙이지 않는다.
     expect(screen.queryByText("도우미 미설치")).not.toBeInTheDocument();
@@ -375,42 +376,104 @@ describe("SettingsScreen (SCR-07)", () => {
     const messages = await screen.findAllByText(
       "허용되지 않은 출처입니다 · http://127.0.0.1:4180 주소로 다시 접속하세요",
     );
-    expect(messages).toHaveLength(3);
+    // 프로젝트 폴더 카드의 Alert 하나(role="alert")에만 그린다.
+    expect(messages).toHaveLength(1);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "허용되지 않은 출처입니다 · http://127.0.0.1:4180 주소로 다시 접속하세요",
+    );
     expect(screen.queryByTestId("settings-row-agents")).not.toBeInTheDocument();
     // 복구 수단인 `다시 읽기`는 그대로 남는다.
     expect(screen.getByRole("button", { name: "다시 읽기" })).toBeEnabled();
   });
 
-  it("카드 3개를 와이어프레임 p.4 순서(프로젝트 폴더 → Claude 열기 → 수집)로 그린다", async () => {
-    stubFetch();
+  it("GET /api/settings 실패 → '다시 시도'로 다시 불러와 값을 채운다", async () => {
+    let attempt = 0;
+    const calls = stubFetch({
+      settings: () => {
+        attempt += 1;
+        return attempt === 1
+          ? jsonResponse({ code: "INTERNAL", message: "설정을 읽지 못했습니다" }, 500)
+          : jsonResponse(buildSettingsFixture());
+      },
+    });
     renderScreen();
 
-    // 행 전체 글자에는 라벨이 섞여 있으므로 값(경로)이 실린 것으로 로드를 확정한다.
+    expect(await screen.findByRole("alert")).toHaveTextContent("설정을 읽지 못했습니다");
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
     await waitFor(() =>
       expect(rowText("settings-row-mount-path")).toContain("/Users/jaybee/Desktop/AojiStudio"),
     );
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("설정");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(calls.filter((call) => call.url.includes("/api/settings"))).toHaveLength(2);
+  });
+
+  it("[data-wf 07-2~07-5] 제목·부제 → 카드 3개(폴더·수집 열 / Claude 열기), h1·main 없음", async () => {
+    stubFetch();
+    const { container } = renderScreen();
+
+    await waitFor(() =>
+      expect(rowText("settings-row-mount-path")).toContain("/Users/jaybee/Desktop/AojiStudio"),
+    );
+    // D-125: 본문에 h1·`<main>`이 없다(상단 바 h1 하나 · AppShell `<main>` 하나).
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+    expect(screen.queryByRole("main")).not.toBeInTheDocument();
+    expect(
+      Array.from(container.querySelectorAll("[data-wf]")).map((el) => el.getAttribute("data-wf")),
+    ).toEqual(["07-2", "07-3", "07-5", "07-4"]);
     expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
+      "설정",
       "프로젝트 폴더",
-      "Claude 열기",
       "수집",
+      "Claude 열기",
     ]);
-    expect(screen.getByText("읽기 전용")).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "02의 Claude 열기 · 기본 세션과 03의 팀장 호출 · 터미널 열기를 누르면 맥북 터미널이 열리고 프로젝트 폴더에서 claude가 실행됩니다.",
-      ),
+      screen.getByText("읽기 전용 · 웹에서 바꾸지 않습니다. 값은 마운트한 폴더와 실행 설정에서 옵니다."),
     ).toBeInTheDocument();
-    expect(screen.getByText("폴더는 컨테이너 실행 시 마운트로 고정 · 웹에서 변경 불가")).toBeInTheDocument();
+    expect(screen.getByText("읽기 전용", { selector: "span" })).toBeInTheDocument();
+    const description = container.querySelector('[data-wf="07-4"] > p');
+    expect(description?.textContent).toBe(
+      "에이전트 워크플로우의 Claude 열기 · 기본 세션은 claude를, 워크플로우 상세의 팀장 호출은 그 워크플로우 팀장 세션을 맥북 기본 터미널에서 AojiStudio 폴더 기준으로 엽니다.",
+    );
+    expect(Array.from(description?.querySelectorAll("b") ?? []).map((b) => b.textContent)).toEqual([
+      "Claude 열기 · 기본 세션",
+      "팀장 호출",
+    ]);
     expect(
-      screen.getByText("allowedHttpHookUrls가 설정되어 있으면 수집 주소를 허용 목록에 추가하세요"),
+      screen.getByText("폴더는 컨테이너를 실행할 때 마운트로 정해지며 웹에서 바꿀 수 없습니다"),
     ).toBeInTheDocument();
-    expect(rowText("settings-row-terminal-app")).toContain("macOS 기본 터미널");
-    expect(rowText("settings-row-collect-url")).toContain("http://127.0.0.1:4180/hooks/events");
-    expect(rowText("settings-row-teams")).toContain(".aojistudio/teams/*.json · 팀장·팀원 목록");
-    expect(rowText("settings-row-trash")).toContain(".aojistudio/trash/ · 제거한 에이전트 보관");
-    expect(rowText("settings-row-retention")).toContain("30일");
-    expect(rowText("settings-row-format-errors")).toContain("없음");
+    expect(
+      screen.getByText("웹은 settings.json을 쓰지 않습니다. 예시를 복사해 직접 붙여 넣으세요"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("명령 복사 = 기본 세션 명령 · 팀장 명령은 워크플로우 상세에서 복사합니다"),
+    ).toBeInTheDocument();
+    // ADR-74: allowedHttpHookUrlsNote `.help` 한 줄(서버 값 그대로).
+    expect(screen.getByTestId("settings-hook-note")).toHaveTextContent(
+      "allowedHttpHookUrls가 설정되어 있으면 수집 주소를 허용 목록에 추가하세요",
+    );
+    expect(rowText("settings-row-terminal-app")).toBe("macOS 기본 터미널");
+    expect(rowText("settings-row-collect-url")).toBe("http://127.0.0.1:4180/hooks/events");
+    expect(rowText("settings-row-teams")).toBe(".aojistudio/teams/*.json · 팀장·팀원 목록");
+    expect(rowText("settings-row-trash")).toBe(".aojistudio/trash/ · 제거한 정의 파일 보관");
+    expect(rowText("settings-row-retention")).toBe("30일");
+    expect(rowText("settings-row-agents")).toBe(".claude/agents/ · 정의 7개");
+    expect(rowText("settings-row-skills")).toBe(".claude/skills/ · 3개");
+    expect(rowText("settings-row-writable")).toBe("있음 · 에이전트 추가·수정·제거 가능");
+    expect(rowText("settings-row-format-errors")).toBe("읽지 못한 정의 파일 0개");
+  });
+
+  it("[FR-001-E2] 형식 오류 N > 0 → danger", async () => {
+    putRegistryInStore({
+      formatErrors: [{ kind: "agent", file: "broken.md", message: "name 누락" }],
+    });
+    stubFetch();
+    renderScreen();
+
+    await waitFor(() =>
+      expect(rowText("settings-row-format-errors")).toBe("읽지 못한 정의 파일 1개"),
+    );
+    expect(screen.getByText("읽지 못한 정의 파일 1개")).toHaveClass("text-danger");
   });
 
   it("[FR-014] teamsPath·trashPath는 서버 값 그대로 표시", async () => {
@@ -439,7 +502,7 @@ describe("SettingsScreen (SCR-07)", () => {
     });
 
     expect(rowText("settings-row-helper")).toContain("미설치 · helper/install.sh로 설치");
-    expect(screen.getByRole("button", { name: "테스트로 열기 (도우미 설치 후)" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "테스트로 열기" })).toBeDisabled();
     expect(screen.getByText("도우미 미설치")).toBeInTheDocument();
 
     unmount();
@@ -450,8 +513,10 @@ describe("SettingsScreen (SCR-07)", () => {
     const installedCalls = stubFetch({ helperHealth: () => jsonResponse({ ok: true, version: "1" }) });
     renderScreen();
 
-    await waitFor(() => expect(rowText("settings-row-helper")).toContain("응답 확인"));
-    const testOpenButton = screen.getByRole("button", { name: "테스트로 열기 (도우미 설치 후)" });
+    await waitFor(() => expect(rowText("settings-row-helper")).toContain("설치됨"));
+    // `설치됨 · host:port`(settings.helperUrl에서 뽑는다).
+    await waitFor(() => expect(rowText("settings-row-helper")).toBe("설치됨 · 127.0.0.1:4181"));
+    const testOpenButton = screen.getByRole("button", { name: "테스트로 열기" });
     expect(testOpenButton).toBeEnabled();
 
     fireEvent.click(testOpenButton);
@@ -471,7 +536,7 @@ describe("SettingsScreen (SCR-07)", () => {
     renderScreen();
 
     await waitFor(() => expect(rowText("settings-row-helper")).toContain("미설치 · 토큰 파일 없음"));
-    expect(screen.getByRole("button", { name: "테스트로 열기 (도우미 설치 후)" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "테스트로 열기" })).toBeDisabled();
     expect(screen.getByText("도우미 미설치")).toBeInTheDocument();
   });
 
@@ -483,8 +548,8 @@ describe("SettingsScreen (SCR-07)", () => {
     });
     renderScreen();
 
-    await waitFor(() => expect(rowText("settings-row-helper")).toContain("응답 확인"));
-    fireEvent.click(screen.getByRole("button", { name: "테스트로 열기 (도우미 설치 후)" }));
+    await waitFor(() => expect(rowText("settings-row-helper")).toContain("설치됨"));
+    fireEvent.click(screen.getByRole("button", { name: "테스트로 열기" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "도우미 인증 실패 · 도우미를 다시 설치하세요",

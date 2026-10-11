@@ -1,15 +1,17 @@
 /**
  * ui-spec.md SCR-06 에이전트 만들기·수정 폼 (`?dialog=agent-new[&workflow=<이름>]` /
- * `?dialog=agent-edit&agent=<name>`, FR-010·FR-011·FR-012-AC5·FR-002-AC3).
+ * `?dialog=agent-edit&agent=<name>`, FR-010·FR-011·FR-012-AC5·FR-002-AC3, `06-agent-form.html`).
  *
- * 폭은 공통 `Dialog`의 `size="lg"`다(ADR-40 — 팝업에서 `max-w-*`를 직접 지정하지 않는다).
+ * 폭은 공통 `Dialog`의 `size="lg"` + `tall`(높이 `min(1180, 100vh − 48)`)이다(ADR-40 — 팝업에서 `max-w-*`를 직접 지정하지 않는다).
  * 상태·요청은 `useAgentFormState`, 값 변환·비활성 판정은 `lib/derive/agentForm.ts`가 한다.
  * 06-5(저장 충돌)·06-6(제거 확인)은 이 폼 위에 뜨는 작은 창이라 컴포넌트 상태로 연다(ADR-14).
+ * ESC·막 클릭은 맨 위 창만 닫는다(Dialog가 처리, D-126).
  */
 import { useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Alert } from "../../components/ui/Alert";
 import { Button } from "../../components/ui/Button";
-import { Dialog } from "../../components/ui/Dialog";
+import { Dialog, DialogFooter } from "../../components/ui/Dialog";
 import { MonoText } from "../../components/ui/MonoText";
 import { agentFilePathOf, leadTakenBy, requiredFilled } from "../../lib/derive/agentForm";
 import {
@@ -18,7 +20,6 @@ import {
   CLOSE_BUTTON_LABEL,
   REMOVE_AGENT_BUSY_REASON,
   TOOLS_MODE_REQUIRED_REASON,
-  WRITABLE_FALSE_REASON,
   agentFilePathLabel,
 } from "../../lib/text";
 import { useSnapshotStore } from "../../state/snapshotStore";
@@ -53,45 +54,36 @@ export function AgentForm({ mode, agentName, workflowParam, onClose }: AgentForm
   const detail = form.detail;
   const status = (detail === null ? undefined : live?.agents[detail.name]?.status) ?? detail?.status ?? "idle";
 
-  function handleDialogClose() {
-    // 위에 열린 작은 창(06-5·06-6)이 있으면 그것만 닫는다.
-    if (form.conflictModifiedAt !== null) {
-      form.closeConflict();
-      return;
-    }
-    if (removeOpen) {
-      setRemoveOpen(false);
-      return;
-    }
-    onClose();
-  }
-
   const title = mode === "create" ? AGENT_FORM_CREATE_TITLE : AGENT_FORM_EDIT_TITLE;
   const filePath = detail === null ? agentFilePathOf(form.values.name) : detail.filePath;
+  const fileName = filePath.slice(filePath.lastIndexOf("/") + 1);
+  const roleError = form.submitError?.slot === "role" ? form.submitError.message : null;
+  const alertMessage = form.submitError !== null && form.submitError.slot !== "role" ? form.submitError.message : null;
+  const busy = status !== "idle";
 
   return (
-    <Dialog title={title} size="lg" onClose={handleDialogClose}>
-      <div className="flex flex-col gap-4" data-testid="agent-form-dialog">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h2 className="text-section font-semibold text-text">{title}</h2>
-          <MonoText className="text-aux text-text-faint">{agentFilePathLabel(filePath)}</MonoText>
-        </div>
+    <Dialog title={title} size="lg" tall wf="06-1" onClose={onClose}>
+      <div className="flex flex-none items-baseline gap-3" data-testid="agent-form-dialog">
+        <h2 className="flex-none text-section font-bold text-text">{title}</h2>
+        {/* 만들기·이름 빈 값이면 경로를 숨긴다(ui-spec.md SCR-06 제목 행 `빈` 열). */}
+        {mode === "create" && form.values.name.trim() === "" ? null : (
+          <MonoText className="min-w-0 truncate text-aux text-text-muted">{agentFilePathLabel(filePath)}</MonoText>
+        )}
+      </div>
 
-        {form.loadError !== null ? (
-          <div className="flex flex-col gap-4">
-            <p role="alert" className="text-body text-danger">
-              {form.loadError}
-            </p>
-            <div className="flex justify-end">
-              <Button variant="secondary" size="sm" onClick={onClose}>
-                {CLOSE_BUTTON_LABEL}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          // ui-spec.md SCR-06 제목 행 `로딩` 열: 파일을 읽는 동안 필드 자리만 스켈레톤이고
-          // 각주·`취소`·`저장`은 사라지지 않은 채 비활성이다(T-019 리뷰 Minor 1, ADR-35 — 이유 줄 없음).
-          <>
+      {form.loadError !== null ? (
+        <>
+          <Alert message={form.loadError} />
+          <DialogFooter>
+            <Button variant="secondary" onClick={onClose}>
+              {CLOSE_BUTTON_LABEL}
+            </Button>
+          </DialogFooter>
+        </>
+      ) : (
+        <>
+          {alertMessage === null ? null : <Alert message={alertMessage} />}
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
             {form.loading ? (
               <AgentFormSkeleton />
             ) : (
@@ -101,46 +93,34 @@ export function AgentForm({ mode, agentName, workflowParam, onClose }: AgentForm
                 allowNoWorkflow={mode === "edit" && detail?.workflow === null}
                 leadTaken={leadTakenBy(selectedWorkflow?.lead ?? null, detail?.name ?? null)}
                 fieldErrors={form.fieldErrors}
-                submitError={form.submitError}
+                roleError={roleError}
                 pending={form.pending}
                 ids={ids}
                 onChange={form.patchValues}
               />
             )}
-            <AgentFormFooter
-              showRemove={mode === "edit"}
-              removeDisabledReason={
-                form.loading
-                  ? undefined
-                  : !writable
-                    ? WRITABLE_FALSE_REASON
-                    : status === "idle"
-                      ? undefined
-                      : REMOVE_AGENT_BUSY_REASON
-              }
-              submitDisabledReason={
-                form.loading
-                  ? undefined
-                  : !writable
-                    ? WRITABLE_FALSE_REASON
-                    : form.values.toolsMode === null
-                      ? TOOLS_MODE_REQUIRED_REASON
-                      : undefined
-              }
-              submitDisabled={form.loading || form.pending || !requiredFilled(form.values, mode)}
-              pending={form.pending}
-              loading={form.loading}
-              onRemove={() => setRemoveOpen(true)}
-              onCancel={onClose}
-              onSubmit={() => void form.submit(false)}
-            />
-          </>
-        )}
-      </div>
+          </div>
+          <AgentFormFooter
+            showRemove={mode === "edit"}
+            removeDisabled={form.loading || !writable || busy}
+            removeDisabledReason={form.loading || !writable || !busy ? undefined : REMOVE_AGENT_BUSY_REASON}
+            submitDisabledReason={
+              form.loading || !writable || form.values.toolsMode !== null ? undefined : TOOLS_MODE_REQUIRED_REASON
+            }
+            submitDisabled={form.loading || form.pending || !writable || !requiredFilled(form.values, mode)}
+            pending={form.pending}
+            loading={form.loading}
+            writable={writable}
+            onRemove={() => setRemoveOpen(true)}
+            onCancel={onClose}
+            onSubmit={() => void form.submit(false)}
+          />
+        </>
+      )}
 
       {form.conflictModifiedAt === null || detail === null ? null : (
         <SaveConflictDialog
-          agentName={detail.name}
+          fileName={fileName}
           modifiedAt={form.conflictModifiedAt}
           reloading={form.reloading}
           overwriting={form.pending}
@@ -170,7 +150,6 @@ function useFieldIds() {
     customModel: `${prefix}-custom-model`,
     workflow: `${prefix}-workflow`,
     description: `${prefix}-description`,
-    otherTools: `${prefix}-other-tools`,
     body: `${prefix}-body`,
   };
 }

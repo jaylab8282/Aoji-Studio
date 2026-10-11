@@ -44,6 +44,8 @@ export interface AgentFormValues {
   /** null = 아직 고르지 않음 → `저장` 비활성 + `도구 방식을 고르세요`(FR-010-AC2). */
   toolsMode: ToolsMode | null;
   checkedTools: string[];
+  /** `기타` 체크박스(06 시안). 켜야 `기타` 입력이 활성이고 저장에 들어간다(FR-010-AC2). */
+  otherChecked: boolean;
   /** `기타` 입력 원문(쉼표 구분). */
   otherTools: string;
   body: string;
@@ -62,6 +64,7 @@ export function createFormValues(workflowParam: string | null): AgentFormValues 
     description: "",
     toolsMode: null,
     checkedTools: [],
+    otherChecked: false,
     otherTools: "",
     body: "",
   };
@@ -90,10 +93,12 @@ export function splitTools(tools: string[]): { checkedTools: string[]; otherTool
   };
 }
 
-/** `직접 선택`으로 저장할 도구 목록: 체크박스(화면 순서) + `기타`(입력 순서). */
+/** `직접 선택`으로 저장할 도구 목록: 체크박스(화면 순서) + `기타`를 켰을 때만 입력(입력 순서). */
 export function selectedTools(values: AgentFormValues): string[] {
   const checked = TOOL_CHECKBOXES.filter((tool) => values.checkedTools.includes(tool));
-  const others = parseOtherTools(values.otherTools).filter((tool) => !checked.includes(tool));
+  const others = values.otherChecked
+    ? parseOtherTools(values.otherTools).filter((tool) => !checked.includes(tool))
+    : [];
   return [...checked, ...others];
 }
 
@@ -110,6 +115,8 @@ export function detailToFormValues(detail: AgentDetail): AgentFormValues {
     description: detail.description,
     toolsMode: detail.tools === null ? "inherit" : "explicit",
     checkedTools,
+    // 목록 밖 값이 있으면 `기타`를 켜고 입력에 쉼표로 채운다(FR-010-AC2).
+    otherChecked: otherTools !== "",
     otherTools,
     body: detail.body,
   };

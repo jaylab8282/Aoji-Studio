@@ -112,7 +112,11 @@ describe("AgentForm", () => {
 
     fireEvent.click(screen.getByLabelText("Read"));
     fireEvent.click(screen.getByLabelText("Bash"));
-    fireEvent.change(screen.getByLabelText("기타"), { target: { value: "mcp__docs, mcp__db" } });
+    // `기타 도구` 입력은 `기타`를 켜야 활성이다. 꺼 둔 채 쓴 값은 저장에 들어가지 않는다.
+    expect(screen.getByLabelText("기타 도구")).toBeDisabled();
+    fireEvent.click(screen.getByLabelText("기타"));
+    expect(screen.getByLabelText("기타 도구")).toBeEnabled();
+    fireEvent.change(screen.getByLabelText("기타 도구"), { target: { value: "mcp__docs, mcp__db" } });
     expect(screen.queryByText("직접 선택은 1개 이상")).not.toBeInTheDocument();
 
     fireEvent.click(saveButton());
@@ -125,6 +129,42 @@ describe("AgentForm", () => {
       toolsMode: "explicit",
       tools: ["Read", "Bash", "mcp__docs", "mcp__db"],
     });
+  });
+
+  it("[FR-010-AC2] `전체 상속`이면 체크박스 9종·`기타`·`기타 도구` 입력이 모두 비활성, 5열 배치(Read Grep Glob Edit Write / Bash WebFetch WebSearch Agent 기타)", () => {
+    stubFetch({});
+    renderAt("/workflows?dialog=agent-new&workflow=개발부서");
+
+    const group = screen.getByRole("group", { name: "사용 도구 (tools)" });
+    expect(group).toHaveAttribute("data-wf", "06-4");
+    const tools = ["Read", "Grep", "Glob", "Edit", "Write", "Bash", "WebFetch", "WebSearch", "Agent", "기타"];
+    expect(within(group).getAllByRole("checkbox").map((box) => box.parentElement?.textContent)).toEqual(tools);
+    // 만들기 기본은 라디오 미선택 → 직접 선택 전까지 모두 비활성.
+    for (const box of within(group).getAllByRole("checkbox")) expect(box).toBeDisabled();
+    expect(screen.getByLabelText("기타 도구")).toHaveAttribute("placeholder", "기타 도구 (쉼표로 구분)");
+    expect(screen.getByLabelText("전체 상속")).not.toBeChecked();
+    expect(screen.getByLabelText("직접 선택")).not.toBeChecked();
+
+    fireEvent.click(screen.getByLabelText("전체 상속"));
+    for (const box of within(group).getAllByRole("checkbox")) expect(box).toBeDisabled();
+    expect(screen.getByLabelText("기타 도구")).toBeDisabled();
+
+    fireEvent.click(screen.getByLabelText("직접 선택"));
+    for (const box of within(group).getAllByRole("checkbox")) expect(box).toBeEnabled();
+    // `기타`를 켜기 전에는 입력이 비활성이다.
+    expect(screen.getByLabelText("기타 도구")).toBeDisabled();
+  });
+
+  it("[FR-010-AC2] 수정: 목록 밖 도구가 있으면 `기타`를 켜고 입력에 쉼표로 채운다", async () => {
+    stubFetch({ get: () => jsonResponse(buildAgentDetail({ tools: ["Read", "mcp__docs", "mcp__db"] })) });
+    renderAt("/workflows?dialog=agent-edit&agent=dev-lead");
+
+    await screen.findByLabelText("이름 (name)");
+    expect(screen.getByLabelText("직접 선택")).toBeChecked();
+    expect(screen.getByLabelText("Read")).toBeChecked();
+    expect(screen.getByLabelText("기타")).toBeChecked();
+    expect(screen.getByLabelText("기타 도구")).toHaveValue("mcp__docs, mcp__db");
+    expect(screen.getByLabelText("기타 도구")).toBeEnabled();
   });
 
   it("[FR-010-AC3] 드롭다운 옵션 = 상속·sonnet·opus·haiku·직접 입력, 원본 'claude-opus-5' → 직접 입력에 채움, 'inherit' 원본 → 상속", async () => {
@@ -262,7 +302,9 @@ describe("AgentForm", () => {
     renderAt("/workflows?dialog=agent-edit&agent=dev-lead");
 
     await waitFor(() => expect(saveButton()).toBeDisabled());
-    expect(screen.getAllByText("쓰기 권한 없음").length).toBeGreaterThan(0);
+    expect(
+      screen.getByText("쓰기 권한 없음 · 마운트한 폴더를 쓰기 가능하게 실행해야 바꿀 수 있습니다"),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "워크플로우에서 제거" })).toBeDisabled();
   });
 
@@ -388,13 +430,13 @@ describe("AgentForm", () => {
     // 스켈레톤은 필드 자리에만 있고 각주·버튼은 사라지지 않는다(ui-spec.md SCR-06 `로딩` 열).
     expect(screen.getByTestId("agent-form-skeleton")).toBeInTheDocument();
     expect(
-      screen.getByText("이름 변경 시 파일명도 변경 · 폼에 없는 필드(permissionMode 등)는 기존 값 보존"),
+      screen.getByText("폼에 없는 항목(permissionMode, skills 등)은 값과 순서를 그대로 둡니다"),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "취소" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "저장" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "워크플로우에서 제거" })).toBeDisabled();
     // ADR-35: 이 비활성 지점에는 이유 줄을 붙이지 않는다.
-    expect(screen.queryByText("쓰기 권한 없음")).not.toBeInTheDocument();
+    expect(screen.queryByText(/쓰기 권한 없음/)).not.toBeInTheDocument();
     expect(screen.queryByText("도구 방식을 고르세요")).not.toBeInTheDocument();
     expect(screen.queryByText("작업 중에는 제거할 수 없습니다")).not.toBeInTheDocument();
 
@@ -412,8 +454,7 @@ describe("AgentForm", () => {
     expect(screen.getByText("먼저 워크플로우를 추가하세요")).toBeInTheDocument();
     // `<span>`은 labelable 요소가 아니므로 라벨을 연결하지 않는다(T-019 리뷰 Minor 2).
     const label = screen.getByText("소속 워크플로우");
-    expect(label.tagName).toBe("LABEL");
-    expect(label).not.toHaveAttribute("for");
+    expect(label.tagName).toBe("SPAN");
     expect(screen.queryByLabelText("소속 워크플로우")).not.toBeInTheDocument();
     expect(saveButton()).toBeDisabled();
   });
@@ -437,9 +478,9 @@ describe("AgentForm", () => {
         <RemoveAgentDialog agentName="dev-lead" onClose={vi.fn()} />
       </MemoryRouter>,
     );
-    const confirmDialog = screen.getByTestId("confirm-by-name-dialog");
+    const confirmDialog = document.querySelector('[data-wf="06-6-1"]') as HTMLElement;
     expect(confirmDialog.querySelectorAll("input")).toHaveLength(1);
-    expect(screen.getByLabelText("확인을 위해 이름 입력")).toHaveValue("");
+    expect(screen.getByLabelText("확인을 위해 name 입력")).toHaveValue("");
     for (const button of Array.from(confirmDialog.querySelectorAll("button"))) {
       expect(button.textContent).not.toMatch(/워크플로우 이름|이름 변경|이름 수정|이름 바꾸기/);
     }
@@ -449,10 +490,7 @@ describe("AgentForm", () => {
     stubFetch({});
     renderAt("/workflows?dialog=agent-new&workflow=개발부서");
 
-    expect(screen.getByLabelText("설명 (description)")).toHaveAttribute(
-      "placeholder",
-      "언제 이 에이전트에게 일을 맡기는지",
-    );
+    expect(screen.getByLabelText("기타 도구")).toHaveAttribute("placeholder", "기타 도구 (쉼표로 구분)");
     expect(screen.getByLabelText("기타")).toBeInTheDocument();
 
     const dialog = screen.getByRole("dialog");
@@ -473,23 +511,26 @@ describe("AgentForm", () => {
     // 지정 지점: 도구 방식 미선택.
     expect(saveButton()).toBeDisabled();
     expect(screen.getByText("도구 방식을 고르세요")).toBeInTheDocument();
-    expect(screen.queryByText("쓰기 권한 없음")).not.toBeInTheDocument();
+    expect(screen.queryByText(/쓰기 권한 없음/)).not.toBeInTheDocument();
 
     // 필수값 미입력으로 비활성인 동안에는 이유 줄이 없다(원인이 같은 폼의 입력 상태다).
     fireEvent.click(screen.getByLabelText("전체 상속"));
     expect(saveButton()).toBeDisabled();
     expect(screen.queryByText("도구 방식을 고르세요")).not.toBeInTheDocument();
-    expect(screen.queryByText("쓰기 권한 없음")).not.toBeInTheDocument();
+    expect(screen.queryByText(/쓰기 권한 없음/)).not.toBeInTheDocument();
     expect(screen.queryByText("작업 중에는 제거할 수 없습니다")).not.toBeInTheDocument();
 
-    // 06-6의 이름 불일치 비활성에도 이유 줄이 없다(라벨이 조건을 말한다).
+    // 06-6의 이름 불일치 비활성에는 확정 버튼과 이어진 이유 줄이 있다(ADR-71, 05-3·06-6 확인 창 규칙).
     render(
       <MemoryRouter>
         <RemoveAgentDialog agentName="dev-lead" onClose={vi.fn()} />
       </MemoryRouter>,
     );
-    expect(screen.getByRole("button", { name: "제거 (이름 일치 시 활성)" })).toBeDisabled();
-    expect(screen.queryByText("쓰기 권한 없음")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "제거" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "제거" })).toHaveAccessibleDescription(
+      "dev-lead을(를) 똑같이 입력하면 제거 버튼이 켜집니다",
+    );
+    expect(screen.queryByText(/쓰기 권한 없음/)).not.toBeInTheDocument();
     expect(screen.queryByText("작업 중에는 제거할 수 없습니다")).not.toBeInTheDocument();
   });
 
@@ -497,10 +538,11 @@ describe("AgentForm", () => {
     stubFetch({});
     renderAt("/workflows?dialog=agent-new&workflow=개발부서");
     expect(screen.getByRole("dialog").className).toContain("max-w-dialog-lg");
+    expect(screen.getByRole("dialog")).toHaveClass("portrait:max-w-dialog-lg-portrait", "dialog-form-height");
 
     const conflict = render(
       <SaveConflictDialog
-        agentName="dev-lead"
+        fileName="dev-lead.md"
         modifiedAt="2026-09-22T10:20:30+09:00"
         reloading={false}
         overwriting={false}
@@ -509,7 +551,7 @@ describe("AgentForm", () => {
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getAllByRole("dialog").at(-1)?.className).toContain("max-w-dialog-sm");
+    expect(screen.getByRole("alertdialog").className).toContain("max-w-dialog-sm");
     conflict.unmount();
 
     render(
@@ -527,8 +569,77 @@ describe("AgentForm", () => {
     // 각주는 읽는 중에도 그려지므로(T-019 리뷰 Minor 1) 경로 단언은 읽기 완료 뒤에 한다.
     await screen.findByLabelText("이름 (name)");
     expect(
-      screen.getByText("이름 변경 시 파일명도 변경 · 폼에 없는 필드(permissionMode 등)는 기존 값 보존"),
+      screen.getByText("폼에 없는 항목(permissionMode, skills 등)은 값과 순서를 그대로 둡니다"),
     ).toBeInTheDocument();
-    expect(screen.getByText("AojiStudio/.claude/agents/dev-lead.md")).toBeInTheDocument();
+    expect(screen.getByText("소문자·숫자·하이픈, 1~64자 · 같은 이름 불가 · 바꾸면 파일명도 바뀜")).toBeInTheDocument();
+    expect(screen.getByText("AojiStudio/.claude/agents/dev-lead.md")).toHaveClass("font-mono");
+  });
+
+  it("[NFR-12] data-wf 영역 06-1(창)·06-2(이름)·06-3(소속)·06-4(도구)·06-5(지침)·06-6(아래 줄)", async () => {
+    stubFetch({ get: () => jsonResponse(buildAgentDetail()) });
+    renderAt("/workflows?dialog=agent-edit&agent=dev-lead");
+    await screen.findByLabelText("이름 (name)");
+
+    expect(screen.getByRole("dialog", { name: "에이전트 수정" })).toHaveAttribute("data-wf", "06-1");
+    expect(document.querySelector('[data-wf="06-2"]')).toContainElement(screen.getByLabelText("이름 (name)"));
+    expect(document.querySelector('[data-wf="06-3"]')).toContainElement(screen.getByLabelText("소속 워크플로우"));
+    expect(document.querySelector('[data-wf="06-4"]')).toContainElement(screen.getByLabelText("전체 상속"));
+    expect(document.querySelector('[data-wf="06-5"]')).toContainElement(screen.getByLabelText("지침 (본문 = 시스템 프롬프트)"));
+    const footer = document.querySelector('[data-wf="06-6"]') as HTMLElement;
+    expect(
+      within(footer)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["워크플로우에서 제거", "취소", "저장"]);
+    // 지침은 고정폭 textarea가 남는 높이를 채운다.
+    expect(screen.getByLabelText("지침 (본문 = 시스템 프롬프트)")).toHaveClass("font-mono", "textarea-fill");
+  });
+
+  it("[SCR-06] 만들기: 이름이 비면 제목 옆 경로 숨김·`워크플로우에서 제거` 없음, 이름을 쓰면 경로가 이름을 따른다", () => {
+    stubFetch({});
+    renderAt("/workflows?dialog=agent-new&workflow=개발부서");
+
+    expect(screen.getByRole("heading", { name: "에이전트 만들기" })).toBeInTheDocument();
+    expect(screen.queryByText(/AojiStudio\/\.claude\/agents/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "워크플로우에서 제거" })).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("이름 (name)"), { target: { value: "qa-09" } });
+    expect(screen.getByText("AojiStudio/.claude/agents/qa-09.md")).toBeInTheDocument();
+  });
+
+  it("[FR-010-AC1] 이름 규칙 위반(대문자) → 필드 아래 `소문자·숫자·하이픈만, 1~64자`, 저장 비활성, 필수 표시는 라벨 밖", () => {
+    stubFetch({});
+    renderAt("/workflows?dialog=agent-new&workflow=개발부서");
+
+    fillRequired("QA_01");
+    fireEvent.click(screen.getByLabelText("전체 상속"));
+
+    expect(screen.getByText("소문자·숫자·하이픈만, 1~64자")).toHaveAttribute("role", "alert");
+    expect(screen.getByLabelText("이름 (name)")).toHaveAttribute("aria-invalid", "true");
+    expect(saveButton()).toBeDisabled();
+    // 필수 표시는 이름·소속 워크플로우·설명 셋뿐이다.
+    expect(screen.getAllByText("필수")).toHaveLength(3);
+  });
+
+  it("[D-126] 저장 충돌 창 위에서 ESC → 충돌 창만 닫히고 06 폼은 유지, 한 번 더 ESC → 06 폼이 닫힌다", async () => {
+    stubFetch({
+      get: () => jsonResponse(buildAgentDetail()),
+      put: () =>
+        jsonResponse(
+          { code: "REVISION_CONFLICT", message: "x", details: { currentRevision: "r2", modifiedAt: "2026-09-22T10:20:30+09:00" } },
+          409,
+        ),
+    });
+    const router = renderAt("/workflows?dialog=agent-edit&agent=dev-lead");
+    await screen.findByLabelText("이름 (name)");
+    fireEvent.click(saveButton());
+    await screen.findByRole("alertdialog");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(router.state.location.search).toContain("agent-edit");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(router.state.location.search).not.toContain("dialog"));
   });
 });

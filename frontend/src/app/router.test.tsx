@@ -59,8 +59,11 @@ describe("router", () => {
 
   it("[T-001] /settings 경로 → 설정 화면 렌더", () => {
     render(<RouterProvider router={buildRouter("/settings")} />);
-    // 상단 바 제목(h1, 공통 셸)과 이행 중인 07 화면 본문 제목이 모두 `설정`이다(본문 제목은 T-R3-19에서 빠진다).
-    expect(screen.getAllByRole("heading", { name: "설정" }).length).toBeGreaterThanOrEqual(1);
+    // D-125: h1은 상단 바 하나(`07-1`). 본문 제목 `설정`은 h2(`07-2`)이고 화면 자체 `<main>`은 없다.
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("설정");
+    expect(screen.getByRole("banner")).toHaveAttribute("data-wf", "07-1");
+    expect(screen.getAllByRole("main")).toHaveLength(1);
     expect(screen.getByRole("banner")).toHaveTextContent("설정");
   });
 

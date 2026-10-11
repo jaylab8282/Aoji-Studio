@@ -8,6 +8,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./Button";
+import { Icon } from "./Icon";
 import { COPY_BUTTON_COPIED_LABEL } from "../../lib/text";
 
 const COPIED_DISPLAY_MS = 1500;
@@ -46,10 +47,10 @@ export function CopyButton({ value, label }: CopyButtonProps) {
   return (
     <Button
       variant="secondary"
-      size="sm"
       disabled={value === null}
       onClick={value === null ? undefined : () => void handleClick(value)}
     >
+      <Icon name="copy" />
       {copied ? COPY_BUTTON_COPIED_LABEL : label}
     </Button>
   );

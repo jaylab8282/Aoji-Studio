@@ -211,7 +211,7 @@ describe("HomeScreen", () => {
     expect(legend).toHaveTextContent("대기 3");
     const bar = screen.getByTestId("status-bar");
     expect(bar).toHaveAttribute("aria-hidden", "true");
-    const widths = [...bar.querySelectorAll<HTMLElement>("i")].map((el) => [el.dataset.segment, el.style.width]);
+    const widths = [...bar.querySelectorAll<HTMLElement>("i")].map((el) => [el.dataset.segment, el.style.getPropertyValue("--segment-width")]);
     expect(widths).toEqual([
       ["running", "20%"],
       ["waiting", "20%"],

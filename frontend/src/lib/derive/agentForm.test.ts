@@ -61,8 +61,10 @@ describe("agentForm", () => {
       checkedTools: ["Read", "Bash"],
       otherTools: "mcp__a, mcp__b",
     });
-    const values = { ...createFormValues(null), toolsMode: "explicit" as const, checkedTools: ["Bash", "Read"], otherTools: "mcp__a" };
+    const values = { ...createFormValues(null), toolsMode: "explicit" as const, checkedTools: ["Bash", "Read"], otherChecked: true, otherTools: "mcp__a" };
     expect(selectedTools(values)).toEqual(["Read", "Bash", "mcp__a"]);
+    // `기타`를 끄면 입력에 값이 남아 있어도 저장에 들어가지 않는다.
+    expect(selectedTools({ ...values, otherChecked: false })).toEqual(["Read", "Bash"]);
   });
 
   it("[FR-010-AC2] 직접 선택 0개는 저장 불가, 전체 상속은 tools를 보내지 않는다", () => {

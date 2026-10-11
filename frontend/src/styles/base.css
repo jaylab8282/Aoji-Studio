@@ -1,21 +1,12 @@
 @import "tailwindcss";
 @import "./fonts.css";
 @import "./theme.css";
-@import "./theme-v1.css";
 @import "./layout.css";
 
 html,
 body,
 #root {
   height: 100%;
-}
-
-/*
- * 02 본문 루트 높이 = 뷰포트 − 상단 바 (ui-spec.md SCR-02, ADR-23).
- * 값은 theme 토큰 `--spacing-header`로만 만든다(conventions.md §7).
- */
-@utility h-body-viewport {
-  height: calc(100dvh - var(--spacing-header));
 }
 
 body {

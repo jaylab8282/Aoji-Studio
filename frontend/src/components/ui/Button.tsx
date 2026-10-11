@@ -6,14 +6,12 @@
  * hover는 `_base.css`와 같다 — secondary 테두리 `border/dashed`, primary `action/primary-hover`, add 글자 `text/primary`.
  * 키보드 초점 링은 `styles/base.css`의 `:focus-visible` 한 곳이 그린다. 색 전환은 `motion/fast` 120ms.
  * 눌러도 아무 일도 없는 활성 버튼을 만들지 않는다.
- *
- * 이행용 옛 이름(T-R3-20에서 지운다): variant `terminal` → `accent`, size `md`·`sm` → `default`.
  */
 import { useId } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-export type ButtonVariant = "primary" | "accent" | "secondary" | "add" | "danger" | "terminal";
-export type ButtonSize = "default" | "icon" | "md" | "sm";
+export type ButtonVariant = "primary" | "accent" | "secondary" | "add" | "danger";
+export type ButtonSize = "default" | "icon";
 
 type ButtonBaseProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className"> & {
   variant: ButtonVariant;
@@ -24,10 +22,10 @@ type ButtonBaseProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className"
 };
 
 type ButtonProps =
-  | (ButtonBaseProps & { size?: Exclude<ButtonSize, "icon"> })
+  | (ButtonBaseProps & { size?: "default" })
   | (ButtonBaseProps & { size: "icon"; "aria-label": string });
 
-const VARIANT_CLASSES: Record<Exclude<ButtonVariant, "terminal">, string> = {
+const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: "bg-action text-on-action border border-action hover:bg-action-hover hover:border-action-hover",
   accent: "bg-action-soft text-link border border-action-border",
   secondary: "bg-soft text-text border border-border-strong hover:border-border-dashed",
@@ -38,11 +36,7 @@ const VARIANT_CLASSES: Record<Exclude<ButtonVariant, "terminal">, string> = {
 const DISABLED_CLASSES =
   "bg-card text-text-muted font-normal border border-border-dashed border-dashed cursor-not-allowed";
 
-function resolveVariant(variant: ButtonVariant): Exclude<ButtonVariant, "terminal"> {
-  return variant === "terminal" ? "accent" : variant;
-}
-
-function sizeClasses(size: ButtonSize, variant: Exclude<ButtonVariant, "terminal">): string {
+function sizeClasses(size: ButtonSize, variant: ButtonVariant): string {
   if (size === "icon") return "size-control p-0";
   return variant === "primary" ? "min-h-control-primary px-4" : "min-h-control px-3";
 }
@@ -59,7 +53,6 @@ export function Button(props: ButtonProps) {
     ...rest
   } = props;
   const reasonId = useId();
-  const resolved = resolveVariant(variant);
   const isDisabled = Boolean(disabled) || Boolean(disabledReason);
   const describedBy = [ariaDescribedBy, disabledReason ? reasonId : undefined].filter(Boolean).join(" ");
 
@@ -71,7 +64,7 @@ export function Button(props: ButtonProps) {
         disabled={isDisabled}
         aria-disabled={isDisabled}
         aria-describedby={describedBy === "" ? undefined : describedBy}
-        className={`inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-control text-body transition-colors duration-120 ease-standard ${fullWidth ? "flex-1" : ""} ${isDisabled ? DISABLED_CLASSES : `font-semibold ${VARIANT_CLASSES[resolved]}`} ${sizeClasses(size, resolved)}`}
+        className={`inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-control text-body transition-colors duration-120 ease-standard ${fullWidth ? "flex-1" : ""} ${isDisabled ? DISABLED_CLASSES : `font-semibold ${VARIANT_CLASSES[variant]}`} ${sizeClasses(size, variant)}`}
       >
         {children}
       </button>

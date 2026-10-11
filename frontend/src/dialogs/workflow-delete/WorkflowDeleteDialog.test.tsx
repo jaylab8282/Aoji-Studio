@@ -49,7 +49,7 @@ function renderDialog(onClose = vi.fn(), workflowName = "개발부서") {
 }
 
 function typeConfirmName(value: string) {
-  fireEvent.change(screen.getByLabelText("확인을 위해 이름 입력"), { target: { value } });
+  fireEvent.change(screen.getByLabelText("확인을 위해 워크플로우 이름 입력"), { target: { value } });
 }
 
 describe("WorkflowDeleteDialog", () => {
@@ -64,26 +64,44 @@ describe("WorkflowDeleteDialog", () => {
   it("[FR-017-AC2] 제목·안내·입력·취소·삭제 구성(06-6과 같은 컴포넌트 ConfirmByNameDialog)", () => {
     renderDialog();
 
-    // 06-6(SCR-06-6)과 같은 공통 컴포넌트를 쓴다.
-    expect(screen.getByTestId("confirm-by-name-dialog")).toBeInTheDocument();
+    // 06-6(SCR-06-6)과 같은 공통 컴포넌트(sm 480)를 쓴다.
+    expect(screen.getByRole("dialog")).toHaveClass("max-w-dialog-sm");
     expect(screen.getByRole("heading", { name: "개발부서 워크플로우를 삭제할까요?" })).toBeInTheDocument();
-    expect(screen.getByText("구성 파일 .aojistudio/teams/개발부서.json이 삭제됩니다")).toBeInTheDocument();
-    expect(screen.getByLabelText("확인을 위해 이름 입력")).toHaveAttribute("placeholder", "개발부서");
+    // 첫 줄은 앞 글자 + 고정폭 경로 + 뒤 글자(경로만 고정폭).
+    const configLine = screen.getByText(".aojistudio/teams/개발부서.json");
+    expect(configLine).toHaveClass("font-mono");
+    expect(configLine.parentElement).toHaveTextContent("구성 파일 .aojistudio/teams/개발부서.json이 삭제됩니다");
+    expect(screen.getByLabelText("확인을 위해 워크플로우 이름 입력")).toHaveAttribute("placeholder", "개발부서");
     expect(screen.getByRole("button", { name: "취소" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
+    expect(screen.getByText("삭제한 구성 파일은 휴지통에 남지 않습니다")).toBeInTheDocument();
+    expect(screen.getByText("개발부서을(를) 똑같이 입력하면 삭제 버튼이 켜집니다")).toBeInTheDocument();
+  });
+
+  it("[NFR-12] data-wf 영역 05-3-1(창)·05-3-2(입력)·05-3-3(아래 줄)", () => {
+    renderDialog();
+
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-wf", "05-3-1");
+    expect(document.querySelector('[data-wf="05-3-2"]')).toContainElement(screen.getByLabelText("확인을 위해 워크플로우 이름 입력"));
+    const footer = document.querySelector('[data-wf="05-3-3"]');
+    expect(footer).toContainElement(screen.getByRole("button", { name: "취소" }));
+    expect(footer).toContainElement(screen.getByRole("button", { name: "삭제" }));
   });
 
   it("[FR-017-AC3] 이름 불일치 비활성, 일치 활성", () => {
     renderDialog();
-    const deleteButton = () => screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" });
+    const deleteButton = () => screen.getByRole("button", { name: "삭제" });
 
     expect(deleteButton()).toBeDisabled();
     typeConfirmName("개발");
     expect(deleteButton()).toBeDisabled();
     typeConfirmName("개발부서 ");
     expect(deleteButton()).toBeDisabled();
+    expect(deleteButton()).toHaveAccessibleDescription("개발부서을(를) 똑같이 입력하면 삭제 버튼이 켜집니다");
     typeConfirmName("개발부서");
     expect(deleteButton()).toBeEnabled();
+    expect(deleteButton()).toHaveClass("text-danger");
+    expect(screen.queryByText("개발부서을(를) 똑같이 입력하면 삭제 버튼이 켜집니다")).not.toBeInTheDocument();
   });
 
   it("[FR-017-AC4] 삭제 성공 → DELETE 호출(이름 percent-encoding) 후 팝업 닫힘", async () => {
@@ -91,7 +109,7 @@ describe("WorkflowDeleteDialog", () => {
     const onClose = renderDialog();
 
     typeConfirmName("개발부서");
-    fireEvent.click(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" }));
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
 
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     expect(calls).toEqual([
@@ -105,7 +123,7 @@ describe("WorkflowDeleteDialog", () => {
     renderDialog();
 
     typeConfirmName("개발부서");
-    fireEvent.click(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" }));
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
 
     expect(await screen.findByRole("button", { name: "삭제 중…" })).toBeDisabled();
     resolveDelete(emptyResponse(204));
@@ -121,7 +139,7 @@ describe("WorkflowDeleteDialog", () => {
       const onClose = renderDialog();
 
       typeConfirmName("개발부서");
-      fireEvent.click(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" }));
+      fireEvent.click(screen.getByRole("button", { name: "삭제" }));
       await flushPromises();
 
       expect(screen.getByRole("alert")).toHaveTextContent("팀원이 있어 삭제할 수 없습니다");
@@ -158,7 +176,7 @@ describe("WorkflowDeleteDialog", () => {
       renderDialog();
 
       typeConfirmName("개발부서");
-      const deleteButton = screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" });
+      const deleteButton = screen.getByRole("button", { name: "삭제" });
       fireEvent.click(deleteButton);
       await flushPromises();
 
@@ -185,7 +203,7 @@ describe("WorkflowDeleteDialog", () => {
       const onClose = renderDialog();
 
       typeConfirmName("개발부서");
-      fireEvent.click(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" }));
+      fireEvent.click(screen.getByRole("button", { name: "삭제" }));
       await flushPromises();
 
       const cancelButton = screen.getByRole("button", { name: "취소" });
@@ -215,7 +233,7 @@ describe("WorkflowDeleteDialog", () => {
     renderDialog();
 
     typeConfirmName("개발부서");
-    fireEvent.click(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" }));
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("서버에 연결할 수 없습니다 · 다시 시도하세요");
@@ -233,7 +251,7 @@ describe("WorkflowDeleteDialog", () => {
       const onClose = renderDialog();
 
       typeConfirmName("개발부서");
-      fireEvent.click(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" }));
+      fireEvent.click(screen.getByRole("button", { name: "삭제" }));
       await flushPromises();
 
       expect(screen.getByRole("alert")).toHaveTextContent("구성 파일 삭제 실패 · 파일은 그대로입니다");
@@ -244,7 +262,7 @@ describe("WorkflowDeleteDialog", () => {
       });
       expect(onClose).not.toHaveBeenCalled();
       expect(screen.getByRole("heading", { name: "개발부서 워크플로우를 삭제할까요?" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "삭제 (이름 일치 시 활성)" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "삭제" })).toBeEnabled();
       expect(screen.getByRole("alert")).toHaveTextContent("구성 파일 삭제 실패 · 파일은 그대로입니다");
     } finally {
       vi.useRealTimers();
@@ -263,7 +281,7 @@ describe("WorkflowDeleteDialog", () => {
 
     // 05-3의 입력은 확인용 하나뿐이고, 기존 이름을 바꿔 저장하는 입력·버튼이 없다.
     expect(screen.getAllByRole("textbox")).toHaveLength(1);
-    expect(screen.getByLabelText("확인을 위해 이름 입력")).toHaveValue("");
+    expect(screen.getByLabelText("확인을 위해 워크플로우 이름 입력")).toHaveValue("");
     for (const button of screen.getAllByRole("button")) {
       expect(button.textContent).not.toMatch(/이름 변경|이름 수정|이름 바꾸기/);
     }

@@ -44,7 +44,7 @@ export function DisconnectBanner() {
         )}
       </span>
       <span className="flex-1" />
-      <Button variant="danger" size="sm" onClick={reconnectNow}>
+      <Button variant="danger" onClick={reconnectNow}>
         <Icon name="refresh-cw" />
         {RECONNECT_NOW_LABEL}
       </Button>

@@ -8,8 +8,12 @@
 import { describe, expect, it } from "vitest";
 import {
   AGENT_REMOVE_TRASH_NOTE,
+  WORKFLOW_NAME_DUPLICATE_MESSAGE,
+  WORKFLOW_NAME_RULE_MESSAGE,
+  importAlreadyAssignedLine,
+  agentRemoveLeadNote,
+  saveConflictBody,
   APP_WORDMARK,
-  IMPORT_NOTICE_TRASH,
   PANEL_FOOTNOTE_LEAD,
   PANEL_FOOTNOTE_TAIL,
   PANEL_FOOTNOTE_TRASH_PATH,
@@ -287,8 +291,7 @@ describe("[ADR-60][NFR-11] 이름·경로 문구 상수", () => {
     expect(`${PANEL_FOOTNOTE_LEAD}${PANEL_FOOTNOTE_TRASH_PATH}${PANEL_FOOTNOTE_TAIL}`).toBe(
       "제거하면 정의 파일이 .aojistudio/trash/로 이동합니다 · 작업 지시는 터미널에서 팀장에게 직접 합니다",
     );
-    expect(IMPORT_NOTICE_TRASH).toContain("휴지통(.aojistudio/trash/)");
-    expect(AGENT_REMOVE_TRASH_NOTE).toBe("정의 파일이 .aojistudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).");
+    expect(AGENT_REMOVE_TRASH_NOTE).toBe("정의 파일이 .aojistudio/trash/로 이동합니다 (파일을 옮겨 복구할 수 있습니다)");
   });
 
   it("[ADR-60] lib/text.ts에 옛 이름(공백·밑줄·붙임 표기, .점 폴더) 0건", () => {
@@ -296,5 +299,28 @@ describe("[ADR-60][NFR-11] 이름·경로 문구 상수", () => {
     expect(text.length).toBeGreaterThan(0);
     const oldName = new RegExp(["jay", "studio"].join("[ _-]?"), "i");
     expect(oldName.test(text)).toBe(false);
+  });
+});
+
+describe("[FR-008-E2][FR-009-E2] ui-rules 문구표 글자", () => {
+  it("[FR-008-E2] 05-L 이름 중복(E1)·문자·길이(E2) 상수는 ui-rules 표 글자와 같다", () => {
+    expect(WORKFLOW_NAME_DUPLICATE_MESSAGE).toBe(
+      "같은 이름의 워크플로우가 이미 있습니다. 다른 이름을 입력하세요. (대소문자는 구분하지 않습니다)",
+    );
+    expect(WORKFLOW_NAME_RULE_MESSAGE).toBe("이름은 1~40자, 한글·영문·숫자·공백·하이픈·언더스코어만 쓸 수 있습니다.");
+  });
+
+  it("[FR-009-E2] 05-R 그사이 소속됨 문구 함수가 ui-rules 글자를 만든다", () => {
+    expect(importAlreadyAssignedLine("web-qa", "개발부서", 2)).toBe(
+      "web-qa은(는) 그사이 개발부서에 들어가 가져오지 않았습니다. 나머지 2명은 가져왔습니다.",
+    );
+    expect(importAlreadyAssignedLine("web-qa", "개발부서", 0)).toContain("나머지 0명은 가져왔습니다.");
+  });
+
+  it("[FR-011-AC4][FR-012-AC3] 06-5 본문·06-6 팀장 줄은 ui-rules·ui-spec 글자와 같다", () => {
+    expect(saveConflictBody("web-reviewer.md", "14:03:09")).toBe(
+      "web-reviewer.md가 이 창을 연 뒤 14:03:09에 바뀌었습니다. 덮어쓰면 그 변경이 사라집니다. 최신 파일을 다시 불러오면 지금 폼에 적은 내용이 사라집니다.",
+    );
+    expect(agentRemoveLeadNote("개발부서")).toBe("팀장을 제거하면 개발부서 층에 팀장 없음이 표시됩니다");
   });
 });

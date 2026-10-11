@@ -16,7 +16,7 @@ export interface FeaturedWorkflow {
   name: string;
   description: string;
   chip: WorkflowChipResult;
-  /** 카드 테두리 색 계산용(ADR-24 `workflowCardBorder`). 칩과 우선순위가 다르므로 원본 집계를 그대로 넘긴다. */
+  /** 원본 집계(칩과 우선순위가 다르므로 그대로 넘긴다). */
   counts: StatusCounts;
   agentCount: number;
   skillCount: number;

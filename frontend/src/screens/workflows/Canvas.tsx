@@ -4,7 +4,7 @@
  * 여백 160(`pb-canvas-tail`, 줌 배율과 같이 커진다)으로 가려진 층도 스크롤해 줌·미니맵 위로 올려 볼 수 있다(ADR-66, FR-006-AC10 가림 없음).
  * `center`는 04-5·04-7 가운데 카드 배치(카드 폭 `min(620, 100%)`, 위 24)다.
  */
-import type { ReactNode, RefObject } from "react";
+import type { CSSProperties, ReactNode, RefObject } from "react";
 import { canvasLabel } from "../../lib/text";
 
 interface CanvasProps {
@@ -49,7 +49,7 @@ interface ZoomSurfaceProps {
  */
 export function ZoomSurface({ zoom, contentRef, children }: ZoomSurfaceProps) {
   return (
-    <div className="pb-canvas-tail" style={{ transform: `scale(${zoom / 100})`, transformOrigin: "top left" }}>
+    <div className="pb-canvas-tail zoom-surface" style={{ "--zoom-scale": zoom / 100 } as CSSProperties}>
       <div ref={contentRef}>{children}</div>
     </div>
   );

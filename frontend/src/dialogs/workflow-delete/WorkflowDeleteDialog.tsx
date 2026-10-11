@@ -1,17 +1,24 @@
 /**
- * ui-spec.md SCR-05-3 워크플로우 삭제 확인 (`?dialog=workflow-delete&workflow=<이름>`, FR-017).
+ * ui-spec.md SCR-05-3 워크플로우 삭제 확인 (`?dialog=workflow-delete&workflow=<이름>`, FR-017, `05-3-workflow-delete.html`).
  * 계약: api-spec.yaml `DELETE /api/workflows/{workflow}` — 204, 409 `WORKFLOW_NOT_EMPTY`, 500 `IO_FAILED`.
- * 구성은 06-6과 같으므로 공통 `ConfirmByNameDialog`를 쓴다(FR-017-AC2).
+ * 구성은 06-6과 같으므로 공통 `ConfirmByNameDialog`를 쓴다(FR-017-AC2). 이름 변경 입력은 없다(FR-017-AC5).
  * 층이 사라지는 것은 SSE `registry`가 반영한다(FR-017-AC4).
  */
 import { useEffect, useRef, useState } from "react";
 import { ApiError, apiDelete } from "../../api/client";
 import { ConfirmByNameDialog } from "../../components/ui/ConfirmByNameDialog";
+import { MonoText } from "../../components/ui/MonoText";
 import {
+  UNKNOWN_ERROR_MESSAGE,
   WORKFLOW_DELETE_CONFIRM_LABEL,
   WORKFLOW_DELETE_CONFIRM_PENDING_LABEL,
-  UNKNOWN_ERROR_MESSAGE,
-  workflowDeleteConfigNote,
+  WORKFLOW_DELETE_FILE_LEAD,
+  WORKFLOW_DELETE_FILE_TAIL,
+  WORKFLOW_DELETE_INPUT_LABEL,
+  WORKFLOW_DELETE_NO_TRASH_NOTE,
+  WORKFLOW_NOT_EMPTY_MESSAGE,
+  workflowDeleteConfigPath,
+  workflowDeleteReason,
   workflowDeleteTitle,
 } from "../../lib/text";
 
@@ -51,29 +58,40 @@ export function WorkflowDeleteDialog({ workflowName, onClose }: WorkflowDeleteDi
       await apiDelete<void>(`/api/workflows/${encodeURIComponent(workflowName)}`);
       onClose();
     } catch (error) {
-      // client.ts가 모든 예외를 `ApiError`로 정규화하므로 내부 표현이 화면에 오르지 않는다
-      // (알 수 없는 오류는 conventions.md §4 MUST 문구, api/client.ts).
+      // client.ts가 모든 예외를 `ApiError`로 정규화하므로 내부 표현이 화면에 오르지 않는다.
       const apiError = error instanceof ApiError ? error : null;
-      setErrorMessage(apiError === null ? UNKNOWN_ERROR_MESSAGE : apiError.message);
-      setPending(false);
       if (apiError?.code === "WORKFLOW_NOT_EMPTY") {
+        setErrorMessage(WORKFLOW_NOT_EMPTY_MESSAGE);
         setClosingAfterNotice(true);
+      } else {
+        setErrorMessage(apiError === null ? UNKNOWN_ERROR_MESSAGE : apiError.message);
       }
+      setPending(false);
     }
   }
 
   return (
     <ConfirmByNameDialog
       title={workflowDeleteTitle(workflowName)}
-      notes={[workflowDeleteConfigNote(workflowName)]}
+      notes={[
+        <>
+          {WORKFLOW_DELETE_FILE_LEAD}
+          <MonoText>{workflowDeleteConfigPath(workflowName)}</MonoText>
+          {WORKFLOW_DELETE_FILE_TAIL}
+        </>,
+        WORKFLOW_DELETE_NO_TRASH_NOTE,
+      ]}
+      inputLabel={WORKFLOW_DELETE_INPUT_LABEL}
       expectedName={workflowName}
       confirmLabel={WORKFLOW_DELETE_CONFIRM_LABEL}
       confirmPendingLabel={WORKFLOW_DELETE_CONFIRM_PENDING_LABEL}
+      reason={workflowDeleteReason(workflowName)}
       pending={pending}
       confirmDisabled={closingAfterNotice}
       errorMessage={errorMessage}
       onConfirm={() => void handleDelete()}
       onClose={onClose}
+      wf={{ dialog: "05-3-1", input: "05-3-2", footer: "05-3-3" }}
     />
   );
 }

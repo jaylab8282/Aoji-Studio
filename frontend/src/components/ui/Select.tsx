@@ -5,14 +5,17 @@
 import type { SelectHTMLAttributes } from "react";
 import { Icon } from "./Icon";
 
-type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, "className">;
+type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, "className"> & {
+  /** 표 안 역할 드롭다운(05-R, 높이 30). */
+  compact?: boolean;
+};
 
-export function Select(props: SelectProps) {
+export function Select({ compact = false, ...props }: SelectProps) {
   return (
-    <span className="relative inline-flex max-w-full min-w-0">
+    <span className="relative flex w-full max-w-full min-w-0">
       <select
         {...props}
-        className="min-h-control w-full min-w-0 cursor-pointer appearance-none truncate rounded-control border border-border-strong bg-soft pr-9 pl-3 text-body font-semibold text-text aria-invalid:border-danger disabled:cursor-not-allowed disabled:border-dashed disabled:border-border-dashed disabled:bg-card disabled:font-normal disabled:text-text-muted"
+        className={`${compact ? "min-h-role-select" : "min-h-control"} w-full min-w-0 cursor-pointer appearance-none truncate rounded-control border border-border-strong bg-soft pr-9 pl-3 text-body font-semibold text-text aria-invalid:border-danger disabled:cursor-not-allowed disabled:border-dashed disabled:border-border-dashed disabled:bg-card disabled:font-normal disabled:text-text-muted`}
       />
       <Icon
         name="chevron-down"

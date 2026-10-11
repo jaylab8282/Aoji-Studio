@@ -3,6 +3,7 @@
  * 범례 `작업 중 N`·`권한·입력 대기 N`·`대기 N`(합 = 에이전트 수) + 막대(`aria-hidden`, 칸 폭 = 각 수 / `agentCount`, 0인 칸은 그리지 않는다).
  * `everReceived === false`면 막대 전체 대기색 + 아래 이유 줄(04-1). 로딩 중에는 범례를 숨기고 막대 전체가 스켈레톤이다.
  */
+import type { CSSProperties } from "react";
 import type { Live, Registry } from "../../api/types";
 import { StatusDot, type DotStatus } from "../../components/ui/StatusDot";
 import { countAllStatuses } from "../../lib/derive/counts";
@@ -69,8 +70,8 @@ export function StatusBar({ registry, live }: { registry: Registry; live: Live }
             <i
               key={segment.key}
               data-segment={segment.key}
-              className={`block h-full rounded-segment ${segment.color}`}
-              style={{ width: percent(segment.count, total) }}
+              className={`status-segment block h-full rounded-segment ${segment.color}`}
+              style={{ "--segment-width": percent(segment.count, total) } as CSSProperties}
             />
           ))}
       </div>

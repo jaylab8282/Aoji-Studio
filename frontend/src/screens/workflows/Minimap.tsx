@@ -7,7 +7,7 @@
  * 재측정 시점(전수, ADR-48 A): ① 마운트 ② 캔버스 `scroll` ③ `window` `resize` ④ `workflows` 변경 ⑤ `zoom` 변경.
  * 검색·층 선택·`live.lobby`로는 다시 재지 않는다. 누르면 누른 위치로 캔버스를 스크롤한다. 워크플로우 0개면 숨긴다.
  */
-import { useEffect, useState, type MouseEvent, type RefObject } from "react";
+import { useEffect, useState, type CSSProperties, type MouseEvent, type RefObject } from "react";
 import type { Workflow } from "../../api/types";
 import { floorColumnSpan } from "../../lib/derive/floorLayout";
 import { MINIMAP_LABEL } from "../../lib/text";
@@ -93,8 +93,8 @@ export function Minimap({ workflows, scrollRef, zoom }: MinimapProps) {
       <span
         aria-hidden="true"
         data-testid="minimap-viewport"
-        className="absolute inset-x-1 rounded-dot border-2 border-brand-blue"
-        style={{ top: `${viewport.top}%`, height: `${viewport.height}%` }}
+        className="minimap-viewport-box absolute inset-x-1 rounded-dot border-2 border-brand-blue"
+        style={{ "--viewport-top": `${viewport.top}%`, "--viewport-height": `${viewport.height}%` } as CSSProperties}
       />
     </button>
   );

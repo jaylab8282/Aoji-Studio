@@ -7,7 +7,7 @@
  */
 import { Children, cloneElement, isValidElement, useId } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { REQUIRED_MARK_TEXT } from "../../lib/text";
+import { OPTIONAL_MARK_TEXT, REQUIRED_MARK_TEXT } from "../../lib/text";
 
 interface FieldProps {
   label: string;
@@ -16,6 +16,8 @@ interface FieldProps {
   error?: string;
   /** 06 폼의 `필수` 표시(와이어프레임 p.7). 라벨 밖에 두어 접근성 이름은 라벨 글자 그대로 유지한다. */
   required?: boolean;
+  /** 05-L `설명 (선택)` 표시. 라벨 밖 muted 400이라 접근성 이름은 라벨 글자 그대로다. */
+  optional?: boolean;
   children: ReactNode;
 }
 
@@ -24,7 +26,7 @@ interface DescribableProps {
   "aria-describedby"?: string;
 }
 
-export function Field({ label, htmlFor, hint, error, required = false, children }: FieldProps) {
+export function Field({ label, htmlFor, hint, error, required = false, optional = false, children }: FieldProps) {
   const errorId = useId();
   const hintId = useId();
   const describedBy = [error ? errorId : undefined, hint ? hintId : undefined].filter(Boolean).join(" ");
@@ -41,10 +43,16 @@ export function Field({ label, htmlFor, hint, error, required = false, children 
   return (
     <div className="grid min-w-0 content-start gap-1.5">
       <div className="flex items-center gap-1.5">
-        <label htmlFor={htmlFor} className="text-aux font-semibold text-text-secondary">
-          {label}
-        </label>
+        {htmlFor === undefined ? (
+          // 라디오·체크박스 묶음처럼 연결할 입력 하나가 없는 필드는 라벨 대신 글자만 둔다(그룹은 호출부가 aria-label로 이름을 준다).
+          <span className="text-aux font-semibold text-text-secondary">{label}</span>
+        ) : (
+          <label htmlFor={htmlFor} className="text-aux font-semibold text-text-secondary">
+            {label}
+          </label>
+        )}
         {required ? <span className="text-aux font-normal text-text-muted">{REQUIRED_MARK_TEXT}</span> : null}
+        {optional ? <span className="text-aux font-normal text-text-muted">{OPTIONAL_MARK_TEXT}</span> : null}
       </div>
       {content}
       {error ? (

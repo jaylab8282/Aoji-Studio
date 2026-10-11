@@ -1,23 +1,26 @@
 /**
- * ui-spec.md SCR-07 카드 1 `프로젝트 폴더`(읽기 전용).
+ * ui-spec.md SCR-07 카드 `프로젝트 폴더`(`07-3`, 읽기 전용).
  * FR-001-AC4(다시 읽기) · FR-001-AC5(경로는 읽기 전용 텍스트, 입력 요소 없음) ·
- * FR-001-E1(agentsDirMissing → 본문을 04-5로 대체, 07에서는 `설정 열기` 미표시 — ADR-42) ·
+ * FR-001-E1(agentsDirMissing → 본문을 04-5로 대체, 07에서는 `설정 열기` 없음 — ADR-42) ·
  * FR-001-E2(쓰기 권한 없음) · FR-014-AC4(맥북 경로).
  */
 import { useState } from "react";
 import { ApiError, apiPost } from "../../api/client";
 import type { Registry } from "../../api/types";
+import { Alert } from "../../components/ui/Alert";
 import { AgentsDirMissing } from "../../components/ui/AgentsDirMissing";
 import { Button } from "../../components/ui/Button";
-import { MonoText } from "../../components/ui/MonoText";
+import { Icon } from "../../components/ui/Icon";
 import type { SettingsDisplayValues } from "../../lib/derive/settingsValues";
 import {
-  EMPTY_VALUE_TEXT,
   MIDDLE_DOT_SEPARATOR,
   RESCAN_BUTTON_LABEL,
   RESCAN_BUTTON_LOADING_LABEL,
+  RETRY_BUTTON_LABEL,
+  SETTINGS_AGENTS_COUNT_PREFIX,
   SETTINGS_AGENTS_PATH,
-  SETTINGS_FORMAT_ERRORS_NONE_TEXT,
+  SETTINGS_COUNT_SUFFIX,
+  SETTINGS_FORMAT_ERRORS_PREFIX,
   SETTINGS_PROJECT_CARD_TITLE,
   SETTINGS_PROJECT_FOOTNOTE,
   SETTINGS_READ_ONLY_BADGE,
@@ -31,22 +34,20 @@ import {
   SETTINGS_WRITABLE_TRUE_TEXT,
   UNKNOWN_ERROR_MESSAGE,
   rescanFailedMessage,
-  settingsAgentsNote,
-  settingsFormatErrorsValue,
-  settingsSkillsNote,
 } from "../../lib/text";
 import { snapshotStore } from "../../state/snapshotStore";
-import { SettingsCard } from "./SettingsCard";
-import { SettingsRow } from "./SettingsRow";
+import { CardActions, KvRow, KvTable, Mono, Reason, SettingsCard } from "./SettingsParts";
 
 interface ProjectFolderCardProps {
   /** `GET /api/settings` + SSE `registry` 병합 값. 아직 못 받았으면 null(행은 스켈레톤). */
   values: SettingsDisplayValues | null;
   /** `GET /api/settings` 실패 시 `ApiError.message`(conventions.md §4 MUST: 가공 없이 표시). */
   loadErrorMessage: string | null;
+  /** `다시 시도`: `GET /api/settings`를 다시 부른다. */
+  onRetry: () => void;
 }
 
-export function ProjectFolderCard({ values, loadErrorMessage }: ProjectFolderCardProps) {
+export function ProjectFolderCard({ values, loadErrorMessage, onRetry }: ProjectFolderCardProps) {
   const [rescanning, setRescanning] = useState(false);
   const [rescanErrorMessage, setRescanErrorMessage] = useState<string | null>(null);
 
@@ -64,68 +65,83 @@ export function ProjectFolderCard({ values, loadErrorMessage }: ProjectFolderCar
     }
   }
 
-  return (
-    <SettingsCard title={SETTINGS_PROJECT_CARD_TITLE} badge={SETTINGS_READ_ONLY_BADGE}>
-      {loadErrorMessage === null ? null : <p className="text-body text-danger">{loadErrorMessage}</p>}
-
-      {values !== null && values.agentsDirMissing ? (
-        // ADR-42: 07이 `설정 열기`의 도착지 자신이라 이 화면에서는 그리지 않는다(`다시 읽기`만 남는다).
+  if (values !== null && values.agentsDirMissing) {
+    // ADR-42: 07이 `설정 열기`의 도착지 자신이라 이 화면에서는 그리지 않는다(`다시 읽기`만 남는다).
+    return (
+      <SettingsCard title={SETTINGS_PROJECT_CARD_TITLE} wf="07-3" badge={SETTINGS_READ_ONLY_BADGE}>
         <AgentsDirMissing hostPath={values.hostPath} showOpenSettings={false} />
+      </SettingsCard>
+    );
+  }
+
+  return (
+    <SettingsCard title={SETTINGS_PROJECT_CARD_TITLE} wf="07-3" badge={SETTINGS_READ_ONLY_BADGE}>
+      {loadErrorMessage === null ? (
+        <ValueRows values={values} />
       ) : (
-        <>
-          {loadErrorMessage === null ? (
-            <ValueRows values={values} />
-          ) : null}
-          <div className="flex items-center justify-between gap-4 border-t border-border pt-3">
-            <p className="text-aux text-text-faint">{SETTINGS_PROJECT_FOOTNOTE}</p>
-            <Button variant="secondary" size="sm" onClick={handleRescan} disabled={rescanning}>
-              {rescanning ? RESCAN_BUTTON_LOADING_LABEL : RESCAN_BUTTON_LABEL}
-            </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <Alert message={loadErrorMessage} />
           </div>
-          {rescanErrorMessage === null ? null : (
-            <p className="text-aux text-danger">{rescanErrorMessage}</p>
-          )}
-        </>
+          <Button variant="secondary" onClick={onRetry}>
+            {RETRY_BUTTON_LABEL}
+          </Button>
+        </div>
       )}
+      <CardActions>
+        <Reason>{SETTINGS_PROJECT_FOOTNOTE}</Reason>
+        <Button variant="secondary" onClick={() => void handleRescan()} disabled={rescanning}>
+          <Icon name="refresh-cw" />
+          {rescanning ? RESCAN_BUTTON_LOADING_LABEL : RESCAN_BUTTON_LABEL}
+        </Button>
+      </CardActions>
+      {rescanErrorMessage === null ? null : <Alert message={rescanErrorMessage} />}
     </SettingsCard>
   );
 }
 
 function ValueRows({ values }: { values: SettingsDisplayValues | null }) {
   const loading = values === null;
+  const formatErrorCount = values === null ? 0 : values.formatErrorCount;
 
   return (
-    <div className="flex flex-col gap-2.5">
+    <KvTable>
       {/* FR-001-AC5·FR-014-AC4: 맥북 경로를 읽기 전용 텍스트로만 보여준다(입력 요소 없음). */}
-      <SettingsRow label={SETTINGS_ROW_MOUNT_PATH} testId="settings-row-mount-path" loading={loading}>
-        <MonoText>{values?.hostPath}</MonoText>
-      </SettingsRow>
-      <SettingsRow label={SETTINGS_ROW_AGENTS} testId="settings-row-agents" loading={loading}>
-        <MonoText>{SETTINGS_AGENTS_PATH}</MonoText>
+      <KvRow label={SETTINGS_ROW_MOUNT_PATH} testId="settings-row-mount-path" loading={loading}>
+        <Mono>{values?.hostPath}</Mono>
+      </KvRow>
+      <KvRow label={SETTINGS_ROW_AGENTS} testId="settings-row-agents" loading={loading}>
+        <Mono>{SETTINGS_AGENTS_PATH}</Mono>
         {MIDDLE_DOT_SEPARATOR}
-        {values === null || values.agentCount === null
-          ? EMPTY_VALUE_TEXT
-          : settingsAgentsNote(values.agentCount)}
-      </SettingsRow>
-      <SettingsRow label={SETTINGS_ROW_SKILLS} testId="settings-row-skills" loading={loading}>
-        <MonoText>{SETTINGS_SKILLS_PATH}</MonoText>
+        {SETTINGS_AGENTS_COUNT_PREFIX} <Mono>{values?.agentCount}</Mono>
+        {SETTINGS_COUNT_SUFFIX}
+      </KvRow>
+      <KvRow label={SETTINGS_ROW_SKILLS} testId="settings-row-skills" loading={loading}>
+        <Mono>{SETTINGS_SKILLS_PATH}</Mono>
         {MIDDLE_DOT_SEPARATOR}
-        {values === null ? null : settingsSkillsNote(values.skillCount)}
-      </SettingsRow>
-      <SettingsRow label={SETTINGS_ROW_WRITABLE} testId="settings-row-writable" loading={loading}>
-        {values === null ? null : values.writable ? (
+        <Mono>{values?.skillCount}</Mono>
+        {SETTINGS_COUNT_SUFFIX}
+      </KvRow>
+      <KvRow label={SETTINGS_ROW_WRITABLE} testId="settings-row-writable" loading={loading}>
+        {values === null || values.writable ? (
           SETTINGS_WRITABLE_TRUE_TEXT
         ) : (
           <span className="text-danger">{SETTINGS_WRITABLE_FALSE_TEXT}</span>
         )}
-      </SettingsRow>
-      <SettingsRow label={SETTINGS_ROW_FORMAT_ERRORS} testId="settings-row-format-errors" loading={loading}>
-        {values === null ? null : values.formatErrorCount > 0 ? (
-          <span className="text-danger">{settingsFormatErrorsValue(values.formatErrorCount)}</span>
+      </KvRow>
+      <KvRow label={SETTINGS_ROW_FORMAT_ERRORS} testId="settings-row-format-errors" loading={loading}>
+        {formatErrorCount > 0 ? (
+          <span className="text-danger">
+            {SETTINGS_FORMAT_ERRORS_PREFIX} {formatErrorCount}
+            {SETTINGS_COUNT_SUFFIX}
+          </span>
         ) : (
-          SETTINGS_FORMAT_ERRORS_NONE_TEXT
+          <>
+            {SETTINGS_FORMAT_ERRORS_PREFIX} <Mono>{formatErrorCount}</Mono>
+            {SETTINGS_COUNT_SUFFIX}
+          </>
         )}
-      </SettingsRow>
-    </div>
+      </KvRow>
+    </KvTable>
   );
 }

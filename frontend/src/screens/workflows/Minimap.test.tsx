@@ -46,9 +46,11 @@ function viewportPercent(): { top: number; height: number } {
   const viewport = screen.getByTestId("minimap-viewport");
   expect(viewport).not.toBeNull();
   const style = (viewport as HTMLElement).style;
-  expect(style.top).toMatch(/%$/);
-  expect(style.height).toMatch(/%$/);
-  return { top: Number.parseFloat(style.top), height: Number.parseFloat(style.height) };
+  const top = style.getPropertyValue("--viewport-top");
+  const height = style.getPropertyValue("--viewport-height");
+  expect(top).toMatch(/%$/);
+  expect(height).toMatch(/%$/);
+  return { top: Number.parseFloat(top), height: Number.parseFloat(height) };
 }
 
 describe("Minimap", () => {

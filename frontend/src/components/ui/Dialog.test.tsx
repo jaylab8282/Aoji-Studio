@@ -51,6 +51,44 @@ describe("Dialog", () => {
     expect(container).toBeInTheDocument();
   });
 
+  it("[NFR-12][D-126][D-127] 쌓인 창: ESC는 맨 위 창만 닫고, 위 창이 닫힌 뒤에는 아래 창이 닫힌다. onClose가 매 렌더 새 함수여도 처리기는 한 번만 달린다", () => {
+    const lowerClose = vi.fn();
+    const upperClose = vi.fn();
+    function Stack({ upper }: { upper: boolean }) {
+      return (
+        <Dialog title="아래" onClose={() => lowerClose()}>
+          {upper ? (
+            <Dialog title="위" onClose={() => upperClose()}>
+              위 내용
+            </Dialog>
+          ) : null}
+        </Dialog>
+      );
+    }
+    const { rerender } = render(<Stack upper />);
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(upperClose).toHaveBeenCalledTimes(1);
+    expect(lowerClose).not.toHaveBeenCalled();
+
+    rerender(<Stack upper={false} />);
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(upperClose).toHaveBeenCalledTimes(1);
+    expect(lowerClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("[NFR-12] wf·role·describedBy·tall 속성: data-wf, alertdialog, aria-describedby, 06 폼 높이 클래스", () => {
+    render(
+      <Dialog title="충돌" role="alertdialog" describedBy="body-id" wf="06-5-1" tall onClose={vi.fn()}>
+        <p id="body-id">본문</p>
+      </Dialog>,
+    );
+    const dialog = screen.getByRole("alertdialog", { name: "충돌" });
+    expect(dialog).toHaveAttribute("data-wf", "06-5-1");
+    expect(dialog).toHaveAttribute("aria-describedby", "body-id");
+    expect(dialog).toHaveClass("dialog-form-height");
+  });
+
   it("[NFR-12] role=dialog aria-modal=true, 이름은 제목", () => {
     render(
       <Dialog title="워크플로우 추가" onClose={vi.fn()}>

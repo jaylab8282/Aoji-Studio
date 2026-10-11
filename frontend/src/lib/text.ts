@@ -339,44 +339,70 @@ export const PANEL_FOOTNOTE_LEAD = "제거하면 정의 파일이 ";
 export const PANEL_FOOTNOTE_TRASH_PATH = ".aojistudio/trash/";
 export const PANEL_FOOTNOTE_TAIL = "로 이동합니다 · 작업 지시는 터미널에서 팀장에게 직접 합니다";
 
-// 05·06 공통 팝업 (ui-spec.md SCR-05·SCR-06)
+// 05·06 공통 팝업 (ui-spec.md SCR-05·SCR-06, docs/ui/ui-rules.md 팝업·"final에 없는 문구")
 export const CANCEL_BUTTON_LABEL = "취소";
-/** 05-3·06-6 확인 입력 라벨(ui-spec.md SCR-05-3·SCR-06-6 `확인을 위해 이름 입력`). */
-export const CONFIRM_BY_NAME_INPUT_LABEL = "확인을 위해 이름 입력";
+/** 05-L·05-R·06 `쓰기 권한 없음`(FR-001-E2): 아래 줄 버튼 아래에 놓는 문구(ui-rules 표). */
+export const WRITABLE_FALSE_POPUP_NOTICE = "쓰기 권한 없음 · 마운트한 폴더를 쓰기 가능하게 실행해야 바꿀 수 있습니다";
+/**
+ * 쓰기 실패 `<사유>` 고정 문구(D-142: 서버가 사유를 나누지 않으므로 프론트가 하나로 고정한다, ui-rules ADR-73 표 네 번째).
+ * 05-L E3·05-R E3가 같은 글자를 쓴다.
+ */
+export const WRITE_FAIL_REASON = "파일을 쓰는 중 오류가 났습니다";
 
 // SCR-05-L 워크플로우 추가 (FR-008)
 export const WORKFLOW_ADD_TITLE = "워크플로우 추가";
 /**
- * ui-spec.md SCR-05-L 제목 행: 데이터 출처 `정적`. 만들어질 파일 경로 규칙을 그대로 설명한다.
+ * ui-spec.md SCR-05-L 부제. 경로는 고정폭으로 따로 그리므로 앞·경로·뒤로 나눠 둔다.
  * 와이어프레임 표기의 괄호는 ADR-33 (c) 정적 텍스트이므로 괄호 기호만 벗기고 낱말은 그대로 둔다.
  */
-export const WORKFLOW_ADD_DESCRIPTION =
-  "구성 파일 .aojistudio/teams/이름.json(팀장·팀원 목록)이 만들어집니다.";
+export const WORKFLOW_ADD_DESCRIPTION_LEAD = "구성 파일 ";
+export const WORKFLOW_ADD_DESCRIPTION_PATH = ".aojistudio/teams/이름.json";
+export const WORKFLOW_ADD_DESCRIPTION_TAIL = "(팀장·팀원 목록)이 만들어집니다.";
+export const WORKFLOW_ADD_DESCRIPTION = `${WORKFLOW_ADD_DESCRIPTION_LEAD}${WORKFLOW_ADD_DESCRIPTION_PATH}${WORKFLOW_ADD_DESCRIPTION_TAIL}`;
 export const WORKFLOW_NAME_LABEL = "이름";
-export const WORKFLOW_NAME_PLACEHOLDER = "개발부서";
-export const WORKFLOW_NAME_HINT = "이름 중복 불가 · 개수 제한 없음";
-/** FR-008-AC2 사전 검증 문구(ui-spec.md SCR-05-L 이름 입력 행). */
-export const WORKFLOW_NAME_RULE_MESSAGE = "1~40자, 한글·영문·숫자·공백·하이픈·언더스코어만";
-export const WORKFLOW_DESCRIPTION_LABEL = "설명 (선택)";
+export const WORKFLOW_NAME_HINT = "1~40자 · 한글·영문·숫자·공백·하이픈·언더스코어 · 같은 이름 불가";
+/** FR-008-E2: 사전 검증·서버 `fields.name`(ui-rules "final에 없는 문구" 05L 문자·길이). */
+export const WORKFLOW_NAME_RULE_MESSAGE = "이름은 1~40자, 한글·영문·숫자·공백·하이픈·언더스코어만 쓸 수 있습니다.";
+/** FR-008-E1: 서버 `fields.name`(이미 있는 이름) 자리에 보이는 문구(ui-rules 05L 이름 중복). */
+export const WORKFLOW_NAME_DUPLICATE_MESSAGE =
+  "같은 이름의 워크플로우가 이미 있습니다. 다른 이름을 입력하세요. (대소문자는 구분하지 않습니다)";
+export const WORKFLOW_DESCRIPTION_LABEL = "설명";
+/** 선택 입력 표시(`설명 (선택)`, 라벨 밖 muted 400). */
+export const OPTIONAL_MARK_TEXT = "(선택)";
 export const WORKFLOW_DESCRIPTION_PLACEHOLDER = "한 줄 설명";
-/** FR-008-AC3 안내 박스. */
+/** FR-008-AC3 안내 박스(ui-spec.md SCR-05-L 안내 박스, 끝 마침표 없음). */
 export const WORKFLOW_ADD_LEAD_NOTICE =
-  "만든 뒤 팀장 1명을 만들거나 가져오세요. 팀장이 없으면 층에 팀장 없음이 표시됩니다.";
+  "만든 뒤 팀장 1명을 만들거나 가져오세요. 팀장이 없으면 층에 팀장 없음이 표시됩니다";
 export const WORKFLOW_ADD_SUBMIT_LABEL = "만들기";
 export const WORKFLOW_ADD_SUBMIT_PENDING_LABEL = "만드는 중…";
+/** FR-008-E3: `POST /api/workflows` 500 `IO_FAILED` → ui-rules 05L 쓰기 실패 문구(D-142 프론트 매핑). */
+export const WORKFLOW_ADD_WRITE_FAIL_MESSAGE = `구성 파일을 만들지 못했습니다. ${WRITE_FAIL_REASON}. 폴더 쓰기 권한을 확인한 뒤 다시 만드세요.`;
 
 // SCR-05-3 워크플로우 삭제 확인 (FR-017)
 export function workflowDeleteTitle(name: string): string {
   return `${name} 워크플로우를 삭제할까요?`;
 }
-export function workflowDeleteConfigNote(name: string): string {
-  return `구성 파일 .aojistudio/teams/${name}.json이 삭제됩니다`;
+/** 첫째 줄: 경로는 고정폭으로 따로 그린다. */
+export const WORKFLOW_DELETE_FILE_LEAD = "구성 파일 ";
+export const WORKFLOW_DELETE_FILE_TAIL = "이 삭제됩니다";
+export function workflowDeleteConfigPath(name: string): string {
+  return `.aojistudio/teams/${name}.json`;
 }
-export const WORKFLOW_DELETE_CONFIRM_LABEL = "삭제 (이름 일치 시 활성)";
+export function workflowDeleteConfigNote(name: string): string {
+  return `${WORKFLOW_DELETE_FILE_LEAD}${workflowDeleteConfigPath(name)}${WORKFLOW_DELETE_FILE_TAIL}`;
+}
+export const WORKFLOW_DELETE_NO_TRASH_NOTE = "삭제한 구성 파일은 휴지통에 남지 않습니다";
+export const WORKFLOW_DELETE_INPUT_LABEL = "확인을 위해 워크플로우 이름 입력";
+export function workflowDeleteReason(name: string): string {
+  return `${name}을(를) 똑같이 입력하면 삭제 버튼이 켜집니다`;
+}
+export const WORKFLOW_DELETE_CONFIRM_LABEL = "삭제";
 export const WORKFLOW_DELETE_CONFIRM_PENDING_LABEL = "삭제 중…";
+/** FR-017-E1: 409 `WORKFLOW_NOT_EMPTY`. */
+export const WORKFLOW_NOT_EMPTY_MESSAGE = "팀원이 있어 삭제할 수 없습니다";
 
-// SCR-05-R 기존 에이전트 가져오기 (FR-009, 와이어프레임 p.6 오른쪽)
-/** 대상 워크플로우가 정해지지 않았을 때의 제목(ui-spec.md SCR-05-R 제목 행 "워크플로우 미정이면"). */
+// SCR-05-R 기존 에이전트 가져오기 (FR-009)
+/** 대상 워크플로우가 정해지지 않았을 때의 제목(ui-spec.md SCR-05-R 제목 행 "헤더 링크로 열면"). */
 export const IMPORT_TITLE = "기존 에이전트 가져오기";
 /**
  * 대상 워크플로우가 정해졌을 때의 제목. 대상은 `?workflow` ?? 드롭다운 현재 선택값이다(ADR-38).
@@ -387,22 +413,23 @@ export function importTitleFor(workflowName: string): string {
 }
 /** 부제의 N = 워크플로우 밖 에이전트 수(ADR-33 (a) 치환). */
 export function importSubtitle(outsideCount: number): string {
-  return `어느 워크플로우에도 없는 정의 파일 ${outsideCount}개 · 파일은 그대로 두고 소속만 지정`;
+  return `어느 워크플로우에도 없는 정의 파일 ${outsideCount}개 · 정의 파일은 그대로 두고 소속과 역할만 구성 파일에 적습니다`;
 }
 export const IMPORT_TARGET_WORKFLOW_LABEL = "대상 워크플로우";
 /** 워크플로우가 0개일 때 드롭다운 자리에 놓는 안내(ui-spec.md SCR-05-R 드롭다운 행 `빈`). */
 export const IMPORT_NO_WORKFLOW_NOTICE = "먼저 워크플로우를 추가하세요";
+export const IMPORT_SEARCH_LABEL = "검색";
 export const IMPORT_SEARCH_PLACEHOLDER = "이름·설명 검색";
 export const IMPORT_SEARCH_NO_RESULTS_TEXT = "일치하는 에이전트가 없습니다";
 /**
  * ADR-37: 검색은 표시 필터일 뿐이라 선택을 지우지 않는다. 지금 검색 결과에 없는 선택이
  * 1명 이상일 때만 검색 입력 아래에 이 줄을 그린다(0명이면 줄 자체를 그리지 않는다).
- * N은 값으로 치환한다(ADR-33 (a)).
  */
 export function importHiddenSelectionNotice(hiddenCount: number): string {
   return `검색으로 가려진 선택 ${hiddenCount}명`;
 }
-export const IMPORT_CREATE_AGENT_BUTTON_LABEL = "+ 새로 만들기";
+export const IMPORT_CREATE_AGENT_BUTTON_LABEL = "새로 만들기";
+export const IMPORT_TABLE_SELECT_LABEL = "선택";
 export const IMPORT_TABLE_COL_NAME = "이름 (name)";
 export const IMPORT_TABLE_COL_DESCRIPTION = "설명 (description)";
 export const IMPORT_TABLE_COL_ROLE = "역할";
@@ -411,39 +438,51 @@ export const ROLE_OPTION_TEXT: Record<Role, string> = {
   lead: "팀장",
   member: "팀원",
 };
-/** 행마다 다른 역할 드롭다운을 가리키는 보조 이름(NFR-12). 보이는 문구는 옵션 글자다. */
+/** 행마다 다른 체크박스·역할 드롭다운의 접근성 이름(NFR-12). */
+export function importRowCheckLabel(agentName: string): string {
+  return `${agentName} ${IMPORT_TABLE_SELECT_LABEL}`;
+}
 export function importRoleSelectLabel(agentName: string): string {
   return `${agentName} ${IMPORT_TABLE_COL_ROLE}`;
 }
-/** FR-009-AC6: 워크플로우 밖 에이전트가 0명일 때 표 대신 놓는 안내. */
-export const IMPORT_EMPTY_TEXT = "가져올 에이전트가 없습니다 · 새로 만들어 넣으세요";
-export const IMPORT_NOTICE_LEAD =
-  "팀장은 워크플로우당 1명이고 층의 첫 자리에 배치됩니다. 이미 팀장이 있으면 팀장 선택은 비활성.";
-export const IMPORT_NOTICE_TRASH =
-  "가져온 뒤 워크플로우에서 제거하면 정의 파일이 휴지통(.aojistudio/trash/)으로 이동합니다. 다른 워크플로우 소속 에이전트는 목록에 없습니다.";
+/** FR-009-AC6: 워크플로우 밖 에이전트가 0명일 때의 점선 안내 카드(ui-rules 05R 빈 상태). */
+export const IMPORT_EMPTY_TITLE = "워크플로우 밖 에이전트가 없습니다";
+export const IMPORT_EMPTY_BODY =
+  "모든 정의 파일이 이미 워크플로우에 속해 있습니다. 새로 만들어 이 워크플로우에 넣으세요.";
+export const IMPORT_NOTICE =
+  "팀장은 워크플로우당 1명이고 층의 첫 자리에 놓입니다. 대상 워크플로우에 팀장이 있으면 역할의 팀장은 고를 수 없습니다.";
 /** FR-009-AC5: 선택 인원이 라벨에 들어간다(ADR-33 (a) 치환). 0명이면 비활성이다. */
 export function importSubmitLabel(selectedCount: number): string {
   return `선택한 ${selectedCount}명 가져오기`;
 }
 export const IMPORT_SUBMIT_PENDING_LABEL = "가져오는 중…";
+/** FR-009-E1: 팀장 2명 이상 → 400 `VALIDATION`(`fields.members`) 대신 프론트가 만드는 ui-rules 05R E1 문구. N = 요청에서 팀장으로 고른 수. */
+export function importLeadMultipleMessage(leadCount: number): string {
+  return `팀장은 워크플로우당 1명입니다. 팀장으로 고른 ${leadCount}명 중 1명만 남기세요.`;
+}
 /**
- * FR-009-E2 거부 사유. ui-spec.md SCR-05-R 에러 영역이 `reason` 세 값의 문구를 모두 확정했다(ADR-36).
+ * FR-009-E2: `ALREADY_ASSIGNED` 거부 줄(ui-rules 05R 그사이 소속됨). 소속 워크플로우는 갱신된 스냅샷에서 찾는다(D-142).
+ * 스냅샷에서도 찾지 못하면(그 에이전트가 사라졌거나 소속이 비었다) `IMPORT_ASSIGNED_UNKNOWN_WORKFLOW`로 쓴다.
  */
-export const IMPORT_REJECTED_REASON_TEXT: Record<ImportRejectedReason, string> = {
-  ALREADY_ASSIGNED: "가져오는 사이 다른 워크플로우에 소속되었습니다",
+export const IMPORT_ASSIGNED_UNKNOWN_WORKFLOW = "다른 워크플로우";
+export function importAlreadyAssignedLine(agentName: string, workflowName: string, addedCount: number): string {
+  return `${agentName}은(는) 그사이 ${workflowName}에 들어가 가져오지 않았습니다. 나머지 ${addedCount}명은 가져왔습니다.`;
+}
+/** FR-009-E2: `NOT_FOUND`·`FORMAT_ERROR` 거부 줄(ui-spec.md SCR-05-R 에러 영역, ADR-36). */
+export const IMPORT_REJECTED_REASON_TEXT: Record<Exclude<ImportRejectedReason, "ALREADY_ASSIGNED">, string> = {
   NOT_FOUND: "정의 파일이 없습니다 · 목록을 확인하세요",
   FORMAT_ERROR: "읽지 못한 정의 파일입니다 · 목록을 확인하세요",
 };
-export function importRejectedLine(agentName: string, reason: ImportRejectedReason): string {
-  // 계약 밖 값(enum 불일치)이 오면 문장을 지어내지 않고 이름만 보여준다(ADR-36).
-  const reasonText: string | undefined = IMPORT_REJECTED_REASON_TEXT[reason];
-  return reasonText === undefined ? agentName : `${agentName}: ${reasonText}`;
+export function importRejectedLine(agentName: string, reason: Exclude<ImportRejectedReason, "ALREADY_ASSIGNED">): string {
+  return `${agentName}: ${IMPORT_REJECTED_REASON_TEXT[reason]}`;
 }
+/** FR-009-E3: `POST /api/workflows/{workflow}/members` 500 `IO_FAILED` → ui-rules 05R 쓰기 실패 문구(D-142 프론트 매핑). */
+export const IMPORT_WRITE_FAIL_MESSAGE = `구성 파일을 바꾸지 못했습니다. ${WRITE_FAIL_REASON}. 아무것도 바뀌지 않았으니 다시 시도하세요.`;
 
-// ── SCR-06 에이전트 만들기 · 수정 폼 (FR-010, FR-011, 와이어프레임 p.7 왼쪽) ──────────────
+// ── SCR-06 에이전트 만들기 · 수정 폼 (FR-010, FR-011) ──────────────
 export const AGENT_FORM_CREATE_TITLE = "에이전트 만들기";
 export const AGENT_FORM_EDIT_TITLE = "에이전트 수정";
-/** 필수 입력 표시(와이어프레임 p.7: 이름·소속 워크플로우·설명에만 붙는다). */
+/** 필수 입력 표시(이름·소속 워크플로우·설명에만 붙는다). */
 export const REQUIRED_MARK_TEXT = "필수";
 /**
  * 제목 옆 경로(ui-spec.md SCR-06 제목 행 `AojiStudio/.claude/agents/...`).
@@ -453,7 +492,7 @@ export function agentFilePathLabel(filePath: string): string {
   return `${WORKFLOWS_SUMMARY_PROJECT_LABEL}/${filePath}`;
 }
 export const AGENT_NAME_LABEL = "이름 (name)";
-export const AGENT_NAME_HINT = "소문자와 하이픈만 · 중복 불가";
+export const AGENT_NAME_HINT = "소문자·숫자·하이픈, 1~64자 · 같은 이름 불가 · 바꾸면 파일명도 바뀜";
 /**
  * 사전 검증 문구. api-spec.yaml `POST /api/agents` 400 `fields.name`과 ui-spec.md SCR-06 이름 행이
  * 같은 규칙에 쓰는 확정 문구이므로 프론트 사전 검증도 같은 글자를 쓴다(conventions.md §2).
@@ -469,31 +508,29 @@ export const MODEL_OPTION_TEXT: Record<ModelChoice, string> = {
   custom: "직접 입력",
 };
 export const AGENT_WORKFLOW_LABEL = "소속 워크플로우";
-export const AGENT_WORKFLOW_HINT = "한 에이전트는 한 워크플로우에만 소속";
+export const AGENT_WORKFLOW_HINT = "한 에이전트는 한 워크플로우에만 속함";
 /** FR-011-AC3: 워크플로우 밖 에이전트를 수정할 때만 고를 수 있는 옵션. */
 export const AGENT_WORKFLOW_NONE_OPTION = "(없음)";
 export const AGENT_ROLE_LABEL = "역할";
-export const AGENT_ROLE_HINT = "팀장은 워크플로우당 1명 · 층 첫 자리 · 이미 있으면 비활성";
 /** FR-010-AC4 이유 줄(ADR-35 지정 지점). */
 export function leadExistsReason(lead: string): string {
   return `이미 팀장이 있습니다 (${lead})`;
 }
 export const AGENT_DESCRIPTION_LABEL = "설명 (description)";
-/** 와이어프레임 p.7 `[...]`의 (b) 입력 예시 — 괄호를 벗긴 문구를 placeholder로 쓴다(ADR-33). */
-export const AGENT_DESCRIPTION_PLACEHOLDER = "언제 이 에이전트에게 일을 맡기는지";
 export const AGENT_TOOLS_LABEL = "사용 도구 (tools)";
 export const TOOLS_MODE_INHERIT_TEXT = "전체 상속";
 export const TOOLS_MODE_EXPLICIT_TEXT = "직접 선택";
-/** 와이어프레임 p.7 `[기타]`의 (c) 정적 텍스트 = 입력 라벨(ADR-33). */
+/** `기타` 체크박스 라벨과 그 입력(placeholder, 접근성 이름 `기타 도구`). */
 export const AGENT_TOOLS_OTHER_LABEL = "기타";
+export const AGENT_TOOLS_OTHER_PLACEHOLDER = "기타 도구 (쉼표로 구분)";
+export const AGENT_TOOLS_OTHER_INPUT_LABEL = "기타 도구";
 /** FR-010-AC2 이유 줄(ADR-35 지정 지점). */
 export const TOOLS_MODE_REQUIRED_REASON = "도구 방식을 고르세요";
 /** 직접 선택 0개일 때 `사용 도구` 필드 아래 사유(api-spec.yaml `fields.tools`와 같은 문구). */
 export const TOOLS_EXPLICIT_EMPTY_MESSAGE = "직접 선택은 1개 이상";
 export const AGENT_BODY_LABEL = "지침 (본문 = 시스템 프롬프트)";
-/** FR-011-AC1·AC2 각주. */
-export const AGENT_FORM_FOOTNOTE =
-  "이름 변경 시 파일명도 변경 · 폼에 없는 필드(permissionMode 등)는 기존 값 보존";
+/** FR-011-AC1·AC2 아래 줄 왼쪽 도움말(ui-spec.md SCR-06). */
+export const AGENT_FORM_FOOTNOTE = "폼에 없는 항목(permissionMode, skills 등)은 값과 순서를 그대로 둡니다";
 export const AGENT_FORM_SUBMIT_LABEL = "저장";
 export const AGENT_FORM_SUBMIT_PENDING_LABEL = "저장 중…";
 export const AGENT_REMOVE_FROM_WORKFLOW_BUTTON_LABEL = "워크플로우에서 제거";
@@ -504,13 +541,17 @@ export const CLOSE_BUTTON_LABEL = "닫기";
 export const AGENT_CREATED_RESTART_NOTICE =
   "Claude Code가 새 정의를 바로 인식하지 못하면 재시작이 필요할 수 있습니다";
 
-// ── SCR-06-5 저장 충돌 (FR-011-AC4, 와이어프레임 p.7 오른쪽 위) ──────────────────────────
+// ── SCR-06-5 저장 충돌 (FR-011-AC4) ──────────────────────────
 export const SAVE_CONFLICT_TITLE = "파일이 다른 곳에서 수정되었습니다";
+/** 본문(ui-rules 06-5). 파일 이름·시각은 고정폭으로 따로 그리므로 사이 글자를 나눠 둔다. */
+export const SAVE_CONFLICT_BODY_AFTER_FILE = "가 이 창을 연 뒤 ";
+export const SAVE_CONFLICT_BODY_AFTER_TIME =
+  "에 바뀌었습니다. 덮어쓰면 그 변경이 사라집니다. 최신 파일을 다시 불러오면 지금 폼에 적은 내용이 사라집니다.";
 /**
- * 조사가 붙는 대상이 치환값이 아니라 고정 접미 `.md`라 병기 표기 대상이 아니다 — ui-spec.md 문구 그대로 둔다(ADR-39).
+ * 조사 `가`는 병기가 아니라 ui-rules 글자 그대로다 — 받침 판정을 하지 않는다(ADR-39).
  */
-export function saveConflictBody(agentName: string, hhmmss: string): string {
-  return `${agentName}.md이 이 창을 연 뒤 ${hhmmss}에 변경되었습니다. 저장하면 그 변경이 사라집니다.`;
+export function saveConflictBody(fileName: string, hhmmss: string): string {
+  return `${fileName}${SAVE_CONFLICT_BODY_AFTER_FILE}${hhmmss}${SAVE_CONFLICT_BODY_AFTER_TIME}`;
 }
 export const SAVE_CONFLICT_RELOAD_LABEL = "최신 파일 다시 불러오기";
 export const SAVE_CONFLICT_OVERWRITE_LABEL = "덮어쓰기";
@@ -522,23 +563,35 @@ export function agentRemoveTitle(agentName: string, workflowName: string | null)
     ? `${agentName}을(를) 제거할까요?`
     : `${agentName}을(를) ${workflowName}에서 제거할까요?`;
 }
-export const AGENT_REMOVE_TRASH_NOTE =
-  "정의 파일이 .aojistudio/trash/로 이동합니다 (소프트 삭제, 복구 가능).";
-/** FR-012-AC3: 팀장을 제거할 때만 붙는 두 번째 안내 줄. */
-export function agentRemoveLeadNote(workflowName: string): string {
-  return `팀장을 제거하면 ${workflowName} 층에 팀장 없음이 표시됩니다.`;
+/** 첫째 줄: 경로는 고정폭으로 따로 그린다(ui-rules 06-6 안내). */
+export const AGENT_REMOVE_TRASH_LEAD = "정의 파일이 ";
+export const AGENT_REMOVE_TRASH_PATH = ".aojistudio/trash/";
+export const AGENT_REMOVE_TRASH_TAIL = "로 이동합니다 (파일을 옮겨 복구할 수 있습니다)";
+export const AGENT_REMOVE_TRASH_NOTE = `${AGENT_REMOVE_TRASH_LEAD}${AGENT_REMOVE_TRASH_PATH}${AGENT_REMOVE_TRASH_TAIL}`;
+/** 둘째 줄(소속이 있을 때). */
+export function agentRemoveWorkflowNote(workflowName: string): string {
+  return `${workflowName} 구성 파일에서 빠집니다`;
 }
-export const AGENT_REMOVE_CONFIRM_LABEL = "제거 (이름 일치 시 활성)";
+/** FR-012-AC3: 팀장을 제거할 때만 붙는 셋째 줄(Q-R3-2 A 확정). */
+export function agentRemoveLeadNote(workflowName: string): string {
+  return `팀장을 제거하면 ${workflowName} 층에 팀장 없음이 표시됩니다`;
+}
+export const AGENT_REMOVE_INPUT_LABEL = "확인을 위해 name 입력";
+export function agentRemoveReason(agentName: string): string {
+  return `${agentName}을(를) 똑같이 입력하면 제거 버튼이 켜집니다`;
+}
+export const AGENT_REMOVE_CONFIRM_LABEL = "제거";
 export const AGENT_REMOVE_CONFIRM_PENDING_LABEL = "제거 중…";
 /** `DELETE /api/agents/{name}` 404(ui-spec.md SCR-06-6 에러 열). */
 export const AGENT_ALREADY_REMOVED_MESSAGE = "이미 없는 에이전트입니다";
 
-// ── SCR-07 설정 (FR-014, FR-001-AC4·AC5·E1·E2, FR-013-AC5, 와이어프레임 p.4) ──────────────
+// ── SCR-07 설정 (FR-014, FR-001-AC4·AC5·E1·E2, FR-013-AC5·AC10, docs/ui/screens/07-settings.html) ─────
 export const SETTINGS_TITLE = "설정";
-/** 값 사이 구분점. ui-spec.md SCR-07 값 문구가 `A · B` 형태로 적은 자리에만 쓴다. */
+export const SETTINGS_SUBTITLE = "읽기 전용 · 웹에서 바꾸지 않습니다. 값은 마운트한 폴더와 실행 설정에서 옵니다.";
+/** 값 줄 안 구분점. ui-spec.md SCR-07 값 문구가 `A · B` 형태로 적은 자리에만 쓴다. */
 export const MIDDLE_DOT_SEPARATOR = " · ";
 
-// 카드 1 프로젝트 폴더
+// 프로젝트 폴더 카드
 export const SETTINGS_PROJECT_CARD_TITLE = "프로젝트 폴더";
 export const SETTINGS_READ_ONLY_BADGE = "읽기 전용";
 export const SETTINGS_ROW_MOUNT_PATH = "마운트 폴더";
@@ -546,28 +599,23 @@ export const SETTINGS_ROW_AGENTS = "에이전트";
 export const SETTINGS_ROW_SKILLS = "스킬";
 export const SETTINGS_ROW_WRITABLE = "쓰기 권한";
 export const SETTINGS_ROW_FORMAT_ERRORS = "형식 오류";
-/** 경로(mono)와 뒤 설명은 화면에서 따로 그리고, 값 전체는 `<경로> · <설명>` 한 줄이다. */
 export const SETTINGS_AGENTS_PATH = ".claude/agents/";
 export const SETTINGS_SKILLS_PATH = ".claude/skills/";
-export function settingsAgentsNote(agentCount: number): string {
-  return `정의 ${agentCount}개`;
-}
-export function settingsSkillsNote(skillCount: number): string {
-  return `${skillCount}개`;
-}
-export const SETTINGS_WRITABLE_TRUE_TEXT = "✓ agents 추가·수정·삭제 가능";
-/** FR-001-E2. `쓰기 권한 없음`은 비활성 이유 줄(`WRITABLE_FALSE_REASON`)과 같은 글자다. */
-export const SETTINGS_WRITABLE_FALSE_TEXT = `✗ ${WRITABLE_FALSE_REASON}`;
-export function settingsFormatErrorsValue(count: number): string {
-  return `! 읽지 못한 정의 파일 ${count} 개`;
-}
-export const SETTINGS_FORMAT_ERRORS_NONE_TEXT = "없음";
-export const SETTINGS_PROJECT_FOOTNOTE = "폴더는 컨테이너 실행 시 마운트로 고정 · 웹에서 변경 불가";
+export const SETTINGS_AGENTS_COUNT_PREFIX = "정의";
+export const SETTINGS_COUNT_SUFFIX = "개";
+export const SETTINGS_WRITABLE_TRUE_TEXT = "있음 · 에이전트 추가·수정·제거 가능";
+/** FR-001-E2. 비활성 이유 줄(`WRITABLE_FALSE_REASON`)과 같은 글자다. */
+export const SETTINGS_WRITABLE_FALSE_TEXT = WRITABLE_FALSE_REASON;
+export const SETTINGS_FORMAT_ERRORS_PREFIX = "읽지 못한 정의 파일";
+export const SETTINGS_PROJECT_FOOTNOTE = "폴더는 컨테이너를 실행할 때 마운트로 정해지며 웹에서 바꿀 수 없습니다";
 
-// 카드 2 Claude 열기 (설명문은 D-F4 확정 문구)
+// Claude 열기 카드 (설명문은 D-F4 확정 문구. 두 버튼 이름은 굵게)
 export const SETTINGS_CLAUDE_CARD_TITLE = "Claude 열기";
-export const SETTINGS_CLAUDE_CARD_DESCRIPTION =
-  "02의 Claude 열기 · 기본 세션과 03의 팀장 호출 · 터미널 열기를 누르면 맥북 터미널이 열리고 프로젝트 폴더에서 claude가 실행됩니다.";
+export const SETTINGS_CLAUDE_DESC_1 = "에이전트 워크플로우의 ";
+export const SETTINGS_CLAUDE_DESC_BTN_1 = "Claude 열기 · 기본 세션";
+export const SETTINGS_CLAUDE_DESC_2 = "은 claude를, 워크플로우 상세의 ";
+export const SETTINGS_CLAUDE_DESC_BTN_2 = "팀장 호출";
+export const SETTINGS_CLAUDE_DESC_3 = "은 그 워크플로우 팀장 세션을 맥북 기본 터미널에서 AojiStudio 폴더 기준으로 엽니다.";
 export const SETTINGS_ROW_TERMINAL_APP = "터미널 앱";
 export const SETTINGS_ROW_DEFAULT_SESSION = "기본 세션";
 export const SETTINGS_ROW_LEAD_SESSION = "팀장으로 열기";
@@ -575,29 +623,27 @@ export const SETTINGS_LEAD_SESSION_HINT =
   "도우미가 받는 값은 팀장 name 하나 · 소문자·숫자·하이픈만 허용";
 export const SETTINGS_ROW_HELPER = "열기 도우미";
 export const SETTINGS_HELPER_CHECKING_TEXT = "확인 중…";
-export function settingsHelperInstalledText(hhmmss: string): string {
-  return `설치됨 · 응답 확인 ${hhmmss}`;
-}
+export const SETTINGS_HELPER_INSTALLED_TEXT = "설치됨";
 export const SETTINGS_HELPER_MISSING_TEXT = "미설치 · helper/install.sh로 설치";
 /** `GET /api/helper/token`이 null일 때(ui-spec.md SCR-07 `열기 도우미` 행). */
 export const SETTINGS_HELPER_NO_TOKEN_TEXT = "미설치 · 토큰 파일 없음";
-export const SETTINGS_TEST_OPEN_BUTTON_LABEL = "테스트로 열기 (도우미 설치 후)";
+export const SETTINGS_TEST_OPEN_BUTTON_LABEL = "테스트로 열기";
 /** FR-013-AC10 이유 줄(ADR-35 지정 지점). */
 export const HELPER_MISSING_REASON = "도우미 미설치";
+export const SETTINGS_COMMAND_COPY_NOTE = "명령 복사 = 기본 세션 명령 · 팀장 명령은 워크플로우 상세에서 복사합니다";
 
-// 카드 3 수집
+// 수집 카드
 export const SETTINGS_COLLECT_CARD_TITLE = "수집";
 export const SETTINGS_ROW_COLLECT_URL = "수집 주소";
 export const SETTINGS_ROW_HOOK = "hook 설정";
 export const SETTINGS_HOOK_SETTINGS_PATH = ".claude/settings.json";
-export const SETTINGS_HOOK_CONFIGURED_TEXT = "설정됨";
+export const SETTINGS_HOOK_CONFIGURED_TEXT = "있음";
 export const SETTINGS_HOOK_MISSING_TEXT = "없음";
 export const SETTINGS_COPY_HOOK_EXAMPLE_LABEL = "설정 예시 복사";
+export const SETTINGS_COLLECT_COPY_NOTE = "웹은 settings.json을 쓰지 않습니다. 예시를 복사해 직접 붙여 넣으세요";
 export const SETTINGS_ROW_TEAMS = "워크플로우 구성";
 export const SETTINGS_ROW_TRASH = "휴지통";
 export const SETTINGS_ROW_RETENTION = "이벤트 보존";
 export const SETTINGS_TEAMS_NOTE = "팀장·팀원 목록";
-export const SETTINGS_TRASH_NOTE = "제거한 에이전트 보관";
-export function settingsRetentionValue(retentionDays: number): string {
-  return `${retentionDays}일`;
-}
+export const SETTINGS_TRASH_NOTE = "제거한 정의 파일 보관";
+export const SETTINGS_RETENTION_SUFFIX = "일";
