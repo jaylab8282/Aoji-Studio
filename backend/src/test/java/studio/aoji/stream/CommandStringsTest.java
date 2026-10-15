@@ -15,14 +15,39 @@ class CommandStringsTest {
     @Test
     @DisplayName("[FR-013-AC1] defaultSessionCommand == 'cd \"<hostPath>\" && claude'")
     void defaultSessionCommandMatchesExactFormat() {
-        assertThat(CommandStrings.defaultSessionCommand(HOST_PATH))
+        assertThat(CommandStrings.defaultSessionCommand("macos", null, HOST_PATH))
                 .isEqualTo("cd \"/Users/jaybee/Desktop/AojiStudio\" && claude");
     }
 
     @Test
     @DisplayName("[FR-013-AC2] leadSessionCommandTemplate == 'cd \"<hostPath>\" && claude --agent <팀장 name>'")
     void leadSessionCommandTemplateMatchesExactFormat() {
-        assertThat(CommandStrings.leadSessionCommandTemplate(HOST_PATH))
+        assertThat(CommandStrings.leadSessionCommandTemplate("macos", null, HOST_PATH))
                 .isEqualTo("cd \"/Users/jaybee/Desktop/AojiStudio\" && claude --agent <팀장 name>");
+    }
+
+    @Test
+    @DisplayName("[FR-013-AC1] wsl -> 'wsl -d <배포판> --cd <경로> -- claude'")
+    void wslDefaultSessionCommand() {
+        assertThat(CommandStrings.defaultSessionCommand("wsl", "Ubuntu-24.04", "/home/jaybee/AojiStudio"))
+                .isEqualTo("wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- claude");
+    }
+
+    @Test
+    @DisplayName("[FR-013-AC1] wsl 경로에 공백이 있으면 --cd 경로에 따옴표")
+    void wslPathWithSpaceIsQuoted() {
+        assertThat(CommandStrings.defaultSessionCommand("wsl", "Ubuntu-24.04", "/home/jaybee/Aoji Studio"))
+                .isEqualTo("wsl -d Ubuntu-24.04 --cd \"/home/jaybee/Aoji Studio\" -- claude");
+    }
+
+    @Test
+    @DisplayName("[FR-013-AC2] 팀장 템플릿 = 기본 세션 명령 + ' --agent <팀장 name>' (macos·wsl)")
+    void leadTemplateIsDefaultPlusAgentSuffix() {
+        assertThat(CommandStrings.leadSessionCommandTemplate("wsl", "Ubuntu-24.04", "/home/jaybee/AojiStudio"))
+                .isEqualTo(CommandStrings.defaultSessionCommand("wsl", "Ubuntu-24.04", "/home/jaybee/AojiStudio")
+                        + " --agent <팀장 name>")
+                .isEqualTo("wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- claude --agent <팀장 name>");
+        assertThat(CommandStrings.leadSessionCommandTemplate("macos", null, HOST_PATH))
+                .isEqualTo(CommandStrings.defaultSessionCommand("macos", null, HOST_PATH) + " --agent <팀장 name>");
     }
 }

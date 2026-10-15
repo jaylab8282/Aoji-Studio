@@ -414,7 +414,9 @@ public class WorkflowConfigStore {
                 lead,
                 sortedMembers,
                 sortedBrokenRefs,
-                rawMemberCount));
+                rawMemberCount,
+                leadRaw,
+                membersRaw.stream().sorted().toList()));
     }
 
     private static FormatError schemaError(String fileName) {

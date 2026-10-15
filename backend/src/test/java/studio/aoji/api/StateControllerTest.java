@@ -99,6 +99,9 @@ class StateControllerTest {
         assertThat(body.get("registry").get("workflows").size()).isEqualTo(WORKFLOW_COUNT);
         assertThat(body.get("live")).isNotNull();
         assertThat(body.get("config")).isNotNull();
+        // [FR-013-AC1] 기본(macos) 실행 환경: hostOs macos, wslDistro null
+        assertThat(body.get("config").get("hostOs").asString()).isEqualTo("macos");
+        assertThat(body.get("config").get("wslDistro").isNull()).isTrue();
         assertThat(body.get("recentEvents")).isNotNull();
     }
 

@@ -1,6 +1,7 @@
 package studio.aoji.config;
 
 import jakarta.annotation.PostConstruct;
+import java.util.regex.Pattern;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -24,11 +25,49 @@ public class AppProperties implements EnvironmentAware {
     private String allowedOrigins = "";
     private Environment environment;
     private String pollIntervalMs = "1000";
+    private String hostOs = "";
+    private String wslDistro = "";
+
+    private static final Pattern WSL_DISTRO = Pattern.compile("^[A-Za-z0-9._-]{1,64}$");
 
     @PostConstruct
     void validate() {
         requireNonBlank("AOJISTUDIO_HOST_PATH", hostPath);
         requireNonBlank("AOJISTUDIO_PUBLIC_PORT", publicPort);
+        String os = hostOs == null ? "" : hostOs.strip();
+        if (!os.isEmpty() && !os.equals("macos") && !os.equals("wsl")) {
+            throw new IllegalStateException("AOJISTUDIO_HOST_OS는 macos 또는 wsl이어야 합니다");
+        }
+        if (os.equals("wsl") && (wslDistro == null || !WSL_DISTRO.matcher(wslDistro).matches())) {
+            throw new IllegalStateException(
+                    "AOJISTUDIO_HOST_OS=wsl이면 AOJISTUDIO_WSL_DISTRO를 설정하세요 (영문·숫자·._- 1~64자)");
+        }
+    }
+
+    /** 실행 환경: 빈 값 = {@code macos}, 그 밖에는 {@code macos}·{@code wsl}(검증은 기동 시, ADR-77 결정 1). */
+    public String hostOs() {
+        return hostOs == null || hostOs.isBlank() ? "macos" : hostOs.strip();
+    }
+
+    /** {@code wsl}일 때 배포판 이름, {@code macos}면 null(읽지 않는다). */
+    public String wslDistro() {
+        return "wsl".equals(hostOs()) ? wslDistro : null;
+    }
+
+    public String getHostOs() {
+        return hostOs;
+    }
+
+    public void setHostOs(String hostOs) {
+        this.hostOs = hostOs == null ? "" : hostOs;
+    }
+
+    public String getWslDistro() {
+        return wslDistro;
+    }
+
+    public void setWslDistro(String wslDistro) {
+        this.wslDistro = wslDistro == null ? "" : wslDistro;
     }
 
     /** 선택 값의 빈 문자열은 설정 안 됨으로 본다(ADR-47) - 기본값을 유지한다. */

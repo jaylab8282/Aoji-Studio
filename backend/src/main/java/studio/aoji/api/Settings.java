@@ -11,7 +11,7 @@ package studio.aoji.api;
  * @param writable 마운트 쓰기 가능 여부
  * @param formatErrorCount 형식 오류 정의·구성 파일 수
  * @param agentsDirMissing {@code .claude/agents/} 없음
- * @param terminalApp {@code "macOS 기본 터미널"}(const)
+ * @param terminalApp macos {@code "macOS 기본 터미널"} / wsl {@code "Windows Terminal"}(ADR-77)
  * @param defaultSessionCommand {@code cd "<hostPath>" && claude}(FR-013-AC1)
  * @param leadSessionCommandTemplate {@code cd "<hostPath>" && claude --agent <팀장 name>}(FR-013-AC2·AC5)
  * @param helperUrl 브라우저가 호출할 도우미 주소(ADR-12)
@@ -22,6 +22,8 @@ package studio.aoji.api;
  * @param trashPath {@code ".aojistudio/trash/"}(상수)
  * @param retentionDays 이벤트 보존일(const 30)
  * @param allowedHttpHookUrlsNote {@code allowedHttpHookUrls} 안내 문구
+ * @param hostOs {@code macos} | {@code wsl}
+ * @param wslDistro {@code wsl}일 때 배포판 이름, 아니면 null
  */
 public record Settings(
         String hostPath,
@@ -40,4 +42,6 @@ public record Settings(
         String teamsPath,
         String trashPath,
         int retentionDays,
-        String allowedHttpHookUrlsNote) {}
+        String allowedHttpHookUrlsNote,
+        String hostOs,
+        String wslDistro) {}

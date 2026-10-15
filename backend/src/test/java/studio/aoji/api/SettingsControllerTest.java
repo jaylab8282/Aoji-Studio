@@ -78,7 +78,7 @@ class SettingsControllerTest {
             "hostPath", "agentCount", "skillCount", "writable", "formatErrorCount",
             "agentsDirMissing", "terminalApp", "defaultSessionCommand", "leadSessionCommandTemplate",
             "helperUrl", "collectUrl", "hookConfigured", "hookSettingsExample", "teamsPath", "trashPath",
-            "retentionDays", "allowedHttpHookUrlsNote"
+            "retentionDays", "allowedHttpHookUrlsNote", "hostOs", "wslDistro"
         };
         for (String field : requiredFields) {
             assertThat(body.has(field)).as("필드 %s가 있어야 한다", field).isTrue();
@@ -126,6 +126,10 @@ class SettingsControllerTest {
                 .isEqualTo("cd \"" + HOST_PATH + "\" && claude");
         assertThat(body.get("leadSessionCommandTemplate").asString())
                 .isEqualTo("cd \"" + HOST_PATH + "\" && claude --agent <팀장 name>");
+        // [FR-013-AC5] 실행 환경 값: 기본(macos)
+        assertThat(body.get("hostOs").asString()).isEqualTo("macos");
+        assertThat(body.get("wslDistro").isNull()).isTrue();
+        assertThat(body.get("terminalApp").asString()).isEqualTo("macOS 기본 터미널");
     }
 
     @Test

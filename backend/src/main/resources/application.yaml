@@ -36,3 +36,6 @@ aojistudio:
   # 비어 있으면 OriginFilter가 http://127.0.0.1:<public-port>를 기본값으로 계산한다(architecture.md §4.2·§5).
   # dev 프로필(application-dev.yaml)은 이 값을 5173으로 완전히 대체한다.
   allowed-origins:
+  # 실행 환경(ADR-77): 빈 값 = macos. wsl이면 wsl-distro 필수(예시 값으로 채우지 않는다, NFR-05).
+  host-os:
+  wsl-distro:

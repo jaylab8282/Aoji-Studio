@@ -71,6 +71,9 @@ class WorkflowConfigStoreTest {
         assertThat(workflow.members()).isEmpty();
         assertThat(workflow.brokenRefs()).containsExactly("no-such-agent");
         assertThat(workflow.rawMemberCount()).isEqualTo(2);
+        // [FR-017-AC1] 원본 목록에는 깨진 참조도 포함
+        assertThat(workflow.rawLead()).isEqualTo("valid-agent");
+        assertThat(workflow.rawMembers()).containsExactly("no-such-agent");
 
         assertThat(result.formatErrors()).hasSize(1);
         FormatError error = result.formatErrors().get(0);
@@ -327,5 +330,49 @@ class WorkflowConfigStoreTest {
                 Files.deleteIfExists(path);
             }
         }
+    }
+
+    @Test
+    @DisplayName("[FR-017-AC1] rawLead가 깨진 참조면 lead는 null, rawLead·rawMembers는 원본(오름차순)")
+    void rawLeadAndRawMembersKeepBrokenReferences() throws IOException {
+        writeTeam(
+                "raw-list.json",
+                """
+                {
+                  "schemaVersion": 1,
+                  "name": "raw-list",
+                  "description": "",
+                  "lead": "ghost-lead",
+                  "members": ["zeta", "ghost-member", "alpha"],
+                  "createdAt": "2026-09-20T10:00:00+09:00",
+                  "updatedAt": "2026-09-20T10:00:00+09:00"
+                }
+                """);
+        writeTeam(
+                "empty.json",
+                """
+                {
+                  "schemaVersion": 1,
+                  "name": "empty",
+                  "description": "",
+                  "lead": null,
+                  "members": [],
+                  "createdAt": "2026-09-20T10:00:00+09:00",
+                  "updatedAt": "2026-09-20T10:00:00+09:00"
+                }
+                """);
+
+        WorkflowScanResult result = store.readAll(teamsDir, Set.of("alpha", "zeta"), pathGuard());
+
+        Workflow raw = result.workflows().stream().filter(w -> w.name().equals("raw-list")).findFirst().orElseThrow();
+        assertThat(raw.lead()).isNull();
+        assertThat(raw.members()).containsExactly("alpha", "zeta");
+        assertThat(raw.rawLead()).isEqualTo("ghost-lead");
+        assertThat(raw.rawMembers()).containsExactly("alpha", "ghost-member", "zeta");
+        assertThat(raw.rawMemberCount()).isEqualTo(4);
+
+        Workflow empty = result.workflows().stream().filter(w -> w.name().equals("empty")).findFirst().orElseThrow();
+        assertThat(empty.rawLead()).isNull();
+        assertThat(empty.rawMembers()).isEmpty();
     }
 }

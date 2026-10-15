@@ -55,12 +55,15 @@ public class SnapshotAssembler {
     public Config buildConfig() {
         String publicOrigin = appProperties.publicOrigin();
         String collectUrl = publicOrigin + "/hooks/events";
-        String defaultSessionCommand = CommandStrings.defaultSessionCommand(appProperties.getHostPath());
+        String defaultSessionCommand = CommandStrings.defaultSessionCommand(
+                appProperties.hostOs(), appProperties.wslDistro(), appProperties.getHostPath());
         return new Config(
                 appProperties.getHostPath(),
                 publicOrigin,
                 collectUrl,
                 appProperties.getHelperUrl(),
-                defaultSessionCommand);
+                defaultSessionCommand,
+                appProperties.hostOs(),
+                appProperties.wslDistro());
     }
 }

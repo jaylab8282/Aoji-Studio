@@ -8,7 +8,10 @@ package studio.aoji.stream;
  * @param publicOrigin {@code http://127.0.0.1:<public-port>}
  * @param collectUrl {@code <publicOrigin>/hooks/events}
  * @param helperUrl 브라우저가 호출할 도우미 주소(ADR-12)
- * @param defaultSessionCommand {@code cd "<hostPath>" && claude}(FR-013-AC1)
+ * @param defaultSessionCommand 실행 환경별 기본 세션 명령(FR-013-AC1, ADR-77)
+ * @param hostOs {@code macos} | {@code wsl}
+ * @param wslDistro {@code wsl}일 때 배포판 이름, {@code macos}면 null
  */
 public record Config(
-        String hostPath, String publicOrigin, String collectUrl, String helperUrl, String defaultSessionCommand) {}
+        String hostPath, String publicOrigin, String collectUrl, String helperUrl, String defaultSessionCommand,
+        String hostOs, String wslDistro) {}

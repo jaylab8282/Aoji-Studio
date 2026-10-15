@@ -30,7 +30,8 @@ import studio.aoji.stream.SnapshotAssembler;
 @RequestMapping("/api")
 public class SettingsController {
 
-    private static final String TERMINAL_APP = "macOS 기본 터미널";
+    private static final String TERMINAL_APP_MACOS = "macOS 기본 터미널";
+    private static final String TERMINAL_APP_WSL = "Windows Terminal";
     private static final int RETENTION_DAYS = 30;
     private static final String ALLOWED_HTTP_HOOK_URLS_NOTE =
             "allowedHttpHookUrls가 설정되어 있으면 수집 주소를 허용 목록에 추가하세요";
@@ -68,9 +69,9 @@ public class SettingsController {
                 registry.writable(),
                 registry.formatErrors().size(),
                 registry.agentsDirMissing(),
-                TERMINAL_APP,
+                "wsl".equals(config.hostOs()) ? TERMINAL_APP_WSL : TERMINAL_APP_MACOS,
                 config.defaultSessionCommand(),
-                CommandStrings.leadSessionCommandTemplate(config.hostPath()),
+                CommandStrings.leadSessionCommandTemplate(config.hostOs(), config.wslDistro(), config.hostPath()),
                 config.helperUrl(),
                 config.collectUrl(),
                 registry.hookConfigured(),
@@ -78,6 +79,8 @@ public class SettingsController {
                 dataDirectory.relative(DataDirectory.TEAMS, "*.json"),
                 dataDirectory.relative(DataDirectory.TRASH) + "/",
                 RETENTION_DAYS,
-                ALLOWED_HTTP_HOOK_URLS_NOTE);
+                ALLOWED_HTTP_HOOK_URLS_NOTE,
+                config.hostOs(),
+                config.wslDistro());
     }
 }
