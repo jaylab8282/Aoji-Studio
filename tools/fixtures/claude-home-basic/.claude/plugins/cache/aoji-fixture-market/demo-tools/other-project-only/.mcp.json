@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "other-project-only-server": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "other.js"
+      ]
+    }
+  }
+}

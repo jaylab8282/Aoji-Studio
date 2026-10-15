@@ -1,0 +1,19 @@
+{
+  "session_id": "fixture-statusline-session",
+  "cwd": "/home/fixture/work/aoji-fixture-app",
+  "version": "2.1.295",
+  "subscription_type": 7,
+  "rate_limits": {
+    "five_hour": {
+      "used_percentage": "not-a-number",
+      "resets_at": {
+        "nested": true
+      }
+    },
+    "seven_day": {
+      "used_percentage": 5000,
+      "resets_at": 4071513600
+    }
+  },
+  "extra_marker_field": "AOJI-MARKER-STATUS-3b1e"
+}

@@ -1,0 +1,15 @@
+{
+  "flat-stdio": {
+    "command": "node",
+    "args": [
+      "flat-stdio.js"
+    ]
+  },
+  "flat-http": {
+    "type": "http",
+    "url": "https://example.test/mcp/flat",
+    "headers": {
+      "Authorization": "Bearer AOJI-MARKER-ENV-91c2"
+    }
+  }
+}

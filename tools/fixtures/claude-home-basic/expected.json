@@ -1,0 +1,256 @@
+{
+  "note": "기간 = 전체. 같은 메시지 중복 줄은 한 번(message.id + ':' + requestId) — 같은 키의 줄 중 output_tokens가 최대인 줄의 4값(같으면 4값 합이 큰 줄, ADR-81 결정 3). 값이 다른 쌍: msg_s1_p(뒤 줄이 큼), msg_s1_q(앞 줄이 큼). usd는 ADR-82 단가(2026-10-15) 기준 정확한 십진수 문자열(소수 8자리까지), 화면은 소수 둘째 자리. 에이전트 나눔: 서브에이전트 기록 = 메타 agentType(메타 없음 → 미확인), 메인의 isSidechain:true 줄 → 미확인, 메인은 agentSetting(S1), S2는 hook SessionStart(agent_type 없음) 근거 — usage.jsonl 재생 뒤 `기본 세션`, 재생 전 `미확인`.",
+  "totals": {
+    "input": 5780,
+    "output": 2750,
+    "cacheCreation": 4910,
+    "cacheRead": 33100,
+    "total": 46540,
+    "usd": "0.1070825",
+    "usdRounded": "0.11"
+  },
+  "excludedModelCount": 1,
+  "skippedFiles": 1,
+  "skippedLines": {
+    "noRequestId": 1,
+    "synthetic": 1,
+    "allZero": 1,
+    "duplicate": 4
+  },
+  "fileCount": 4,
+  "byModel": [
+    {
+      "model": "claude-future-9",
+      "input": 400,
+      "output": 150,
+      "cacheCreation": 0,
+      "cacheRead": 600,
+      "total": 1150,
+      "usd": null,
+      "priceModel": null
+    },
+    {
+      "model": "claude-haiku-4-5",
+      "input": 820,
+      "output": 290,
+      "cacheCreation": 100,
+      "cacheRead": 4400,
+      "total": 5610,
+      "usd": "0.002835",
+      "priceModel": "claude-haiku-4-5"
+    },
+    {
+      "model": "claude-opus-4-8",
+      "input": 2700,
+      "output": 1330,
+      "cacheCreation": 2900,
+      "cacheRead": 17500,
+      "total": 24430,
+      "usd": "0.073625",
+      "priceModel": "claude-opus-4-8"
+    },
+    {
+      "model": "claude-sonnet-4-5-20250929",
+      "input": 1860,
+      "output": 980,
+      "cacheCreation": 1910,
+      "cacheRead": 10600,
+      "total": 15350,
+      "usd": "0.0306225",
+      "priceModel": "claude-sonnet-4-5"
+    }
+  ],
+  "byDate": {
+    "UTC": [
+      {
+        "date": "2026-10-10",
+        "input": 2200,
+        "output": 900,
+        "cacheCreation": 3500,
+        "cacheRead": 18000,
+        "total": 24600,
+        "usd": "0.051625"
+      },
+      {
+        "date": "2026-10-11",
+        "input": 1910,
+        "output": 1220,
+        "cacheCreation": 510,
+        "cacheRead": 6900,
+        "total": 10540,
+        "usd": "0.0369025"
+      },
+      {
+        "date": "2026-10-12",
+        "input": 770,
+        "output": 280,
+        "cacheCreation": 100,
+        "cacheRead": 2200,
+        "total": 3350,
+        "usd": "0.001305"
+      },
+      {
+        "date": "2026-10-13",
+        "input": 600,
+        "output": 250,
+        "cacheCreation": 800,
+        "cacheRead": 4000,
+        "total": 5650,
+        "usd": "0.01625"
+      },
+      {
+        "date": "2026-10-14",
+        "input": 300,
+        "output": 100,
+        "cacheCreation": 0,
+        "cacheRead": 2000,
+        "total": 2400,
+        "usd": "0.001"
+      }
+    ],
+    "Asia/Seoul": [
+      {
+        "date": "2026-10-10",
+        "input": 2200,
+        "output": 900,
+        "cacheCreation": 3500,
+        "cacheRead": 18000,
+        "total": 24600,
+        "usd": "0.051625"
+      },
+      {
+        "date": "2026-10-11",
+        "input": 1910,
+        "output": 1220,
+        "cacheCreation": 510,
+        "cacheRead": 6900,
+        "total": 10540,
+        "usd": "0.0369025"
+      },
+      {
+        "date": "2026-10-12",
+        "input": 770,
+        "output": 280,
+        "cacheCreation": 100,
+        "cacheRead": 2200,
+        "total": 3350,
+        "usd": "0.001305"
+      },
+      {
+        "date": "2026-10-13",
+        "input": 600,
+        "output": 250,
+        "cacheCreation": 800,
+        "cacheRead": 4000,
+        "total": 5650,
+        "usd": "0.01625"
+      },
+      {
+        "date": "2026-10-15",
+        "input": 300,
+        "output": 100,
+        "cacheCreation": 0,
+        "cacheRead": 2000,
+        "total": 2400,
+        "usd": "0.001"
+      }
+    ]
+  },
+  "bySession": [
+    {
+      "sessionId": "a1b2c3d4-0000-4000-8000-000000000001",
+      "short": "a1b2c3d4",
+      "project": "/home/fixture/work/aoji-fixture-app",
+      "startedAt": "2026-10-10T01:00:05.000Z",
+      "entrypoint": "cli",
+      "total": 37540
+    },
+    {
+      "sessionId": "e5f6a7b8-0000-4000-8000-000000000002",
+      "short": "e5f6a7b8",
+      "project": "/home/fixture/work/aoji-fixture-app",
+      "startedAt": "2026-10-12T09:00:05.000Z",
+      "entrypoint": "claude-desktop",
+      "total": 9000
+    }
+  ],
+  "byAgentAfterReplay": [
+    {
+      "agent": "proj-lead",
+      "input": 1800,
+      "output": 700,
+      "cacheCreation": 3000,
+      "cacheRead": 17000,
+      "total": 22500,
+      "usd": "0.04325"
+    },
+    {
+      "agent": "proj-dev",
+      "input": 2460,
+      "output": 1460,
+      "cacheCreation": 1010,
+      "cacheRead": 9100,
+      "total": 14030,
+      "usd": "0.0457475"
+    },
+    {
+      "agent": "기본 세션",
+      "input": 1250,
+      "output": 490,
+      "cacheCreation": 900,
+      "cacheRead": 5800,
+      "total": 8440,
+      "usd": "0.017195"
+    },
+    {
+      "agent": "미확인",
+      "input": 270,
+      "output": 100,
+      "cacheCreation": 0,
+      "cacheRead": 1200,
+      "total": 1570,
+      "usd": "0.00089"
+    }
+  ],
+  "byAgentBeforeReplay": [
+    {
+      "agent": "proj-lead",
+      "input": 1800,
+      "output": 700,
+      "cacheCreation": 3000,
+      "cacheRead": 17000,
+      "total": 22500,
+      "usd": "0.04325"
+    },
+    {
+      "agent": "proj-dev",
+      "input": 2460,
+      "output": 1460,
+      "cacheCreation": 1010,
+      "cacheRead": 9100,
+      "total": 14030,
+      "usd": "0.0457475"
+    },
+    {
+      "agent": "미확인",
+      "input": 1520,
+      "output": 590,
+      "cacheCreation": 900,
+      "cacheRead": 7000,
+      "total": 10010,
+      "usd": "0.018085"
+    }
+  ],
+  "limitsFromCache": {
+    "source": "cache",
+    "fetchedAtMs": 1792020000000,
+    "fiveHour": {
+      "utilization": 21,
+      "resets_at": "2099-01-01T05:00:00.000000+00:00"
+    },
+    "sevenDay": {
+      "utilization": 48,
+      "resets_at": "2099-01-04T09:00:00.000000+00:00"
+    }
+  }
+}

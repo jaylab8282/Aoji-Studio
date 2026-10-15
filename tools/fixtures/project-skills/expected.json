@@ -1,0 +1,67 @@
+{
+  "skillCount": 8,
+  "skills": [
+    {
+      "name": "bad-utf8",
+      "error": "UTF-8 인코딩 오류"
+    },
+    {
+      "name": "bad-yaml",
+      "error": "frontmatter 형식 오류"
+    },
+    {
+      "name": "design-review",
+      "userOnly": false,
+      "imported": false,
+      "definedAgents": [
+        "proj-dev",
+        "proj-lead"
+      ]
+    },
+    {
+      "name": "imported-lint",
+      "userOnly": false,
+      "imported": true,
+      "definedAgents": [
+        "proj-writer"
+      ]
+    },
+    {
+      "name": "manual-only",
+      "userOnly": true,
+      "imported": false,
+      "definedAgents": [
+        "proj-ops"
+      ]
+    },
+    {
+      "name": "name-mismatch",
+      "error": "name이 폴더 이름과 다름"
+    },
+    {
+      "name": "no-delimiter",
+      "error": "frontmatter 형식 오류"
+    },
+    {
+      "name": "release-notes",
+      "userOnly": false,
+      "imported": false,
+      "definedAgents": [
+        "proj-lead",
+        "proj-writer"
+      ]
+    }
+  ],
+  "agentCount": 6,
+  "agentsWithSkills": [
+    "proj-dev",
+    "proj-lead",
+    "proj-ops",
+    "proj-writer"
+  ],
+  "workflows": [
+    "dev-team",
+    "ops-team"
+  ],
+  "mcpDefinitions": 0
+}

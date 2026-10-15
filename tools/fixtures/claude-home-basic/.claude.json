@@ -1,0 +1,79 @@
+{
+  "numStartups": 3,
+  "mcpServers": {
+    "github": {
+      "type": "http",
+      "url": "https://example.test/mcp/github-global",
+      "headers": {
+        "Authorization": "Bearer AOJI-MARKER-ENV-91c2"
+      }
+    },
+    "docs-server": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "docs-server.js"
+      ],
+      "env": {
+        "DOCS_SERVER_KEY": "AOJI-MARKER-ENV-91c2"
+      }
+    }
+  },
+  "projects": {
+    "__AOJI_FIXTURE_HOST_PATH__": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [
+        "github"
+      ],
+      "disabledMcpjsonServers": [
+        "local-tool"
+      ],
+      "disabledMcpServers": [
+        "docs-server"
+      ],
+      "hasTrustDialogAccepted": true
+    }
+  },
+  "cachedUsageUtilization": {
+    "accountUuid": "AOJI-MARKER-EMAIL-55d0-uuid",
+    "fetchedAtMs": 1792020000000,
+    "utilization": {
+      "five_hour": {
+        "utilization": 21,
+        "resets_at": "2099-01-01T05:00:00.000000+00:00"
+      },
+      "seven_day": {
+        "utilization": 48,
+        "resets_at": "2099-01-04T09:00:00.000000+00:00"
+      },
+      "limits": [
+        {
+          "kind": "five_hour",
+          "group": "session",
+          "percent": 21,
+          "resets_at": "2099-01-01T05:00:00.000000+00:00",
+          "scope": null,
+          "severity": "ok",
+          "is_active": true
+        },
+        {
+          "kind": "seven_day",
+          "group": "weekly",
+          "percent": 48,
+          "resets_at": "2099-01-04T09:00:00.000000+00:00",
+          "scope": null,
+          "severity": "ok",
+          "is_active": true
+        }
+      ]
+    }
+  },
+  "oauthAccount": {
+    "emailAddress": "AOJI-MARKER-EMAIL-55d0",
+    "displayName": "Fixture User",
+    "organizationName": "Fixture Org"
+  },
+  "userID": "fixture-user-id"
+}

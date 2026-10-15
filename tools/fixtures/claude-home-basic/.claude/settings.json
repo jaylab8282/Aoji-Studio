@@ -1,0 +1,11 @@
+{
+  "enabledPlugins": {
+    "demo-tools@aoji-fixture-market": true,
+    "flat-tools@aoji-fixture-market": true,
+    "unused-plugin@aoji-fixture-market": false
+  },
+  "env": {
+    "FIXTURE_SETTINGS_KEY": "AOJI-MARKER-ENV-91c2"
+  },
+  "model": "fixture-model"
+}

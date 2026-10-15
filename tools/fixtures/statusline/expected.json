@@ -1,0 +1,25 @@
+{
+  "note": "ADR-83: 전송 본문 = subscription_type + rate_limits.{five_hour,seven_day}.{used_percentage,resets_at}. 상태줄 resets_at은 epoch 초.",
+  "full.json": {
+    "accepted": true,
+    "subscription_type": "max",
+    "fiveHour": {
+      "used_percentage": 37.5,
+      "resets_at": 4070908800
+    },
+    "sevenDay": {
+      "used_percentage": 12.25,
+      "resets_at": 4071513600
+    }
+  },
+  "no-limits.json": {
+    "accepted": true,
+    "subscription_type": "pro",
+    "fiveHour": null,
+    "sevenDay": null
+  },
+  "bad-type.json": {
+    "accepted": false,
+    "reason": "형식 오류(subscription_type 숫자, used_percentage 문자열·범위 밖) — 저장하지 않고 204, 로그 사유만 (FR-027-E3)"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "dev-team",
+  "description": "개발 워크플로우",
+  "lead": "proj-lead",
+  "members": [
+    "proj-dev",
+    "proj-writer",
+    "proj-qa"
+  ],
+  "createdAt": "2026-10-01T10:00:00+09:00",
+  "updatedAt": "2026-10-01T10:00:00+09:00"
+}

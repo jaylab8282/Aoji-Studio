@@ -1,0 +1,15 @@
+{
+  "session_id": "fixture-statusline-session",
+  "cwd": "/home/fixture/work/aoji-fixture-app",
+  "model": {
+    "id": "claude-sonnet-4-5",
+    "display_name": "Sonnet 4.5"
+  },
+  "workspace": {
+    "current_dir": "/home/fixture/work/aoji-fixture-app",
+    "project_dir": "/home/fixture/work/aoji-fixture-app"
+  },
+  "version": "2.1.295",
+  "subscription_type": "pro",
+  "extra_marker_field": "AOJI-MARKER-STATUS-3b1e"
+}

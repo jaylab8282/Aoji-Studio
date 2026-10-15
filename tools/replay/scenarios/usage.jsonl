@@ -1,0 +1,38 @@
+{"session_id":"sess-u-proj-lead-1","cwd":"/workspace","hook_event_name":"SessionStart","agent_type":"proj-lead","permission_mode":"default","source":"startup"}
+{"session_id":"sess-u-proj-lead-2","cwd":"/workspace","hook_event_name":"SessionStart","agent_type":"proj-lead","permission_mode":"default","source":"startup"}
+{"session_id":"sess-u-proj-dev-3","cwd":"/workspace","hook_event_name":"SubagentStart","agent_type":"proj-dev","permission_mode":"default"}
+{"session_id":"sess-u-proj-dev-4","cwd":"/workspace","hook_event_name":"SubagentStart","agent_type":"proj-dev","permission_mode":"default"}
+{"session_id":"sess-u-proj-dev-5","cwd":"/workspace","hook_event_name":"SubagentStart","agent_type":"proj-dev","permission_mode":"default"}
+{"session_id":"sess-u-proj-writer-6","cwd":"/workspace","hook_event_name":"SubagentStart","agent_type":"proj-writer","permission_mode":"default"}
+{"session_id":"sess-u-main-7","cwd":"/workspace","hook_event_name":"SessionStart","permission_mode":"default","source":"startup"}
+{"session_id":"e5f6a7b8-0000-4000-8000-000000000002","cwd":"/workspace","hook_event_name":"SessionStart","permission_mode":"default","source":"startup"}
+{"session_id":"sess-u-proj-qa-8","cwd":"/workspace","hook_event_name":"SessionStart","agent_type":"proj-qa","permission_mode":"default","source":"startup"}
+{"session_id":"sess-u-Explore-9","cwd":"/workspace","hook_event_name":"SubagentStart","agent_type":"Explore","permission_mode":"default"}
+{"session_id":"sess-u-main-tool","cwd":"/workspace","hook_event_name":"PreToolUse","permission_mode":"default","tool_name":"Skill","tool_input":{"skill":"design-review"}}
+{"session_id":"sess-u-proj-dev-tool","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"proj-dev","permission_mode":"default","tool_name":"Skill","tool_input":{"skill":"design-review"}}
+{"session_id":"sess-u-proj-dev-tool","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"proj-dev","permission_mode":"default","tool_name":"Skill","tool_input":{"skill":"design-review"}}
+{"session_id":"sess-u-proj-qa-tool","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"proj-qa","permission_mode":"default","tool_name":"Skill","tool_input":{"skill":"design-review"}}
+{"session_id":"sess-u-proj-dev-tool","cwd":"/workspace","hook_event_name":"PostToolUse","agent_type":"proj-dev","permission_mode":"default","tool_name":"Skill","tool_input":{"skill":"design-review"}}
+{"session_id":"sess-u-main-tool","cwd":"/workspace","hook_event_name":"PreToolUse","permission_mode":"default","tool_name":"Skill","tool_input":{"skill":"release-notes"}}
+{"session_id":"sess-u-proj-writer-tool","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"proj-writer","permission_mode":"default","tool_name":"Skill","tool_input":{"skill":"imported-lint"}}
+{"session_id":"sess-u-main-tool","cwd":"/workspace","hook_event_name":"PreToolUse","permission_mode":"default","tool_name":"Skill","tool_input":{"skill":"ghost-skill"}}
+{"session_id":"sess-u-main-tool","cwd":"/workspace","hook_event_name":"PreToolUse","permission_mode":"default","tool_name":"Skill","tool_input":{"skill":"ghost-skill"}}
+{"session_id":"sess-u-main-prompt","cwd":"/workspace","hook_event_name":"UserPromptSubmit","permission_mode":"default","prompt":"/design-review AOJI-MARKER-PROMPT-c4d8 헤더 간격 확인"}
+{"session_id":"sess-u-main-prompt","cwd":"/workspace","hook_event_name":"UserPromptSubmit","permission_mode":"default","prompt":"/release-notes"}
+{"session_id":"sess-u-main-prompt","cwd":"/workspace","hook_event_name":"UserPromptSubmit","permission_mode":"default","prompt":"/manual-only 지금 실행"}
+{"session_id":"sess-u-main-prompt","cwd":"/workspace","hook_event_name":"UserPromptSubmit","permission_mode":"default","prompt":"/bad-yaml 형식 오류 스킬도 폴더 이름으로 센다"}
+{"session_id":"sess-u-main-prompt","cwd":"/workspace","hook_event_name":"UserPromptSubmit","permission_mode":"default","prompt":"/design-review-extra foo"}
+{"session_id":"sess-u-main-prompt","cwd":"/workspace","hook_event_name":"UserPromptSubmit","permission_mode":"default","prompt":"/x foo"}
+{"session_id":"sess-u-main-prompt","cwd":"/workspace","hook_event_name":"UserPromptSubmit","permission_mode":"default","prompt":"/ghost-skill 삭제된 스킬"}
+{"session_id":"sess-u-main-prompt","cwd":"/workspace","hook_event_name":"UserPromptSubmit","permission_mode":"default","prompt":"AOJI-MARKER-PROMPT-c4d8 슬래시 없는 평범한 질문"}
+{"session_id":"sess-u-proj-dev-tool","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"proj-dev","permission_mode":"default","tool_name":"mcp__github__create_issue","tool_input":{"title":"fixture"}}
+{"session_id":"sess-u-proj-dev-tool","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"proj-dev","permission_mode":"default","tool_name":"mcp__github__create_issue","tool_input":{"title":"fixture"}}
+{"session_id":"sess-u-proj-dev-tool","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"proj-dev","permission_mode":"default","tool_name":"mcp__github__create_issue","tool_input":{"title":"fixture"}}
+{"session_id":"sess-u-main-tool","cwd":"/workspace","hook_event_name":"PreToolUse","permission_mode":"default","tool_name":"mcp__github__get_issue","tool_input":{"number":1}}
+{"session_id":"sess-u-proj-writer-tool","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"proj-writer","permission_mode":"default","tool_name":"mcp__docs-server__search","tool_input":{"q":"fixture"}}
+{"session_id":"sess-u-proj-writer-tool","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"proj-writer","permission_mode":"default","tool_name":"mcp__docs-server__search","tool_input":{"q":"fixture"}}
+{"session_id":"sess-u-main-tool","cwd":"/workspace","hook_event_name":"PreToolUse","permission_mode":"default","tool_name":"mcp__plugin_demo-tools_demo-helper__run","tool_input":{}}
+{"session_id":"sess-u-proj-lead-tool","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"proj-lead","permission_mode":"default","tool_name":"mcp__claude_ai_drive__list_files","tool_input":{}}
+{"session_id":"sess-u-proj-qa-tool","cwd":"/workspace","hook_event_name":"PreToolUse","agent_type":"proj-qa","permission_mode":"default","tool_name":"mcp__qa-browser__open","tool_input":{"url":"http://localhost"}}
+{"session_id":"sess-u-proj-qa-tool","cwd":"/workspace","hook_event_name":"PostToolUse","agent_type":"proj-qa","permission_mode":"default","tool_name":"mcp__qa-browser__open","tool_input":{"url":"http://localhost"}}
+{"session_id":"sess-u-main-tool","cwd":"/workspace","hook_event_name":"PreToolUse","permission_mode":"default","tool_name":"Bash","tool_input":{"command":"echo fixture"}}

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "demo-helper": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "demo-helper.js"
+      ],
+      "env": {
+        "DEMO_HELPER_KEY": "AOJI-MARKER-ENV-91c2"
+      }
+    }
+  }
+}

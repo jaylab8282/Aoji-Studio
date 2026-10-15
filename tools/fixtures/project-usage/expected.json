@@ -1,0 +1,390 @@
+{
+  "note": "project-usage + claude-home-basic + replay/scenarios/usage.jsonl 전체 재생 뒤의 기대값(기간 = 전체, hook 설정됨). 위치 project = project-usage/.mcp.json, global·plugin = claude-home-basic. 퍼센트는 원값(표시는 percentDisplay). definedUnused = 정의상 사용 에이전트인데 기간 안 실제 사용 0 (`정의됨 · 사용 0`).",
+  "skills": {
+    "totalUses": 19,
+    "ignoredNames": [
+      "ghost-skill",
+      "design-review-extra",
+      "x"
+    ],
+    "rows": [
+      {
+        "name": "bad-utf8",
+        "call": 0,
+        "slash": 0,
+        "preload": 0,
+        "total": 0,
+        "definedAgents": [],
+        "actualAgents": [],
+        "definedUnused": [],
+        "usedAgentCount": 0,
+        "percent": 0,
+        "percentDisplay": "0.0"
+      },
+      {
+        "name": "bad-yaml",
+        "call": 0,
+        "slash": 1,
+        "preload": 0,
+        "total": 1,
+        "definedAgents": [],
+        "actualAgents": [
+          {
+            "agent": "기본 세션",
+            "count": 1
+          }
+        ],
+        "definedUnused": [],
+        "usedAgentCount": 0,
+        "percent": 5.2631578947368425,
+        "percentDisplay": "5.3"
+      },
+      {
+        "name": "design-review",
+        "call": 4,
+        "slash": 1,
+        "preload": 5,
+        "total": 10,
+        "definedAgents": [
+          "proj-dev",
+          "proj-lead"
+        ],
+        "actualAgents": [
+          {
+            "agent": "proj-dev",
+            "count": 5
+          },
+          {
+            "agent": "proj-lead",
+            "count": 2
+          },
+          {
+            "agent": "proj-qa",
+            "count": 1
+          },
+          {
+            "agent": "기본 세션",
+            "count": 2
+          }
+        ],
+        "definedUnused": [],
+        "usedAgentCount": 3,
+        "percent": 52.63157894736842,
+        "percentDisplay": "52.6"
+      },
+      {
+        "name": "imported-lint",
+        "call": 1,
+        "slash": 0,
+        "preload": 1,
+        "total": 2,
+        "definedAgents": [
+          "proj-writer"
+        ],
+        "actualAgents": [
+          {
+            "agent": "proj-writer",
+            "count": 2
+          }
+        ],
+        "definedUnused": [],
+        "usedAgentCount": 1,
+        "percent": 10.526315789473685,
+        "percentDisplay": "10.5"
+      },
+      {
+        "name": "manual-only",
+        "call": 0,
+        "slash": 1,
+        "preload": 0,
+        "total": 1,
+        "definedAgents": [
+          "proj-ops"
+        ],
+        "actualAgents": [
+          {
+            "agent": "기본 세션",
+            "count": 1
+          }
+        ],
+        "definedUnused": [
+          "proj-ops"
+        ],
+        "usedAgentCount": 1,
+        "percent": 5.2631578947368425,
+        "percentDisplay": "5.3"
+      },
+      {
+        "name": "name-mismatch",
+        "call": 0,
+        "slash": 0,
+        "preload": 0,
+        "total": 0,
+        "definedAgents": [],
+        "actualAgents": [],
+        "definedUnused": [],
+        "usedAgentCount": 0,
+        "percent": 0,
+        "percentDisplay": "0.0"
+      },
+      {
+        "name": "no-delimiter",
+        "call": 0,
+        "slash": 0,
+        "preload": 0,
+        "total": 0,
+        "definedAgents": [],
+        "actualAgents": [],
+        "definedUnused": [],
+        "usedAgentCount": 0,
+        "percent": 0,
+        "percentDisplay": "0.0"
+      },
+      {
+        "name": "release-notes",
+        "call": 1,
+        "slash": 1,
+        "preload": 3,
+        "total": 5,
+        "definedAgents": [
+          "proj-lead",
+          "proj-writer"
+        ],
+        "actualAgents": [
+          {
+            "agent": "proj-lead",
+            "count": 2
+          },
+          {
+            "agent": "proj-writer",
+            "count": 1
+          },
+          {
+            "agent": "기본 세션",
+            "count": 2
+          }
+        ],
+        "definedUnused": [],
+        "usedAgentCount": 2,
+        "percent": 26.31578947368421,
+        "percentDisplay": "26.3"
+      }
+    ]
+  },
+  "hookNotConfigured": {
+    "skillCall": 0,
+    "skillSlash": 0,
+    "mcpActualAgents": null
+  },
+  "mcp": {
+    "notListed": [
+      "other-project-only-server"
+    ],
+    "inheritAllAgents": [
+      "proj-dev",
+      "proj-lead",
+      "proj-ops",
+      "proj-qa",
+      "proj-solo",
+      "proj-writer"
+    ],
+    "rows": [
+      {
+        "name": "claude_ai_drive",
+        "callName": "claude_ai_drive",
+        "locations": [
+          {
+            "kind": "called-only"
+          }
+        ],
+        "active": null,
+        "definedAgents": [],
+        "inheritAllCount": null,
+        "actualAgents": [
+          {
+            "agent": "proj-lead",
+            "count": 1
+          }
+        ],
+        "usedAgentCount": 1
+      },
+      {
+        "name": "demo-helper",
+        "callName": "plugin_demo-tools_demo-helper",
+        "locations": [
+          {
+            "kind": "plugin",
+            "detail": "demo-tools",
+            "active": true
+          }
+        ],
+        "active": true,
+        "definedAgents": [],
+        "inheritAllCount": 6,
+        "actualAgents": [
+          {
+            "agent": "기본 세션",
+            "count": 1
+          }
+        ],
+        "usedAgentCount": 0
+      },
+      {
+        "name": "docs-server",
+        "callName": "docs-server",
+        "locations": [
+          {
+            "kind": "global",
+            "active": false
+          }
+        ],
+        "active": false,
+        "definedAgents": [
+          "mcp-reader"
+        ],
+        "inheritAllCount": 6,
+        "actualAgents": [
+          {
+            "agent": "proj-writer",
+            "count": 2
+          }
+        ],
+        "usedAgentCount": 2
+      },
+      {
+        "name": "flat-http",
+        "callName": "plugin_flat-tools_flat-http",
+        "locations": [
+          {
+            "kind": "plugin",
+            "detail": "flat-tools",
+            "active": true
+          }
+        ],
+        "active": true,
+        "definedAgents": [],
+        "inheritAllCount": 6,
+        "actualAgents": [],
+        "usedAgentCount": 0
+      },
+      {
+        "name": "flat-stdio",
+        "callName": "plugin_flat-tools_flat-stdio",
+        "locations": [
+          {
+            "kind": "plugin",
+            "detail": "flat-tools",
+            "active": true
+          }
+        ],
+        "active": true,
+        "definedAgents": [],
+        "inheritAllCount": 6,
+        "actualAgents": [],
+        "usedAgentCount": 0
+      },
+      {
+        "name": "github",
+        "callName": "github",
+        "locations": [
+          {
+            "kind": "project",
+            "active": true
+          },
+          {
+            "kind": "global",
+            "active": null
+          }
+        ],
+        "active": true,
+        "definedAgents": [
+          "mcp-inline",
+          "mcp-reader"
+        ],
+        "inheritAllCount": 6,
+        "actualAgents": [
+          {
+            "agent": "proj-dev",
+            "count": 3
+          },
+          {
+            "agent": "기본 세션",
+            "count": 1
+          }
+        ],
+        "usedAgentCount": 3
+      },
+      {
+        "name": "local-tool",
+        "callName": "local-tool",
+        "locations": [
+          {
+            "kind": "project",
+            "active": false
+          }
+        ],
+        "active": false,
+        "definedAgents": [],
+        "inheritAllCount": 6,
+        "actualAgents": [],
+        "usedAgentCount": 0
+      },
+      {
+        "name": "qa-browser",
+        "callName": "qa-browser",
+        "locations": [
+          {
+            "kind": "agent",
+            "detail": "mcp-inline",
+            "active": null
+          }
+        ],
+        "active": null,
+        "definedAgents": [
+          "mcp-inline"
+        ],
+        "inheritAllCount": 6,
+        "actualAgents": [
+          {
+            "agent": "proj-qa",
+            "count": 1
+          }
+        ],
+        "usedAgentCount": 2
+      }
+    ],
+    "masked": {
+      "github": {
+        "urlQueryValues": "••••••••",
+        "headers": {
+          "Authorization": "••••••••"
+        }
+      },
+      "docs-server": {
+        "env": {
+          "DOCS_SERVER_KEY": "••••••••"
+        }
+      },
+      "local-tool": {
+        "env": {
+          "LOCAL_TOOL_KEY": "••••••••"
+        }
+      },
+      "demo-helper": {
+        "env": {
+          "DEMO_HELPER_KEY": "••••••••"
+        }
+      },
+      "flat-http": {
+        "headers": {
+          "Authorization": "••••••••"
+        }
+      }
+    }
+  },
+  "eventCounts": {
+    "total": 38,
+    "sessionStart": 5,
+    "subagentStart": 5
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "github": {
+      "type": "http",
+      "url": "https://example.test/mcp/github?access=AOJI-MARKER-ENV-91c2&org=aoji-fixture",
+      "headers": {
+        "Authorization": "Bearer AOJI-MARKER-ENV-91c2"
+      }
+    },
+    "local-tool": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "tools/local-tool.js",
+        "--quiet"
+      ],
+      "env": {
+        "LOCAL_TOOL_KEY": "AOJI-MARKER-ENV-91c2"
+      }
+    }
+  }
+}

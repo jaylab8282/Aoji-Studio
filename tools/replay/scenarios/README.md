@@ -118,3 +118,44 @@ clamp 결과를 실측으로 단언하게 한다. `showcase.jsonl`의 `디자인
   아래 임시 사본에만 한다 — `tools/e2e/tests/ui-helpers.ts`).
 - 재생(이 폴더의 시나리오)은 `settings.json`과 무관하다 — 재생 도구는 수집 주소·토큰을 인자로 받는다.
   `hookConfigured`는 **화면 표시**(사이드 탭·04-4 배너)에만 영향을 준다.
+
+## usage.jsonl — 스킬·MCP 사용 집계용 (`project-usage` + `claude-home-basic`과 짝, T-R4-01, ADR-80·90)
+
+38줄. 실제 hook 입력 형식(`session_id`·`cwd`·`hook_event_name`·`agent_type`·`tool_name`·`tool_input`·`prompt`)이다. 기대 횟수는
+`tools/fixtures/project-usage/expected.json`(`skills`·`mcp`)에 있고 `tools/replay/test/fixtures-v120.test.mjs`가 이 파일에서 따로 센 값과 대조한다.
+E2E-19가 스스로 재생한다(`UserPromptSubmit`의 `prompt`에는 표지 `AOJI-MARKER-PROMPT-c4d8`이 들어 있고 저장·표시되면 안 된다).
+
+| 줄 | 이벤트 | 대상 | 검증하려는 항목 |
+|---|---|---|---|
+| 1~2 | SessionStart | `proj-lead` ×2 | 미리 넣음: `design-review` +2, `release-notes` +2 |
+| 3~5 | SubagentStart | `proj-dev` ×3 | 미리 넣음: `design-review` +3 |
+| 6 | SubagentStart | `proj-writer` | 미리 넣음: `release-notes` +1, `imported-lint` +1 |
+| 7 | SessionStart | (agent_type 없음) | 기본 세션, `skills:` 없음 |
+| 8 | SessionStart | session_id = 대화 기록 세션 S2 (agent_type 없음) | 비용 10의 S2 세션 에이전트 `기본 세션` 근거(ADR-81 5-②). 재생 전에는 `미확인` |
+| 9 | SessionStart | `proj-qa` | `skills:` 없는 에이전트 |
+| 10 | SubagentStart | `Explore` | 정의 없는 서브에이전트 — 어느 집계에도 영향 없음 |
+| 11~14 | PreToolUse Skill `design-review` | 기본 세션 1 · `proj-dev` 2 · `proj-qa` 1 | 호출 4. `proj-qa`는 정의상 사용 에이전트가 아니다 |
+| 15 | PostToolUse Skill `design-review` | `proj-dev` | 세지 않음(PreToolUse만) |
+| 16 | PreToolUse Skill `release-notes` | 기본 세션 | 호출 1 |
+| 17 | PreToolUse Skill `imported-lint` | `proj-writer` | 호출 1 |
+| 18~19 | PreToolUse Skill `ghost-skill` ×2 | 기본 세션 | 지금 없는 스킬 → 행·분모 제외(FR-019-AC6) |
+| 20 | UserPromptSubmit `/design-review <표지> …` | 기본 세션 | 직접 호출: `design-review` +1 (본문은 남지 않음) |
+| 21 | UserPromptSubmit `/release-notes` | 기본 세션 | 직접 호출: 이름 뒤가 끝 |
+| 22 | UserPromptSubmit `/manual-only …` | 기본 세션 | 사용자 전용 스킬 직접 호출 |
+| 23 | UserPromptSubmit `/bad-yaml …` | 기본 세션 | 형식 오류 스킬도 폴더 이름으로 센다 |
+| 24 | UserPromptSubmit `/design-review-extra foo` | 기본 세션 | 이름이 이어짐 → 세지 않음 |
+| 25 | UserPromptSubmit `/x foo` | 기본 세션 | 없는 스킬 → 세지 않음 |
+| 26 | UserPromptSubmit `/ghost-skill …` | 기본 세션 | 지금 없는 스킬 → 세지 않음 |
+| 27 | UserPromptSubmit `<표지> …` (슬래시 없음) | 기본 세션 | 요약 `-`, 본문 저장 0 |
+| 28~30 | PreToolUse `mcp__github__create_issue` ×3 | `proj-dev` | MCP 실제 사용 |
+| 31 | PreToolUse `mcp__github__get_issue` | 기본 세션 | |
+| 32~33 | PreToolUse `mcp__docs-server__search` ×2 | `proj-writer` | |
+| 34 | PreToolUse `mcp__plugin_demo-tools_demo-helper__run` | 기본 세션 | 플러그인 서버 호출 이름 `plugin_<플러그인>_<서버>` 합치기(ADR-85 2) |
+| 35 | PreToolUse `mcp__claude_ai_drive__list_files` | `proj-lead` | 정의 파일에 없는 서버 → `호출 기록만` |
+| 36 | PreToolUse `mcp__qa-browser__open` | `proj-qa` | 에이전트 정의 서버 |
+| 37 | PostToolUse `mcp__qa-browser__open` | `proj-qa` | 세지 않음 |
+| 38 | PreToolUse Bash | 기본 세션 | MCP 아님 |
+
+- 기대 결과(기간 전체, hook 설정됨): `design-review` 호출 4·직접 호출 1·미리 넣음 5 = 10, `release-notes` 1·1·3 = 5, `imported-lint` 1·0·1 = 2, `manual-only` 0·1·0 = 1(`proj-ops` `정의됨 · 사용 0`), `bad-yaml` 0·1·0 = 1. 합 19.
+- 세션 id는 `sess-u-<에이전트>-<번호>`(S2 줄 제외)이다. 이벤트 `cwd`는 `/workspace`.
+- hook 미설정(FR-019-E1·FR-024-E1)은 같은 파일을 재생하지 않고 서버 응답 규칙(`호출`·`직접 호출` 0, MCP `actualAgents` null)으로 확인한다.

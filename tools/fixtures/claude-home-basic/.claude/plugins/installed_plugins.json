@@ -1,0 +1,34 @@
+{
+  "version": 2,
+  "plugins": {
+    "demo-tools@aoji-fixture-market": [
+      {
+        "scope": "user",
+        "installPath": "__AOJI_FIXTURE_CLAUDE_HOME__/.claude/plugins/cache/aoji-fixture-market/demo-tools/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-10-01T00:00:00.000Z",
+        "lastUpdated": "2026-10-01T00:00:00.000Z",
+        "gitCommitSha": "0000000000000000000000000000000000000000"
+      },
+      {
+        "scope": "project",
+        "projectPath": "/home/fixture/other-project",
+        "installPath": "__AOJI_FIXTURE_CLAUDE_HOME__/.claude/plugins/cache/aoji-fixture-market/demo-tools/other-project-only",
+        "version": "0.9.0",
+        "installedAt": "2026-10-01T00:00:00.000Z",
+        "lastUpdated": "2026-10-01T00:00:00.000Z",
+        "gitCommitSha": "0000000000000000000000000000000000000000"
+      }
+    ],
+    "flat-tools@aoji-fixture-market": [
+      {
+        "scope": "user",
+        "installPath": "__AOJI_FIXTURE_CLAUDE_HOME__/.claude/plugins/cache/aoji-fixture-market/flat-tools/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-10-01T00:00:00.000Z",
+        "lastUpdated": "2026-10-01T00:00:00.000Z",
+        "gitCommitSha": "0000000000000000000000000000000000000000"
+      }
+    ]
+  }
+}

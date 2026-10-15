@@ -1,0 +1,33 @@
+{
+  "session_id": "fixture-statusline-session",
+  "transcript_path": "/home/fixture/.claude/projects/-home-fixture-work-aoji-fixture-app/a1b2c3d4-0000-4000-8000-000000000001.jsonl",
+  "cwd": "/home/fixture/work/aoji-fixture-app",
+  "model": {
+    "id": "claude-opus-4-8",
+    "display_name": "Opus 4.8"
+  },
+  "workspace": {
+    "current_dir": "/home/fixture/work/aoji-fixture-app/AOJI-MARKER-STATUS-3b1e",
+    "project_dir": "/home/fixture/work/aoji-fixture-app"
+  },
+  "version": "2.1.295",
+  "output_style": {
+    "name": "default"
+  },
+  "cost": {
+    "total_cost_usd": 1.25,
+    "total_duration_ms": 90000
+  },
+  "subscription_type": "max",
+  "rate_limits": {
+    "five_hour": {
+      "used_percentage": 37.5,
+      "resets_at": 4070908800
+    },
+    "seven_day": {
+      "used_percentage": 12.25,
+      "resets_at": 4071513600
+    }
+  },
+  "extra_marker_field": "AOJI-MARKER-STATUS-3b1e"
+}
