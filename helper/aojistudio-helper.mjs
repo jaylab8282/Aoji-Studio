@@ -22,12 +22,14 @@ import {
   parseAllowedOrigins,
   preflightHeaders,
 } from './lib/cors.mjs';
+import { assertValidDistro, assertWslProjectDir, buildWtArgs, windowsTokenPath } from './lib/wt.mjs';
 
 /** 바인딩 주소는 루프백 고정 (NFR-04, conventions.md §6). */
 export const HELPER_HOST = '127.0.0.1';
 export const DEFAULT_PORT = 4181;
 export const HELPER_VERSION = '1';
 export const OSASCRIPT_PATH = '/usr/bin/osascript';
+export const WT_PATH = 'wt.exe';
 export const TOKEN_HEADER_NAME = 'x-aojistudio-helper-token';
 /** 토큰 파일 기본 위치. `--token-file`로 덮어쓴다(architecture.md §6.3). */
 export const DEFAULT_TOKEN_FILE_RELATIVE = join('.aojistudio', 'helper-token');
@@ -45,15 +47,24 @@ const USAGE = [
   'usage: node aojistudio-helper.mjs --project-dir <path>',
   '                                [--port <number>] [--allowed-origins <origin[,origin]>]',
   '                                [--token-file <path>] [--dry-run]',
+  '                                [--platform macos|windows] [--wsl-distro <name>]   (windows: --wsl-distro 필수, --project-dir은 WSL 경로)',
 ].join('\n');
 
 /**
  * 실행 인자를 파싱하고 검증한다. 필수 값이 없거나 형식이 틀리면 던진다(기동 실패, NFR-05).
  * @param {string[]} argv
- * @returns {{projectDir: string, port: number, allowedOrigins: string[], tokenFile: string, dryRun: boolean}}
+ * @returns {{platform: 'macos'|'windows', wslDistro: string|null, projectDir: string, port: number,
+ *           allowedOrigins: string[], tokenFile: string, dryRun: boolean}}
  */
 export function parseArgs(argv) {
-  const raw = { projectDir: undefined, port: undefined, allowedOrigins: undefined, tokenFile: undefined };
+  const raw = {
+    projectDir: undefined,
+    port: undefined,
+    allowedOrigins: undefined,
+    tokenFile: undefined,
+    platform: undefined,
+    wslDistro: undefined,
+  };
   let dryRun = false;
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
@@ -66,6 +77,8 @@ export function parseArgs(argv) {
       '--port': 'port',
       '--allowed-origins': 'allowedOrigins',
       '--token-file': 'tokenFile',
+      '--platform': 'platform',
+      '--wsl-distro': 'wslDistro',
     }[flag];
     if (key === undefined) {
       throw new Error(`알 수 없는 인자입니다: ${flag}\n${USAGE}`);
@@ -76,6 +89,17 @@ export function parseArgs(argv) {
     }
     raw[key] = value;
     index += 1;
+  }
+
+  const platform = raw.platform ?? (process.platform === 'win32' ? 'windows' : 'macos');
+  if (platform !== 'macos' && platform !== 'windows') {
+    throw new Error('--platform 값은 macos 또는 windows여야 합니다');
+  }
+  if (platform === 'windows') {
+    return parseWindowsArgs(raw, dryRun);
+  }
+  if (raw.wslDistro !== undefined) {
+    throw new Error('--wsl-distro는 --platform windows에서만 쓸 수 있습니다');
   }
 
   const projectDir = assertSafeProjectDir(raw.projectDir);
@@ -90,10 +114,33 @@ export function parseArgs(argv) {
   }
 
   return {
+    platform,
+    wslDistro: null,
     projectDir,
     port: parsePort(raw.port),
     allowedOrigins: parseAllowedOrigins(raw.allowedOrigins ?? DEFAULT_ALLOWED_ORIGINS.join(',')),
     tokenFile: raw.tokenFile ?? join(projectDir, DEFAULT_TOKEN_FILE_RELATIVE),
+    dryRun,
+  };
+}
+
+/**
+ * Windows 분기 기동 검증 (ADR-78 결정 1). 배포판·WSL 경로는 설치 때 고정되고 요청으로 받지 않는다.
+ * --project-dir은 WSL 안의 경로라 Windows에서 stat하지 않는다.
+ */
+function parseWindowsArgs(raw, dryRun) {
+  if (raw.wslDistro === undefined) {
+    throw new Error('--platform windows에는 --wsl-distro 값이 필요합니다');
+  }
+  const wslDistro = assertValidDistro(raw.wslDistro);
+  const projectDir = assertWslProjectDir(raw.projectDir);
+  return {
+    platform: 'windows',
+    wslDistro,
+    projectDir,
+    port: parsePort(raw.port),
+    allowedOrigins: parseAllowedOrigins(raw.allowedOrigins ?? DEFAULT_ALLOWED_ORIGINS.join(',')),
+    tokenFile: raw.tokenFile ?? windowsTokenPath(wslDistro, projectDir),
     dryRun,
   };
 }
@@ -154,22 +201,47 @@ export function createOpenTerminal(spawnFn = nodeSpawn) {
 }
 
 /**
+ * Windows Terminal 실행 함수를 만든다 (ADR-78 결정 2). `spawnFn` 주입 가능 — 단위 테스트는 가짜를 쓴다.
+ * 셸을 거치지 않고(shell:false) 인자 배열로만 실행한다(FR-013-AC11).
+ * @param {typeof nodeSpawn} [spawnFn]
+ * @returns {(wtArgs: string[]) => Promise<void>}
+ */
+export function createOpenWindowsTerminal(spawnFn = nodeSpawn) {
+  return function openWindowsTerminal(wtArgs) {
+    return new Promise((resolve, reject) => {
+      const child = spawnFn(WT_PATH, wtArgs, { shell: false, detached: true, stdio: 'ignore' });
+      child.once('error', reject);
+      child.once('spawn', () => {
+        if (typeof child.unref === 'function') {
+          child.unref();
+        }
+        resolve();
+      });
+    });
+  };
+}
+
+/**
  * 도우미 토큰을 읽거나 만든다 (architecture.md §6.3).
  * 없으면 hex 64자를 mode 600으로 만들고, 있으면 재사용한다.
  * 재사용할 때 mode가 600이 아니면 600으로 고치고, 고칠 수 없으면 던진다(기동 실패).
  * 빈 파일·형식 위반이면 던진다(NFR-05 "인증 없이 동작하는 기본값 없음").
  * @param {string} tokenFile
- * @param {{stderr?: {write: (chunk: string) => unknown}}} [options]
+ * `enforceMode: false`(Windows 분기)면 9P 공유 경로라 모드 600을 보장할 수 없어 권한 검사·변경을 건너뛴다(ADR-78 결정 3).
+ * @param {{stderr?: {write: (chunk: string) => unknown}, enforceMode?: boolean}} [options]
  * @returns {string}
  */
 export function ensureTokenFile(tokenFile, options = {}) {
   const stderr = options.stderr ?? process.stderr;
+  const enforceMode = options.enforceMode !== false;
   const existing = readTokenFile(tokenFile);
   if (existing !== null) {
     if (!TOKEN_PATTERN.test(existing)) {
       throw new Error('도우미 토큰 파일 형식이 올바르지 않습니다 (hex 64자)');
     }
-    enforceTokenFileMode(tokenFile, stderr);
+    if (enforceMode) {
+      enforceTokenFileMode(tokenFile, stderr);
+    }
     return existing;
   }
   mkdirSync(dirname(tokenFile), { recursive: true });
@@ -187,7 +259,9 @@ export function ensureTokenFile(tokenFile, options = {}) {
     return raced;
   }
   // mode 인자는 umask의 영향을 받으므로 만든 뒤 600으로 고정한다.
-  chmodSync(tokenFile, 0o600);
+  if (enforceMode) {
+    chmodSync(tokenFile, 0o600);
+  }
   return token;
 }
 
@@ -322,14 +396,26 @@ function isJsonContentType(request) {
 
 /**
  * 도우미 HTTP 서버를 만든다. 듣기 시작은 호출자가 한다.
+ * macos: openTerminal(command: string). windows: openTerminal(wtArgs: string[]) — ADR-78.
  * @param {{projectDir: string, allowedOrigins: readonly string[], token: string,
- *          dryRun?: boolean, openTerminal?: (command: string) => Promise<void>,
+ *          platform?: 'macos'|'windows', wslDistro?: string,
+ *          dryRun?: boolean, openTerminal?: (commandOrArgs: string|string[]) => Promise<void>,
  *          stdout?: {write: (chunk: string) => unknown}}} options
  * @returns {import('node:http').Server}
  */
 export function createHelperServer(options) {
   const { projectDir, allowedOrigins, token } = options;
-  assertSafeProjectDir(projectDir);
+  const platform = options.platform ?? 'macos';
+  if (platform !== 'macos' && platform !== 'windows') {
+    throw new Error('platform 값은 macos 또는 windows여야 합니다');
+  }
+  const isWindows = platform === 'windows';
+  if (isWindows) {
+    assertValidDistro(options.wslDistro);
+    assertWslProjectDir(projectDir);
+  } else {
+    assertSafeProjectDir(projectDir);
+  }
   if (typeof token !== 'string' || !TOKEN_PATTERN.test(token)) {
     throw new Error('도우미 토큰 형식이 올바르지 않습니다 (hex 64자)');
   }
@@ -337,7 +423,8 @@ export function createHelperServer(options) {
     throw new Error('허용 Origin 목록이 필요합니다');
   }
   const dryRun = options.dryRun === true;
-  const openTerminal = options.openTerminal ?? createOpenTerminal();
+  const openTerminal =
+    options.openTerminal ?? (isWindows ? createOpenWindowsTerminal() : createOpenTerminal());
   const stdout = options.stdout ?? process.stdout;
 
   return createServer((request, response) => {
@@ -410,14 +497,18 @@ export function createHelperServer(options) {
       return;
     }
 
-    const command = buildCommand(projectDir, parsed.target, parsed.leadName);
+    // 실행할 값은 기동 때 고정된 배포판·경로와 검증된 leadName뿐이다. 요청 본문의 다른 키는 쓰지 않는다(FR-013-AC6).
+    const wtArgs = isWindows
+      ? buildWtArgs({ distro: options.wslDistro, projectDir, leadName: parsed.leadName })
+      : null;
+    const command = isWindows ? null : buildCommand(projectDir, parsed.target, parsed.leadName);
     if (dryRun) {
-      stdout.write(`DRY-RUN ${command}\n`);
+      stdout.write(isWindows ? `DRY-RUN ${WT_PATH} ${wtArgs.join(' ')}\n` : `DRY-RUN ${command}\n`);
       sendEmpty(response, 204, headers);
       return;
     }
     try {
-      await openTerminal(command);
+      await openTerminal(isWindows ? wtArgs : command);
     } catch {
       // 실패 상세·스택은 응답과 로그에 담지 않는다(NFR-08).
       sendError(response, 500, 'OPEN_FAILED', headers);
@@ -436,8 +527,13 @@ export function createHelperServer(options) {
 export function main(argv, io = {}) {
   const stderr = io.stderr ?? process.stderr;
   const options = parseArgs(argv);
-  const token = ensureTokenFile(options.tokenFile, { stderr });
+  const token = ensureTokenFile(options.tokenFile, {
+    stderr,
+    enforceMode: options.platform !== 'windows',
+  });
   const server = createHelperServer({
+    platform: options.platform,
+    wslDistro: options.wslDistro ?? undefined,
     projectDir: options.projectDir,
     allowedOrigins: options.allowedOrigins,
     token,
