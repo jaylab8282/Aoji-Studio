@@ -31,8 +31,23 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
+// 성능·부하 측정 테스트(@Tag("perf"))는 기본 test·check·build에서 뺀다(conventions §8). perfTest로만 돈다(Integration 1회).
+tasks.named<Test>("test") {
+    useJUnitPlatform {
+        excludeTags("perf")
+    }
+}
+
+tasks.register<Test>("perfTest") {
+    description = "@Tag(\"perf\") 성능 측정 테스트만 실행한다 (Integration 전용, check/build에 묶지 않음)."
+    group = "verification"
+    val testSourceSet = sourceSets.test.get()
+    testClassesDirs = testSourceSet.output.classesDirs
+    classpath = testSourceSet.runtimeClasspath
+    useJUnitPlatform {
+        includeTags("perf")
+    }
+    shouldRunAfter(tasks.named("test"))
 }
 
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {

@@ -21,7 +21,8 @@
   - Backend: `cd backend && ./gradlew build` (컴파일·테스트·bootJar)
   - Frontend: `cd frontend && npm run build` (tsc -b && vite build)
 - test:
-  - Backend: `cd backend && ./gradlew test`
+  - Backend: `cd backend && ./gradlew test` (`@Tag("perf")` 제외)
+  - Backend 성능 측정(Integration 전용, 1회만 — 태스크·수정 라운드에서는 돌리지 않는다. `check`/`build`에 묶여 있지 않다): `cd backend && ./gradlew perfTest`
   - Frontend: `cd frontend && npm test`
   - Helper: `cd helper && npm test`
   - Tools(재생 도구·fixture 형식): `cd tools/replay && npm test`
