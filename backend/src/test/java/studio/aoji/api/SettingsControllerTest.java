@@ -77,7 +77,7 @@ class SettingsControllerTest {
             "hostPath", "agentCount", "skillCount", "writable", "formatErrorCount",
             "agentsDirMissing", "terminalApp", "defaultSessionCommand", "leadSessionCommandTemplate",
             "helperUrl", "collectUrl", "hookConfigured", "hookSettingsExample", "teamsPath", "trashPath",
-            "retentionDays", "allowedHttpHookUrlsNote", "hostOs", "wslDistro"
+            "retentionDays", "allowedHttpHookUrlsNote", "hostOs", "wslDistro", "globalClaude"
         };
         for (String field : requiredFields) {
             assertThat(body.has(field)).as("필드 %s가 있어야 한다", field).isTrue();
@@ -150,5 +150,20 @@ class SettingsControllerTest {
         String contentAfter = Files.readString(settingsJson, StandardCharsets.UTF_8);
         assertThat(after).isEqualTo(before);
         assertThat(contentAfter).isEqualTo(contentBefore);
+    }
+
+    @Test
+    void globalClaudeHasFourItemsInOrderAndIsNotConnectedWithoutHome() throws Exception {
+        // [NFR-15] 홈 경로가 없으면 globalClaude 4항목(순서 고정) 모두 연결 안 됨, readAt null
+        JsonNode globalClaude = getSettings().get("globalClaude");
+
+        assertThat(globalClaude.get("items")).hasSize(4);
+        java.util.List<String> keys = new java.util.ArrayList<>();
+        globalClaude.get("items").forEach(item -> {
+            keys.add(item.get("key").asString());
+            assertThat(item.get("connected").asBoolean()).isFalse();
+        });
+        assertThat(keys).containsExactly("claudeJson", "settings", "plugins", "projects");
+        assertThat(globalClaude.get("readAt").isNull()).isTrue();
     }
 }

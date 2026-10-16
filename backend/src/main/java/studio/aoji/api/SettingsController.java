@@ -1,10 +1,16 @@
 package studio.aoji.api;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import studio.aoji.collect.CollectTokenStore;
 import studio.aoji.files.DataDirectory;
+import studio.aoji.globalcfg.GlobalClaudeMounts;
+import studio.aoji.globalcfg.GlobalClaudeReader;
 import studio.aoji.registry.HookSettingsExampleBuilder;
 import studio.aoji.registry.RegistryService;
 import studio.aoji.registry.RegistrySnapshot;
@@ -41,18 +47,27 @@ public class SettingsController {
     private final CollectTokenStore collectTokenStore;
     private final HookSettingsExampleBuilder hookSettingsExampleBuilder;
     private final DataDirectory dataDirectory;
+    private final GlobalClaudeMounts globalClaudeMounts;
+    private final GlobalClaudeReader globalClaudeReader;
+    private final Clock clock;
 
     public SettingsController(
             SnapshotAssembler snapshotAssembler,
             RegistryService registryService,
             CollectTokenStore collectTokenStore,
             HookSettingsExampleBuilder hookSettingsExampleBuilder,
-            DataDirectory dataDirectory) {
+            DataDirectory dataDirectory,
+            GlobalClaudeMounts globalClaudeMounts,
+            GlobalClaudeReader globalClaudeReader,
+            Clock clock) {
         this.snapshotAssembler = snapshotAssembler;
         this.registryService = registryService;
         this.collectTokenStore = collectTokenStore;
         this.hookSettingsExampleBuilder = hookSettingsExampleBuilder;
         this.dataDirectory = dataDirectory;
+        this.globalClaudeMounts = globalClaudeMounts;
+        this.globalClaudeReader = globalClaudeReader;
+        this.clock = clock;
     }
 
     @GetMapping("/settings")
@@ -81,6 +96,17 @@ public class SettingsController {
                 RETENTION_DAYS,
                 ALLOWED_HTTP_HOOK_URLS_NOTE,
                 config.hostOs(),
-                config.wslDistro());
+                config.wslDistro(),
+                globalClaude());
+    }
+
+    /** 전역 Claude 설정 4개 항목(고정 순서)과 마지막으로 읽은 시각. */
+    private GlobalClaudeStatus globalClaude() {
+        List<GlobalClaudeStatus.Item> items = new ArrayList<>();
+        for (GlobalClaudeMounts.ItemStatus status : globalClaudeMounts.statuses()) {
+            items.add(new GlobalClaudeStatus.Item(status.item().key(), status.connected()));
+        }
+        Instant readAt = globalClaudeReader.snapshot().readAt();
+        return new GlobalClaudeStatus(items, readAt == null ? null : readAt.atZone(clock.getZone()).toOffsetDateTime());
     }
 }

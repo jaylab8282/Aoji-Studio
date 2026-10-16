@@ -27,6 +27,8 @@ public class AppProperties implements EnvironmentAware {
     private String pollIntervalMs = "1000";
     private String hostOs = "";
     private String wslDistro = "";
+    private String claudeHomeHost = "";
+    private String claudeHomeMount = "/claude-home";
 
     private static final Pattern WSL_DISTRO = Pattern.compile("^[A-Za-z0-9._-]{1,64}$");
 
@@ -68,6 +70,31 @@ public class AppProperties implements EnvironmentAware {
 
     public void setWslDistro(String wslDistro) {
         this.wslDistro = wslDistro == null ? "" : wslDistro;
+    }
+
+    /**
+     * 전역 Claude 설정 홈의 호스트 경로({@code AOJISTUDIO_CLAUDE_HOME_HOST}, ADR-79 결정 3). 빈 값 = 연결 안 함.
+     * 끝의 {@code /}는 제거한다(플러그인 {@code installPath}의 호스트 → 컨테이너 경로 변환에 쓴다).
+     */
+    public String getClaudeHomeHost() {
+        return claudeHomeHost;
+    }
+
+    public void setClaudeHomeHost(String claudeHomeHost) {
+        String value = claudeHomeHost == null ? "" : claudeHomeHost.strip();
+        while (value.length() > 1 && value.endsWith("/")) {
+            value = value.substring(0, value.length() - 1);
+        }
+        this.claudeHomeHost = value;
+    }
+
+    /** 전역 Claude 설정의 컨테이너 마운트 경로({@code AOJISTUDIO_CLAUDE_HOME_MOUNT}, 기본 {@code /claude-home}). */
+    public String getClaudeHomeMount() {
+        return claudeHomeMount;
+    }
+
+    public void setClaudeHomeMount(String claudeHomeMount) {
+        this.claudeHomeMount = orDefault(claudeHomeMount, this.claudeHomeMount);
     }
 
     /** 선택 값의 빈 문자열은 설정 안 됨으로 본다(ADR-47) - 기본값을 유지한다. */

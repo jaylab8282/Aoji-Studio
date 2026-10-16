@@ -17,6 +17,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.Yaml;
+import studio.aoji.live.Masker;
+import studio.aoji.mcp.McpMasker;
+import studio.aoji.mcp.McpServerDef;
 import org.yaml.snakeyaml.error.YAMLException;
 
 /**
@@ -29,6 +32,7 @@ public class AgentDefinitionParser {
 
     private static final Pattern NAME_PATTERN = Pattern.compile("^[a-z0-9-]+$");
     private static final String DELIMITER = "---";
+    private static final McpMasker MASKER = new McpMasker(new Masker());
 
     /**
      * 파일 하나를 파싱한다. 판정 순서(architecture.md §6.1):
@@ -102,7 +106,8 @@ public class AgentDefinitionParser {
                 hasLiteralInheritModel,
                 body,
                 normalizeNames(frontmatter.get("skills")),
-                normalizeMcpServers(frontmatter.get("mcpServers")));
+                normalizeMcpServers(frontmatter.get("mcpServers")),
+                inlineMcpServers(frontmatter.get("mcpServers")));
         return ParsedAgentFile.ok(relativeFilePath, fileName, definition);
     }
 
@@ -163,6 +168,23 @@ public class AgentDefinitionParser {
     private static List<String> normalizeNames(Object raw) {
         List<String> tools = normalizeTools(raw);
         return tools == null ? List.of() : tools;
+    }
+
+    /** {@code mcpServers} 목록의 {@code {이름: 정의}} 객체 원소 → 가린 서버 정의(원래 값은 버린다). */
+    private static List<McpServerDef> inlineMcpServers(Object raw) {
+        List<McpServerDef> servers = new ArrayList<>();
+        if (raw instanceof List<?> list) {
+            for (Object item : list) {
+                if (item instanceof Map<?, ?> map) {
+                    for (Map.Entry<?, ?> entry : map.entrySet()) {
+                        if (entry.getKey() != null && entry.getValue() instanceof Map<?, ?> definition) {
+                            servers.add(McpServerDef.from(String.valueOf(entry.getKey()).trim(), definition, MASKER));
+                        }
+                    }
+                }
+            }
+        }
+        return servers;
     }
 
     /** 목록 원소가 문자열이면 그 이름, {@code {이름: 정의}} 객체면 키들. 쉼표 문자열도 허용한다. */
