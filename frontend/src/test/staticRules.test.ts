@@ -253,8 +253,8 @@ describe("정적 단언", () => {
       }
     }
     expect(offenders).toEqual([]);
-    // 현재 사용처 전수(StatusBar·Minimap·Canvas + v1.2.0 Meter·ProgressBar): 검사가 실제로 5곳을 봤는지 고정한다.
-    expect(found).toBe(5);
+    // 현재 사용처 전수(StatusBar·Minimap·Canvas + v1.2.0 Meter·ProgressBar + 10 날짜별 막대 `--bar-height`·`--bar-cache-ratio`): 검사가 실제로 6곳을 봤는지 고정한다.
+    expect(found).toBe(6);
   });
 
   it("[conventions §7 예외] 인라인 style 판정 규칙 자체: `--` 키만 통과, 색·크기 키나 변수 전달은 걸린다", () => {

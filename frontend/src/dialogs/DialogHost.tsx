@@ -4,12 +4,13 @@
  * 여기 연결된 값은 05 워크플로우 추가(SCR-05-L), 05-R 기존 에이전트 가져오기(SCR-05-R),
  * 05-3 워크플로우 삭제 확인(SCR-05-3), 06 에이전트 만들기·수정(SCR-06),
  * 06-6 워크플로우에서 제거 확인(SCR-06-6), (v1.2.0) 08-1 스킬 만들기·수정(SCR-08-1), 08-2 스킬 가져오기(SCR-08-2),
- * 08-3 스킬 삭제 확인(SCR-08-3)이다.
+ * 08-3 스킬 삭제 확인(SCR-08-3), 10-1 단가(SCR-10-1)이다.
  * 06-5·08-4(저장 충돌)는 06·08-1 폼 위에 뜨는 작은 창이라 URL이 아니라 컴포넌트 상태로 연다(ADR-14).
  */
 import { useDialog } from "../app/router";
 import { AgentForm } from "./agent-form/AgentForm";
 import { ImportDialog } from "./import-agents/ImportDialog";
+import { PriceDialog } from "./price/PriceDialog";
 import { SkillDeleteDialog } from "./skill-delete/SkillDeleteDialog";
 import { SkillForm } from "./skill-form/SkillForm";
 import { SkillImport } from "./skill-import/SkillImport";
@@ -53,6 +54,10 @@ export function DialogHost() {
   // 08-3: `?skill`가 없으면 열지 않는다.
   if (name === "skill-delete" && skill !== null) {
     return <SkillDeleteDialog skillName={skill} onClose={close} />;
+  }
+  // 10-1 단가(읽기 전용): 10 `단가` 버튼이 연다. 다른 쿼리는 필요 없다.
+  if (name === "price") {
+    return <PriceDialog onClose={close} />;
   }
   return null;
 }

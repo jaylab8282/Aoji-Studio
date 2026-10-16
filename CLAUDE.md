@@ -43,7 +43,7 @@
 - e2e (공개 포트 `127.0.0.1:4185` — `4190`은 쓰지 않는다: WHATWG Fetch bad port, ADR-45):
   - (사전 1회) `cd tools/e2e && npm install && npx playwright install chromium`
   - 전체: `cd tools/e2e && ./scripts/run-e2e.sh`
-    - 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 **13배치**(63·16·5·4·9·13·2·25·7·3·6·17·12 = 182)를 순서대로 돈다.
+    - 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 **13배치**(63·16·5·4·9·15·2·25·7·3·6·17·32 = 204)를 순서대로 돈다.
     - `globalSetup`이 fixture 임시 복사 → `compose.e2e.yaml up -d --build` → dry-run 도우미(4191) → 다른 Origin 페이지 서버(4192)까지 준비하고, `globalTeardown`이 컨테이너·프로세스·임시 폴더를 정리한다. 사전 준비 명령 없음
     - 기동 전에 4185·4191·4192 선점 검사를 한다 — 낡은 스택이 남아 있으면 소유 pid와 정리 명령을 출력하고 즉시 실패한다
   - 배치 단독 실행(fixture가 다른 시나리오는 실행을 나눈다. `cd tools/e2e && ` 뒤에 쓴다):
@@ -52,15 +52,15 @@
     - 배치 3 `E2E_FIXTURE=project-no-agents-dir npx playwright test tests/e2e-06.spec.ts tests/e2e-13.spec.ts --grep "project-no-agents-dir"`
     - 배치 4 `E2E_FIXTURE=project-format-errors npx playwright test tests/e2e-06.spec.ts tests/e2e-13.spec.ts --grep "project-format-errors"`
     - 배치 5 `E2E_FIXTURE=project-configured npx playwright test tests/e2e-04.spec.ts tests/e2e-15.spec.ts`
-    - 배치 6 `E2E_FIXTURE=project-configured npx playwright test tests/e2e-09.spec.ts tests/e2e-11.spec.ts tests/e2e-21b-disconnected.spec.ts` (e2e-21b 09 MCP `연결 안 됨` 1개 T-R4-17, 10 부분은 T-R4-18이 더한다. 새 spec은 스택 담당이 처음 돌려 확인)
+    - 배치 6 `E2E_FIXTURE=project-configured npx playwright test tests/e2e-09.spec.ts tests/e2e-11.spec.ts tests/e2e-21b-disconnected.spec.ts` (e2e-21b 09 MCP `연결 안 됨` 1개 T-R4-17 + 10 비용 `연결 안 됨` 2개 T-R4-18(`[FR-025-E1]`·`[FR-027-E1]`). 새 spec은 스택 담당이 처음 돌려 확인)
     - 배치 7(pause 단독, 약 3분) `E2E_FIXTURE=project-configured npx playwright test tests/e2e-05.spec.ts tests/e2e-13.spec.ts --grep "E2E-05|project-configured 04-3"`
     - 배치 8 `E2E_FIXTURE=project-showcase npx playwright test tests/e2e-13.spec.ts tests/e2e-16.spec.ts tests/e2e-16z-e2e13-state-changes.spec.ts --grep "project-showcase"` (파일 이름순 실행에 기대는 순서: 13 → 16 → 16z)
     - 배치 9 `E2E_FIXTURE=project-large npx playwright test tests/e2e-12.spec.ts`
     - 배치 10 `E2E_FIXTURE=project-old-name npx playwright test tests/e2e-17-old-name.spec.ts`
     - 배치 11 `E2E_FIXTURE=project-basic npx playwright test tests/e2e-13.spec.ts --grep "project-basic"`
     - 배치 12 `E2E_FIXTURE=project-skills E2E_CLAUDE_HOME_FIXTURE=claude-home-empty npx playwright test tests/e2e-18a-skills-list.spec.ts tests/e2e-18b-skills-write.spec.ts` (e2e-18a 5개 T-R4-15 + e2e-18b 12개 T-R4-16, 파일 이름순. 2026-10-16 배치 단독 실행 17 passed)
-    - 배치 13 `E2E_FIXTURE=project-usage E2E_CLAUDE_HOME_FIXTURE=claude-home-basic npx playwright test tests/e2e-19a-skill-usage.spec.ts tests/e2e-19b-mcp-usage.spec.ts tests/e2e-20-mcp.spec.ts` (e2e-19a 3개 T-R4-15 + e2e-19b 2개·e2e-20 7개 T-R4-17, 파일 이름순. 이벤트 0건인 새 컨테이너 전제 — `usage.jsonl`은 e2e-19a가 재생하고 e2e-19b가 31번 줄을 3번 더 재생한다. 이후 태스크가 `e2e-21`~을 더한다. T-R4-17 spec은 `--list`로만 확인, 스택 실행은 Frontend 구현 뒤 스택 담당이)
-  - E2E-13 화면 대조 캡처 60장은 `tools/e2e/screenshots/<원본 이름>@<W>x<H>.png`에 남는다(`docs/ui/screens/`의 원본 PNG와 같은 이름, `.gitignore` 대상). 배치 3·4·7·8·11이 나눠 만든다. 배치 12는 `08-3-skill-delete@1920x1080` 1장을 e2e-18a 안에서, `08-skills`·`08-1-skill-form`·`08-4-skill-conflict`·`08-2-skill-import` @1920x1080 4장을 e2e-18b 안에서 만든다. 배치 13은 `09-mcp@1920x1080`(`github` 행 펼침) 1장을 e2e-20 안에서 만든다.
+    - 배치 13 `E2E_FIXTURE=project-usage E2E_CLAUDE_HOME_FIXTURE=claude-home-basic npx playwright test tests/e2e-19a-skill-usage.spec.ts tests/e2e-19b-mcp-usage.spec.ts tests/e2e-20-mcp.spec.ts tests/e2e-21-cost.spec.ts tests/e2e-22-statusline.spec.ts` (e2e-19a 3개 T-R4-15 + e2e-19b 2개·e2e-20 7개 T-R4-17 + e2e-21-cost 11개·e2e-22-statusline 9개 T-R4-18, 파일 이름순. 이벤트 0건인 새 컨테이너 전제 — `usage.jsonl`은 e2e-19a가 재생하고 e2e-19b가 31번 줄을 3번 더 재생한다. e2e-21-cost는 에이전트 나눔에 `기본 세션`이 생긴 뒤·상태줄을 받기 전에 돌고, 맨 마지막 테스트가 fixture 대화 기록에 줄을 덧붙여(입력 +100·출력 +50) 비용 합계를 바꾼다 — 그 뒤 spec은 `claude-home-basic/expected.json` 합계에 기대지 않는다. e2e-22-statusline은 컨테이너가 배치한 `<fixture>/.aojistudio/statusline.mjs`를 fixture 입력(`tools/fixtures/statusline/*.json`)으로 실행하고 한도 캐시(`.claude.json` 사본)를 잠시 바꿨다 원복하며, 마지막 테스트가 컨테이너를 `docker compose pause`했다 `unpause`(finally)하므로 배치 13의 마지막 파일로 둔다. 이후 태스크가 `e2e-24`~를 더한다. T-R4-17·T-R4-18 spec은 `--list`로만 확인, 스택 실행은 Frontend 구현 뒤 스택 담당이)
+  - E2E-13 화면 대조 캡처 60장은 `tools/e2e/screenshots/<원본 이름>@<W>x<H>.png`에 남는다(`docs/ui/screens/`의 원본 PNG와 같은 이름, `.gitignore` 대상). 배치 3·4·7·8·11이 나눠 만든다. 배치 12는 `08-3-skill-delete@1920x1080` 1장을 e2e-18a 안에서, `08-skills`·`08-1-skill-form`·`08-4-skill-conflict`·`08-2-skill-import` @1920x1080 4장을 e2e-18b 안에서 만든다. 배치 13은 `09-mcp@1920x1080`(`github` 행 펼침) 1장을 e2e-20 안에서, `10-cost@1920x1080`·`10-1-price-panel@1920x1080` 2장을 e2e-21-cost 안에서 만든다.
   - 전역 Claude 설정 연결(선택): 기본은 대역(`tools/claude-home-off`, 연결 안 됨). `E2E_CLAUDE_HOME_FIXTURE=claude-home-basic`을 앞에 붙이면 그 fixture를 임시 폴더로 복사(자리표시 문자열 치환)해 읽기 전용으로 연결하고 teardown이 지운다. `E2E_HOST_OS`·`E2E_WSL_DISTRO`는 서버 실행 환경 값. `E2E_HELPER_PLATFORM=windows`면 dry-run 도우미를 Windows 분기(`--platform windows --wsl-distro`)로 띄우고 서버도 `wsl`(기본 배포판 `Ubuntu-24.04`)로 띄운다. 실제 홈(`~/.claude`)은 연결하지 않는다.
   - x86_64 머신(WSL 등)은 위 e2e 명령 앞에 `E2E_PLATFORM=linux/amd64`를 붙인다.
   - 실패 조사: 위 명령 앞에 `E2E_KEEP_UP=1`을 붙이면 정리를 건너뛴다. 조사 후 출력된 정리 명령을 그대로 실행하고 `lsof -nP -iTCP:4185 -iTCP:4191 -iTCP:4192`로 확인한다

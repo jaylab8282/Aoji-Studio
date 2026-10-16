@@ -4,11 +4,12 @@ import { Dialog, DialogFooter, DialogHeader, type DialogSize } from "./Dialog";
 
 // ui-spec.md §공통 Dialog, ADR-71.
 describe("Dialog", () => {
-  it("[NFR-12] size별 최대 폭 변수: sm 480·md 560·lg 880(+portrait 920), 기본은 md", () => {
+  it("[NFR-12] size별 최대 폭 변수: sm 480·md 560·lg 880(+portrait 920)·price 680, 기본은 md", () => {
     const expected: Record<DialogSize, string[]> = {
       sm: ["max-w-dialog-sm"],
       md: ["max-w-dialog-md"],
       lg: ["max-w-dialog-lg", "portrait:max-w-dialog-lg-portrait"],
+      price: ["max-w-dialog-price"],
     };
     for (const [size, classes] of Object.entries(expected) as Array<[DialogSize, string[]]>) {
       const { unmount } = render(

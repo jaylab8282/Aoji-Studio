@@ -889,3 +889,94 @@ export function mcpInheritAllChip(count: number): string {
 }
 export const MCP_EMPTY_TITLE = "설치된 MCP가 없습니다";
 export const MCP_EMPTY_BODY = "프로젝트·전역·플러그인 설정과 에이전트 정의에 MCP 서버가 없고, 기간 안 호출 기록도 없습니다.";
+
+// ── (v1.2.0) SCR-10 비용 · SCR-10-1 단가 (ui-spec SCR-10, `10-cost.html`·`10-1-price-panel.html`) ──────────────
+export const SIDEBAR_TAB_COST = "비용";
+export const COST_TITLE = "비용";
+export const COST_SUBTITLE = "Claude Code 대화 기록의 토큰 수로 계산합니다 · 대화 내용은 읽지 않습니다";
+export const COST_PRICE_BUTTON_LABEL = "단가";
+export const COST_STRIP_LABEL = "대화 기록 읽기 상태";
+export const COST_STRIP_NAME = "대화 기록";
+export const COST_STRIP_NAME_DISCONNECTED = "대화 기록 · 연결 안 됨";
+export const COST_STRIP_PATH = "~/.claude/projects/";
+export const COST_STRIP_READ_LEAD = "읽은 파일 ";
+export const COST_STRIP_PROGRESS_LABEL = "읽은 파일";
+export const COST_STRIP_NOTE = "새 기록은 10초 안에 반영";
+export const COST_STRIP_DISCONNECTED_BODY = "이 폴더가 컨테이너에 연결되지 않아 토큰 사용량을 읽을 수 없습니다";
+export const COST_SKIPPED_LEAD = "건너뛴 파일 ";
+export const COST_SKIPPED_TAIL = "개";
+export const COST_TILE_INPUT = "입력 토큰";
+export const COST_TILE_OUTPUT = "출력 토큰";
+export const COST_TILE_CACHE_CREATION = "캐시 생성 토큰";
+export const COST_TILE_CACHE_READ = "캐시 읽기 토큰";
+export const COST_AMOUNT_LABEL = "추정 금액 (USD)";
+export function costExcludedChip(count: number): string {
+  return `단가 없는 모델 ${count}개 제외`;
+}
+export const COST_NOT_ACTUAL_BILL = "API 단가 환산 · 실제 청구액 아님";
+export const COST_SUBSCRIPTION_NOTE = " · 구독 요금제에서는 청구되지 않는 금액입니다";
+export const COST_CHART_LABEL = "날짜별 토큰 사용량";
+export const COST_CHART_TITLE = "날짜별";
+export const COST_CHART_NOTE = "토큰 합 · 막대 위 추정 금액";
+export const COST_LEGEND_MAIN = "입력·출력·캐시 생성";
+export const COST_LEGEND_CACHE_READ = "캐시 읽기";
+export const COST_CHART_TABLE_DATE = "날짜";
+export const COST_CHART_TABLE_TOTAL = "토큰 합 (M)";
+export const COST_CHART_TABLE_AMOUNT = "추정 금액";
+export function costTooltipHead(monthDay: string, weekday: string, millions: string, amount: string): string {
+  return `${monthDay} (${weekday}) · ${millions} 토큰 · ${amount}`;
+}
+export const COST_TOOLTIP_INPUT = "입력 ";
+export const COST_TOOLTIP_OUTPUT = "출력 ";
+export const COST_TOOLTIP_CACHE_CREATION = "캐시 생성 ";
+export const COST_TOOLTIP_CACHE_READ = "캐시 읽기 ";
+export const COST_EMPTY_PERIOD_TITLE = "기간 안 사용 기록이 없습니다";
+export const COST_NOT_CONNECTED_TITLE = "대화 기록이 연결되지 않았습니다";
+export const COST_NOT_CONNECTED_BODY_LEAD = "설정의 전역 Claude 설정 연결에서 ";
+export const COST_NOT_CONNECTED_BODY_TAIL = "를 연결하면 날짜·모델·세션·에이전트별 토큰 사용량이 보입니다.";
+export const COST_LIMITS_LABEL = "구독 · 사용 한도";
+export const COST_LIMITS_PLAN = "구독 플랜";
+export const COST_LIMITS_PLAN_UNKNOWN = "알 수 없음";
+export const COST_LIMITS_FIVE_HOUR = "5시간 한도";
+export const COST_LIMITS_SEVEN_DAY = "주간 한도";
+export const COST_LIMITS_RESET_LEAD = "초기화 ";
+export const COST_LIMITS_MISSING = "값 없음";
+export const COST_LIMITS_RESET_PASSED = "초기화됨 · 새 값 대기";
+export function costLimitMeterLabel(title: string, percent: number): string {
+  return `${title} 사용률 ${percent}%`;
+}
+export function costLimitEmptyMeterLabel(title: string, reason: string): string {
+  return `${title} ${reason}`;
+}
+export const COST_LIMITS_NEVER_TITLE = "받은 적 없음";
+export const COST_LIMITS_NEVER_BODY = "설정의 상태줄 연동 예시를 Claude Code 설정에 넣으면 구독 플랜과 한도 값이 들어옵니다";
+export const COST_STATUSLINE_NOTE =
+  "Claude Code CLI 세션이 돌 때만 상태줄 값이 갱신되고, 데스크톱 앱 세션에서는 상태줄이 돌지 않을 수 있습니다";
+export const COST_SPLIT_LABEL = "나눔";
+export const COST_SPLIT_TAB_MODEL = "모델별";
+export const COST_SPLIT_TAB_SESSION = "세션별";
+export const COST_SPLIT_TAB_AGENT = "에이전트별";
+export const COST_COL_MODEL = "모델";
+export const COST_COL_SESSION = "세션";
+export const COST_COL_PROJECT = "프로젝트 폴더";
+export const COST_COL_STARTED = "시작 시각";
+export const COST_COL_ENTRYPOINT = "진입 방식";
+export const COST_COL_AGENT = "에이전트";
+export const COST_COL_INPUT = "입력";
+export const COST_COL_OUTPUT = "출력";
+export const COST_COL_CACHE_CREATION = "캐시 생성";
+export const COST_COL_CACHE_READ = "캐시 읽기";
+export const COST_COL_TOTAL = "토큰 합";
+export const COST_COL_AMOUNT = "추정 금액";
+export const COST_ROW_TOTAL = "합계";
+export const COST_NO_PRICE_CHIP = "단가 없음";
+export const COST_AGENT_MAIN = "기본 세션";
+export const COST_AGENT_UNKNOWN = "미확인";
+export const COST_ENTRYPOINT_CLI = "CLI";
+export const COST_ENTRYPOINT_DESKTOP = "데스크톱 앱";
+export const PRICE_DIALOG_TITLE = "단가";
+export const PRICE_DIALOG_SUBTITLE = "100만 토큰당 USD · 읽기 전용";
+export const PRICE_DIALOG_SOURCE_LEAD = "Anthropic 가격표 · 확인 ";
+export const PRICE_NOTE_LEAD = "단가표에 없는 모델은 ";
+export const PRICE_NOTE_STRONG = "단가 없음";
+export const PRICE_NOTE_TAIL = "으로 표시하고 합계에서 뺍니다 · 새 모델 단가는 앱 업데이트 때 추가됩니다";

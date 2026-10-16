@@ -8,10 +8,18 @@ import { WorkflowDetailScreen } from "../screens/workflow-detail/WorkflowDetailS
 import { WorkflowBreadcrumb } from "../screens/workflow-detail/Breadcrumb";
 import { SkillsScreen } from "../screens/skills/SkillsScreen";
 import { McpScreen } from "../screens/mcp/McpScreen";
+import { CostScreen } from "../screens/cost/CostScreen";
 import { SettingsScreen } from "../screens/settings/SettingsScreen";
-import { SIDEBAR_TAB_HOME, SIDEBAR_TAB_MCP, SIDEBAR_TAB_SETTINGS, SIDEBAR_TAB_SKILLS, SIDEBAR_TAB_WORKFLOWS } from "../lib/text";
+import {
+  SIDEBAR_TAB_COST,
+  SIDEBAR_TAB_HOME,
+  SIDEBAR_TAB_MCP,
+  SIDEBAR_TAB_SETTINGS,
+  SIDEBAR_TAB_SKILLS,
+  SIDEBAR_TAB_WORKFLOWS,
+} from "../lib/text";
 
-// ui-spec.md §공통: 라우트(`/`·`/workflows`·`/workflows/:name`·`/skills`·`/mcp`·`/settings`, 비용은 T-R4-18). 알 수 없는 경로 → `/`로 이동.
+// ui-spec.md §공통: 라우트(`/`·`/workflows`·`/workflows/:name`·`/skills`·`/mcp`·`/cost`·`/settings`). 알 수 없는 경로 → `/`로 이동.
 // `handle.breadcrumb`은 App.tsx가 TopBar에 넘긴다. `handle.rightExtra`는 TopBar 오른쪽 추가 버튼
 // (02는 "Claude 열기 · 기본 세션", ui-spec.md §공통 TopBar).
 // `handle.ownLoading`은 화면이 첫 스냅샷 전 스켈레톤(04-2)을 직접 그리는 라우트(01·02·03)다.
@@ -45,6 +53,7 @@ export const routes: RouteObject[] = [
       },
       { path: "/skills", element: <SkillsScreen />, handle: { breadcrumb: SIDEBAR_TAB_SKILLS, topBarWf: "08-1" } },
       { path: "/mcp", element: <McpScreen />, handle: { breadcrumb: SIDEBAR_TAB_MCP, topBarWf: "09-1" } },
+      { path: "/cost", element: <CostScreen />, handle: { breadcrumb: SIDEBAR_TAB_COST, topBarWf: "10-1" } },
       { path: "/settings", element: <SettingsScreen />, handle: { breadcrumb: SIDEBAR_TAB_SETTINGS, topBarWf: "07-1" } },
       { path: "*", element: <Navigate to="/" replace /> },
     ],

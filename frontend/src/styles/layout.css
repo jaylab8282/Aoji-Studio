@@ -479,3 +479,114 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ── (v1.2.0) 10 비용 (`10-cost.html` `.m10`) ──────────────────────────────────────────────── */
+
+/* 본문 그리드: 가로형 2열(1fr | 한도 480, 폭 1599 이하 420), 차트 줄 최소 320(높이 900 이하 248), 세로형 1열(차트 줄 400). */
+@utility cost-main {
+  display: grid;
+  align-content: start;
+  gap: calc(var(--spacing) * 3);
+  padding: calc(var(--spacing) * 6) var(--spacing-gutter);
+  grid-template-columns: minmax(0, 1fr) var(--spacing-limits);
+  grid-template-rows: auto auto auto minmax(var(--spacing-chart-min), auto) auto;
+
+  @media (max-height: 900px) and (orientation: landscape) {
+    grid-template-rows: auto auto auto minmax(var(--spacing-chart-min-short), auto) auto;
+  }
+
+  @media (orientation: portrait) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto var(--spacing-chart-portrait) auto auto;
+  }
+}
+
+/* 합계 줄(토큰 4칸 + 금액 1.7fr, 세로형 4칸 + 금액 전체 폭). */
+@utility cost-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.7fr);
+  gap: calc(var(--spacing) * 3);
+
+  @media (orientation: portrait) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@utility cost-tile-amount {
+  @media (orientation: portrait) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 토큰 칸 수치 22px(높이 900 이하 18px), 금액 `figure` 30px(높이 900 이하 22px). */
+@utility cost-tile-value {
+  font-size: 22px;
+
+  @media (max-height: 900px) and (orientation: landscape) {
+    font-size: 18px;
+  }
+}
+
+@utility cost-amount-value {
+  font-size: var(--text-figure);
+  line-height: 1.2;
+
+  @media (max-height: 900px) and (orientation: landscape) {
+    font-size: 22px;
+  }
+}
+
+/* 안내 카드·오류가 합계·차트·표 자리를 대신할 때: 왼쪽 열 3~4줄, 한도 카드는 오른쪽 열 같은 줄(세로형은 그냥 순서대로). */
+@utility cost-slot-main {
+  grid-column: 1;
+  grid-row: 3 / span 2;
+
+  @media (orientation: portrait) {
+    grid-row: auto;
+  }
+}
+
+@utility cost-slot-limits {
+  grid-column: 2;
+  grid-row: 3 / span 2;
+
+  @media (orientation: portrait) {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+/* 날짜별 막대: 높이 `--bar-height`(%), 안은 위 `나머지` / 아래 `캐시 읽기`를 `--bar-cache-ratio`(0~1)로 나눈다. 1px 띄운다. */
+@utility chart-bar {
+  position: absolute;
+  bottom: 0;
+  left: 22%;
+  right: 22%;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  height: var(--bar-height);
+}
+
+@utility chart-seg-main {
+  flex: calc(1 - var(--bar-cache-ratio, 0)) 1 0%;
+  min-height: 3px;
+  background: var(--color-text-muted);
+  border-radius: var(--radius-dot) var(--radius-dot) 0 0;
+}
+
+@utility chart-seg-cache {
+  flex: var(--bar-cache-ratio, 0) 1 0%;
+  min-height: 0;
+  background: var(--color-idle);
+}
+
+/* 막대 위 금액: 막대 높이 + 4px. */
+@utility chart-amount {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  bottom: calc(var(--bar-height) + 4px);
+}

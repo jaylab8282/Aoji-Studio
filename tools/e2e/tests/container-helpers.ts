@@ -13,6 +13,7 @@ function compose(args: string[]): string {
     cwd: E2E_DIR,
     env: composeEnv(state.fixtureDir),
     encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
     stdio: ["ignore", "pipe", "pipe"],
   });
 }
@@ -43,4 +44,10 @@ export function ensureUnpaused(): void {
   }
   compose(["unpause", readE2eState().composeService]);
   expect(containerStatus(), "컨테이너를 running으로 되돌리지 못했습니다").toBe("running");
+}
+
+/** 컨테이너 로그 전체(stdout·stderr). 서버 로그에 남는 사유 줄을 확인할 때 쓴다(FR-027-E3). */
+export function containerLogs(): string {
+  const state = readE2eState();
+  return compose(["logs", "--no-color", "--no-log-prefix", state.composeService]);
 }

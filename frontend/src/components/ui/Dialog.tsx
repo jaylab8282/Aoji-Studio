@@ -1,7 +1,7 @@
 /**
  * ui-spec.md §공통 Dialog (05·06), ADR-71: 막(`bg-page` 0.78) + 가운데 카드(`bg-card`, `border-strong`, `rounded-card`,
  * 안 여백 24, 간격 16, 최대 높이 `100vh − 48`), 뒤 화면 `inert`, ESC 닫기(쌓인 창은 맨 위 창만), `role="dialog" aria-modal`.
- * `size`: `sm` 480(05-3·06-5·06-6·도우미 미설치) / `md` 560(05-L) / `lg` 880·`portrait:` 920(05-R·06) — `--container-dialog-*`.
+ * `size`: `sm` 480(05-3·06-5·06-6·도우미 미설치) / `md` 560(05-L) / `lg` 880·`portrait:` 920(05-R·06) / (v1.2.0) `price` 680(10-1) — `--container-dialog-*`.
  * 막을 눌러도 닫힌다(기존 동작). 카드는 body 아래 포털로 그리고, 뜨는 동안 body의 다른 자식(앱 루트·아래 팝업)에
  * `inert`를 걸었다가 닫을 때 우리가 건 것만 되돌린다. 닫으면 열기 전 초점으로 돌아간다.
  * 제목·아래 줄 버튼 배치는 `DialogHeader`·`DialogFooter`를 쓴다(제목 `font/section` 700 + 부제 aux muted, 버튼 오른쪽 정렬·도움말은 왼쪽).
@@ -10,12 +10,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-export type DialogSize = "sm" | "md" | "lg";
+export type DialogSize = "sm" | "md" | "lg" | "price";
 
 const SIZE_CLASSES: Record<DialogSize, string> = {
   sm: "max-w-dialog-sm",
   md: "max-w-dialog-md",
   lg: "max-w-dialog-lg portrait:max-w-dialog-lg-portrait",
+  price: "max-w-dialog-price",
 };
 
 interface DialogProps {
