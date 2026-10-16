@@ -119,6 +119,12 @@ public class ApiException extends RuntimeException {
                 HttpStatus.CONFLICT, new ApiError("UNEDITABLE", studio.aoji.skills.SkillMessages.UNEDITABLE));
     }
 
+    /** 가져온 스킬({@code SOURCE.md} 있음)은 수정할 수 없다(FR-020-AC6; ADR-91 문구). */
+    public static ApiException skillImported() {
+        return new ApiException(
+                HttpStatus.CONFLICT, new ApiError("IMPORTED_SKILL", studio.aoji.skills.SkillMessages.IMPORTED_SKILL));
+    }
+
     public HttpStatus status() {
         return status;
     }
