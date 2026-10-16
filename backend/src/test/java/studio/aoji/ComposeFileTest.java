@@ -49,6 +49,32 @@ class ComposeFileTest {
         throw new IllegalStateException("compose.yaml을 찾을 수 없습니다: " + fromModule.toAbsolutePath());
     }
 
+    /** volumes 항목을 검사용 문자열로 편다. 문자열 항목은 그대로, long syntax(map)는 type/source/target을 합친다. */
+    @SuppressWarnings("unchecked")
+    private static List<Object> volumeEntries() {
+        return (List<Object>) service.get("volumes");
+    }
+
+    private static String flat(Object entry) {
+        if (entry instanceof String text) {
+            return text;
+        }
+        Map<String, Object> map = (Map<String, Object>) entry;
+        return map.get("type") + " " + map.get("source") + ":" + map.get("target");
+    }
+
+    private static List<String> flatVolumes() {
+        return volumeEntries().stream().map(ComposeFileTest::flat).toList();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> claudeBinds() {
+        return volumeEntries().stream()
+                .filter(v -> v instanceof Map)
+                .map(v -> (Map<String, Object>) v)
+                .toList();
+    }
+
     @Test
     @DisplayName("[NFR-04] ports가 127.0.0.1: 로 시작한다")
     @SuppressWarnings("unchecked")
@@ -65,9 +91,59 @@ class ComposeFileTest {
     @DisplayName("[NFR-06] docker.sock 마운트가 없다")
     @SuppressWarnings("unchecked")
     void noDockerSocketMount() {
-        List<String> volumes = (List<String>) service.get("volumes");
+        List<String> volumes = flatVolumes();
         assertThat(volumes).isNotEmpty();
         assertThat(volumes).noneMatch(v -> v.contains("docker.sock"));
+    }
+
+    @Test
+    @DisplayName("[NFR-06] 문자열·map 모든 volumes 항목에 0.0.0.0·docker.sock이 없고 호스트 경로는 AOJISTUDIO_ 변수나 저장소 상대 경로뿐이다")
+    void everyVolumeEntryStaysInsideAllowedHostPaths() {
+        List<Object> entries = volumeEntries();
+        assertThat(entries).hasSize(6);
+        for (Object entry : entries) {
+            String text = flat(entry);
+            assertThat(text).doesNotContain("0.0.0.0").doesNotContain("docker.sock");
+            String source = entry instanceof Map<?, ?> m ? String.valueOf(m.get("source")) : text.split(":")[0];
+            assertThat(source)
+                    .as("호스트 경로 출처: " + text)
+                    .matches(src -> src.startsWith("${AOJISTUDIO_") || src.startsWith("./tools/") || src.equals("aojistudio-data"));
+            assertThat(source).doesNotStartWith("/").doesNotStartWith("~");
+        }
+    }
+
+    @Test
+    @DisplayName("[NFR-06][NFR-15] 전역 Claude 설정 bind 4개는 long syntax·read_only: true·create_host_path: false이고 대상 경로가 정확히 4개다")
+    @SuppressWarnings("unchecked")
+    void claudeConfigBindsAreReadOnlyAndNeverCreateHostPath() {
+        List<Map<String, Object>> binds = claudeBinds();
+        assertThat(binds).hasSize(4);
+        for (Map<String, Object> bind : binds) {
+            assertThat(bind.get("type")).isEqualTo("bind");
+            assertThat(bind.get("read_only")).isEqualTo(Boolean.TRUE);
+            Map<String, Object> bindOptions = (Map<String, Object>) bind.get("bind");
+            assertThat(bindOptions).isNotNull();
+            assertThat(bindOptions.get("create_host_path")).isEqualTo(Boolean.FALSE);
+        }
+        assertThat(binds.stream().map(b -> (String) b.get("target")).toList()).containsExactlyInAnyOrder(
+                "/claude-home/.claude.json",
+                "/claude-home/.claude/settings.json",
+                "/claude-home/.claude/plugins",
+                "/claude-home/.claude/projects");
+    }
+
+    @Test
+    @DisplayName("[NFR-06][NFR-15] .credentials·~/.claude 전체·홈 연결 줄이 volumes에 없다")
+    void noCredentialsOrWholeClaudeHomeMount() {
+        for (String text : flatVolumes()) {
+            assertThat(text).doesNotContain(".credentials");
+            assertThat(text).doesNotContain("~");
+            assertThat(text).doesNotContain(":/claude-home ").doesNotEndWith(":/claude-home").doesNotEndWith(":/claude-home/.claude");
+        }
+        for (Map<String, Object> bind : claudeBinds()) {
+            assertThat((String) bind.get("target")).startsWith("/claude-home/.claude");
+            assertThat((String) bind.get("source")).doesNotContain(".credentials");
+        }
     }
 
     @Test
@@ -96,16 +172,16 @@ class ComposeFileTest {
         assertThat(topVolumes).containsKey("aojistudio-data");
         Map<String, Object> volume = (Map<String, Object>) topVolumes.get("aojistudio-data");
         assertThat(volume.get("name")).isEqualTo("aojistudio-data");
-        assertThat((List<String>) service.get("volumes")).contains("aojistudio-data:/data");
+        assertThat(flatVolumes()).contains("aojistudio-data:/data");
     }
 
     @Test
     @DisplayName("[ADR-59] 서비스 볼륨 중 named volume은 aojistudio-data 하나뿐이다")
     @SuppressWarnings("unchecked")
     void onlyPinnedNamedVolumeIsUsed() {
-        List<String> volumes = (List<String>) service.get("volumes");
-        List<String> named = volumes.stream()
-                .map(v -> v.split(":")[0])
+        List<String> named = volumeEntries().stream()
+                .filter(v -> v instanceof String)
+                .map(v -> ((String) v).split(":")[0])
                 .filter(src -> !src.startsWith("/") && !src.startsWith(".") && !src.startsWith("$"))
                 .toList();
         assertThat(named).containsExactly("aojistudio-data");
@@ -113,7 +189,7 @@ class ComposeFileTest {
     }
 
     @Test
-    @DisplayName("[NFR-05][ADR-61] environment 키는 AOJISTUDIO_* 5개와 TZ(architecture 4.1)뿐이다")
+    @DisplayName("[NFR-05][ADR-61] environment 키는 AOJISTUDIO_* 8개와 TZ뿐이다")
     @SuppressWarnings("unchecked")
     void environmentKeysAreExactlyTheDesignedSet() {
         Map<String, Object> env = (Map<String, Object>) service.get("environment");
@@ -123,6 +199,9 @@ class ComposeFileTest {
                 "AOJISTUDIO_HELPER_URL",
                 "AOJISTUDIO_MOUNT_PATH",
                 "AOJISTUDIO_DATA_PATH",
+                "AOJISTUDIO_HOST_OS",
+                "AOJISTUDIO_WSL_DISTRO",
+                "AOJISTUDIO_CLAUDE_HOME_HOST",
                 "TZ");
         assertThat(env.get("TZ")).isEqualTo("Asia/Seoul");
     }
@@ -152,8 +231,11 @@ class ComposeFileTest {
     @DisplayName("[NFR-05][NFR-06] 호스트 마운트는 ${AOJISTUDIO_HOST_PATH:? 필수 치환 하나이고 /workspace에 연결된다")
     @SuppressWarnings("unchecked")
     void hostMountUsesRequiredSubstitution() {
-        List<String> volumes = (List<String>) service.get("volumes");
-        List<String> hostMounts = volumes.stream().filter(v -> v.startsWith("${")).toList();
+        List<String> hostMounts = volumeEntries().stream()
+                .filter(v -> v instanceof String)
+                .map(v -> (String) v)
+                .filter(v -> v.startsWith("${"))
+                .toList();
         assertThat(hostMounts).hasSize(1);
         assertThat(hostMounts.get(0)).startsWith("${AOJISTUDIO_HOST_PATH:?").endsWith(":/workspace");
     }
@@ -165,14 +247,17 @@ class ComposeFileTest {
     }
 
     @Test
-    @DisplayName("[NFR-05] compose.yaml 환경 변수 참조는 AOJISTUDIO_ 접두뿐이고 중첩 기본값이 없다")
+    @DisplayName("[NFR-05] compose.yaml 환경 변수 참조는 AOJISTUDIO_ 접두뿐이고 중첩 기본값은 Claude bind _SRC뿐이다")
     void onlyAojistudioVariablesAreReferenced() {
         java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\$\\{([A-Za-z0-9_]+)([^}]*)\\}").matcher(rawCompose);
         int found = 0;
         while (m.find()) {
             found++;
             assertThat(m.group(1)).as("참조 변수: " + m.group(0)).startsWith("AOJISTUDIO_");
-            assertThat(m.group(2)).as("중첩 기본값 금지: " + m.group(0)).doesNotContain("${");
+            // 중첩 기본값은 전역 Claude 설정 bind 출처(AOJISTUDIO_CLAUDE_*_SRC)에만 허용한다.
+            if (!m.group(1).matches("AOJISTUDIO_CLAUDE_[A-Z]+_SRC")) {
+                assertThat(m.group(2)).as("중첩 기본값 금지: " + m.group(0)).doesNotContain("${");
+            }
         }
         assertThat(found).isPositive();
     }

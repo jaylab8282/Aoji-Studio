@@ -18,11 +18,43 @@ services:
       AOJISTUDIO_DATA_PATH: /data
       # 브라우저가 호출할 열기 도우미 주소. 도우미를 기본 4181이 아닌 포트로 설치했을 때만 바꾼다.
       AOJISTUDIO_HELPER_URL: ${AOJISTUDIO_HELPER_URL:-http://127.0.0.1:4181}
+      # 실행 환경(macos|wsl, 비면 macos)과 WSL 배포판. 값 검사는 서버가 기동 때 한다.
+      AOJISTUDIO_HOST_OS: ${AOJISTUDIO_HOST_OS:-}
+      AOJISTUDIO_WSL_DISTRO: ${AOJISTUDIO_WSL_DISTRO:-}
+      # 전역 Claude 설정 홈(호스트 경로). 비면 서버는 4개 모두 "연결 안 됨"으로 본다.
+      AOJISTUDIO_CLAUDE_HOME_HOST: ${AOJISTUDIO_CLAUDE_HOME:-}
     ports:
       - "127.0.0.1:${AOJISTUDIO_PORT:?AOJISTUDIO_PORT를 .env에 설정하세요}:4180"
     volumes:
       - ${AOJISTUDIO_HOST_PATH:?AOJISTUDIO_HOST_PATH를 .env에 설정하세요}:/workspace
       - aojistudio-data:/data
+      # 전역 Claude 설정 4개 읽기 전용 연결(ADR-79). 원본이 호스트에 없으면 폴더를 만들지 않고
+      # 기동을 거부한다(create_host_path: false). ~/.claude 전체·.credentials.json은 연결하지 않는다.
+      # 홈이 비면 저장소 안 대역(tools/claude-home-off)을 연결하고, 서버는 표지로 "연결 안 됨"을 판정한다.
+      - type: bind
+        source: ${AOJISTUDIO_CLAUDE_JSON_SRC:-${AOJISTUDIO_CLAUDE_HOME:-./tools/claude-home-off}/.claude.json}
+        target: /claude-home/.claude.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${AOJISTUDIO_CLAUDE_SETTINGS_SRC:-${AOJISTUDIO_CLAUDE_HOME:-./tools/claude-home-off}/.claude/settings.json}
+        target: /claude-home/.claude/settings.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${AOJISTUDIO_CLAUDE_PLUGINS_SRC:-${AOJISTUDIO_CLAUDE_HOME:-./tools/claude-home-off}/.claude/plugins}
+        target: /claude-home/.claude/plugins
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${AOJISTUDIO_CLAUDE_PROJECTS_SRC:-${AOJISTUDIO_CLAUDE_HOME:-./tools/claude-home-off}/.claude/projects}
+        target: /claude-home/.claude/projects
+        read_only: true
+        bind:
+          create_host_path: false
 
 volumes:
   aojistudio-data:

@@ -18,11 +18,41 @@ services:
       AOJISTUDIO_DATA_PATH: /data
       AOJISTUDIO_HELPER_URL: http://127.0.0.1:4191
       AOJISTUDIO_ALLOWED_ORIGINS: http://127.0.0.1:4185
+      # 실행 환경(비면 macos)과 전역 연결 홈. E2E_CLAUDE_HOME이 비면 서버는 4개 모두 "연결 안 됨"으로 본다.
+      AOJISTUDIO_HOST_OS: ${E2E_HOST_OS:-}
+      AOJISTUDIO_WSL_DISTRO: ${E2E_WSL_DISTRO:-}
+      AOJISTUDIO_CLAUDE_HOME_HOST: ${E2E_CLAUDE_HOME:-}
     ports:
       - "127.0.0.1:4185:4180"
     volumes:
       - ${E2E_FIXTURE_DIR:?E2E_FIXTURE_DIR를 지정하세요}:/workspace
       - aojistudio-e2e-data:/data
+      # 전역 Claude 설정 4개 읽기 전용 연결(운영 compose.yaml과 같은 방식, ADR-79). 기본은 대역(tools/claude-home-off).
+      # E2E_CLAUDE_HOME은 globalSetup이 claude-home fixture를 임시 폴더로 복사해 채운다. 실제 홈은 연결하지 않는다.
+      - type: bind
+        source: ${E2E_CLAUDE_HOME:-../claude-home-off}/.claude.json
+        target: /claude-home/.claude.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${E2E_CLAUDE_HOME:-../claude-home-off}/.claude/settings.json
+        target: /claude-home/.claude/settings.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${E2E_CLAUDE_HOME:-../claude-home-off}/.claude/plugins
+        target: /claude-home/.claude/plugins
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${E2E_CLAUDE_HOME:-../claude-home-off}/.claude/projects
+        target: /claude-home/.claude/projects
+        read_only: true
+        bind:
+          create_host_path: false
 
 # 볼륨에 name:을 고정하지 않는다 — down -v가 -p 접두 볼륨만 지우게 한다(D-109).
 volumes:

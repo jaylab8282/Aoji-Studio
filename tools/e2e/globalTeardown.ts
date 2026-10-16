@@ -90,6 +90,15 @@ export default async function globalTeardown(): Promise<void> {
     }
   }
 
+  if (state.claudeHomeOwned === true && typeof state.claudeHomeDir === "string") {
+    try {
+      rmSync(state.claudeHomeDir, { recursive: true, force: true });
+      log(`임시 claude-home 삭제: ${state.claudeHomeDir}`);
+    } catch (error) {
+      problems.push(`임시 claude-home 삭제 실패: ${message(error)}`);
+    }
+  }
+
   for (const port of [HELPER_PORT, OTHER_ORIGIN_PORT]) {
     if (!(await waitForPortClosed(port, PORT_CLOSE_TIMEOUT_MS))) {
       problems.push(`포트 ${port}가 아직 열려 있습니다(프로세스가 남았습니다)`);

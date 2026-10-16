@@ -29,6 +29,11 @@ export const OTHER_ORIGIN_URL = "http://127.0.0.1:4192";
 export const HELPER_SCRIPT = join(PROJECT_ROOT, "helper", "aojistudio-helper.mjs");
 export const ORIGIN_SERVER_SCRIPT = join(E2E_DIR, "lib", "other-origin-server.mjs");
 
+/** claude-home fixture 원본 이름 환경 변수(`E2E_CLAUDE_HOME_FIXTURE`). 없으면 대역을 연결한다. */
+export const CLAUDE_HOME_FIXTURE_ENV = "E2E_CLAUDE_HOME_FIXTURE";
+/** Windows 분기 dry-run 도우미(`E2E_HELPER_PLATFORM=windows`)의 기본 WSL 배포판. */
+export const DEFAULT_E2E_WSL_DISTRO = "Ubuntu-24.04";
+
 /** `E2E_FIXTURE`를 주지 않았을 때 쓰는 fixture. */
 export const DEFAULT_FIXTURE = "project-basic";
 
@@ -44,6 +49,10 @@ export type E2eState = {
   fixtureDir: string;
   /** globalSetup이 직접 만든 폴더인지(true면 teardown에서 지운다). */
   fixtureOwned: boolean;
+  /** 컨테이너에 읽기 전용으로 연결한 claude-home 임시 사본(없으면 대역 `tools/claude-home-off`). */
+  claudeHomeDir: string | null;
+  /** globalSetup이 직접 만든 사본인지(true면 teardown에서 지운다). */
+  claudeHomeOwned: boolean;
   baseUrl: string;
   helperUrl: string;
   otherOriginUrl: string;
@@ -109,5 +118,7 @@ export function helperDryRunLines(): string[] {
 
 /** `docker compose` 실행에 필요한 환경 변수(fixture 경로 보간). */
 export function composeEnv(fixtureDir: string): Record<string, string | undefined> {
-  return { ...process.env, E2E_FIXTURE_DIR: fixtureDir };
+  // E2E_CLAUDE_HOME이 없으면 대역(compose.e2e.yaml 기본값)을 쓴다. globalSetup이 만든 사본은 상태 파일에서 읽는다.
+  const claudeHome = process.env.E2E_CLAUDE_HOME || readE2eStateOrNull()?.claudeHomeDir || undefined;
+  return { ...process.env, E2E_FIXTURE_DIR: fixtureDir, E2E_CLAUDE_HOME: claudeHome };
 }

@@ -94,6 +94,27 @@ for _ in $(seq 1 60); do
 done
 [[ "$CODE" == "200" ]] || fail "GET / 응답 코드가 200이 아닙니다: $CODE"
 echo "PASS: GET / 200"
+# 6-1. 전역 Claude 설정 연결 확인(ADR-79): 홈을 주지 않았으므로 대역 4개가 읽기 전용으로 붙고, 자격증명은 없다.
+CID="$("${C[@]}" ps -q aojistudio)"
+[[ -n "$CID" ]] || fail "컨테이너 id를 찾지 못했습니다"
+docker inspect "$CID" --format '{{json .Mounts}}' | python3 -c '
+import json, sys
+m = {x["Destination"]: x for x in json.load(sys.stdin)}
+want = ["/claude-home/.claude.json", "/claude-home/.claude/settings.json", "/claude-home/.claude/plugins", "/claude-home/.claude/projects"]
+got = sorted(d for d in m if d.startswith("/claude-home"))
+if got != sorted(want):
+    sys.exit("FAIL: /claude-home 마운트가 4개 정확히가 아닙니다: %s" % got)
+for d in want:
+    if m[d]["RW"] is not False or m[d]["Type"] != "bind":
+        sys.exit("FAIL: %s 가 읽기 전용 bind가 아닙니다: %s" % (d, m[d]))
+' || fail "전역 연결 마운트 검사 실패"
+if "${C[@]}" exec -T aojistudio sh -c 'test -e /claude-home/.claude/.credentials.json'; then
+  fail "컨테이너 안에 .credentials.json이 보입니다"
+fi
+if "${C[@]}" exec -T aojistudio sh -c 'touch /claude-home/.claude/projects/write-test' 2> /dev/null; then
+  fail "/claude-home에 쓰기가 가능합니다"
+fi
+echo "PASS: 전역 연결 4개 읽기 전용·.credentials.json 없음"
 PORT_OUT="$("${C[@]}" port aojistudio 4180)"
 [[ "$PORT_OUT" == "127.0.0.1:$PORT" ]] || fail "port 출력이 127.0.0.1:$PORT 가 아닙니다: $PORT_OUT"
 echo "PASS: port $PORT_OUT"

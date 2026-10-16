@@ -37,6 +37,7 @@
 - compose 확인 스크립트(운영 볼륨을 건드리지 않는다. x86_64 머신은 `AOJISTUDIO_PLATFORM=linux/amd64`를 앞에 붙인다):
   - 옛 앱 이름 검색 0건(컨테이너 기동 없음, NFR-13 ⑤): `tools/e2e/scripts/check-old-names.sh [루트]`
   - 옛 이름 환경 변수 거부(컨테이너 기동 없음, NFR-13 ②): `tools/e2e/scripts/check-old-env.sh`
+  - 전역 Claude 설정 연결 구성 3경우(홈 없음 → 대역 / 홈 있음 / 항목 `_SRC` 덮어쓰기, 이미지 빌드·기동 없음, ADR-79): `tools/e2e/scripts/check-compose-config.sh`
   - 운영 `compose.yaml` 빌드·기동(포트 4186, 임시 볼륨 `aojistudio-r2check-data`): `tools/e2e/scripts/check-compose-build.sh`
 - e2e (공개 포트 `127.0.0.1:4185` — `4190`은 쓰지 않는다: WHATWG Fetch bad port, ADR-45):
   - (사전 1회) `cd tools/e2e && npm install && npx playwright install chromium`
@@ -57,6 +58,7 @@
     - 배치 10 `E2E_FIXTURE=project-old-name npx playwright test tests/e2e-17-old-name.spec.ts`
     - 배치 11 `E2E_FIXTURE=project-basic npx playwright test tests/e2e-13.spec.ts --grep "project-basic"`
   - E2E-13 화면 대조 캡처 60장은 `tools/e2e/screenshots/<원본 이름>@<W>x<H>.png`에 남는다(`docs/ui/screens/`의 원본 PNG와 같은 이름, `.gitignore` 대상). 배치 3·4·7·8·11이 나눠 만든다.
+  - 전역 Claude 설정 연결(선택): 기본은 대역(`tools/claude-home-off`, 연결 안 됨). `E2E_CLAUDE_HOME_FIXTURE=claude-home-basic`을 앞에 붙이면 그 fixture를 임시 폴더로 복사(자리표시 문자열 치환)해 읽기 전용으로 연결하고 teardown이 지운다. `E2E_HOST_OS`·`E2E_WSL_DISTRO`는 서버 실행 환경 값. `E2E_HELPER_PLATFORM=windows`면 dry-run 도우미를 Windows 분기(`--platform windows --wsl-distro`)로 띄우고 서버도 `wsl`(기본 배포판 `Ubuntu-24.04`)로 띄운다. 실제 홈(`~/.claude`)은 연결하지 않는다.
   - x86_64 머신(WSL 등)은 위 e2e 명령 앞에 `E2E_PLATFORM=linux/amd64`를 붙인다.
   - 실패 조사: 위 명령 앞에 `E2E_KEEP_UP=1`을 붙이면 정리를 건너뛴다. 조사 후 출력된 정리 명령을 그대로 실행하고 `lsof -nP -iTCP:4185 -iTCP:4191 -iTCP:4192`로 확인한다
 

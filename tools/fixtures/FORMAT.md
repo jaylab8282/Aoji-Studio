@@ -143,7 +143,7 @@
 | ADR-81 가정 | 토큰 줄: `type=assistant`, `message.id`·`model`·`usage.*`, `requestId`, `sessionId`, `timestamp`, `cwd`, `entrypoint`, `isSidechain` | **일치**(토큰 줄 100%에 모두 있음) |
 | ADR-81 | 서브에이전트 기록 `<세션>/subagents/agent-<id>.jsonl` + `agent-<id>.meta.json`(`agentType`) | **일치**. 메타가 없는 서브에이전트 기록이 있다(135/136) → `?` 규칙이 필요하다 |
 | ADR-81 | `--agent` 세션의 이름 키는 미확인 | **확인됨**: `agentSetting`(별도 줄, `sessionId` 동반). `agentName`은 에이전트 이름이 아니다 |
-| ADR-81 3 | 중복 키 = `message.id:requestId`, 먼저 읽은 줄 하나만 센다 | **일치하나 주의**: 메인 기록 중복은 값이 같다. **서브에이전트 기록은 중복 줄의 `output_tokens`가 뒤쪽 줄에서 더 크다(267건)** → "먼저 읽은 줄" 기준이면 출력 토큰이 낮게 센다(결정 필요) |
+| ADR-81 3 (ADR-92 정정) | 중복 키 = `message.id:requestId`. 같은 키의 줄 중 `output_tokens`가 최대인 줄의 4값으로 센다(증분 읽기에서 뒤에 더 큰 줄이 오면 `transcript_msg`의 기존 기여분을 빼고 새 값을 더한다, 순서 무관·재읽기 멱등) | **일치(ADR-92 반영)**: 메인 기록 중복은 값이 같다. **서브에이전트 기록은 중복 줄의 `output_tokens`가 뒤쪽 줄에서 더 큰 경우가 267건**이라 옛 "먼저 읽은 줄" 규칙이면 출력 토큰이 낮게 센다 — 그래서 최대 줄 규칙으로 정정했다 |
 | ADR-81 4 | `<synthetic>`·토큰 0인 줄은 세지 않는다 | **일치**: 이 PC에도 두 종류가 같은 수로 있다 |
 | ADR-81 | 읽는 파일 = `*.jsonl` | **일치**. 같은 트리에 `.jsonl`이 아닌 파일도 있어 확장자로 걸러야 한다 |
 | ADR-83 3·4 | 상태줄 입력 `subscription_type`, `rate_limits.{five_hour,seven_day}.{used_percentage,resets_at}` | 문서 기준(이 PC에 없음). `resets_at`은 에포크 초 숫자, 캐시의 `resets_at`은 ISO 문자열 — ADR-83 4가 둘 다 받는다 |

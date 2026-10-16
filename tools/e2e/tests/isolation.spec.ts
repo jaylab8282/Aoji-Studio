@@ -33,6 +33,7 @@ const HARNESS_FILES = [
   join("lib", "other-origin-server.mjs"),
   join("lib", "replay.ts"),
   join("scripts", "check-compose-build.sh"),
+  join("scripts", "check-compose-config.sh"),
   join("scripts", "check-old-env.sh"),
   join("scripts", "check-old-names.sh"),
   join("scripts", "check-port.sh"),
@@ -60,8 +61,14 @@ const FORBIDDEN_PATH_PATTERNS = [
   /(^|[^\w])~\//,
 ];
 
-/** `.claude`·`.aojistudio`를 코드에서 언급할 때 같은 줄에 있어야 하는 fixture 근거. */
-const FIXTURE_CONTEXT = /fixture/i;
+/**
+ * `.claude`·`.aojistudio`를 코드에서 언급할 때 같은 줄에 있어야 하는 근거.
+ * fixture 경로이거나, 전역 연결의 대역(`claude-home-off`)·임시 사본(`E2E_CLAUDE_HOME`)·컨테이너 쪽 경로(`/claude-home/`)다.
+ * 실제 홈 경로는 이 근거가 될 수 없다(위 금지 패턴이 `~/`·`homedir(`·`/Users/`를 막는다).
+ */
+const FIXTURE_CONTEXT = /fixture|claude-home-off|E2E_CLAUDE_HOME|\/claude-home\/|stand[-_]in/i;
+/** `state.claudeHomeDir` 같은 속성 접근(`.claude` 바로 뒤에 영문자가 붙는 식별자)은 경로가 아니다. */
+const PROPERTY_ACCESS = /\.claude[A-Za-z]/g;
 
 /**
  * 경로 표기를 한 형태로 맞춘다.
@@ -151,6 +158,7 @@ for (const relativePath of HARNESS_FILES) {
   test(`[FR-003-AC1][격리] ${relativePath}의 .claude·.aojistudio 참조는 fixture 경로와 함께만 나온다`, () => {
     const suspicious = readHarnessCode(relativePath)
       .split("\n")
+      .map((line) => line.replace(PROPERTY_ACCESS, ""))
       .filter((line) => /\.claude|\.aojistudio/.test(line))
       .filter((line) => !FIXTURE_CONTEXT.test(line));
     expect(suspicious).toEqual([]);
@@ -164,6 +172,20 @@ for (const composeFile of ["compose.e2e.yaml"]) {
     expect(code).toContain("${E2E_FIXTURE_DIR");
     expect(code).not.toContain("docker.sock");
     expect(code).not.toContain("privileged");
+
+    // 전역 Claude 설정 연결(long syntax): 4개 모두 읽기 전용·create_host_path false이고 원본은 대역 또는 E2E_CLAUDE_HOME 아래뿐이다.
+    const claudeSources = code
+      .split("\n")
+      .map((line) => /^\s*source:\s*(\S+)$/.exec(line))
+      .filter((match): match is RegExpExecArray => match !== null)
+      .map((match) => match[1] as string);
+    expect(claudeSources).toHaveLength(4);
+    for (const source of claudeSources) {
+      expect(source.startsWith("${E2E_CLAUDE_HOME:-../claude-home-off}/"), `허용되지 않은 bind 원본: ${source}`).toBe(true);
+    }
+    expect(code.match(/read_only: true/g)).toHaveLength(4);
+    expect(code.match(/create_host_path: false/g)).toHaveLength(4);
+    expect(code).not.toContain(".credentials");
 
     const hostPaths = code
       .split("\n")
@@ -201,17 +223,49 @@ test("[FR-003-AC1][격리] 기동된 컨테이너의 bind 마운트는 임시 fi
     execFileSync("docker", ["inspect", "--format", "{{json .Mounts}}", containerId], {
       encoding: "utf8",
     }),
-  ) as { Type: string; Source: string; Destination: string }[];
+  ) as { Type: string; Source: string; Destination: string; RW: boolean }[];
 
   const binds = mounts.filter((mount) => mount.Type === "bind");
-  expect(binds.map((bind) => bind.Destination)).toEqual(["/workspace"]);
+  const claudeBinds = binds.filter((bind) => bind.Destination.startsWith("/claude-home/"));
+  const workspaceBinds = binds.filter((bind) => !bind.Destination.startsWith("/claude-home/"));
+  expect(workspaceBinds.map((bind) => bind.Destination)).toEqual(["/workspace"]);
   expect(
-    bindSourceIsFixture((binds[0] as { Source: string }).Source, fixtureDir, state.fixtureDir),
-    `bind 소스가 fixture 사본이 아닙니다: ${(binds[0] as { Source: string }).Source}`,
+    bindSourceIsFixture((workspaceBinds[0] as { Source: string }).Source, fixtureDir, state.fixtureDir),
+    `bind 소스가 fixture 사본이 아닙니다: ${(workspaceBinds[0] as { Source: string }).Source}`,
   ).toBe(true);
+
+  // 전역 연결 4개: 대역(저장소 tools/claude-home-off) 또는 임시 claude-home 사본이고, 모두 읽기 전용이다(ADR-79).
+  const claudeHomeRoot =
+    state.claudeHomeDir === null || state.claudeHomeDir === undefined
+      ? join(PROJECT_ROOT, "tools", "claude-home-off")
+      : canonicalPath(realpathSync(state.claudeHomeDir));
+  if (state.claudeHomeDir !== null && state.claudeHomeDir !== undefined) {
+    expect(claudeHomeRoot.startsWith(studioRoot), "claude-home 사본이 저장소 안입니다").toBe(false);
+  }
+  expect(claudeBinds.map((bind) => bind.Destination).sort()).toEqual([
+    "/claude-home/.claude.json",
+    "/claude-home/.claude/plugins",
+    "/claude-home/.claude/projects",
+    "/claude-home/.claude/settings.json",
+  ]);
+  for (const bind of claudeBinds as { Source: string; Destination: string; RW: boolean }[]) {
+    expect(bind.RW, `${bind.Destination}가 읽기 전용이 아닙니다`).toBe(false);
+    const relative = bind.Destination.slice("/claude-home/".length);
+    expect(
+      bindSourceIsFixture(bind.Source, join(claudeHomeRoot, relative), join(claudeHomeRoot, relative)),
+      `${bind.Destination}의 bind 소스가 대역·임시 사본이 아닙니다: ${bind.Source}`,
+    ).toBe(true);
+  }
+
+  const allowedInsideStudio = (mount: { Source: string; Destination: string }) =>
+    mount.Destination.startsWith("/claude-home/") &&
+    (state.claudeHomeDir === null || state.claudeHomeDir === undefined);
   for (const mount of mounts) {
-    expect(canonicalPath(mount.Source).startsWith(studioRoot)).toBe(false);
+    if (!allowedInsideStudio(mount)) {
+      expect(canonicalPath(mount.Source).startsWith(studioRoot)).toBe(false);
+    }
     expect(mount.Source).not.toContain("docker.sock");
+    expect(mount.Destination).not.toContain(".credentials");
   }
 });
 

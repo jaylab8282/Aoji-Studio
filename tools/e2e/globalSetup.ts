@@ -9,6 +9,7 @@ import {
   mkdirSync,
   mkdtempSync,
   openSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -20,9 +21,11 @@ import { join } from "node:path";
 
 import {
   BASE_URL,
+  CLAUDE_HOME_FIXTURE_ENV,
   COLLECT_TOKEN_PLACEHOLDER,
   COMPOSE_FILE,
   COMPOSE_SERVICE,
+  DEFAULT_E2E_WSL_DISTRO,
   DEFAULT_FIXTURE,
   E2E_DIR,
   FIXTURES_DIR,
@@ -74,10 +77,19 @@ export default async function globalSetup(): Promise<void> {
   log(`fixture: ${fixture.name} → ${fixture.dir}${fixture.owned ? "" : " (E2E_FIXTURE_DIR 지정)"}`);
 
   const tokens = writePlaceholderTokens(fixture.dir);
+  const claudeHome = prepareClaudeHome(fixture.dir);
+  const windowsHelper = process.env.E2E_HELPER_PLATFORM === "windows";
+  if (windowsHelper) {
+    // Windows 분기 도우미를 쓰는 배치는 서버도 wsl 실행 환경으로 띄운다(값은 호출자가 먼저 정했으면 존중).
+    process.env.E2E_HOST_OS ||= "wsl";
+    process.env.E2E_WSL_DISTRO ||= DEFAULT_E2E_WSL_DISTRO;
+  }
   writeE2eState({
     fixtureName: fixture.name,
     fixtureDir: fixture.dir,
     fixtureOwned: fixture.owned,
+    claudeHomeDir: claudeHome.dir,
+    claudeHomeOwned: claudeHome.owned,
     baseUrl: BASE_URL,
     helperUrl: HELPER_URL,
     otherOriginUrl: OTHER_ORIGIN_URL,
@@ -114,6 +126,9 @@ export default async function globalSetup(): Promise<void> {
       [
         HELPER_SCRIPT,
         "--dry-run",
+        ...(windowsHelper
+          ? ["--platform", "windows", "--wsl-distro", process.env.E2E_WSL_DISTRO ?? DEFAULT_E2E_WSL_DISTRO]
+          : []),
         "--port",
         String(HELPER_PORT),
         "--project-dir",
@@ -149,7 +164,7 @@ export default async function globalSetup(): Promise<void> {
     });
     log(`다른 Origin 페이지 서버 준비 완료: ${OTHER_ORIGIN_URL} (pid ${originServer.pid})`);
   } catch (error) {
-    await cleanupAfterFailure(fixture, [helper, originServer]);
+    await cleanupAfterFailure(fixture, claudeHome, [helper, originServer]);
     throw error;
   }
 }
@@ -237,6 +252,61 @@ function prepareFixture(): Fixture {
   // 숨은 항목까지 그대로 복사한다(`<source>/.` 형식).
   execFileSync("cp", ["-R", `${source}/.`, dir], { stdio: "inherit" });
   return { name, dir, owned: true };
+}
+
+type ClaudeHome = { dir: string | null; owned: boolean };
+
+const HOST_PATH_PLACEHOLDER = "__AOJI_FIXTURE_HOST_PATH__";
+const CLAUDE_HOME_PLACEHOLDER = "__AOJI_FIXTURE_CLAUDE_HOME__";
+
+/**
+ * 전역 Claude 설정 연결용 홈을 준비한다(ADR-79, conventions §1).
+ * - `E2E_CLAUDE_HOME_FIXTURE=<tools/fixtures 아래 폴더>`: 그 fixture를 임시 폴더로 복사하고 파일 안의 자리표시 문자열을
+ *   실제 경로(프로젝트 fixture 사본·이 홈 사본)로 바꾼다. 컨테이너에는 이 사본이 읽기 전용으로 연결된다.
+ * - `E2E_CLAUDE_HOME=<경로>`: 호출자가 준 폴더를 그대로 쓴다(지우지 않는다).
+ * - 둘 다 없으면 대역(`tools/claude-home-off`)을 연결한다 — 서버는 4개 모두 `연결 안 됨`으로 본다.
+ * 실제 사용자 홈(`~/.claude`)은 연결하지 않는다.
+ */
+function prepareClaudeHome(projectFixtureDir: string): ClaudeHome {
+  const provided = process.env.E2E_CLAUDE_HOME;
+  if (provided !== undefined && provided.trim() !== "") {
+    return { dir: realpathSync(provided), owned: false };
+  }
+  const name = process.env[CLAUDE_HOME_FIXTURE_ENV];
+  if (name === undefined || name.trim() === "") {
+    return { dir: null, owned: false };
+  }
+  if (!/^claude-home-[a-z0-9][a-z0-9-]*$/.test(name)) {
+    throw new Error(`${CLAUDE_HOME_FIXTURE_ENV} 이름이 올바르지 않습니다(claude-home-* 만 허용): ${name}`);
+  }
+  const source = join(FIXTURES_DIR, name);
+  if (!existsSync(source)) {
+    throw new Error(`claude-home fixture를 찾을 수 없습니다: ${source}`);
+  }
+  const dir = mkdtempSync(join(realpathSync(tmpdir()), "aojistudio-e2e-claude-home-"));
+  execFileSync("cp", ["-R", `${source}/.`, dir], { stdio: "inherit" });
+  // 컨테이너 사용자(1000)가 읽을 수 있어야 한다. 쓰기는 연결이 읽기 전용이라 필요 없다.
+  execFileSync("chmod", ["-R", "a+rX", dir]);
+  replacePlaceholders(dir, projectFixtureDir, dir);
+  return { dir, owned: true };
+}
+
+/** 사본 안 텍스트 파일(.json·.jsonl)의 자리표시 문자열을 실제 경로로 바꾼다. */
+function replacePlaceholders(root: string, hostPath: string, claudeHome: string): void {
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    const path = join(root, entry.name);
+    if (entry.isDirectory()) {
+      replacePlaceholders(path, hostPath, claudeHome);
+    } else if (entry.isFile() && /\.(json|jsonl)$/.test(entry.name)) {
+      const text = readFileSync(path, "utf8");
+      if (text.includes(HOST_PATH_PLACEHOLDER) || text.includes(CLAUDE_HOME_PLACEHOLDER)) {
+        writeFileSync(
+          path,
+          text.split(HOST_PATH_PLACEHOLDER).join(hostPath).split(CLAUDE_HOME_PLACEHOLDER).join(claudeHome),
+        );
+      }
+    }
+  }
 }
 
 /**
@@ -399,6 +469,7 @@ function tailLog(logPath: string, lines = 20): string {
 /** 기동 중 실패하면 띄운 것을 되돌린다. `E2E_KEEP_UP=1`이면 조사용으로 남긴다. */
 async function cleanupAfterFailure(
   fixture: Fixture,
+  claudeHome: ClaudeHome,
   processes: (BackgroundProcess | null)[],
 ): Promise<void> {
   if (process.env.E2E_KEEP_UP === "1") {
@@ -417,6 +488,9 @@ async function cleanupAfterFailure(
   }
   if (fixture.owned) {
     rmSync(fixture.dir, { recursive: true, force: true });
+  }
+  if (claudeHome.owned && claudeHome.dir !== null) {
+    rmSync(claudeHome.dir, { recursive: true, force: true });
   }
 }
 

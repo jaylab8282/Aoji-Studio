@@ -146,7 +146,6 @@ test("[FR-025-AC1] 값이 다른 중복 쌍(뒤 줄이 큰 쌍·앞 줄이 큰 �
   assert.ok(earlier[0].output_tokens > earlier[1].output_tokens, "앞 줄이 큰 쌍");
   for (const [a, b] of [later, earlier]) for (const k of ["input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"]) assert.notEqual(a[k], b[k], `${k}도 다르다`);
   const { rows } = readTranscripts();
-  const pick = (model, id) => rows.filter((r) => r.model === model);
   // 선택된 줄: 쌍 1은 뒤 줄, 쌍 2는 앞 줄. 합계가 이 선택을 포함해야 한다.
   const exp = readJson("claude-home-basic", "expected.json");
   const withBoth = sumTokens(rows).reduce((a, b) => a + b, 0);
@@ -155,7 +154,13 @@ test("[FR-025-AC1] 값이 다른 중복 쌍(뒤 줄이 큰 쌍·앞 줄이 큰 �
   const wrong = [four(later[0]), four(earlier[1])]; // 먼저 읽은 줄 규칙이면 이 값이 들어간다
   const delta = (x) => x.reduce((s, t) => s + t.reduce((a, b) => a + b, 0), 0);
   assert.ok(delta(chosen) !== delta(wrong));
-  assert.equal(pick("claude-sonnet-4-5-20250929").length >= 1, true);
+  // 모델별 4값 합이 expected.json byModel과 정확히 같다(선택 규칙이 합계에 반영됐는지 모델 단위로 확인)
+  const sumBy = (model) =>
+    rows.filter((r) => r.model === model).reduce((acc, r) => acc.map((v, i) => v + r.t[i]), [0, 0, 0, 0]);
+  for (const m of exp.byModel) {
+    assert.deepEqual(sumBy(m.model), [m.input, m.output, m.cacheCreation, m.cacheRead], m.model);
+  }
+  assert.deepEqual(sumBy("claude-sonnet-4-5-20250929"), [1860, 980, 1910, 10600]);
 });
 
 test("[FR-025-AC1][FR-026-AC1] expected.json 금액이 ADR-82 단가로 따로 계산한 값과 같고 단가 없는 모델은 합계에서 빠진다", () => {
