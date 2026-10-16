@@ -5,7 +5,7 @@
 // **컨테이너가 기동 때 배치한 `<fixture>/.aojistudio/statusline.mjs`를 그대로 실행한다**(스크립트 사본을 따로 두지 않는다). 입력은 `tools/fixtures/statusline/*.json`.
 // 스크립트의 마지막-전송 상태 파일은 `os.tmpdir()`(= `TMPDIR`) 아래에 있어 실행마다 새 임시 폴더를 `TMPDIR`로 줘 서로의 60초 중복 판정에 영향을 주지 않는다
 // (같은 값 재전송 테스트만 폴더를 공유한다).
-// e2e-21(비용)이 파일 이름순으로 먼저 돈다(한도 카드는 그때 한도 캐시 값). 이 spec의 마지막 테스트가 컨테이너를 `pause`했다 `unpause`한다(finally) — 배치 13의 마지막 파일이다.
+// e2e-21(비용)이 파일 이름순으로 먼저 돈다(한도 카드는 그때 한도 캐시 값). 이 spec의 마지막 테스트가 컨테이너를 `pause`했다 `unpause`한다(finally) — pause 테스트는 이 spec의 맨 끝에 둔다. 뒤에 도는 e2e-24~26은 컨테이너 running만 확인하고 상태를 바꾸지 않는다(T-R4-20).
 // 목킹 없음(conventions §8).
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";

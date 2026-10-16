@@ -18,7 +18,7 @@ function compose(args: string[]): string {
   });
 }
 
-function containerId(): string {
+export function containerId(): string {
   const state = readE2eState();
   const id = compose(["ps", "-q", state.composeService]).trim();
   expect(id, "e2e 컨테이너를 찾을 수 없습니다").not.toBe("");

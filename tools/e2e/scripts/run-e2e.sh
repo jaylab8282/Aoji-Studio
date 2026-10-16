@@ -168,14 +168,18 @@ E2E_CLAUDE_HOME_FIXTURE=claude-home-empty run_batch "배치 12 — project-skill
 # e2e-19b(T-R4-17)는 마지막 테스트에서 31번 줄(기본 세션의 github 호출)을 3번 더 재생하므로 e2e-20의 `github` 기본 세션 횟수는 expected 값 또는 +3을 허용한다. e2e-20은 `.mcp.json`을 바꿨다 원복한다.
 # e2e-21-cost(T-R4-18)는 e2e-19a 재생 뒤(에이전트 나눔에 `기본 세션`) 상태줄을 받기 전(한도 카드 = 한도 캐시 값)에 돈다. 맨 마지막 describe가 fixture 대화 기록에 줄을 덧붙여 집계를 바꾸므로(되돌릴 수 없다)
 # 그 뒤에 도는 spec은 expected.json의 토큰 합계(`claude-home-basic`)에 기대면 안 된다(입력 +100·출력 +50, haiku). e2e-22-statusline(T-R4-18)은 비용 합계를 보지 않고, 상태줄 값(`statusline_last` 한 행)을 덮어쓰며
-# 한도 캐시(`.claude.json` 사본)를 잠시 바꿨다 원복한다. 마지막 테스트가 컨테이너를 `docker compose pause`했다 `unpause`(finally)하므로 **배치 13의 마지막 파일로 둔다**
-# — 새 spec(e2e-24~)을 더할 때는 e2e-22 앞에 끼우지 않고 pause 테스트를 e2e-22 안에서 맨 끝에 유지한다.
-E2E_CLAUDE_HOME_FIXTURE=claude-home-basic run_batch "배치 13 — project-usage + claude-home-basic (E2E-19a 08 스킬 사용 집계·E2E-19b 09 MCP 사용·E2E-20 09 MCP·E2E-21 10 비용·E2E-22 상태줄)" project-usage \
+# 한도 캐시(`.claude.json` 사본)를 잠시 바꿨다 원복한다. 마지막 테스트가 컨테이너를 `docker compose pause`했다 `unpause`(finally)한다(running 단언) — pause 테스트는 e2e-22 안에서 맨 끝에 유지한다.
+# e2e-24·25·26(T-R4-20)은 이름순으로 e2e-22 **뒤**에 돈다(일부러): e2e-25는 재생·대화 기록 읽기·상태줄 수신(표지가 든 입력)이 모두 끝난 상태의 DB·로그를 봐야 하고,
+# 셋 다 beforeAll에서 컨테이너가 running임을 단언해 pause 뒤 상태를 확인한다. e2e-24·25·26은 상태를 바꾸지 않는다.
+E2E_CLAUDE_HOME_FIXTURE=claude-home-basic run_batch "배치 13 — project-usage + claude-home-basic (E2E-19a 08 스킬 사용 집계·E2E-19b 09 MCP 사용·E2E-20 09 MCP·E2E-21 10 비용·E2E-22 상태줄·E2E-24 외부 요청 0·E2E-25 표지 0·E2E-26 전역 연결 격리)" project-usage \
   tests/e2e-19a-skill-usage.spec.ts \
   tests/e2e-19b-mcp-usage.spec.ts \
   tests/e2e-20-mcp.spec.ts \
   tests/e2e-21-cost.spec.ts \
-  tests/e2e-22-statusline.spec.ts
+  tests/e2e-22-statusline.spec.ts \
+  tests/e2e-24-no-external.spec.ts \
+  tests/e2e-25-markers.spec.ts \
+  tests/e2e-26-claude-home-isolation.spec.ts
 
 # 배치 14 — project-configured + WSL 실행 환경(E2E-23, T-R4-19). 서버는 `E2E_HOST_OS=wsl`·`E2E_WSL_DISTRO=Ubuntu-24.04`로 띄우고, dry-run 도우미는
 # `E2E_HELPER_PLATFORM=windows`(Windows 분기 `--platform windows --wsl-distro` — `wt.exe` 실행만 dry-run)로 띄운다. 전역 연결은 대역(기본).

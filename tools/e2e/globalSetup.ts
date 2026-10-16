@@ -262,10 +262,10 @@ function prepareFixture(): Fixture {
  */
 function alignHookUrlsToE2ePort(fixtureName: string, dir: string): void {
   if (fixtureName !== "project-usage") return;
-  const settings = join(dir, ".claude", "settings.json");
-  if (!existsSync(settings)) return;
-  const text = readFileSync(settings, "utf8");
-  writeFileSync(settings, text.split("http://127.0.0.1:4180/hooks/").join(`${BASE_URL}/hooks/`), "utf8");
+  const fixtureSettings = join(dir, ".claude", "settings.json");
+  if (!existsSync(fixtureSettings)) return;
+  const text = readFileSync(fixtureSettings, "utf8");
+  writeFileSync(fixtureSettings, text.split("http://127.0.0.1:4180/hooks/").join(`${BASE_URL}/hooks/`), "utf8");
 }
 
 type ClaudeHome = { dir: string | null; owned: boolean };
