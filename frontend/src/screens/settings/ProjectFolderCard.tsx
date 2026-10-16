@@ -68,14 +68,14 @@ export function ProjectFolderCard({ values, loadErrorMessage, onRetry }: Project
   if (values !== null && values.agentsDirMissing) {
     // ADR-42: 07이 `설정 열기`의 도착지 자신이라 이 화면에서는 그리지 않는다(`다시 읽기`만 남는다).
     return (
-      <SettingsCard title={SETTINGS_PROJECT_CARD_TITLE} wf="07-3" badge={SETTINGS_READ_ONLY_BADGE}>
+      <SettingsCard title={SETTINGS_PROJECT_CARD_TITLE} wf="07-3" badge={SETTINGS_READ_ONLY_BADGE} orderClass="portrait:order-1">
         <AgentsDirMissing hostPath={values.hostPath} showOpenSettings={false} />
       </SettingsCard>
     );
   }
 
   return (
-    <SettingsCard title={SETTINGS_PROJECT_CARD_TITLE} wf="07-3" badge={SETTINGS_READ_ONLY_BADGE}>
+    <SettingsCard title={SETTINGS_PROJECT_CARD_TITLE} wf="07-3" badge={SETTINGS_READ_ONLY_BADGE} orderClass="portrait:order-1">
       {loadErrorMessage === null ? (
         <ValueRows values={values} />
       ) : (

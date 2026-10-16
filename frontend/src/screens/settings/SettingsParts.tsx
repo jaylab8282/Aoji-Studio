@@ -13,12 +13,14 @@ interface SettingsCardProps {
   wf: string;
   /** 제목 옆 중립 칩(프로젝트 폴더 `읽기 전용`). */
   badge?: string;
+  /** 세로형 1열에서의 카드 순서(`portrait:order-N`). 가로형에서는 DOM 순서(열별)를 따른다. */
+  orderClass?: string;
   children: ReactNode;
 }
 
-export function SettingsCard({ title, wf, badge, children }: SettingsCardProps) {
+export function SettingsCard({ title, wf, badge, orderClass = "", children }: SettingsCardProps) {
   return (
-    <section aria-label={title} data-wf={wf} className="grid min-w-0 gap-3 rounded-card border border-border bg-card p-4">
+    <section aria-label={title} data-wf={wf} className={`grid min-w-0 gap-3 rounded-card border border-border bg-card p-4 ${orderClass}`}>
       <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
         <h2 className="text-section font-semibold text-text">{title}</h2>
         {badge === undefined ? null : <Chip>{badge}</Chip>}
@@ -65,4 +67,9 @@ export function CardActions({ children }: { children: ReactNode }) {
 /** 아래 줄의 보조 글(`.reason`). */
 export function Reason({ children }: { children: ReactNode }) {
   return <span className="min-w-reason-min flex-1 text-aux text-text-muted">{children}</span>;
+}
+
+/** 안내 상자(`.box`): `bg-inset` 한 덩어리 보조 글. */
+export function NoteBox({ children }: { children: ReactNode }) {
+  return <p className="rounded-chip bg-inset px-3 py-2 text-aux text-text-secondary">{children}</p>;
 }

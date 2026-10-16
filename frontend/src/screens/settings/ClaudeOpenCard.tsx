@@ -9,7 +9,7 @@
  * 도우미 상태 확인과 `테스트로 열기`의 실제 호출은 `SettingsScreen`이 한다. 이 카드는 상태를 prop으로
  * 받아 표시만 하고, 호출할 수 있는 상태(`installed` + `onTestOpen`)가 아니면 버튼을 비활성으로 둔다.
  */
-import type { Settings } from "../../api/types";
+import type { HostOs, Settings } from "../../api/types";
 import { Alert } from "../../components/ui/Alert";
 import { Button } from "../../components/ui/Button";
 import { CommandLine } from "../../components/ui/CommandLine";
@@ -30,9 +30,12 @@ import {
   SETTINGS_CLAUDE_DESC_BTN_2,
   SETTINGS_COMMAND_COPY_NOTE,
   SETTINGS_HELPER_CHECKING_TEXT,
-  SETTINGS_HELPER_INSTALLED_TEXT,
-  SETTINGS_HELPER_MISSING_TEXT,
   SETTINGS_HELPER_NO_TOKEN_TEXT,
+  SETTINGS_HOST_OS_MACOS_TEXT,
+  SETTINGS_HOST_OS_WSL_LEAD,
+  SETTINGS_ROW_HOST_OS,
+  settingsHelperInstalledText,
+  settingsHelperMissingText,
   SETTINGS_LEAD_SESSION_HINT,
   SETTINGS_ROW_DEFAULT_SESSION,
   SETTINGS_ROW_HELPER,
@@ -49,6 +52,8 @@ interface ClaudeOpenCardProps {
   /** `GET /api/settings`가 실패했으면 true: 값 행은 `-`로 두고 값이 필요한 버튼은 비활성이다. */
   loadFailed: boolean;
   helperStatus: HelperStatus;
+  /** 도우미 이름·설치 스크립트를 정하는 실행 환경(`settings.hostOs`, 아직 못 받았으면 `config.hostOs`). */
+  hostOs: HostOs;
   /** `테스트로 열기`가 받은 사유(403 확정 문구·도우미 message). 버튼 줄 아래 한 줄로 보여준다. */
   openErrorMessage?: string | null;
   /** 도우미 `POST /open {target:'default'}`. */
@@ -59,6 +64,7 @@ export function ClaudeOpenCard({
   settings,
   loadFailed,
   helperStatus,
+  hostOs,
   openErrorMessage = null,
   onTestOpen,
 }: ClaudeOpenCardProps) {
@@ -67,16 +73,28 @@ export function ClaudeOpenCard({
   const helperUnavailable = helperStatus.kind === "missing" || helperStatus.kind === "no-token";
 
   return (
-    <SettingsCard title={SETTINGS_CLAUDE_CARD_TITLE} wf="07-4">
+    <SettingsCard title={SETTINGS_CLAUDE_CARD_TITLE} wf="07-4" orderClass="portrait:order-3">
       <p className="text-text-muted">
         {SETTINGS_CLAUDE_DESC_1}
         <b className="font-semibold text-text">{SETTINGS_CLAUDE_DESC_BTN_1}</b>
         {SETTINGS_CLAUDE_DESC_2}
         <b className="font-semibold text-text">{SETTINGS_CLAUDE_DESC_BTN_2}</b>
-        {SETTINGS_CLAUDE_DESC_3}
+        {SETTINGS_CLAUDE_DESC_3[hostOs]}
       </p>
 
       <KvTable>
+        <KvRow label={SETTINGS_ROW_HOST_OS} testId="settings-row-host-os" loading={loading}>
+          {settings === null ? (
+            EMPTY_VALUE_TEXT
+          ) : settings.hostOs === "wsl" ? (
+            <>
+              {SETTINGS_HOST_OS_WSL_LEAD}
+              <Mono>{settings.wslDistro ?? EMPTY_VALUE_TEXT}</Mono>
+            </>
+          ) : (
+            SETTINGS_HOST_OS_MACOS_TEXT
+          )}
+        </KvRow>
         <KvRow label={SETTINGS_ROW_TERMINAL_APP} testId="settings-row-terminal-app" loading={loading}>
           {settings === null ? EMPTY_VALUE_TEXT : settings.terminalApp}
         </KvRow>
@@ -90,7 +108,7 @@ export function ClaudeOpenCard({
           </div>
         </KvRow>
         <KvRow label={SETTINGS_ROW_HELPER} testId="settings-row-helper">
-          <HelperStatusText status={helperStatus} helperUrl={settings === null ? null : settings.helperUrl} />
+          <HelperStatusText status={helperStatus} hostOs={hostOs} helperUrl={settings === null ? null : settings.helperUrl} />
         </KvRow>
       </KvTable>
 
@@ -113,14 +131,14 @@ export function ClaudeOpenCard({
   );
 }
 
-function HelperStatusText({ status, helperUrl }: { status: HelperStatus; helperUrl: string | null }) {
+function HelperStatusText({ status, hostOs, helperUrl }: { status: HelperStatus; hostOs: HostOs; helperUrl: string | null }) {
   if (status.kind === "checking") {
     return <>{SETTINGS_HELPER_CHECKING_TEXT}</>;
   }
   if (status.kind === "installed") {
     return (
       <span className="inline-flex flex-wrap items-center gap-2">
-        <StatusLabel status="running" label={SETTINGS_HELPER_INSTALLED_TEXT} />
+        <StatusLabel status="running" label={settingsHelperInstalledText(hostOs)} />
         {helperUrl === null ? null : (
           <span>
             {MIDDLE_DOT_SEPARATOR}
@@ -133,7 +151,7 @@ function HelperStatusText({ status, helperUrl }: { status: HelperStatus; helperU
   return (
     <StatusLabel
       status="danger"
-      label={status.kind === "no-token" ? SETTINGS_HELPER_NO_TOKEN_TEXT : SETTINGS_HELPER_MISSING_TEXT}
+      label={status.kind === "no-token" ? SETTINGS_HELPER_NO_TOKEN_TEXT : settingsHelperMissingText(hostOs)}
     />
   );
 }

@@ -15,6 +15,7 @@ import {
   SETTINGS_HOOK_CONFIGURED_TEXT,
   SETTINGS_HOOK_MISSING_TEXT,
   SETTINGS_HOOK_SETTINGS_PATH,
+  SETTINGS_RETENTION_NOTE,
   SETTINGS_RETENTION_SUFFIX,
   SETTINGS_ROW_COLLECT_URL,
   SETTINGS_ROW_HOOK,
@@ -39,7 +40,7 @@ export function CollectCard({ settings, hookConfigured, loadFailed }: CollectCar
   const text = (value: string | undefined) => (value === undefined ? EMPTY_VALUE_TEXT : value);
 
   return (
-    <SettingsCard title={SETTINGS_COLLECT_CARD_TITLE} wf="07-5">
+    <SettingsCard title={SETTINGS_COLLECT_CARD_TITLE} wf="07-5" orderClass="portrait:order-2">
       <KvTable>
         <KvRow label={SETTINGS_ROW_COLLECT_URL} testId="settings-row-collect-url" loading={loading}>
           <Mono>{text(settings?.collectUrl)}</Mono>
@@ -76,6 +77,8 @@ export function CollectCard({ settings, hookConfigured, loadFailed }: CollectCar
             <>
               <Mono>{settings.retentionDays}</Mono>
               {SETTINGS_RETENTION_SUFFIX}
+              {MIDDLE_DOT_SEPARATOR}
+              {SETTINGS_RETENTION_NOTE}
             </>
           )}
         </KvRow>

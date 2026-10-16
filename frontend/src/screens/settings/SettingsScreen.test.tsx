@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsScreen } from "./SettingsScreen";
 import type { Registry } from "../../api/types";
 import { snapshotStore } from "../../state/snapshotStore";
+import { usageSignalStore } from "../../state/usageSignalStore";
 import { buildSettingsFixture } from "../../test/fixtures/settings";
 import { buildSnapshotFixture } from "../../test/fixtures/snapshot";
 
@@ -108,6 +109,11 @@ function rowText(testId: string): string {
   return screen.getByTestId(testId).textContent ?? "";
 }
 
+/** 카드(`<section aria-label>` = region). */
+function card(name: string): HTMLElement {
+  return screen.getByRole("region", { name });
+}
+
 const writeText = vi.fn<(text: string) => Promise<void>>();
 
 describe("SettingsScreen (SCR-07)", () => {
@@ -159,13 +165,15 @@ describe("SettingsScreen (SCR-07)", () => {
     await waitFor(() => expect(rowText("settings-row-hook")).toContain(".claude/settings.json"));
     // hook 설정 카드에서 파일을 고칠 수 있는 요소(입력·저장 버튼)가 없다.
     expect(container.querySelectorAll("input, textarea, select")).toHaveLength(0);
-    expect(screen.getByRole("button", { name: "설정 예시 복사" })).toBeEnabled();
+    expect(within(card("수집")).getByRole("button", { name: "설정 예시 복사" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "저장" })).not.toBeInTheDocument();
+    // v1.2.0: 상태줄 연동 카드에도 `설정 예시 복사`가 있다(DOM 순서: 폴더 → 수집 → 전역 → Claude 열기 → 상태줄).
     expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual([
       "다시 읽기",
       "설정 예시 복사",
       "테스트로 열기",
       "명령 복사",
+      "설정 예시 복사",
     ]);
   });
 
@@ -176,7 +184,7 @@ describe("SettingsScreen (SCR-07)", () => {
 
     // 값이 실린 뒤(`findBy*`는 존재만 기다린다) 눌러야 경쟁 없이 복사 대상이 확정된다.
     await waitFor(() => expect(rowText("settings-row-hook")).toContain(".claude/settings.json"));
-    fireEvent.click(screen.getByRole("button", { name: "설정 예시 복사" }));
+    fireEvent.click(within(card("수집")).getByRole("button", { name: "설정 예시 복사" }));
 
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(settings.hookSettingsExample));
     expect(await screen.findByRole("button", { name: "복사됨" })).toBeInTheDocument();
@@ -300,7 +308,7 @@ describe("SettingsScreen (SCR-07)", () => {
 
     const value = await screen.findByText("쓰기 권한 없음");
     expect(value).toHaveClass("text-danger");
-    expect(screen.queryByText(/에이전트 추가·수정·제거 가능/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/추가·수정·삭제 가능/)).not.toBeInTheDocument();
   });
 
   it("[FR-013-AC5][ADR-33] 템플릿 값 그대로 표시", async () => {
@@ -357,7 +365,9 @@ describe("SettingsScreen (SCR-07)", () => {
     expect(rowText("settings-row-agents")).not.toContain("0");
     expect(rowText("settings-row-skills")).not.toContain("0");
     expect(screen.getByRole("button", { name: "명령 복사" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "설정 예시 복사" })).toBeDisabled();
+    for (const button of screen.getAllByRole("button", { name: "설정 예시 복사" })) {
+      expect(button).toBeDisabled();
+    }
   });
 
   it("GET /api/settings 실패 → 카드 안에 ApiError.message를 그대로 보여준다", async () => {
@@ -420,20 +430,23 @@ describe("SettingsScreen (SCR-07)", () => {
     expect(screen.queryByRole("main")).not.toBeInTheDocument();
     expect(
       Array.from(container.querySelectorAll("[data-wf]")).map((el) => el.getAttribute("data-wf")),
-    ).toEqual(["07-2", "07-3", "07-5", "07-4"]);
+    ).toEqual(["07-2", "07-3", "07-5", "07-7", "07-4", "07-6"]);
     expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
       "설정",
       "프로젝트 폴더",
       "수집",
+      "전역 Claude 설정 연결",
       "Claude 열기",
+      "상태줄 연동",
     ]);
     expect(
       screen.getByText("읽기 전용 · 웹에서 바꾸지 않습니다. 값은 마운트한 폴더와 실행 설정에서 옵니다."),
     ).toBeInTheDocument();
-    expect(screen.getByText("읽기 전용", { selector: "span" })).toBeInTheDocument();
+    // `읽기 전용` 칩은 프로젝트 폴더·전역 연결 카드에 둘.
+    expect(screen.getAllByText("읽기 전용", { selector: "span" })).toHaveLength(2);
     const description = container.querySelector('[data-wf="07-4"] > p');
     expect(description?.textContent).toBe(
-      "에이전트 워크플로우의 Claude 열기 · 기본 세션은 claude를, 워크플로우 상세의 팀장 호출은 그 워크플로우 팀장 세션을 맥북 기본 터미널에서 AojiStudio 폴더 기준으로 엽니다.",
+      "에이전트 워크플로우의 Claude 열기 · 기본 세션은 claude를, 워크플로우 상세의 팀장 호출은 그 워크플로우 팀장 세션을 macOS 기본 터미널에서 AojiStudio 폴더 기준으로 엽니다.",
     );
     expect(Array.from(description?.querySelectorAll("b") ?? []).map((b) => b.textContent)).toEqual([
       "Claude 열기 · 기본 세션",
@@ -455,11 +468,12 @@ describe("SettingsScreen (SCR-07)", () => {
     expect(rowText("settings-row-terminal-app")).toBe("macOS 기본 터미널");
     expect(rowText("settings-row-collect-url")).toBe("http://127.0.0.1:4180/hooks/events");
     expect(rowText("settings-row-teams")).toBe(".aojistudio/teams/*.json · 팀장·팀원 목록");
-    expect(rowText("settings-row-trash")).toBe(".aojistudio/trash/ · 제거한 정의 파일 보관");
-    expect(rowText("settings-row-retention")).toBe("30일");
+    expect(rowText("settings-row-trash")).toBe(".aojistudio/trash/ · 제거한 정의 파일·스킬 보관");
+    expect(rowText("settings-row-retention")).toBe("30일 · 일별 집계(스킬 사용·MCP 호출·토큰 수)는 계속 보관");
+    expect(rowText("settings-row-host-os")).toBe("맥북");
     expect(rowText("settings-row-agents")).toBe(".claude/agents/ · 정의 7개");
     expect(rowText("settings-row-skills")).toBe(".claude/skills/ · 3개");
-    expect(rowText("settings-row-writable")).toBe("있음 · 에이전트 추가·수정·제거 가능");
+    expect(rowText("settings-row-writable")).toBe("있음 · 에이전트·스킬 추가·수정·삭제 가능");
     expect(rowText("settings-row-format-errors")).toBe("읽지 못한 정의 파일 0개");
   });
 
@@ -515,7 +529,7 @@ describe("SettingsScreen (SCR-07)", () => {
 
     await waitFor(() => expect(rowText("settings-row-helper")).toContain("설치됨"));
     // `설치됨 · host:port`(settings.helperUrl에서 뽑는다).
-    await waitFor(() => expect(rowText("settings-row-helper")).toBe("설치됨 · 127.0.0.1:4181"));
+    await waitFor(() => expect(rowText("settings-row-helper")).toBe("맥북 도우미 설치됨 · 127.0.0.1:4181"));
     const testOpenButton = screen.getByRole("button", { name: "테스트로 열기" });
     expect(testOpenButton).toBeEnabled();
 
@@ -556,5 +570,309 @@ describe("SettingsScreen (SCR-07)", () => {
     );
     // 403은 도우미가 응답한 것이므로 미설치 안내(HelperMissingDialog)를 띄우지 않는다.
     expect(screen.queryByTestId("helper-missing-dialog")).not.toBeInTheDocument();
+  });
+
+  // ── v1.2.0 (T-R4-19): WSL 실행 환경 · 상태줄 연동 · 전역 Claude 설정 연결 ─────────────────────
+
+  const WSL_PATH = "/home/jaybee/AojiStudio";
+  const WSL_DEFAULT = `wsl -d Ubuntu-24.04 --cd ${WSL_PATH} -- claude`;
+  const WSL_LEAD = `wsl -d Ubuntu-24.04 --cd ${WSL_PATH} -- claude --agent <팀장 name>`;
+
+  function wslSettings() {
+    return buildSettingsFixture({
+      hostOs: "wsl",
+      wslDistro: "Ubuntu-24.04",
+      hostPath: WSL_PATH,
+      terminalApp: "Windows Terminal",
+      defaultSessionCommand: WSL_DEFAULT,
+      leadSessionCommandTemplate: WSL_LEAD,
+    });
+  }
+
+  /** `useHelperOpen`·미설치 안내는 `config.hostOs`를 쓰므로 스냅샷도 WSL로 맞춘다. */
+  function putWslConfigInStore() {
+    const snapshot = buildSnapshotFixture();
+    snapshotStore.replace({
+      ...snapshot,
+      config: { ...snapshot.config, hostOs: "wsl", wslDistro: "Ubuntu-24.04", hostPath: WSL_PATH, defaultSessionCommand: WSL_DEFAULT },
+      registry: registryFixture(),
+    });
+  }
+
+  it("[FR-014-AC4] WSL 실행 환경에서 마운트 폴더는 WSL 경로 그대로 표시된다", async () => {
+    putWslConfigInStore();
+    stubFetch({ settings: () => jsonResponse(wslSettings()) });
+    renderScreen();
+
+    await waitFor(() => expect(rowText("settings-row-mount-path")).toBe(WSL_PATH));
+    expect(screen.queryByText(/\/workspace|\/mnt\//)).not.toBeInTheDocument();
+  });
+
+  it("[FR-013-AC5] macos: 실행 환경 `맥북` · 터미널 앱 · 기본 세션·팀장 두 명령 · 설명의 터미널 이름", async () => {
+    const settings = buildSettingsFixture();
+    stubFetch();
+    renderScreen();
+
+    await waitFor(() => expect(rowText("settings-row-default-session")).toBe(settings.defaultSessionCommand));
+    const claude = card("Claude 열기");
+    expect(rowText("settings-row-host-os")).toBe("맥북");
+    expect(rowText("settings-row-terminal-app")).toBe("macOS 기본 터미널");
+    expect(rowText("settings-row-lead-session")).toContain(settings.leadSessionCommandTemplate);
+    expect(claude.querySelector(":scope > p")?.textContent).toContain("macOS 기본 터미널에서 AojiStudio 폴더 기준으로 엽니다.");
+  });
+
+  it("[FR-013-AC5] wsl: 실행 환경 `WSL · Ubuntu-24.04`(배포판 고정폭) · `Windows Terminal` · WSL 두 명령 · 설명 · 명령 복사 = WSL 기본 세션", async () => {
+    putWslConfigInStore();
+    stubFetch({ settings: () => jsonResponse(wslSettings()) });
+    renderScreen();
+
+    await waitFor(() => expect(rowText("settings-row-default-session")).toBe(WSL_DEFAULT));
+    const claude = card("Claude 열기");
+    expect(rowText("settings-row-host-os")).toBe("WSL · Ubuntu-24.04");
+    expect(within(screen.getByTestId("settings-row-host-os")).getByText("Ubuntu-24.04")).toHaveClass("font-mono");
+    expect(rowText("settings-row-terminal-app")).toBe("Windows Terminal");
+    expect(rowText("settings-row-lead-session")).toContain(WSL_LEAD);
+    expect(claude.querySelector(":scope > p")?.textContent).toBe(
+      "에이전트 워크플로우의 Claude 열기 · 기본 세션은 claude를, 워크플로우 상세의 팀장 호출은 그 워크플로우 팀장 세션을 Windows Terminal 새 탭에서 WSL AojiStudio 폴더 기준으로 엽니다.",
+    );
+    expect(claude).not.toHaveTextContent("&& claude");
+    expect(claude).not.toHaveTextContent("macOS 기본 터미널");
+
+    fireEvent.click(within(claude).getByRole("button", { name: "명령 복사" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(WSL_DEFAULT));
+  });
+
+  it("[FR-013-AC10] wsl 도우미 설치됨 → `Windows 도우미 설치됨 · host:port`, 미응답 → `미설치 · helper/windows/install.ps1로 설치`·`테스트로 열기` 비활성·안내 팝업은 wsl 설치 스크립트", async () => {
+    putWslConfigInStore();
+    stubFetch({
+      settings: () => jsonResponse(wslSettings()),
+      helperHealth: () => jsonResponse({ ok: true, version: "1" }),
+    });
+    const installed = renderScreen();
+    await waitFor(() => expect(rowText("settings-row-helper")).toBe("Windows 도우미 설치됨 · 127.0.0.1:4181"));
+    installed.unmount();
+    vi.unstubAllGlobals();
+
+    vi.useFakeTimers();
+    stubFetch({ settings: () => jsonResponse(wslSettings()), helperHealth: (signal) => neverResolving(signal) });
+    renderScreen();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(rowText("settings-row-helper")).toContain("미설치 · helper/windows/install.ps1로 설치");
+    expect(rowText("settings-row-helper")).not.toContain("helper/install.sh");
+    expect(screen.getByRole("button", { name: "테스트로 열기" })).toBeDisabled();
+    expect(screen.getByText("도우미 미설치")).toBeInTheDocument();
+  });
+
+  it("[FR-013-AC10][FR-013-E1] wsl `테스트로 열기`가 무응답이면 wsl 설치 스크립트 안내와 WSL 기본 세션 명령 팝업이 뜬다", async () => {
+    putWslConfigInStore();
+    let healthy = true;
+    stubFetch({
+      settings: () => jsonResponse(wslSettings()),
+      helperHealth: (signal) => (healthy ? jsonResponse({ ok: true, version: "1" }) : neverResolving(signal)),
+    });
+    renderScreen();
+    await waitFor(() => expect(rowText("settings-row-helper")).toContain("Windows 도우미 설치됨"));
+
+    healthy = false;
+    vi.useFakeTimers();
+    fireEvent.click(screen.getByRole("button", { name: "테스트로 열기" }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    const dialog = screen.getByTestId("helper-missing-dialog");
+    expect(dialog).toHaveTextContent("helper/windows/install.ps1로 설치한 뒤 다시 시도하세요");
+    expect(dialog).toHaveTextContent(WSL_DEFAULT);
+  });
+
+  it("[FR-014-AC6] 상태줄 연동 카드: 설명 · 예시 블록(서버 값 그대로, `<쓰던 상태줄 명령>` 포함) · `설정 예시 복사` → 클립보드 = 예시 → `복사됨`", async () => {
+    const settings = buildSettingsFixture();
+    stubFetch();
+    renderScreen();
+
+    const statusline = await screen.findByRole("region", { name: "상태줄 연동" });
+    expect(statusline).toHaveAttribute("data-wf", "07-6");
+    expect(
+      within(statusline).getByText(
+        "Claude Code 상태줄 입력에서 구독 플랜과 5시간·주간 한도를 Aoji Studio로 보냅니다. 비용 화면의 한도 값이 여기서 옵니다.",
+      ),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(within(statusline).getByText(/"statusLine"/)).toBeInTheDocument());
+    const block = statusline.querySelector("pre");
+    expect(block?.textContent).toBe(settings.statusline.settingsExample);
+    expect(block).toHaveClass("bg-inset", "font-mono", "whitespace-pre-wrap");
+    expect(block?.textContent).toContain("<쓰던 상태줄 명령>");
+    expect(within(statusline).getByText("Claude Code 설정 파일에 직접 넣습니다 · 웹은 쓰지 않습니다")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("settings-row-statusline-previous")).getByText("<쓰던 상태줄 명령>"),
+    ).toHaveClass("font-mono");
+    expect(screen.getByTestId("settings-row-statusline-previous")).toHaveTextContent(
+      "이미 쓰던 상태줄 명령이 있으면 <쓰던 상태줄 명령> 자리에 넣으세요. 그 명령의 출력이 그대로 상태줄에 보입니다. 없으면 이 자리를 지웁니다",
+    );
+    expect(
+      within(statusline).getByText(
+        "Claude Code CLI 세션이 돌 때만 값이 들어옵니다. 데스크톱 앱 세션에서는 상태줄이 돌지 않을 수 있습니다.",
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.click(within(statusline).getByRole("button", { name: "설정 예시 복사" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(settings.statusline.settingsExample));
+    expect(await within(statusline).findByRole("button", { name: "복사됨" })).toBeInTheDocument();
+    // 수집 카드의 복사 버튼은 그대로다(둘은 서로 다른 값을 복사한다).
+    expect(within(card("수집")).getByRole("button", { name: "설정 예시 복사" })).toBeEnabled();
+  });
+
+  it("[FR-014-AC6] 마지막 수신 `hh:mm:ss · N분 전`", async () => {
+    const receivedAt = new Date(Date.now() - 3.5 * 60_000).toISOString();
+    stubFetch({
+      settings: () =>
+        jsonResponse(buildSettingsFixture({ statusline: { ...buildSettingsFixture().statusline, lastReceivedAt: receivedAt } })),
+    });
+    renderScreen();
+
+    await waitFor(() =>
+      expect(rowText("settings-row-statusline-received")).toMatch(/^\d{2}:\d{2}:\d{2} · 3분 전$/),
+    );
+  });
+
+  it("[FR-027-E1] 상태줄을 받은 적 없으면 `받은 적 없음`(muted)", async () => {
+    stubFetch();
+    renderScreen();
+
+    await waitFor(() => expect(rowText("settings-row-statusline-received")).toBe("받은 적 없음"));
+    expect(within(screen.getByTestId("settings-row-statusline-received")).getByText("받은 적 없음")).toHaveClass(
+      "text-text-muted",
+    );
+  });
+
+  it("전역 Claude 설정 연결 카드: 4항목 고정 순서 · 연결됨 `연결됨 · 읽기 전용` / `연결 안 됨` · 연결 방법 안내 항상", async () => {
+    stubFetch({
+      settings: () =>
+        jsonResponse(
+          buildSettingsFixture({
+            globalClaude: {
+              items: [
+                { key: "claudeJson", connected: true },
+                { key: "settings", connected: true },
+                { key: "plugins", connected: false },
+                { key: "projects", connected: false },
+              ],
+              readAt: null,
+            },
+          }),
+        ),
+    });
+    renderScreen();
+
+    const global = await screen.findByRole("region", { name: "전역 Claude 설정 연결" });
+    expect(global).toHaveAttribute("data-wf", "07-7");
+    expect(within(global).getByText("읽기 전용", { selector: "span" })).toBeInTheDocument();
+    expect(
+      within(global).getByText(
+        "MCP·비용·한도를 보려고 사용자 홈의 Claude Code 파일 4개를 읽기 전용으로 연결합니다. 자격증명 파일은 연결하지 않습니다.",
+      ),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(within(global).getAllByText("연결됨 · 읽기 전용")).toHaveLength(2));
+    expect(within(global).getAllByText("연결 안 됨")).toHaveLength(2);
+    for (const label of ["항목", "쓰는 곳", "상태"]) {
+      expect(within(global).getByText(label)).toBeInTheDocument();
+    }
+    // 항목·쓰는 곳은 정적이고 순서가 고정이다.
+    const text = global.textContent ?? "";
+    const order = ["~/.claude.json", "MCP 설정 · 한도 캐시", "~/.claude/settings.json", "플러그인 활성 정보", "~/.claude/plugins/", "플러그인 MCP 정의", "~/.claude/projects/", "대화 기록 토큰 수(비용)"];
+    const positions = order.map((item) => text.indexOf(item));
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+    expect(within(global).getAllByText("연결 안 됨")[0]).toHaveClass("text-danger");
+    expect(within(global).getByText(/연결 방법 · /)).toHaveTextContent(
+      "연결 방법 · .env에 홈 경로를 넣고 컨테이너를 다시 시작하면 4개 항목이 읽기 전용으로 연결됩니다. 웹은 이 파일들을 쓰지 않습니다.",
+    );
+    expect(within(global).getByText(".env")).toHaveClass("font-mono");
+  });
+
+  it("전역 Claude 설정 연결: 4항목 모두 연결 안 됨이어도 연결 방법 안내가 보인다(대역 상태)", async () => {
+    stubFetch();
+    renderScreen();
+
+    const global = await screen.findByRole("region", { name: "전역 Claude 설정 연결" });
+    await waitFor(() => expect(within(global).getAllByText("연결 안 됨")).toHaveLength(4));
+    expect(within(global).queryByText("연결됨 · 읽기 전용")).not.toBeInTheDocument();
+    expect(within(global).getByText(/연결 방법 · /)).toBeInTheDocument();
+  });
+
+  it("[FR-014-AC7] 07에는 입력 요소가 없고 버튼은 보조 동작뿐이다(다시 읽기·설정 예시 복사×2·테스트로 열기·명령 복사)", async () => {
+    stubFetch();
+    const { container } = renderScreen();
+
+    await waitFor(() => expect(rowText("settings-row-statusline-received")).toBe("받은 적 없음"));
+    expect(container.querySelectorAll("input, textarea, select, [contenteditable='true']")).toHaveLength(0);
+    for (const role of ["textbox", "searchbox", "checkbox", "radio", "combobox", "switch"] as const) {
+      expect(screen.queryAllByRole(role)).toHaveLength(0);
+    }
+    expect(
+      screen
+        .getAllByRole("button")
+        .map((button) => button.textContent)
+        .sort(),
+    ).toEqual(["다시 읽기", "명령 복사", "설정 예시 복사", "설정 예시 복사", "테스트로 열기"].sort());
+  });
+
+  it("[카드 순서] 가로형 2열 DOM(폴더 → 수집 → 전역 / Claude 열기 → 상태줄) · 세로형 1열 순서(폴더 → 수집 → Claude 열기 → 상태줄 → 전역)", async () => {
+    stubFetch();
+    const { container } = renderScreen();
+    await screen.findByRole("region", { name: "상태줄 연동" });
+
+    const cards = Array.from(container.querySelectorAll("section[data-wf]")).filter((el) => el.getAttribute("data-wf") !== "07-2");
+    const grid = cards[0]?.parentElement?.parentElement;
+    expect(grid).toHaveClass("grid-cols-2", "portrait:flex-col");
+    const columns = Array.from(grid?.children ?? []);
+    expect(columns).toHaveLength(2);
+    for (const column of columns) expect(column).toHaveClass("portrait:contents");
+    // 가로형: 열별 DOM 순서.
+    expect(columns.map((column) => Array.from(column.children).map((el) => el.getAttribute("data-wf")))).toEqual([
+      ["07-3", "07-5", "07-7"],
+      ["07-4", "07-6"],
+    ]);
+    // 세로형: 열 상자가 풀리고 카드의 order가 폴더 → 수집 → Claude 열기 → 상태줄 → 전역 연결이다.
+    const orderOf = (wf: string) => {
+      const match = /portrait:order-(\d)/.exec(container.querySelector(`[data-wf="${wf}"]`)?.className ?? "");
+      return match === null ? null : Number(match[1]);
+    };
+    expect(["07-3", "07-5", "07-4", "07-6", "07-7"].map(orderOf)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("[usage-changed settings] 신호를 받으면 `GET /api/settings`를 다시 조회해 상태줄 수신 값을 갱신한다(1초 묶음)", async () => {
+    usageSignalStore.reset();
+    let calls = 0;
+    stubFetch({
+      settings: () => {
+        calls += 1;
+        return jsonResponse(
+          buildSettingsFixture({
+            statusline: {
+              ...buildSettingsFixture().statusline,
+              lastReceivedAt: calls === 1 ? null : new Date(Date.now() - 90_000).toISOString(),
+            },
+          }),
+        );
+      },
+    });
+    renderScreen();
+    await waitFor(() => expect(rowText("settings-row-statusline-received")).toBe("받은 적 없음"));
+
+    act(() => {
+      usageSignalStore.signal(["settings"], null);
+      usageSignalStore.signal(["settings"], null);
+    });
+    await waitFor(() => expect(rowText("settings-row-statusline-received")).toMatch(/1분 전$/), { timeout: 3000 });
+    expect(calls).toBe(2);
+    // 다른 영역 신호는 07을 다시 조회하지 않는다.
+    act(() => {
+      usageSignalStore.signal(["cost"], null);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+    expect(calls).toBe(2);
+    usageSignalStore.reset();
   });
 });

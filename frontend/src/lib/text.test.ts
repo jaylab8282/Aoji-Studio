@@ -142,8 +142,9 @@ const JONGSEONG_MATH =
 /**
  * 화면 원본이 정적 글자 그대로 쓰는 `<...>` 표기(ui-spec SCR-08 제목 보조 글자 `/<이름>`, 08 `사용자 전용 스킬은 /<이름>으로만 부릅니다`).
  * 값 자리가 아니라 사용자가 입력하는 슬래시 명령의 모양이라 자리표시 검사에서 뺀다.
+ * 07 상태줄 연동 카드의 `<쓰던 상태줄 명령>`(ui-spec SCR-07 `쓰던 상태줄` 안내, 정적 글자 그대로 — ADR-33 예외, FR-014-AC6)도 같다.
  */
-const STATIC_ANGLE_TEXT = /\/<이름>/g;
+const STATIC_ANGLE_TEXT = /\/<이름>|<쓰던 상태줄 명령>/g;
 
 function isOffender(text: string): boolean {
   const checked = text.replace(STATIC_ANGLE_TEXT, "");

@@ -177,7 +177,15 @@ E2E_CLAUDE_HOME_FIXTURE=claude-home-basic run_batch "배치 13 — project-usage
   tests/e2e-21-cost.spec.ts \
   tests/e2e-22-statusline.spec.ts
 
-# E2E-01~17이 위 11개 배치로 끝난다(architecture.md §8.2·§8.4). 배치 12·13은 v1.2.0 스킬·사용 집계 배치다. 새 시나리오를 넣을 때는 fixture가 같고
+# 배치 14 — project-configured + WSL 실행 환경(E2E-23, T-R4-19). 서버는 `E2E_HOST_OS=wsl`·`E2E_WSL_DISTRO=Ubuntu-24.04`로 띄우고, dry-run 도우미는
+# `E2E_HELPER_PLATFORM=windows`(Windows 분기 `--platform windows --wsl-distro` — `wt.exe` 실행만 dry-run)로 띄운다. 전역 연결은 대역(기본).
+# 02·03 열기 → `DRY-RUN wt.exe … wsl.exe -d Ubuntu-24.04 --cd <경로> -- claude (--agent <lead>)`, 07 WSL 명령·`명령 복사`,
+# 도우미 정지(SIGSTOP→SIGCONT, finally에서 원복) → Windows 도우미 설치 안내. 파일을 쓰지 않고 도우미를 잠시 멈췄다 되돌릴 뿐이라 단독 배치다
+# (실행 환경 변수가 다른 컨테이너 — 다른 spec과 합치지 않는다).
+E2E_HOST_OS=wsl E2E_WSL_DISTRO=Ubuntu-24.04 E2E_HELPER_PLATFORM=windows run_batch "배치 14 — project-configured + WSL 실행 환경 + Windows dry-run 도우미 (E2E-23 02·03 wt.exe dry-run·07 WSL 명령·도우미 정지 안내)" project-configured \
+  tests/e2e-23-wsl.spec.ts
+
+# E2E-01~17이 위 11개 배치로 끝난다(architecture.md §8.2·§8.4). 배치 12·13은 v1.2.0 스킬·사용 집계 배치, 배치 14는 WSL 실행 환경 배치다. 새 시나리오를 넣을 때는 fixture가 같고
 # 서로의 전제를 건드리지 않는 배치에 덧붙이고, 컨테이너 상태를 바꾸는 spec(예: pause)은 단독 배치로 둔다.
 # 모든 배치가 끝날 때마다 globalTeardown이 컨테이너 로그의 옛 호환 경고 0줄을 단언한다(NFR-13 ⑥).
 # E2E-13 캡처 60장은 `tools/e2e/screenshots/<원본 이름>@<W>x<H>.png`에 남는다(.gitignore 대상).

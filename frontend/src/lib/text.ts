@@ -622,7 +622,7 @@ export const SETTINGS_AGENTS_PATH = ".claude/agents/";
 export const SETTINGS_SKILLS_PATH = ".claude/skills/";
 export const SETTINGS_AGENTS_COUNT_PREFIX = "정의";
 export const SETTINGS_COUNT_SUFFIX = "개";
-export const SETTINGS_WRITABLE_TRUE_TEXT = "있음 · 에이전트 추가·수정·제거 가능";
+export const SETTINGS_WRITABLE_TRUE_TEXT = "있음 · 에이전트·스킬 추가·수정·삭제 가능";
 /** FR-001-E2. 비활성 이유 줄(`WRITABLE_FALSE_REASON`)과 같은 글자다. */
 export const SETTINGS_WRITABLE_FALSE_TEXT = WRITABLE_FALSE_REASON;
 export const SETTINGS_FORMAT_ERRORS_PREFIX = "읽지 못한 정의 파일";
@@ -634,7 +634,14 @@ export const SETTINGS_CLAUDE_DESC_1 = "에이전트 워크플로우의 ";
 export const SETTINGS_CLAUDE_DESC_BTN_1 = "Claude 열기 · 기본 세션";
 export const SETTINGS_CLAUDE_DESC_2 = "은 claude를, 워크플로우 상세의 ";
 export const SETTINGS_CLAUDE_DESC_BTN_2 = "팀장 호출";
-export const SETTINGS_CLAUDE_DESC_3 = "은 그 워크플로우 팀장 세션을 맥북 기본 터미널에서 AojiStudio 폴더 기준으로 엽니다.";
+/** 설명 끝 문장은 실행 환경별이다(ui-rules 07 "설명의 터미널 이름도 바꾼다", ADR-91). */
+export const SETTINGS_CLAUDE_DESC_3: Record<HostOs, string> = {
+  macos: "은 그 워크플로우 팀장 세션을 macOS 기본 터미널에서 AojiStudio 폴더 기준으로 엽니다.",
+  wsl: "은 그 워크플로우 팀장 세션을 Windows Terminal 새 탭에서 WSL AojiStudio 폴더 기준으로 엽니다.",
+};
+export const SETTINGS_ROW_HOST_OS = "실행 환경";
+export const SETTINGS_HOST_OS_MACOS_TEXT = "맥북";
+export const SETTINGS_HOST_OS_WSL_LEAD = "WSL · ";
 export const SETTINGS_ROW_TERMINAL_APP = "터미널 앱";
 export const SETTINGS_ROW_DEFAULT_SESSION = "기본 세션";
 export const SETTINGS_ROW_LEAD_SESSION = "팀장으로 열기";
@@ -642,8 +649,14 @@ export const SETTINGS_LEAD_SESSION_HINT =
   "도우미가 받는 값은 팀장 name 하나 · 소문자·숫자·하이픈만 허용";
 export const SETTINGS_ROW_HELPER = "열기 도우미";
 export const SETTINGS_HELPER_CHECKING_TEXT = "확인 중…";
-export const SETTINGS_HELPER_INSTALLED_TEXT = "설치됨";
-export const SETTINGS_HELPER_MISSING_TEXT = "미설치 · helper/install.sh로 설치";
+/** `열기 도우미` 행의 도우미 이름은 실행 환경으로 정한다(ui-spec SCR-07). */
+export const SETTINGS_HELPER_NAME: Record<HostOs, string> = { macos: "맥북 도우미", wsl: "Windows 도우미" };
+export function settingsHelperInstalledText(hostOs: HostOs): string {
+  return `${SETTINGS_HELPER_NAME[hostOs]} 설치됨`;
+}
+export function settingsHelperMissingText(hostOs: HostOs): string {
+  return `미설치 · ${HELPER_INSTALL_SCRIPT[hostOs]}로 설치`;
+}
 /** `GET /api/helper/token`이 null일 때(ui-spec.md SCR-07 `열기 도우미` 행). */
 export const SETTINGS_HELPER_NO_TOKEN_TEXT = "미설치 · 토큰 파일 없음";
 export const SETTINGS_TEST_OPEN_BUTTON_LABEL = "테스트로 열기";
@@ -664,8 +677,50 @@ export const SETTINGS_ROW_TEAMS = "워크플로우 구성";
 export const SETTINGS_ROW_TRASH = "휴지통";
 export const SETTINGS_ROW_RETENTION = "이벤트 보존";
 export const SETTINGS_TEAMS_NOTE = "팀장·팀원 목록";
-export const SETTINGS_TRASH_NOTE = "제거한 정의 파일 보관";
+export const SETTINGS_TRASH_NOTE = "제거한 정의 파일·스킬 보관";
 export const SETTINGS_RETENTION_SUFFIX = "일";
+export const SETTINGS_RETENTION_NOTE = "일별 집계(스킬 사용·MCP 호출·토큰 수)는 계속 보관";
+
+// 상태줄 연동 카드 (v1.2.0 07-6, FR-014-AC6, FR-027-E1)
+export const SETTINGS_STATUSLINE_CARD_TITLE = "상태줄 연동";
+export const SETTINGS_STATUSLINE_DESC =
+  "Claude Code 상태줄 입력에서 구독 플랜과 5시간·주간 한도를 Aoji Studio로 보냅니다. 비용 화면의 한도 값이 여기서 옵니다.";
+export const SETTINGS_ROW_STATUSLINE_EXAMPLE = "설정 예시";
+export const SETTINGS_ROW_STATUSLINE_RECEIVED = "마지막 수신";
+export const SETTINGS_ROW_STATUSLINE_PREVIOUS = "쓰던 상태줄";
+export const SETTINGS_STATUSLINE_NEVER_RECEIVED = "받은 적 없음";
+/** 도움말의 `<쓰던 상태줄 명령>`은 정적 글자 그대로(고정폭으로 따로 그린다 — ADR-33 예외). */
+export const SETTINGS_STATUSLINE_PLACEHOLDER = "<쓰던 상태줄 명령>";
+export const SETTINGS_STATUSLINE_PREVIOUS_LEAD = "이미 쓰던 상태줄 명령이 있으면 ";
+export const SETTINGS_STATUSLINE_PREVIOUS_TAIL =
+  " 자리에 넣으세요. 그 명령의 출력이 그대로 상태줄에 보입니다. 없으면 이 자리를 지웁니다";
+export const SETTINGS_STATUSLINE_CLI_NOTE =
+  "Claude Code CLI 세션이 돌 때만 값이 들어옵니다. 데스크톱 앱 세션에서는 상태줄이 돌지 않을 수 있습니다.";
+export const SETTINGS_STATUSLINE_COPY_NOTE = "Claude Code 설정 파일에 직접 넣습니다 · 웹은 쓰지 않습니다";
+export function settingsMinutesAgo(minutes: number): string {
+  return `${minutes}분 전`;
+}
+
+// 전역 Claude 설정 연결 카드 (v1.2.0 07-7, ADR-79)
+export const SETTINGS_GLOBAL_CARD_TITLE = "전역 Claude 설정 연결";
+export const SETTINGS_GLOBAL_DESC =
+  "MCP·비용·한도를 보려고 사용자 홈의 Claude Code 파일 4개를 읽기 전용으로 연결합니다. 자격증명 파일은 연결하지 않습니다.";
+export const SETTINGS_GLOBAL_HEAD_ITEM = "항목";
+export const SETTINGS_GLOBAL_HEAD_USE = "쓰는 곳";
+export const SETTINGS_GLOBAL_HEAD_STATUS = "상태";
+export const SETTINGS_GLOBAL_CONNECTED_TEXT = "연결됨 · 읽기 전용";
+export const SETTINGS_GLOBAL_DISCONNECTED_TEXT = "연결 안 됨";
+/** 항목·쓰는 곳은 정적이고 순서 고정이다(ui-spec SCR-07). */
+export const SETTINGS_GLOBAL_ITEMS: ReadonlyArray<{ key: "claudeJson" | "settings" | "plugins" | "projects"; path: string; use: string }> = [
+  { key: "claudeJson", path: "~/.claude.json", use: "MCP 설정 · 한도 캐시" },
+  { key: "settings", path: "~/.claude/settings.json", use: "플러그인 활성 정보" },
+  { key: "plugins", path: "~/.claude/plugins/", use: "플러그인 MCP 정의" },
+  { key: "projects", path: "~/.claude/projects/", use: "대화 기록 토큰 수(비용)" },
+];
+export const SETTINGS_GLOBAL_HOW_LEAD = "연결 방법 · ";
+export const SETTINGS_GLOBAL_HOW_ENV = ".env";
+export const SETTINGS_GLOBAL_HOW_TAIL =
+  "에 홈 경로를 넣고 컨테이너를 다시 시작하면 4개 항목이 읽기 전용으로 연결됩니다. 웹은 이 파일들을 쓰지 않습니다.";
 
 // ── (v1.2.0) 08·09·10 데이터 화면 공통 (ui-spec §공통 `PeriodSelector`·`ExpandableList`·`UsedAgentsButton`, ADR-86·88) ─────
 /** 기간 선택 라벨(`aria-labelledby`의 글자). */
