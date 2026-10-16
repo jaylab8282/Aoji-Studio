@@ -72,17 +72,22 @@ public class ProjectFolderScanner {
      * 폴더가 없으면 0(FR-001-E3, 에러 아님).
      */
     public int scanSkills(Path mountRoot) {
+        return scanSkillNames(mountRoot).size();
+    }
+
+    /** {@code scanSkills}와 같은 규칙으로 센 스킬 폴더 이름(이름순, 형식 오류 폴더 포함). */
+    public List<String> scanSkillNames(Path mountRoot) {
         Path skillsDir = mountRoot.resolve(".claude").resolve("skills");
         if (!Files.isDirectory(skillsDir)) {
-            return 0;
+            return List.of();
         }
-        int count = 0;
+        List<String> names = new ArrayList<>();
         for (Path entry : listDirectChildren(skillsDir)) {
             if (Files.isDirectory(entry) && Files.isRegularFile(entry.resolve(SKILL_FILE_NAME))) {
-                count++;
+                names.add(entry.getFileName().toString());
             }
         }
-        return count;
+        return names;
     }
 
     /**

@@ -51,6 +51,8 @@ public class RegistryService {
     private final ReentrantLock rescanLock = new ReentrantLock();
     /** 마지막으로 성공한 재스캔 직전에 캡처한 감시 대상 상태(ADR-87). 기동 시 {@link #init()}가 처음 채운다. */
     private volatile Map<String, WatchedFiles.FileStat> baseline = Map.of();
+    /** 마지막 스캔의 스킬 폴더 이름(`/<스킬>` 판정용, ADR-80). 스냅샷에는 싣지 않는다(ADR-86 결정 6). */
+    private volatile Set<String> skillNames = Set.of();
 
     public RegistryService(
             AppProperties appProperties,
@@ -70,6 +72,11 @@ public class RegistryService {
     @PostConstruct
     void init() {
         rescanNow();
+    }
+
+    /** 지금 있는 스킬 폴더 이름(형식 오류 폴더 포함). 락 없이 읽는다. */
+    public Set<String> skillNames() {
+        return skillNames;
     }
 
     /** 현재 스냅샷을 락 없이 읽는다. */
@@ -118,7 +125,9 @@ public class RegistryService {
         Path mountRoot = Path.of(appProperties.getMountPath());
 
         AgentsScanResult agentsScan = projectFolderScanner.scanAgents(mountRoot, pathGuard);
-        int skillCount = projectFolderScanner.scanSkills(mountRoot);
+        List<String> scannedSkillNames = projectFolderScanner.scanSkillNames(mountRoot);
+        int skillCount = scannedSkillNames.size();
+        skillNames = Set.copyOf(scannedSkillNames);
         boolean writable = projectFolderScanner.checkWritable(mountRoot);
 
         Set<String> validAgentNames = agentsScan.validAgents().stream()

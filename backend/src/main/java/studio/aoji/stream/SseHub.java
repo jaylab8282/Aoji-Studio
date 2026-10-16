@@ -91,6 +91,20 @@ public class SseHub {
         }
     }
 
+    /**
+     * {@code usage-changed} 방송(realtime-spec §2, ADR-86 결정 4). 08·09·10·07이 기간 조회를 다시 부르라는
+     * 신호이므로 값은 싣지 않는다. {@code transcripts}는 대화 기록 진행 표시(T-R4-11)가 채우고, 없으면
+     * {@code null}.
+     */
+    public void broadcastUsageChanged(List<String> areas, Map<String, Object> transcripts) {
+        Map<String, Object> data = new java.util.LinkedHashMap<>();
+        data.put("areas", areas);
+        data.put("transcripts", transcripts);
+        synchronized (lock) {
+            broadcastToAll("usage-changed", data);
+        }
+    }
+
     /** 15초마다 모든 연결에 heartbeat(realtime-spec §2 "다른 메시지를 보냈어도 15초마다 보낸다"). */
     @Scheduled(fixedRate = 15_000)
     public void sendHeartbeat() {

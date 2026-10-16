@@ -44,6 +44,13 @@ public class ApiException extends RuntimeException {
                 HttpStatus.BAD_REQUEST, new ApiError("VALIDATION", message, Map.of(field, message), null));
     }
 
+    /** 여러 필드가 동시에 틀린 경우: {@code message}는 첫 사유, {@code fields}에 모두 싣는다. */
+    public static ApiException validation(Map<String, String> fields) {
+        String message = fields.values().iterator().next();
+        return new ApiException(
+                HttpStatus.BAD_REQUEST, new ApiError("VALIDATION", message, Map.copyOf(fields), null));
+    }
+
     public static ApiException workflowNotFound() {
         return new ApiException(HttpStatus.NOT_FOUND, new ApiError("WORKFLOW_NOT_FOUND", "워크플로우를 찾을 수 없습니다"));
     }

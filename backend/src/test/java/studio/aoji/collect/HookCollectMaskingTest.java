@@ -154,4 +154,48 @@ class HookCollectMaskingTest {
         // summary 규칙(FR-003-AC10)대로 file_path 하나만 담기고, 다른 tool_input 키(unused_extra)는 어디에도 없다.
         assertThat(storedSummary).isEqualTo("/workspace/secret-plan.md");
     }
+
+    private static final String PROMPT_MARKER = "AOJI-MARKER-PROMPT-c4d8";
+
+    @Test
+    void promptBodyIsNeverStoredReturnedOrLogged() throws Exception {
+        // [FR-019-AC8] 프롬프트 표지가 모든 테이블·응답(204 본문, GET /api/events)·로그에 0회
+        String sessionId = "prompt-session-" + System.nanoTime();
+        String body =
+                """
+                {"session_id":"%s","hook_event_name":"UserPromptSubmit","prompt":"/x %s 본문"}"""
+                        .formatted(sessionId, PROMPT_MARKER);
+
+        String collectResponse = mockMvc.perform(post("/hooks/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-AojiStudio-Collect-Token", validToken())
+                        .content(body))
+                .andExpect(status().isNoContent())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        String eventsResponse = mockMvc.perform(get("/api/events").header("Sec-Fetch-Site", "same-origin"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        StringBuilder dump = new StringBuilder();
+        for (String table : jdbc.queryForList(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'", String.class)) {
+            jdbc.query("SELECT * FROM " + table, rs -> {
+                int columns = rs.getMetaData().getColumnCount();
+                for (int i = 1; i <= columns; i++) {
+                    dump.append(rs.getString(i)).append('\n');
+                }
+            });
+        }
+        assertThat(dump.toString()).contains(sessionId).doesNotContain(PROMPT_MARKER);
+        assertThat(collectResponse).doesNotContain(PROMPT_MARKER);
+        assertThat(eventsResponse).contains(sessionId).doesNotContain(PROMPT_MARKER);
+        assertThat(logAppender.list)
+                .extracting(ILoggingEvent::getFormattedMessage)
+                .noneMatch(message -> message != null && message.contains(PROMPT_MARKER));
+    }
 }

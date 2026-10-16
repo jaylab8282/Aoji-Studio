@@ -27,6 +27,15 @@ public class EventRepository {
         this.jdbcClient = jdbcClient;
     }
 
+    /**
+     * 쓰기 잠금을 잡은 채 {@code action}을 실행한다. 트랜잭션(= 단일 커넥션 점유)을 여는 호출자는
+     * 반드시 이 잠금을 먼저 잡아야 한다 — 잠금 → 커넥션 순서를 모든 쓰기가 지켜야
+     * {@link #insert}·{@link #deleteOlderThan}과 교착하지 않는다.
+     */
+    public synchronized <T> T locked(java.util.function.Supplier<T> action) {
+        return action.get();
+    }
+
     /** 새 이벤트를 저장하고 생성된 {@code id}를 채운 행을 돌려준다. {@code event.id()}는 무시한다. */
     public synchronized EventRow insert(EventRow event) {
         KeyHolder keyHolder = new GeneratedKeyHolder();

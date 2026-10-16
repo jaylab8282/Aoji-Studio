@@ -2,6 +2,8 @@ package studio.aoji.live;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,13 +26,27 @@ public class SummaryBuilder {
     /** api-spec {@code EventRow}의 {@code kind}·{@code title}·{@code summary}(마스킹 전, 200자 이하). */
     public record Summary(String kind, String title, String summary) {}
 
-    /** FR-003-AC9 12종 사용 이벤트가 아니면 {@code null}. */
+    /** 스킬 목록 없이 계산한다({@code /<스킬>} 판정은 항상 '-'). */
     public Summary build(HookPayload payload) {
+        return build(payload, Set.of());
+    }
+
+    /**
+     * FR-003-AC9 12종 사용 이벤트가 아니면 {@code null}.
+     *
+     * @param skillNames 지금 있는 스킬 폴더 이름(형식 오류 포함). {@code UserPromptSubmit}의
+     *     {@code /<이름>} 판정에 쓴다(FR-003-AC10, ADR-80 결정 1)
+     */
+    public Summary build(HookPayload payload, Set<String> skillNames) {
         String tool = payload.toolName() == null ? "" : payload.toolName();
         return switch (payload.hookEventName()) {
             case "SessionStart" -> new Summary("session-start", "세션 시작", truncate(orDash(payload.cwd())));
             case "SessionEnd" -> new Summary("session-end", "세션 종료", truncate(orDash(payload.reason())));
-            case "UserPromptSubmit" -> new Summary("prompt", "프롬프트 제출", "-");
+            case "UserPromptSubmit" ->
+                    new Summary(
+                            "prompt",
+                            "프롬프트 제출",
+                            slashSkill(payload, skillNames).map(name -> "/" + name).orElse("-"));
             case "Stop" -> new Summary("stop", "응답 종료", "-");
             case "PreToolUse" -> new Summary("tool", "도구 실행 · " + tool, truncate(target(payload)));
             case "PostToolUse" -> new Summary("tool-done", "도구 완료 · " + tool, truncate(target(payload)));
@@ -57,7 +73,38 @@ public class SummaryBuilder {
         return target(payload);
     }
 
+    /**
+     * {@code prompt}가 {@code /<이름>}으로 시작하고 이름 뒤가 끝 또는 공백이며 {@code <이름>}이 지금 있는 스킬
+     * 폴더 이름이면 그 이름. 아니면 빈 값. 프롬프트 나머지는 읽지도 남기지도 않는다(FR-019-AC8).
+     */
+    public static Optional<String> slashSkill(HookPayload payload, Set<String> skillNames) {
+        String prompt = payload.prompt();
+        if (prompt == null || prompt.length() < 2 || prompt.charAt(0) != '/') {
+            return Optional.empty();
+        }
+        int end = 1;
+        while (end < prompt.length() && !Character.isWhitespace(prompt.charAt(end))) {
+            end++;
+        }
+        String name = prompt.substring(1, end);
+        return skillNames.contains(name) ? Optional.of(name) : Optional.empty();
+    }
+
+    /** Skill 도구 호출의 대상: {@code tool_input.skill}, 없으면 {@code tool_input.name}, 둘 다 없으면 {@code -}. */
+    public static String skillTarget(HookPayload payload) {
+        for (String key : List.of("skill", "name")) {
+            Object value = payload.toolInput().get(key);
+            if (value instanceof String text && !text.isBlank()) {
+                return text;
+            }
+        }
+        return "-";
+    }
+
     private static String target(HookPayload payload) {
+        if ("Skill".equals(payload.toolName())) {
+            return skillTarget(payload);
+        }
         Map<String, Object> toolInput = payload.toolInput();
         for (String key : TARGET_KEYS) {
             Object value = toolInput.get(key);

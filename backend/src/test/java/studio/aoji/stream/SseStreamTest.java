@@ -13,6 +13,8 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -72,6 +74,13 @@ class SseStreamTest {
                 "---\nname: architect\ndescription: 설계\n---\n본문\n",
                 StandardCharsets.UTF_8);
 
+        Path skillDir = mountRoot.resolve(".claude").resolve("skills").resolve("release-notes");
+        Files.createDirectories(skillDir);
+        Files.writeString(
+                skillDir.resolve("SKILL.md"),
+                "---\nname: release-notes\ndescription: 릴리즈 노트\n---\n본문\n",
+                StandardCharsets.UTF_8);
+
         registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/AojiStudio");
         registry.add("aojistudio.public-port", () -> "4180");
         registry.add("aojistudio.mount-path", () -> mountRoot.toString());
@@ -115,6 +124,123 @@ class SseStreamTest {
         HttpResponse<Void> response =
                 HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.discarding());
         assertThat(response.statusCode()).isEqualTo(204);
+    }
+
+    private void postRaw(String body) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/hooks/events"))
+                .header("Content-Type", "application/json")
+                .header("X-AojiStudio-Collect-Token", collectToken())
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        HttpResponse<Void> response =
+                HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.discarding());
+        assertThat(response.statusCode()).isEqualTo(204);
+    }
+
+    private static final String SKILL_HOOK =
+            "{\"session_id\":\"s-usage\",\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Skill\","
+                    + "\"agent_type\":\"architect\",\"tool_input\":{\"skill\":\"release-notes\"}}";
+
+    private BlockingQueue<SseFrame> openStream() throws Exception {
+        openConnection = connectStream(ALLOWED_ORIGIN, browserTokenFilter.token());
+        assertThat(openConnection.statusCode()).isEqualTo(200);
+        BlockingQueue<SseFrame> frames = readFramesAsync(openConnection.body());
+        assertThat(frames.poll(5, TimeUnit.SECONDS)).isNotNull();
+        return frames;
+    }
+
+    @Test
+    void skillHookEmitsUsageChangedSkillsWithin2SecondsAndNeverLeaksPrompt() throws Exception {
+        // [FR-019-AC5][FR-019-AC8] Skill hook·슬래시 프롬프트 뒤 2초 안 usage-changed skills, 프롬프트 표지는 SSE에 0회
+        BlockingQueue<SseFrame> frames = openStream();
+        List<SseFrame> seen = new ArrayList<>();
+
+        long start = System.nanoTime();
+        postRaw(SKILL_HOOK);
+        SseFrame usage = pollUntilType(frames, "usage-changed", 2_000, seen);
+        long elapsedMillis = (System.nanoTime() - start) / 1_000_000L;
+
+        assertThat(usage.data()).isEqualTo("{\"areas\":[\"skills\"],\"transcripts\":null}");
+        assertThat(elapsedMillis).isLessThan(2_000);
+
+        postRaw("{\"session_id\":\"s-usage\",\"hook_event_name\":\"UserPromptSubmit\","
+                + "\"prompt\":\"/release-notes AOJI-MARKER-PROMPT-c4d8 본문\"}");
+        SseFrame slashUsage = pollUntilType(frames, "usage-changed", 2_500, seen);
+        assertThat(slashUsage.data()).contains("\"skills\"");
+        SseFrame promptEvent = null;
+        for (int i = 0; i < 20 && promptEvent == null; i++) {
+            promptEvent = seen.stream()
+                    .filter(f -> f.type().equals("event") && f.data().contains("UserPromptSubmit"))
+                    .findFirst()
+                    .orElse(null);
+            if (promptEvent == null) {
+                SseFrame more = frames.poll(500, TimeUnit.MILLISECONDS);
+                if (more != null) {
+                    seen.add(more);
+                }
+            }
+        }
+        assertThat(promptEvent).isNotNull();
+        assertThat(promptEvent.data()).contains("\"summary\":\"/release-notes\"");
+        assertThat(seen).allSatisfy(f -> assertThat(f.data()).doesNotContain("AOJI-MARKER-PROMPT-c4d8"));
+    }
+
+    @Test
+    void mcpHookEmitsUsageChangedMcpWithin2Seconds() throws Exception {
+        // [FR-024-AC3] MCP 호출 hook 뒤 2초 안 usage-changed mcp
+        BlockingQueue<SseFrame> frames = openStream();
+
+        postRaw("{\"session_id\":\"s-usage\",\"hook_event_name\":\"PreToolUse\","
+                + "\"tool_name\":\"mcp__github__create_issue\",\"agent_type\":\"architect\",\"tool_input\":{}}");
+        SseFrame usage = pollUntilType(frames, "usage-changed", 2_000, new ArrayList<>());
+
+        assertThat(usage.data()).isEqualTo("{\"areas\":[\"mcp\"],\"transcripts\":null}");
+    }
+
+    @Test
+    void usageChangedIsCoalescedToOncePerSecondPerArea() throws Exception {
+        // [FR-019-AC5] 영역마다 1초에 최대 1회로 묶고, 마지막 변화 뒤 1초 안에 1회는 반드시 보낸다
+        BlockingQueue<SseFrame> frames = openStream();
+        postRaw(SKILL_HOOK);
+        pollUntilType(frames, "usage-changed", 2_000, new ArrayList<>());
+        long firstAt = System.nanoTime();
+
+        for (int i = 0; i < 5; i++) {
+            postRaw(SKILL_HOOK);
+        }
+        SseFrame second = pollUntilType(frames, "usage-changed", 2_000, new ArrayList<>());
+        long gapMillis = (System.nanoTime() - firstAt) / 1_000_000L;
+        SseFrame third = null;
+        try {
+            third = pollUntilType(frames, "usage-changed", 1_300, new ArrayList<>());
+        } catch (AssertionError expected) {
+            // 5건이 한 번으로 합쳐졌으므로 더 이상 오지 않는 것이 정상이다.
+        }
+
+        assertThat(second.data()).contains("\"skills\"");
+        assertThat(gapMillis).isBetween(800L, 1_700L);
+        assertThat(third).isNull();
+    }
+
+    private static SseFrame pollUntilType(
+            BlockingQueue<SseFrame> frames, String type, long timeoutMillis, List<SseFrame> seen)
+            throws InterruptedException {
+        long deadline = System.nanoTime() + timeoutMillis * 1_000_000L;
+        while (System.nanoTime() < deadline) {
+            long remainingMillis = (deadline - System.nanoTime()) / 1_000_000L;
+            if (remainingMillis <= 0) {
+                break;
+            }
+            SseFrame frame = frames.poll(remainingMillis, TimeUnit.MILLISECONDS);
+            if (frame == null) {
+                break;
+            }
+            seen.add(frame);
+            if (type.equals(frame.type())) {
+                return frame;
+            }
+        }
+        throw new AssertionError("timed out waiting for frame type=" + type);
     }
 
     private HttpResponse<InputStream> connectStream(String origin, String token) throws Exception {

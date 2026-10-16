@@ -14,12 +14,13 @@ import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
-import studio.aoji.events.EventRepository;
 import studio.aoji.events.EventRow;
 import studio.aoji.live.HookEventReceived;
 import studio.aoji.live.HookPayload;
 import studio.aoji.live.Masker;
 import studio.aoji.live.SummaryBuilder;
+import studio.aoji.registry.RegistryService;
+import studio.aoji.usage.UsageChangedNotifier;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
@@ -30,7 +31,7 @@ import tools.jackson.databind.ObjectMapper;
  * {@code BrowserTokenFilter}를 거치지 않는다.
  *
  * <p>처리 순서(architecture.md §3.2): 인증 검증 → JSON 파싱 → 요약 계산({@code SummaryBuilder}) →
- * 마스킹({@code Masker}) → INSERT({@code EventRepository}) → {@code HookEventReceived} 발행 → 204.
+ * 마스킹({@code Masker}) → INSERT + 일별 집계 UPSERT(같은 트랜잭션, {@code HookStore}) → {@code HookEventReceived} 발행 → 204.
  * 상태 전이({@code LiveStateService}, T-006)와 SSE 방송({@code SseHub}, T-007)은 이 이벤트를
  * 구독해서 붙인다 — 이 컨트롤러는 그 두 컴포넌트를 직접 호출하지 않으므로 수집 응답이 상태 계산·
  * 방송에 막히지 않는다(NFR-02, FR-003-AC3 100ms).
@@ -49,7 +50,9 @@ public class HookCollectController {
     private final ObjectMapper objectMapper;
     private final SummaryBuilder summaryBuilder;
     private final Masker masker;
-    private final EventRepository eventRepository;
+    private final HookStore hookStore;
+    private final RegistryService registryService;
+    private final UsageChangedNotifier usageChangedNotifier;
     private final ApplicationEventPublisher eventPublisher;
 
     public HookCollectController(
@@ -57,13 +60,17 @@ public class HookCollectController {
             ObjectMapper objectMapper,
             SummaryBuilder summaryBuilder,
             Masker masker,
-            EventRepository eventRepository,
+            HookStore hookStore,
+            RegistryService registryService,
+            UsageChangedNotifier usageChangedNotifier,
             ApplicationEventPublisher eventPublisher) {
         this.collectTokenStore = collectTokenStore;
         this.objectMapper = objectMapper;
         this.summaryBuilder = summaryBuilder;
         this.masker = masker;
-        this.eventRepository = eventRepository;
+        this.hookStore = hookStore;
+        this.registryService = registryService;
+        this.usageChangedNotifier = usageChangedNotifier;
         this.eventPublisher = eventPublisher;
     }
 
@@ -100,14 +107,14 @@ public class HookCollectController {
             return ResponseEntity.noContent().build();
         }
 
-        SummaryBuilder.Summary summary = summaryBuilder.build(payload);
+        SummaryBuilder.Summary summary = summaryBuilder.build(payload, registryService.skillNames());
         if (summary == null) {
             reject("UNSUPPORTED_EVENT", payload.hookEventName());
             return ResponseEntity.noContent().build();
         }
 
         String maskedSummary = masker.mask(summary.summary());
-        EventRow inserted = eventRepository.insert(new EventRow(
+        HookStore.Stored stored = hookStore.store(new EventRow(
                 0,
                 OffsetDateTime.now(),
                 payload.hookEventName(),
@@ -119,9 +126,10 @@ public class HookCollectController {
                 payload.cwd(),
                 summary.kind(),
                 summary.title(),
-                maskedSummary));
+                maskedSummary), payload);
 
-        eventPublisher.publishEvent(new HookEventReceived(this, payload, inserted));
+        eventPublisher.publishEvent(new HookEventReceived(this, payload, stored.row()));
+        usageChangedNotifier.markChanged(stored.changedAreas());
 
         return ResponseEntity.noContent().build();
     }

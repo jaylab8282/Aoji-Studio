@@ -148,4 +148,57 @@ class SummaryBuilderTest {
 
         assertThat(summaryBuilder.build(payload)).isNull();
     }
+
+    private static HookPayload prompt(String text) {
+        return new HookPayload("s1", null, "UserPromptSubmit", null, null, null, Map.of(), null, null, text);
+    }
+
+    private static final java.util.Set<String> SKILLS = java.util.Set.of("web-planner", "release-notes");
+
+    @Test
+    void skillToolUsesToolInputSkillAsTarget() {
+        // [FR-003-AC10] Skill → tool_input.skill, 다른 대상 키보다 먼저
+        HookPayload payload = payload(
+                "PreToolUse",
+                Map.of("tool_name", "Skill", "tool_input", Map.of("skill", "web-planner", "command", "x")));
+
+        SummaryBuilder.Summary summary = summaryBuilder.build(payload);
+
+        assertThat(summary.title()).isEqualTo("도구 실행 · Skill");
+        assertThat(summary.summary()).isEqualTo("web-planner");
+    }
+
+    @Test
+    void skillToolFallsBackToNameThenDash() {
+        // [FR-003-AC10] tool_input.skill 없으면 name, 둘 다 없으면 -
+        assertThat(summaryBuilder
+                        .build(payload("PostToolUse", Map.of("tool_name", "Skill", "tool_input", Map.of("name", "n1"))))
+                        .summary())
+                .isEqualTo("n1");
+        assertThat(summaryBuilder
+                        .build(payload("PermissionRequest", Map.of("tool_name", "Skill", "tool_input", Map.of())))
+                        .summary())
+                .isEqualTo("-");
+    }
+
+    @Test
+    void slashPromptForExistingSkillBecomesSlashName() {
+        // [FR-003-AC10] /web-planner foo → /web-planner (스킬 있음)
+        SummaryBuilder.Summary summary = summaryBuilder.build(prompt("/web-planner foo"), SKILLS);
+
+        assertThat(summary.kind()).isEqualTo("prompt");
+        assertThat(summary.summary()).isEqualTo("/web-planner");
+    }
+
+    @Test
+    void slashPromptForMissingOrPrefixSkillIsDash() {
+        // [FR-003-AC10] /nope → -, /web-plannerx → -, 슬래시 없음 → -, 프롬프트 본문은 요약에 없다
+        assertThat(summaryBuilder.build(prompt("/nope"), SKILLS).summary()).isEqualTo("-");
+        assertThat(summaryBuilder.build(prompt("/web-plannerx"), SKILLS).summary()).isEqualTo("-");
+        assertThat(summaryBuilder.build(prompt("web-planner"), SKILLS).summary()).isEqualTo("-");
+        assertThat(summaryBuilder.build(prompt("/"), SKILLS).summary()).isEqualTo("-");
+        assertThat(summaryBuilder.build(prompt("/web-planner"), SKILLS).summary()).isEqualTo("/web-planner");
+        assertThat(summaryBuilder.build(prompt("/web-planner\tx"), SKILLS).summary()).isEqualTo("/web-planner");
+        assertThat(summaryBuilder.build(prompt(null), SKILLS).summary()).isEqualTo("-");
+    }
 }
