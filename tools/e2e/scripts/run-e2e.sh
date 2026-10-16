@@ -107,9 +107,11 @@ run_batch "배치 5 — project-configured (E2E-04 재생·E2E-15 진입 주소 
 # `.claude/settings.json`을 07이 준 예시로 덮어쓰므로 **같은 파일을 쓰는 E2E-04(배치 5)와 같은 배치에 두지
 # 않는다**. 09와 11은 서로의 전제를 건드리지 않아(09는 settings.json을 읽지도 쓰지도 않고, 11은 도우미가
 # 살아 있는 상태만 요구한다) 컨테이너를 한 번만 띄우도록 한 배치에 둔다. 실행 순서는 아래 나열 순서다.
-run_batch "배치 6 — project-configured (E2E-09 터미널 열기·E2E-11 07 설정)" project-configured \
+# e2e-21b(T-R4-17: 09 MCP `연결 안 됨` FR-023-E2, T-R4-18이 10 부분을 더한다)는 전역 연결 fixture 없이(대역 `연결 안 됨`) 화면만 읽어 서로의 전제를 건드리지 않는다.
+run_batch "배치 6 — project-configured (E2E-09 터미널 열기·E2E-11 07 설정·E2E-21b 09 MCP 연결 안 됨)" project-configured \
   tests/e2e-09.spec.ts \
-  tests/e2e-11.spec.ts
+  tests/e2e-11.spec.ts \
+  tests/e2e-21b-disconnected.spec.ts
 
 # 배치 7 — project-configured. **반드시 단독 배치**: E2E-05는 컨테이너를 `docker compose pause`로 얼려
 # SSE를 끊는다(realtime-spec.md §4). 같은 배치에 다른 spec이 있으면 그 spec이 멈춘 컨테이너를 만나
@@ -163,8 +165,11 @@ E2E_CLAUDE_HOME_FIXTURE=claude-home-empty run_batch "배치 12 — project-skill
 
 # 배치 13 — project-usage + 전역 연결 `claude-home-basic`. **이벤트 0건인 새 컨테이너가 전제**다: e2e-19a가 첫 테스트에서 `기록 없음`을 단언한 뒤
 # `usage.jsonl`을 스스로 재생하고, 이후 spec(e2e-19b·e2e-20~22·24~26 — 이후 태스크가 더한다)은 그 데이터를 이어 쓴다. 파일 이름순 실행에 기댄다.
-E2E_CLAUDE_HOME_FIXTURE=claude-home-basic run_batch "배치 13 — project-usage + claude-home-basic (E2E-19a 08 스킬 사용 집계)" project-usage \
-  tests/e2e-19a-skill-usage.spec.ts
+# e2e-19b(T-R4-17)는 마지막 테스트에서 31번 줄(기본 세션의 github 호출)을 3번 더 재생하므로 e2e-20의 `github` 기본 세션 횟수는 expected 값 또는 +3을 허용한다. e2e-20은 `.mcp.json`을 바꿨다 원복한다.
+E2E_CLAUDE_HOME_FIXTURE=claude-home-basic run_batch "배치 13 — project-usage + claude-home-basic (E2E-19a 08 스킬 사용 집계·E2E-19b 09 MCP 사용·E2E-20 09 MCP)" project-usage \
+  tests/e2e-19a-skill-usage.spec.ts \
+  tests/e2e-19b-mcp-usage.spec.ts \
+  tests/e2e-20-mcp.spec.ts
 
 # E2E-01~17이 위 11개 배치로 끝난다(architecture.md §8.2·§8.4). 배치 12·13은 v1.2.0 스킬·사용 집계 배치다. 새 시나리오를 넣을 때는 fixture가 같고
 # 서로의 전제를 건드리지 않는 배치에 덧붙이고, 컨테이너 상태를 바꾸는 spec(예: pause)은 단독 배치로 둔다.

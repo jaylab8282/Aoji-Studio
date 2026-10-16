@@ -828,3 +828,64 @@ export const SKILL_IMPORT_FOOT_NOTE = "가져온 스킬은 웹에서 수정할 �
 export const SKILL_IMPORT_PICK_FIRST_REASON = "zip 파일을 먼저 고르세요";
 export const SKILL_IMPORT_SUBMIT_LABEL = "가져오기";
 export const SKILL_IMPORT_SUBMIT_PENDING_LABEL = "가져오는 중…";
+
+// ── (v1.2.0) SCR-09 MCP (ui-spec SCR-09, `09-mcp.html`) ───────────────────────────────────────────────────
+export const SIDEBAR_TAB_MCP = "MCP";
+export const MCP_TITLE = "MCP";
+export const MCP_SUBTITLE_LEAD = "읽기 전용 · 서버 ";
+export const MCP_SUBTITLE_TAIL = "개 · 이름순 · 추가·수정·삭제는 설정 파일에서 합니다";
+export const MCP_SOURCES_LABEL = "읽은 곳";
+export const MCP_GLOBAL_READ_AT_LEAD = "전역 설정 읽은 시각 ";
+export const MCP_SOURCE_PROJECT_TITLE = "프로젝트";
+export const MCP_SOURCE_PROJECT_PATH = ".mcp.json · .claude/settings.json";
+export const MCP_SOURCE_GLOBAL_TITLE = "전역";
+export const MCP_SOURCE_GLOBAL_PATH = "~/.claude.json";
+export const MCP_SOURCE_PLUGIN_TITLE = "플러그인";
+export const MCP_SOURCE_PLUGIN_PATH = "~/.claude/settings.json · plugins/";
+export const MCP_SOURCE_AGENTS_TITLE = "에이전트 · 호출 기록";
+export const MCP_SOURCE_AGENTS_PATH = ".claude/agents/ · hook 이벤트";
+export const MCP_SOURCE_STATE_NOT_CONNECTED = "연결 안 됨";
+export const MCP_SOURCE_STATE_ERROR = "읽지 못함";
+export function mcpSourceReadText(serverCount: number): string {
+  return `읽음 · 서버 ${serverCount}`;
+}
+export function mcpSourceConnectedText(serverCount: number): string {
+  return `연결됨 · 읽기 전용 · 서버 ${serverCount}`;
+}
+export function mcpSourceAgentsText(serverCount: number, calledOnlyCount: number): string {
+  return `서버 ${serverCount} · 호출 기록만 ${calledOnlyCount}`;
+}
+export const MCP_SOURCE_ERROR_TAIL = "이 출처만 빼고 표시합니다";
+export const MCP_SOURCE_ERROR_NOT_CONNECTED = "연결 안 됨";
+export const MCP_SOURCE_ERROR_OUTSIDE_LINK = "마운트 밖 링크";
+export function mcpSourceErrorParse(line: number | null): string {
+  return line === null ? "JSON 파싱 실패" : `JSON 파싱 실패 (${line}행)`;
+}
+export const MCP_CONNECTOR_TITLE = "claude.ai 커넥터";
+export const MCP_CONNECTOR_BODY = "claude.ai 커넥터(Gmail·Drive 등)는 로컬 설정에 없어 호출 기록이 있을 때만 보입니다";
+export const MCP_LIST_LABEL = "MCP 서버 목록";
+export const MCP_COL_SERVER = "서버";
+export const MCP_COL_LOCATIONS = "정의 위치";
+export const MCP_COL_AGENTS = "사용 에이전트";
+export const MCP_ACTIVE_CHIP = "활성";
+export const MCP_INACTIVE_CHIP = "비활성";
+export const MCP_LOCATION_PROJECT = "프로젝트";
+export const MCP_LOCATION_GLOBAL = "전역";
+export const MCP_LOCATION_CALLED_ONLY = "호출 기록만";
+export function mcpLocationPlugin(name: string | null): string {
+  return `플러그인 ${name ?? ""}`.trimEnd();
+}
+export function mcpLocationAgent(name: string | null): string {
+  return `에이전트 ${name ?? ""}`.trimEnd();
+}
+export const MCP_DETAIL_CONNECTION = "연결 방식 · 명령 또는 URL · 설정 값";
+export const MCP_DETAIL_NO_DEFINITION = "정의 없음 · 연결 방식 알 수 없음";
+export const MCP_DETAIL_DEFINED = "정의상";
+export const MCP_DETAIL_ACTUAL = "실제 사용 (횟수)";
+export const MCP_DETAIL_NO_RECORD = "기록 없음";
+export const MCP_DETAIL_NO_CALLS = "기간 안 호출 없음";
+export function mcpInheritAllChip(count: number): string {
+  return `전체 상속 ${count}명`;
+}
+export const MCP_EMPTY_TITLE = "설치된 MCP가 없습니다";
+export const MCP_EMPTY_BODY = "프로젝트·전역·플러그인 설정과 에이전트 정의에 MCP 서버가 없고, 기간 안 호출 기록도 없습니다.";

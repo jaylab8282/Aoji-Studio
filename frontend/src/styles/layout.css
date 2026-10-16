@@ -466,3 +466,16 @@
   grid-template-columns:
     var(--spacing-control) minmax(0, 1fr) minmax(0, 1.2fr) var(--spacing-col-mcp-agents);
 }
+
+/* 09 위쪽 줄: 읽은 곳 카드 | 커넥터 안내 380 (세로형 1열). */
+@utility mcp-top-grid {
+  display: grid;
+  min-width: 0;
+  flex: none;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: calc(var(--spacing) * 3);
+
+  @media (orientation: portrait) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

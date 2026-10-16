@@ -5,7 +5,7 @@ import { Sidebar } from "./Sidebar";
 import { NAV_ITEMS } from "./navItems";
 import { routes } from "../../app/router";
 import { snapshotStore } from "../../state/snapshotStore";
-import { SIDEBAR_TAB_HOME, SIDEBAR_TAB_SETTINGS, SIDEBAR_TAB_SKILLS, SIDEBAR_TAB_WORKFLOWS } from "../../lib/text";
+import { SIDEBAR_TAB_HOME, SIDEBAR_TAB_MCP, SIDEBAR_TAB_SETTINGS, SIDEBAR_TAB_SKILLS, SIDEBAR_TAB_WORKFLOWS } from "../../lib/text";
 
 /**
  * 브라우저 기본 포커스 표시를 지우는 클래스(ADR-46 A 금지 대상).
@@ -50,7 +50,7 @@ describe("Sidebar", () => {
     for (const wf of ["NAV-1", "NAV-2", "NAV-3", "NAV-3R"]) {
       expect(container.querySelector(`[data-wf="${wf}"]`), wf).not.toBeNull();
     }
-    expect(within(side).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["/", "/workflows", "/skills", "/settings"]);
+    expect(within(side).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["/", "/workflows", "/skills", "/mcp", "/settings"]);
   });
 
   it("[NFR-12] 로고: 심볼 31×28 alt='Aoji Studio' + 워드마크 120×23 alt='' (public 파일), 태그라인은 rail:에서 숨김", () => {
@@ -76,6 +76,7 @@ describe("Sidebar", () => {
       ["/", SIDEBAR_TAB_HOME],
       ["/workflows", SIDEBAR_TAB_WORKFLOWS],
       ["/skills", SIDEBAR_TAB_SKILLS],
+      ["/mcp", SIDEBAR_TAB_MCP],
       ["/settings", SIDEBAR_TAB_SETTINGS],
     ] as const) {
       const { unmount } = renderAt(path);
@@ -85,11 +86,11 @@ describe("Sidebar", () => {
     }
   });
 
-  it("[NFR-12] 메뉴 `스킬`(아이콘 puzzle, /skills)이 에이전트 워크플로우 다음·설정 앞에 있고, 08-x 팝업이 열린 /skills?dialog=skill-delete도 `스킬`이 현재 메뉴다", () => {
+  it("[NFR-12] 메뉴 `스킬`(아이콘 puzzle, /skills)이 에이전트 워크플로우 다음·MCP 앞에 있고, 08-x 팝업이 열린 /skills?dialog=skill-delete도 `스킬`이 현재 메뉴다", () => {
     renderAt("/skills?dialog=skill-delete&skill=design-review");
 
     const labels = within(screen.getByRole("navigation")).getAllByRole("link").map((a) => a.getAttribute("aria-label"));
-    expect(labels).toEqual([SIDEBAR_TAB_HOME, SIDEBAR_TAB_WORKFLOWS, SIDEBAR_TAB_SKILLS, SIDEBAR_TAB_SETTINGS]);
+    expect(labels).toEqual([SIDEBAR_TAB_HOME, SIDEBAR_TAB_WORKFLOWS, SIDEBAR_TAB_SKILLS, SIDEBAR_TAB_MCP, SIDEBAR_TAB_SETTINGS]);
     expect(link(SIDEBAR_TAB_SKILLS)).toHaveAttribute("href", "/skills");
     expect(link(SIDEBAR_TAB_SKILLS).querySelector("svg.lucide-puzzle")).not.toBeNull();
     expect(link(SIDEBAR_TAB_SKILLS)).toHaveAttribute("aria-current", "page");
@@ -174,15 +175,17 @@ describe("Sidebar", () => {
     });
   });
 
-  it("[NFR-12] 눌러도 아무 일 없는 메뉴가 없다: 모든 NAV_ITEMS 경로가 실제 라우트이고 구현 전 화면(MCP·비용)은 아직 없다", () => {
+  it("[NFR-12] 눌러도 아무 일 없는 메뉴가 없다: 모든 NAV_ITEMS 경로가 실제 라우트이고 `MCP`(plug, /mcp)는 있고 구현 전 화면(비용)은 아직 없다", () => {
     const children = routes[0]?.children ?? [];
     const definedPaths = children.map((route) => route.path).filter((path): path is string => path !== undefined && path !== "*");
 
     for (const item of NAV_ITEMS) {
       expect(definedPaths, `${item.label} → ${item.to}`).toContain(item.to);
     }
-    expect(NAV_ITEMS.map((item) => item.to)).toEqual(["/", "/workflows", "/skills", "/settings"]);
-    for (const label of ["MCP", "비용"]) {
+    expect(NAV_ITEMS.map((item) => item.to)).toEqual(["/", "/workflows", "/skills", "/mcp", "/settings"]);
+    const mcp = NAV_ITEMS.find((item) => item.to === "/mcp");
+    expect(mcp).toMatchObject({ label: SIDEBAR_TAB_MCP, icon: "plug" });
+    for (const label of ["비용"]) {
       expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
     }
   });
