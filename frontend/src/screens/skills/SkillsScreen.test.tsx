@@ -120,7 +120,7 @@ describe("SkillsScreen", () => {
     expect(screen.queryByText("기록 없음")).toBeNull();
   });
 
-  it("[FR-018-AC5] 가져온 스킬은 `가져온 스킬` 칩(08-10)이고 `삭제`가 활성이다. 이 태스크에는 `수정`·`스킬 만들기`·`가져오기` 버튼이 없다(T-R4-16)", async () => {
+  it("[FR-018-AC5] 가져온 스킬은 `가져온 스킬` 칩(08-10)이고 `수정`은 비활성 + 사유 `가져온 스킬은 수정할 수 없습니다`, `삭제`는 활성이다", async () => {
     stubSkills(() => jsonResponse(SAMPLE));
     renderScreen();
     await waitForRows();
@@ -128,10 +128,15 @@ describe("SkillsScreen", () => {
     const row = rowOf("charlie");
     expect(within(row).getByText("가져온 스킬")).toBeInTheDocument();
     expect(row).toHaveAttribute("data-wf", "08-10");
+    const edit = within(row).getByRole("button", { name: "수정" });
+    expect(edit).toBeDisabled();
+    expect(document.getElementById(edit.getAttribute("aria-describedby") as string)).toHaveTextContent(
+      "가져온 스킬은 수정할 수 없습니다",
+    );
     expect(within(row).getByRole("button", { name: "삭제" })).toBeEnabled();
-    expect(screen.queryByRole("button", { name: "수정" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "스킬 만들기" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "가져오기" })).toBeNull();
+    // 일반 행은 `수정`이 활성이고 이유 줄이 없다.
+    expect(within(rowOf("alpha")).getByRole("button", { name: "수정" })).toBeEnabled();
+    expect(within(rowOf("alpha")).queryByText("가져온 스킬은 수정할 수 없습니다")).toBeNull();
     expect(within(rowOf("bravo")).getByText("사용자 전용")).toBeInTheDocument();
     expect(rowOf("bravo")).toHaveAttribute("data-wf", "08-11");
   });
@@ -151,10 +156,17 @@ describe("SkillsScreen", () => {
     const detail = row.querySelector('[data-wf="08-13"]') as HTMLElement;
     expect(detail).toHaveTextContent("frontmatter 형식 오류: 닫는 --- 없음");
     expect(detail.querySelector("svg")).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "수정" })).toBeNull();
+    // `수정`은 비활성 + 사유, `삭제`는 가능(FR-022-AC4)
+    const edit = within(row).getByRole("button", { name: "수정" });
+    expect(edit).toBeDisabled();
+    expect(document.getElementById(edit.getAttribute("aria-describedby") as string)).toHaveTextContent(
+      "에디터에서 SKILL.md를 고치세요",
+    );
+    fireEvent.click(edit);
+    expect(screen.getByTestId("location")).not.toHaveTextContent("dialog=");
   });
 
-  it("[FR-018-E2] 스킬이 없으면 에러가 아니라 빈 상태 카드(puzzle · `스킬이 없습니다` · 안내)를 보인다 (두 버튼 단언은 T-R4-16)", async () => {
+  it("[FR-018-E2] 스킬이 없으면 에러가 아니라 빈 상태 카드(puzzle · `스킬이 없습니다` · 안내 · 두 버튼)를 보인다", async () => {
     seedRegistry({ skillCount: 0 });
     stubSkills(() => jsonResponse(buildSkillsReport([], { totalUses: 0 })));
     const { container } = renderScreen();
@@ -167,6 +179,30 @@ describe("SkillsScreen", () => {
     expect(screen.queryByRole("alert")).toBeNull();
     expect(container.querySelector('[data-wf="08-2"]')).toHaveTextContent("0개");
     expect(screen.queryByRole("region", { name: "스킬 목록" })).toBeNull();
+
+    // 카드 안 두 버튼: `스킬 만들기`(primary, plus) · `가져오기`(secondary, import) → 각각 08-1·08-2를 연다
+    const create = within(card).getByRole("button", { name: "스킬 만들기" });
+    const importButton = within(card).getByRole("button", { name: "가져오기" });
+    expect(create).toBeEnabled();
+    expect(importButton).toBeEnabled();
+    expect(create.querySelector("svg.lucide-plus")).not.toBeNull();
+    expect(importButton.querySelector("svg.lucide-import")).not.toBeNull();
+    fireEvent.click(create);
+    expect(screen.getByTestId("location")).toHaveTextContent("/skills?dialog=skill-new");
+    fireEvent.click(importButton);
+    expect(screen.getByTestId("location")).toHaveTextContent("dialog=skill-import");
+  });
+
+  it("[FR-018-E2][FR-020-E2] 빈 상태에서 writable=false면 카드 안 두 버튼이 비활성이고 `쓰기 권한 없음`이 보인다", async () => {
+    seedRegistry({ skillCount: 0, writable: false });
+    stubSkills(() => jsonResponse(buildSkillsReport([], { totalUses: 0 })));
+    const { container } = renderScreen();
+    await screen.findByRole("heading", { name: "스킬이 없습니다" });
+
+    const card = container.querySelector('[data-wf="08-5"]') as HTMLElement;
+    expect(within(card).getByRole("button", { name: "스킬 만들기" })).toBeDisabled();
+    expect(within(card).getByRole("button", { name: "가져오기" })).toBeDisabled();
+    expect(card).toHaveTextContent("쓰기 권한 없음");
   });
 
   it("[FR-018-AC6] 행에 `사용 에이전트 N명`, 0명이면 흐리게(data-zero)", async () => {
@@ -323,22 +359,120 @@ describe("SkillsScreen", () => {
     expect(urls.at(-1)).toMatch(/period=all/);
   });
 
-  it("[FR-020-E2] writable=false면 행 `삭제`가 모두 비활성이고 버튼 아래 오른쪽에 `쓰기 권한 없음` (이 태스크의 버튼은 `삭제`뿐 — 나머지 세 버튼은 T-R4-16)", async () => {
+  it("[FR-020-E2] writable=false면 `가져오기`·`스킬 만들기`·행 `수정`·행 `삭제` 네 버튼이 모두 비활성이고 이유 `쓰기 권한 없음`이 보인다(눌러도 이동하지 않는다)", async () => {
     seedRegistry({ writable: false });
     stubSkills(() => jsonResponse(SAMPLE));
-    renderScreen();
+    const { container } = renderScreen();
     await waitForRows();
 
-    const buttons = screen.getAllByRole("button", { name: "삭제" });
-    expect(buttons).toHaveLength(3);
-    for (const button of buttons) {
+    const title = container.querySelector('[data-wf="08-2"]') as HTMLElement;
+    const headButtons = [within(title).getByRole("button", { name: "가져오기" }), within(title).getByRole("button", { name: "스킬 만들기" })];
+    for (const button of headButtons) expect(button).toBeDisabled();
+    expect(title).toHaveTextContent("쓰기 권한 없음");
+
+    const edits = screen.getAllByRole("button", { name: "수정" });
+    const deletes = screen.getAllByRole("button", { name: "삭제" });
+    expect(edits).toHaveLength(3);
+    expect(deletes).toHaveLength(3);
+    for (const button of [...edits, ...deletes]) {
       expect(button).toBeDisabled();
       const reason = document.getElementById(button.getAttribute("aria-describedby") as string);
       expect(reason).toHaveTextContent("쓰기 권한 없음");
     }
-    fireEvent.click(buttons[0] as HTMLElement);
+    // 우선순위: 쓰기 권한 > 가져온 스킬 — 가져온 스킬 행도 `쓰기 권한 없음`이다
+    expect(within(rowOf("charlie")).queryByText("가져온 스킬은 수정할 수 없습니다")).toBeNull();
+    for (const button of [...headButtons, edits[0] as HTMLElement, deletes[0] as HTMLElement]) fireEvent.click(button);
     expect(screen.getByTestId("location")).toHaveTextContent("/skills");
     expect(screen.getByTestId("location")).not.toHaveTextContent("dialog=");
+  });
+
+  it("[FR-020-E2] 첫 스냅샷 전(writable 모름)에는 네 버튼이 비활성이고 이유 줄은 없다(ADR-44)", async () => {
+    snapshotStore.reset();
+    stubSkills(() => jsonResponse(SAMPLE));
+    const { container } = renderScreen();
+    await waitForRows();
+
+    const title = container.querySelector('[data-wf="08-2"]') as HTMLElement;
+    expect(within(title).getByRole("button", { name: "스킬 만들기" })).toBeDisabled();
+    expect(within(title).getByRole("button", { name: "가져오기" })).toBeDisabled();
+    expect(within(rowOf("alpha")).getByRole("button", { name: "수정" })).toBeDisabled();
+    expect(screen.queryByText("쓰기 권한 없음")).toBeNull();
+  });
+
+  it("[FR-020-AC1] 제목 줄 `스킬 만들기`(primary, plus) → ?dialog=skill-new, `가져오기`(secondary, import) → ?dialog=skill-import, 행 `수정` → ?dialog=skill-edit&skill=<이름>", async () => {
+    stubSkills(() => jsonResponse(SAMPLE));
+    const { container } = renderScreen();
+    await waitForRows();
+
+    const title = container.querySelector('[data-wf="08-2"]') as HTMLElement;
+    const create = within(title).getByRole("button", { name: "스킬 만들기" });
+    const importButton = within(title).getByRole("button", { name: "가져오기" });
+    expect(create).toBeEnabled();
+    expect(create.querySelector("svg.lucide-plus")).not.toBeNull();
+    expect(importButton.querySelector("svg.lucide-import")).not.toBeNull();
+    expect(screen.queryByText("쓰기 권한 없음")).toBeNull();
+
+    fireEvent.click(create);
+    expect(screen.getByTestId("location")).toHaveTextContent("/skills?dialog=skill-new");
+    fireEvent.click(importButton);
+    expect(screen.getByTestId("location")).toHaveTextContent("dialog=skill-import");
+    fireEvent.click(within(rowOf("bravo")).getByRole("button", { name: "수정" }));
+    expect(screen.getByTestId("location")).toHaveTextContent("dialog=skill-edit&skill=bravo");
+  });
+
+  it("[FR-020-AC5] 저장 직후 안내 줄(08-4, info) `Claude Code가 새 스킬을 바로 인식하지 못하면 재시작이 필요할 수 있습니다`가 8000ms 보이고 사라진다", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    stubSkills(() => jsonResponse(SAMPLE));
+    const { container } = renderScreen();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(container.querySelector('[data-wf="08-4"]')).toBeNull();
+
+    act(() => {
+      skillsViewStore.afterSave();
+    });
+    const note = screen.getByText("Claude Code가 새 스킬을 바로 인식하지 못하면 재시작이 필요할 수 있습니다");
+    expect(note).toHaveAttribute("role", "status");
+    expect(note).toHaveAttribute("data-wf", "08-4");
+    expect(note.querySelector("svg.lucide-info")).not.toBeNull();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(7900);
+    });
+    expect(screen.getByText(/새 스킬을 바로 인식하지 못하면/)).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(200);
+    });
+    expect(screen.queryByText(/새 스킬을 바로 인식하지 못하면/)).toBeNull();
+  });
+
+  it("[FR-020-AC5] 저장 후 안내 줄이 hook 미설정 안내보다 먼저 보이고(한 줄만), 사라진 뒤 hook 안내가 돌아온다. 화면을 다시 열면 지난 신호로는 띄우지 않는다", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    stubSkills(() => jsonResponse({ ...SAMPLE, hookConfigured: false }));
+    const first = renderScreen();
+    const noteCount = () => first.container.querySelectorAll('[data-wf="08-4"]').length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.getByText("hook 이벤트가 없어 호출 기록을 셀 수 없습니다")).toBeInTheDocument();
+
+    act(() => {
+      skillsViewStore.afterSave();
+    });
+    expect(noteCount()).toBe(1);
+    expect(screen.queryByText("hook 이벤트가 없어 호출 기록을 셀 수 없습니다")).toBeNull();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8100);
+    });
+    expect(screen.getByText("hook 이벤트가 없어 호출 기록을 셀 수 없습니다")).toBeInTheDocument();
+    first.unmount();
+
+    renderScreen();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.queryByText(/새 스킬을 바로 인식하지 못하면/)).toBeNull();
   });
 
   it("[FR-022-AC1] 행 `삭제`(writable) → ?dialog=skill-delete&skill=<이름>으로 이동한다", async () => {

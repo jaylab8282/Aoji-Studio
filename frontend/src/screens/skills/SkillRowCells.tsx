@@ -1,6 +1,7 @@
 /**
  * ui-spec SCR-08 행 한 줄 요약 칸(펼침 버튼 다음): 이름 + 칩(`08-9`~`08-11`) · 활용도 칸(`08-6`) · `사용 에이전트 N명`(`08-7`) · 행 동작(`08-8`).
- * 행 동작은 이 태스크에서 `삭제`만 있다(`수정`은 08-1과 함께 T-R4-16). `writable=false`면 비활성 + 버튼 아래 오른쪽 `쓰기 권한 없음`(FR-020-E2).
+ * 행 동작(`08-8`): `수정`(secondary, `pencil`) · `삭제`(danger, `trash-2`). 비활성 이유는 버튼 아래 오른쪽 한 줄이다.
+ * `수정`: 쓰기 권한 > 가져온 스킬 > 형식 오류 순으로 이유를 하나만 보인다(FR-018-AC5·E1, FR-020-E2). `삭제`는 `writable=false`만 비활성(FR-022-AC4).
  */
 import { useId } from "react";
 import { Button } from "../../components/ui/Button";
@@ -8,14 +9,14 @@ import { Chip } from "../../components/ui/Chip";
 import { Icon } from "../../components/ui/Icon";
 import { Meter } from "../../components/data/Meter";
 import { UsedAgentsButton } from "../../components/data/UsedAgentsButton";
-import { deleteDisabled, type SkillRowView } from "../../lib/derive/skillRows";
+import { deleteDisabled, editDisabledReason, type SkillRowView } from "../../lib/derive/skillRows";
 import {
   SKILL_CHIP_FORMAT_ERROR,
   SKILL_CHIP_IMPORTED,
   SKILL_CHIP_USER_ONLY,
   SKILL_DELETE_BUTTON_LABEL,
+  SKILL_EDIT_BUTTON_LABEL,
   USAGE_NO_RECORD_TEXT,
-  WRITABLE_FALSE_REASON,
   usageMeterLabel,
 } from "../../lib/text";
 
@@ -26,14 +27,16 @@ interface SkillRowCellsProps {
   onToggle: () => void;
   /** `registry.writable`. 첫 스냅샷 전에는 null(비활성, 이유 줄 없음 — ADR-44). */
   writable: boolean | null;
+  onEdit: (name: string) => void;
   onDelete: (name: string) => void;
 }
 
-export function SkillRowCells({ view, expanded, detailId, onToggle, writable, onDelete }: SkillRowCellsProps) {
+export function SkillRowCells({ view, expanded, detailId, onToggle, writable, onEdit, onDelete }: SkillRowCellsProps) {
   const reasonId = useId();
   const { row, percent, barRatio } = view;
-  const disabled = writable === null || deleteDisabled(writable);
-  const showReason = writable === false;
+  const deleteOff = writable === null || deleteDisabled(writable);
+  const editReason = writable === null ? null : editDisabledReason(row, writable);
+  const editOff = writable === null || editReason !== null;
 
   return (
     <>
@@ -60,19 +63,28 @@ export function SkillRowCells({ view, expanded, detailId, onToggle, writable, on
       </div>
       <div data-wf="08-8" className="flex flex-wrap items-center justify-end gap-2">
         <Button
+          variant="secondary"
+          disabled={editOff}
+          aria-describedby={editReason === null ? undefined : reasonId}
+          onClick={() => onEdit(row.name)}
+        >
+          <Icon name="pencil" />
+          {SKILL_EDIT_BUTTON_LABEL}
+        </Button>
+        <Button
           variant="danger"
-          disabled={disabled}
-          aria-describedby={showReason ? reasonId : undefined}
+          disabled={deleteOff}
+          aria-describedby={writable === false ? reasonId : undefined}
           onClick={() => onDelete(row.name)}
         >
           <Icon name="trash-2" />
           {SKILL_DELETE_BUTTON_LABEL}
         </Button>
-        {showReason ? (
+        {editReason === null ? null : (
           <span id={reasonId} className="basis-full text-right text-aux text-text-muted">
-            {WRITABLE_FALSE_REASON}
+            {editReason}
           </span>
-        ) : null}
+        )}
       </div>
     </>
   );

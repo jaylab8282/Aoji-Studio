@@ -748,3 +748,83 @@ export function skillDeleteReason(name: string): string {
 }
 export const SKILL_DELETE_CONFIRM_LABEL = "삭제";
 export const SKILL_DELETE_CONFIRM_PENDING_LABEL = "삭제 중…";
+
+// ── (v1.2.0) SCR-08 쓰기 진입 버튼·안내 (ui-spec SCR-08, FR-020) ─────────────────────────────────────────────
+export const SKILL_CREATE_BUTTON_LABEL = "스킬 만들기";
+export const SKILL_IMPORT_BUTTON_LABEL = "가져오기";
+export const SKILL_EDIT_BUTTON_LABEL = "수정";
+/** FR-018-AC5 `수정` 비활성 사유(가져온 스킬). 08-1 `IMPORTED_SKILL` 서버 문구와 같은 글자다. */
+export const SKILL_EDIT_REASON_IMPORTED = "가져온 스킬은 수정할 수 없습니다";
+/** FR-018-E1·FR-020-E5 `수정` 비활성 사유(형식 오류). */
+export const SKILL_EDIT_REASON_FORMAT_ERROR = "에디터에서 SKILL.md를 고치세요";
+/** FR-020-AC5 저장 직후 08 안내 줄 ①(8000ms). */
+export const SKILL_SAVED_NOTICE = "Claude Code가 새 스킬을 바로 인식하지 못하면 재시작이 필요할 수 있습니다";
+
+// ── (v1.2.0) SCR-08-1 스킬 만들기·수정 (ui-spec SCR-08-1, `08-1-skill-form.html`) ─────────────────────────
+export const SKILL_FORM_CREATE_TITLE = "스킬 만들기";
+export const SKILL_FORM_EDIT_TITLE = "스킬 수정";
+export function skillFilePathLabel(name: string): string {
+  return `AojiStudio/.claude/skills/${name}/SKILL.md`;
+}
+export const SKILL_NAME_LABEL = "이름";
+export const SKILL_NAME_HINT_RULE = "소문자·숫자·하이픈, 1~64자 · 같은 이름 불가 · 만든 뒤에는 바꿀 수 없음";
+export const SKILL_NAME_HINT_PREFIX_LEAD = "부서 접두어를 붙이세요 — 예: ";
+export const SKILL_NAME_HINT_PREFIXES: readonly string[] = ["design-", "web-", "invest-", "video-"];
+/** FR-020-AC1 사전 검증·서버 `fields.name` 문구(ADR-91). */
+export const SKILL_NAME_RULE_MESSAGE = "소문자·숫자·하이픈만, 1~64자";
+export const SKILL_NAME_FIXED_HINT = "이름(폴더 이름)은 바꿀 수 없습니다";
+export const SKILL_INVOKE_LABEL = "호출 방식";
+export const SKILL_USER_ONLY_LABEL = "사용자만 호출";
+export const SKILL_USER_ONLY_KEY = "disable-model-invocation";
+export const SKILL_USER_ONLY_HINT_LEAD = "체크하면 Claude가 스스로 부르지 않고, 사용자가 ";
+export const SKILL_USER_ONLY_HINT_SLASH = "/<이름>";
+export const SKILL_USER_ONLY_HINT_TAIL = "으로만 부릅니다";
+export const SKILL_DESCRIPTION_LABEL = "설명 (description)";
+export const SKILL_DESCRIPTION_HINT = "Claude가 이 설명을 보고 스킬을 고릅니다";
+export const SKILL_BODY_LABEL = "본문 (SKILL.md 지침)";
+export const SKILL_FORM_FOOT_CREATE_LEAD = "저장하면 ";
+export const SKILL_FORM_FOOT_CREATE_TAIL = "를 만듭니다";
+export const SKILL_FORM_FOOT_EDIT = "폼에 없는 frontmatter 항목(allowed-tools 등)은 값과 순서를 그대로 둡니다";
+/** 이름이 아직 비어 있을 때 아래 안내의 경로(화면 원본 정적 글자, ui-rules 08-1 아래 안내). */
+export const SKILL_FORM_FOOT_EMPTY_PATH = ".claude/skills/<이름>/SKILL.md";
+export function skillFormFootPath(name: string): string {
+  return name === "" ? SKILL_FORM_FOOT_EMPTY_PATH : `${SKILLS_PATH}${name}/SKILL.md`;
+}
+/** 08-1 수정: 읽는 중 GET 404, 쓰기 404, 409 `FILE_GONE` — 모두 같은 알림(D-164 Minor 2, FR-020-E4). */
+export const SKILL_FILE_GONE_MESSAGE = "저장 중 파일이 사라졌습니다";
+/** 08-1 수정: 읽으려는 스킬이 이미 없다(ADR-91). */
+export const SKILL_ALREADY_GONE_MESSAGE = "이미 없는 스킬입니다";
+export const SKILL_REQUIRED_FIELD_MESSAGE = "필수";
+
+// ── (v1.2.0) SCR-08-2 스킬 가져오기 (ui-spec SCR-08-2, `08-2-skill-import.html`) ─────────────────────────
+export const SKILL_IMPORT_TITLE = "스킬 가져오기";
+export const SKILL_IMPORT_SUBTITLE_LEAD = "zip을 올리면 저장 전에 미리 보여 줍니다 · ";
+export const SKILL_IMPORT_SUBTITLE_PATH = ".claude/skills/<이름>/";
+export const SKILL_IMPORT_SUBTITLE_TAIL = "에 넣고 출처를 SOURCE.md로 남깁니다";
+export const SKILL_IMPORT_PICK_BUTTON_LABEL = "zip 파일 선택";
+export const SKILL_IMPORT_PICK_AGAIN_BUTTON_LABEL = "다른 파일 선택";
+export const SKILL_IMPORT_LIMITS_HINT =
+  "zip 10MB · 파일 500개 · 풀었을 때 50MB 이하. 맨 위에 SKILL.md가 있거나, 맨 위 폴더 하나 안에 SKILL.md가 있어야 합니다";
+export const SKILL_IMPORT_FILE_INPUT_LABEL = "스킬 zip 파일";
+export const SKILL_IMPORT_PREVIEW_LABEL = "미리보기";
+export const SKILL_IMPORT_PREVIEW_NAME = "스킬 이름";
+export const SKILL_IMPORT_PREVIEW_DESCRIPTION = "설명";
+export const SKILL_IMPORT_FILES_TITLE = "파일 목록";
+export const SKILL_IMPORT_CHIP_SCRIPT = "스크립트";
+export const SKILL_IMPORT_CHIP_EXECUTABLE = "실행 파일";
+export function skillImportFilesSummary(fileCount: number, unpackedSize: string, scriptCount: number): string {
+  return `파일 ${fileCount}개 · 풀면 ${unpackedSize} · 스크립트 ${scriptCount}개`;
+}
+export const SKILL_IMPORT_WARN_TITLE = "Claude가 이 스킬을 쓸 때 스크립트를 실행할 수 있습니다";
+export const SKILL_IMPORT_WARN_NOTE = "가져오기 전에 scripts/ 내용을 확인하세요";
+export const SKILL_IMPORT_SOURCE_LABEL = "출처";
+export const SKILL_IMPORT_SOURCE_HINT = "URL 또는 설명";
+export const SKILL_IMPORT_VERSION_LABEL = "커밋·버전";
+export const SKILL_IMPORT_LICENSE_LABEL = "라이선스";
+export const SKILL_IMPORT_SOURCE_NOTE_LEAD = "SOURCE.md에 출처·커밋·라이선스·가져온 날짜(";
+export const SKILL_IMPORT_SOURCE_NOTE_TAIL = ")를 씁니다. zip 안에 SOURCE.md가 있으면 그 뒤에 덧붙입니다";
+export const SKILL_IMPORT_FOOT_NOTE = "가져온 스킬은 웹에서 수정할 수 없고 삭제만 할 수 있습니다";
+/** 미리보기가 없을 때 `가져오기` 옆 이유 줄(ui-rules 08-2 "파일 고르기 전"). */
+export const SKILL_IMPORT_PICK_FIRST_REASON = "zip 파일을 먼저 고르세요";
+export const SKILL_IMPORT_SUBMIT_LABEL = "가져오기";
+export const SKILL_IMPORT_SUBMIT_PENDING_LABEL = "가져오는 중…";

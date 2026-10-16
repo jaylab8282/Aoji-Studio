@@ -3,6 +3,7 @@
  * 서버가 이름 오름차순(FR-018-AC1)으로 준 순서를 그대로 쓴다. 막대 길이 = 이 스킬 `usage.total` / 가장 많이 쓴 스킬의 `usage.total`.
  */
 import type { SkillRow } from "../../api/types";
+import { SKILL_EDIT_REASON_FORMAT_ERROR, SKILL_EDIT_REASON_IMPORTED, WRITABLE_FALSE_REASON } from "../text";
 import { percentText } from "./usageFormat";
 
 export interface SkillRowView {
@@ -42,4 +43,15 @@ export function rowMarkerWf(row: SkillRow): string | undefined {
   if (row.imported) return "08-10";
   if (row.userOnly) return "08-11";
   return undefined;
+}
+
+/**
+ * 행 `수정` 비활성 사유(ui-spec SCR-08 행 동작, 우선순위 쓰기 권한 > 가져온 스킬 > 형식 오류). 활성이면 null.
+ * `writable`이 null(첫 스냅샷 전)이면 비활성이지만 이유 줄은 없다(ADR-44) — 호출부가 `editDisabled`로 따로 본다.
+ */
+export function editDisabledReason(row: SkillRow, writable: boolean): string | null {
+  if (!writable) return WRITABLE_FALSE_REASON;
+  if (row.imported) return SKILL_EDIT_REASON_IMPORTED;
+  if (row.formatError !== null) return SKILL_EDIT_REASON_FORMAT_ERROR;
+  return null;
 }

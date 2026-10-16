@@ -19,6 +19,11 @@ export function formatDateHm(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/** `yyyy-mm-dd` (08-2 SOURCE.md 가져온 날짜 안내 — 브라우저의 오늘). */
+export function formatYmd(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 /** `hh:mm` (03 선택 패널 최근 이벤트 목록). */
 export function formatHm(iso: string): string {
   const d = new Date(iso);

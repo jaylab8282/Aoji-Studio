@@ -155,10 +155,11 @@ run_batch "배치 11 — project-basic (E2E-13 04-2·04-7·05-L·04-1 캡처)" p
   tests/e2e-13.spec.ts --grep "project-basic"
 
 # 배치 12 — project-skills + 전역 연결 `claude-home-empty`(연결됨·내용 없음, `E2E_CLAUDE_HOME_FIXTURE`). 스킬 파일을 쓰는 배치(E2E-18).
-# e2e-18a(T-R4-15: 08-3 삭제·밖에서 바뀐 스킬 2초 반영·형식 오류·가져온 스킬 행)가 파일 이름순으로 먼저 돌고, 이후 태스크(T-R4-16)가
-# e2e-18b(만들기·수정·08-4·가져오기·위험 zip)를 같은 배치에 더한다. 각 spec은 자기가 만든 스킬만 치우므로 서로의 전제를 건드리지 않는다.
-E2E_CLAUDE_HOME_FIXTURE=claude-home-empty run_batch "배치 12 — project-skills + claude-home-empty (E2E-18a 스킬 삭제·밖에서 바뀐 스킬·형식 오류·가져온 스킬)" project-skills \
-  tests/e2e-18a-skills-list.spec.ts
+# e2e-18a(T-R4-15: 08-3 삭제·밖에서 바뀐 스킬 2초 반영·형식 오류·가져온 스킬 행)가 파일 이름순으로 먼저 돌고, e2e-18b(T-R4-16: 08-1 만들기·수정·08-4 충돌·
+# 08-2 가져오기·위험 zip 4종)가 이어서 돈다. 각 spec은 자기가 만든 스킬만 치우므로 서로의 전제를 건드리지 않는다. zip은 e2e-18b가 임시 폴더에 직접 만든다.
+E2E_CLAUDE_HOME_FIXTURE=claude-home-empty run_batch "배치 12 — project-skills + claude-home-empty (E2E-18a 스킬 삭제·밖에서 바뀐 스킬 + E2E-18b 스킬 만들기·수정·충돌·가져오기·위험 zip)" project-skills \
+  tests/e2e-18a-skills-list.spec.ts \
+  tests/e2e-18b-skills-write.spec.ts
 
 # 배치 13 — project-usage + 전역 연결 `claude-home-basic`. **이벤트 0건인 새 컨테이너가 전제**다: e2e-19a가 첫 테스트에서 `기록 없음`을 단언한 뒤
 # `usage.jsonl`을 스스로 재생하고, 이후 spec(e2e-19b·e2e-20~22·24~26 — 이후 태스크가 더한다)은 그 데이터를 이어 쓴다. 파일 이름순 실행에 기댄다.

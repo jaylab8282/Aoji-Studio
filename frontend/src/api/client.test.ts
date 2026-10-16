@@ -193,4 +193,35 @@ describe("client", () => {
     expect(oddError).toBeInstanceOf(ApiError);
     expect((oddError as Error).message).toBe("서버에 연결할 수 없습니다 · 다시 시도하세요");
   });
+
+  it("[FR-021-AC1] multipart(FormData)는 JSON으로 바꾸지 않고 Content-Type을 직접 정하지 않으며 브라우저 토큰 헤더를 붙인다. 403 토큰 만료는 같은 FormData로 1회 재시도한다", async () => {
+    const { apiPostForm } = await import("./client");
+    const calls: Array<{ headers: Record<string, string>; body: unknown }> = [];
+    let tokenCalls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).includes("/api/auth/browser-token")) {
+          tokenCalls += 1;
+          return jsonResponse({ token: `t${tokenCalls}`.padEnd(64, "0") });
+        }
+        calls.push({ headers: init?.headers as Record<string, string>, body: init?.body });
+        return calls.length === 1
+          ? jsonResponse({ code: "UNAUTHORIZED_TOKEN", message: "만료" }, 403)
+          : jsonResponse({ uploadId: "u" });
+      }),
+    );
+    const form = new FormData();
+    form.append("file", new File(["zip"], "a.zip"));
+
+    await expect(apiPostForm("/api/skills/import/preview", form)).resolves.toEqual({ uploadId: "u" });
+
+    expect(calls).toHaveLength(2);
+    for (const call of calls) {
+      expect(call.body).toBe(form);
+      expect(call.headers["Content-Type"]).toBeUndefined();
+      expect(call.headers["X-AojiStudio-Browser-Token"]).toMatch(/^t\d0+$/);
+    }
+    expect(calls[1]?.headers["X-AojiStudio-Browser-Token"]).not.toBe(calls[0]?.headers["X-AojiStudio-Browser-Token"]);
+  });
 });

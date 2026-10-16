@@ -1,10 +1,11 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { routes } from "../app/router";
 import { snapshotStore } from "../state/snapshotStore";
 import { buildSnapshotFixture } from "../test/fixtures/snapshot";
 import type { Snapshot, Workflow } from "../api/types";
+import { buildSkillDetail, buildSkillRow, buildSkillsReport } from "../test/fixtures/skills";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -175,5 +176,72 @@ describe("DialogHost", () => {
     replaceSnapshot([]);
     renderAt("/workflows");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("[FR-020-AC1] `?dialog=skill-new`는 08-1 만들기, `skill-edit&skill=<이름>`은 08-1 수정(읽기 GET), `skill-edit`에 `skill`이 없으면 열지 않는다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/api/auth/browser-token")) return jsonResponse({ token: "a".repeat(64) });
+        if (url.startsWith("/api/skills/design-review")) {
+          return jsonResponse(buildSkillDetail("design-review", { description: "수정할 설명" }));
+        }
+        return jsonResponse(buildSkillsReport([]));
+      }),
+    );
+    replaceSnapshot([]);
+
+    const created = renderAt("/skills?dialog=skill-new");
+    expect(screen.getByRole("heading", { name: "스킬 만들기", level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-wf", "08-1-1");
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(created.state.location.search).toBe("");
+    cleanup();
+
+    renderAt("/skills?dialog=skill-edit&skill=design-review");
+    expect(await screen.findByDisplayValue("수정할 설명")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "스킬 수정" })).toBeInTheDocument();
+    cleanup();
+
+    renderAt("/skills?dialog=skill-edit");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("[FR-021-AC1] `?dialog=skill-import`는 08-2 가져오기를 연다", () => {
+    stubFetch();
+    replaceSnapshot([]);
+    renderAt("/skills?dialog=skill-import");
+
+    expect(screen.getByRole("heading", { name: "스킬 가져오기" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-wf", "08-2-1");
+  });
+
+  it("[FR-020-AC5][FR-020-AC2] 08에서 `스킬 만들기` → 08-1 저장 → 창 닫힘 + 안내 줄 ①과 재조회로 새 행(실제 화면 연결)", async () => {
+    let created = false;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes("/api/auth/browser-token")) return jsonResponse({ token: "a".repeat(64) });
+        if ((init?.method ?? "GET") === "POST" && url === "/api/skills") {
+          created = true;
+          return jsonResponse(buildSkillDetail("design-token-audit"), 201);
+        }
+        return jsonResponse(buildSkillsReport(created ? [buildSkillRow("design-token-audit")] : []));
+      }),
+    );
+    replaceSnapshot([]);
+    renderAt("/skills");
+
+    fireEvent.click((await screen.findAllByRole("button", { name: "스킬 만들기" }))[0] as HTMLElement);
+    fireEvent.change(await screen.findByLabelText("이름"), { target: { value: "design-token-audit" } });
+    fireEvent.change(screen.getByLabelText("설명 (description)"), { target: { value: "토큰 점검" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(await screen.findByText("Claude Code가 새 스킬을 바로 인식하지 못하면 재시작이 필요할 수 있습니다")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "design-token-audit 펼치기" }, { timeout: 3000 })).toBeInTheDocument();
   });
 });

@@ -342,6 +342,35 @@
   flex-direction: column;
 }
 
+/* 08-1 `본문` 칸: 남는 높이를 채우고 최소 160 (`08-1-skill-form.html` `.ta`). */
+@utility skill-body-field {
+  flex: 1;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 08-2 본문 2열: 왼쪽 1.15fr(파일·미리보기) / 오른쪽 1fr(경고·출처), 세로형 1열 (`08-2-skill-import.html` `.imp`). */
+@utility import-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: calc(var(--spacing) * 4);
+
+  @media (orientation: portrait) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 08-2 미리보기 `스킬 이름`·`설명` 정의 목록: 라벨 칸 72 (`.prev dl`). */
+@utility import-preview-dl {
+  display: grid;
+  grid-template-columns: calc(var(--spacing) * 18) minmax(0, 1fr);
+  gap: calc(var(--spacing) * 1) calc(var(--spacing) * 3);
+  font-size: var(--text-aux);
+}
+
 /* 06 `지침` textarea: 높이 100%, 줄 높이 1.6, 크기 조절 없음 (`.prompt textarea`). */
 @utility textarea-fill {
   flex: 1;

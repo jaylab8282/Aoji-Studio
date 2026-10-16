@@ -111,8 +111,11 @@ async function sendRequest<T>(
   isRetry = false,
 ): Promise<T> {
   const headers: Record<string, string> = {};
-  let requestBody: string | undefined;
-  if (body !== undefined) {
+  let requestBody: string | FormData | undefined;
+  if (body instanceof FormData) {
+    // multipart: Content-Type(경계 포함)은 브라우저가 정한다.
+    requestBody = body;
+  } else if (body !== undefined) {
     headers["Content-Type"] = "application/json";
     requestBody = JSON.stringify(body);
   }
@@ -171,6 +174,11 @@ export function apiGet<T>(path: string, options: RequestOptions = {}): Promise<T
 
 export function apiPost<T>(path: string, body?: unknown): Promise<T> {
   return request<T>("POST", path, body);
+}
+
+/** multipart/form-data 업로드(08-2 zip 미리보기). 403 토큰 재발급 재시도는 JSON 요청과 같다. */
+export function apiPostForm<T>(path: string, form: FormData): Promise<T> {
+  return request<T>("POST", path, form);
 }
 
 export function apiPut<T>(path: string, body?: unknown): Promise<T> {
