@@ -24,6 +24,7 @@ package studio.aoji.api;
  * @param allowedHttpHookUrlsNote {@code allowedHttpHookUrls} 안내 문구
  * @param hostOs {@code macos} | {@code wsl}
  * @param wslDistro {@code wsl}일 때 배포판 이름, 아니면 null
+ * @param statusline 상태줄 연동 카드(설정 예시·마지막 수신 시각, FR-014-AC6, ADR-83)
  * @param globalClaude 전역 Claude 설정 4개 항목 연결 상태(ADR-79, FR-014 Output)
  */
 public record Settings(
@@ -46,4 +47,5 @@ public record Settings(
         String allowedHttpHookUrlsNote,
         String hostOs,
         String wslDistro,
+        StatuslineSettings statusline,
         GlobalClaudeStatus globalClaude) {}

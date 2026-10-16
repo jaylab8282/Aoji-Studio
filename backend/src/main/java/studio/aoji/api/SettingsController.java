@@ -2,6 +2,7 @@ package studio.aoji.api;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +17,9 @@ import studio.aoji.registry.RegistryService;
 import studio.aoji.registry.RegistrySnapshot;
 import studio.aoji.stream.CommandStrings;
 import studio.aoji.stream.Config;
+import studio.aoji.statusline.StatuslineLast;
+import studio.aoji.statusline.StatuslineSettingsExampleBuilder;
+import studio.aoji.statusline.StatuslineStore;
 import studio.aoji.stream.SnapshotAssembler;
 
 /**
@@ -49,6 +53,8 @@ public class SettingsController {
     private final DataDirectory dataDirectory;
     private final GlobalClaudeMounts globalClaudeMounts;
     private final GlobalClaudeReader globalClaudeReader;
+    private final StatuslineStore statuslineStore;
+    private final StatuslineSettingsExampleBuilder statuslineExampleBuilder;
     private final Clock clock;
 
     public SettingsController(
@@ -59,6 +65,8 @@ public class SettingsController {
             DataDirectory dataDirectory,
             GlobalClaudeMounts globalClaudeMounts,
             GlobalClaudeReader globalClaudeReader,
+            StatuslineStore statuslineStore,
+            StatuslineSettingsExampleBuilder statuslineExampleBuilder,
             Clock clock) {
         this.snapshotAssembler = snapshotAssembler;
         this.registryService = registryService;
@@ -67,6 +75,8 @@ public class SettingsController {
         this.dataDirectory = dataDirectory;
         this.globalClaudeMounts = globalClaudeMounts;
         this.globalClaudeReader = globalClaudeReader;
+        this.statuslineStore = statuslineStore;
+        this.statuslineExampleBuilder = statuslineExampleBuilder;
         this.clock = clock;
     }
 
@@ -97,7 +107,19 @@ public class SettingsController {
                 ALLOWED_HTTP_HOOK_URLS_NOTE,
                 config.hostOs(),
                 config.wslDistro(),
+                statusline(config),
                 globalClaude());
+    }
+
+    /** 07 상태줄 연동 카드: 설정 예시(토큰 없음)와 마지막 수신 시각. */
+    private StatuslineSettings statusline(Config config) {
+        OffsetDateTime lastReceivedAt = statuslineStore
+                .last()
+                .map(StatuslineLast::receivedAt)
+                .map(at -> at.atZone(clock.getZone()).toOffsetDateTime())
+                .orElse(null);
+        return new StatuslineSettings(
+                statuslineExampleBuilder.build(config.hostPath(), config.publicOrigin()), lastReceivedAt);
     }
 
     /** 전역 Claude 설정 4개 항목(고정 순서)과 마지막으로 읽은 시각. */

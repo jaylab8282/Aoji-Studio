@@ -200,6 +200,30 @@ class GlobalClaudeReaderTest {
     }
 
     @Test
+    @DisplayName("[FR-023-AC5] 폴러 한 번(poll)에 바뀐 파일이 반영되고, 폴링 간격은 1초(AC \"2초 안\"에 읽는 시간까지 들어온다)")
+    void singlePollAppliesChangeAndIntervalIsOneSecond() throws Exception {
+        ClaudeHomeFixture.copyBasic(home, HOST);
+        GlobalClaudeReader reader = reader(ClaudeHomeFixture.HOME_HOST);
+        reader.snapshot();
+
+        clock.advance(Duration.ofSeconds(1));
+        Path claudeJson = home.resolve(".claude.json");
+        Files.writeString(claudeJson, Files.readString(claudeJson).replace("\"docs-server\": {", "\"docs-polled\": {"));
+        bumpMtime(claudeJson, 5);
+
+        reader.poll();
+
+        assertThat(reader.snapshot().globalServers()).extracting("name").contains("docs-polled").doesNotContain("docs-server");
+        assertThat(reader.snapshot().readAt()).isEqualTo(clock.instant());
+        // 폴러가 실제로 이 간격으로 도는지: @Scheduled 설정과 상수가 같고 1초 이하
+        assertThat(GlobalClaudeReader.POLL_MILLIS).isLessThanOrEqualTo(1000);
+        long scheduled = GlobalClaudeReader.class.getDeclaredMethod("poll")
+                .getAnnotation(org.springframework.scheduling.annotation.Scheduled.class)
+                .fixedDelay();
+        assertThat(scheduled).isEqualTo(GlobalClaudeReader.POLL_MILLIS);
+    }
+
+    @Test
     @DisplayName("[FR-023-AC5] 한도 캐시 값이 바뀌면 limits 알림도 나간다")
     void usageCacheChangeNotifiesLimits() throws Exception {
         ClaudeHomeFixture.copyBasic(home, HOST);

@@ -20,6 +20,8 @@ COPY backend/gradle/ gradle/
 COPY backend/build.gradle.kts backend/settings.gradle.kts ./
 RUN --mount=type=cache,target=/root/.gradle ./gradlew dependencies --no-daemon -q > /dev/null
 COPY backend/ ./
+# processResources가 ../helper/aojistudio-statusline.mjs(= /app/helper/...)를 번들한다. 이 파일 하나만 복사한다.
+COPY helper/aojistudio-statusline.mjs /app/helper/aojistudio-statusline.mjs
 COPY --from=frontend-build /app/frontend/dist/ src/main/resources/static/
 RUN --mount=type=cache,target=/root/.gradle ./gradlew bootJar --no-daemon -x test
 

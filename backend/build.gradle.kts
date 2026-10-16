@@ -59,3 +59,16 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
 springBoot {
     mainClass.set("studio.aoji.AojiStudioApplication")
 }
+
+// 상태줄 연동 스크립트(ADR-83): 원본은 helper/에 있고 jar 리소스 statusline/로 복사한다. 서버가 기동 때 .aojistudio/statusline.mjs에 배치한다.
+// Docker 빌드 단계는 같은 위치(../helper/)에 이 파일을 함께 복사해야 한다(Dockerfile).
+val statuslineScript = layout.projectDirectory.file("../helper/aojistudio-statusline.mjs")
+
+tasks.named<ProcessResources>("processResources") {
+    doFirst {
+        check(statuslineScript.asFile.isFile) { "상태줄 스크립트가 없습니다: helper/aojistudio-statusline.mjs" }
+    }
+    from(statuslineScript) {
+        into("statusline")
+    }
+}

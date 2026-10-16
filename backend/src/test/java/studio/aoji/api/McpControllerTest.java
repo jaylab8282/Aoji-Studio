@@ -49,7 +49,10 @@ class McpControllerTest {
     private static final String ORIGIN = "http://127.0.0.1:4180";
     private static final String HOST_PATH = "/Users/jaybee/Desktop/AojiStudio";
     private static final String URL = "/api/mcp?period=all&tz=Asia/Seoul";
-    /** 실제 폴러(1초 간격) 대기 상한. "2초 안" 기준은 주입 시계 단위 테스트가 증명한다(D-166). */
+    /**
+     * 실제 폴러(1초 간격) 대기 상한. 이 통합 테스트는 변경이 폴러로 반영되는지만 본다. "2초 안" 기준의 근거는
+     * {@code GlobalClaudeReaderTest}의 폴러 1회 반영 단언과 폴링 간격 1초(= {@code @Scheduled} 간격) 단언이다(D-168).
+     */
     private static final long POLL_WAIT_MILLIS = 4000;
 
     @TempDir
