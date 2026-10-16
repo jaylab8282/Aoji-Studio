@@ -120,19 +120,23 @@ public class SkillWriteController {
     public ResponseEntity<SkillDetail> update(
             @PathVariable("skill") String skill, @RequestBody(required = false) SkillUpdateRequest request) {
         writeAccessGuard.assertWritable();
-        if (request == null) {
-            throw ApiException.validation("description", SkillMessages.REQUIRED);
-        }
-        String description = request.description();
+        // api-spec SkillUpdateRequest: description·body 필수. (POST의 body는 선택이라 기본 "")
+        Map<String, String> fields = new LinkedHashMap<>();
+        String description = request == null ? null : request.description();
         if (description == null || description.isBlank()) {
-            throw ApiException.validation("description", SkillMessages.REQUIRED);
+            fields.put("description", SkillMessages.REQUIRED);
+        } else if (description.indexOf('\n') >= 0 || description.indexOf('\r') >= 0) {
+            fields.put("description", SkillMessages.NO_LINE_BREAK);
         }
-        if (description.indexOf('\n') >= 0 || description.indexOf('\r') >= 0) {
-            throw ApiException.validation("description", SkillMessages.NO_LINE_BREAK);
+        if (request == null || request.body() == null) {
+            fields.put("body", SkillMessages.REQUIRED);
+        }
+        if (!fields.isEmpty()) {
+            throw ApiException.validation(fields);
         }
         boolean userOnly = Boolean.TRUE.equals(request.userOnly());
         boolean force = Boolean.TRUE.equals(request.force());
-        String body = request.body() == null ? "" : request.body();
+        String body = request.body();
         if (!NAME_PATTERN.matcher(skill).matches()) {
             throw ApiException.skillNotFound();
         }

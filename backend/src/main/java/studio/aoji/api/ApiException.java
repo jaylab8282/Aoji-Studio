@@ -125,6 +125,31 @@ public class ApiException extends RuntimeException {
                 HttpStatus.CONFLICT, new ApiError("IMPORTED_SKILL", studio.aoji.skills.SkillMessages.IMPORTED_SKILL));
     }
 
+    /** zip 거부(FR-021-E1~E3). {@code details.reason}·{@code details.entry}(없으면 null). 이름 중복은 409, 나머지는 400. */
+    public static ApiException importRejected(
+            studio.aoji.skills.SkillImportRejectReason reason, String entry, String name) {
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("reason", reason.name());
+        details.put("entry", entry);
+        HttpStatus status = reason == studio.aoji.skills.SkillImportRejectReason.NAME_EXISTS
+                ? HttpStatus.CONFLICT
+                : HttpStatus.BAD_REQUEST;
+        return new ApiException(
+                status,
+                new ApiError(
+                        "IMPORT_REJECTED",
+                        studio.aoji.skills.SkillMessages.importRejected(reason, entry, name),
+                        null,
+                        details));
+    }
+
+    /** 올린 zip 없음·만료. */
+    public static ApiException uploadNotFound() {
+        return new ApiException(
+                HttpStatus.NOT_FOUND,
+                new ApiError("UPLOAD_NOT_FOUND", studio.aoji.skills.SkillMessages.UPLOAD_NOT_FOUND));
+    }
+
     public HttpStatus status() {
         return status;
     }

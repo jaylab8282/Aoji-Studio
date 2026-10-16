@@ -61,7 +61,7 @@ public class SkillWriter {
             Files.createDirectories(skillsDir);
             Files.createDirectory(tmpDir);
             atomicFileWriter.write(tmpDir.resolve(SKILL_FILE_NAME), content.getBytes(StandardCharsets.UTF_8));
-            Files.move(tmpDir, skillsDir.resolve(name), StandardCopyOption.ATOMIC_MOVE);
+            moveIntoPlace(tmpDir, skillsDir.resolve(name));
         } catch (IOException | RuntimeException e) {
             deleteQuietly(tmpDir);
             if (createdSkillsDir) {
@@ -73,6 +73,11 @@ public class SkillWriter {
             }
             throw e;
         }
+    }
+
+    /** 임시 폴더를 폴더째 {@code ATOMIC_MOVE}로 최종 이름에 옮긴다(만들기·가져오기 공용, 한 번에 나타난다). */
+    public void moveIntoPlace(Path tmpDir, Path target) throws IOException {
+        Files.move(tmpDir, target, StandardCopyOption.ATOMIC_MOVE);
     }
 
     /**
@@ -162,7 +167,7 @@ public class SkillWriter {
         return HexFormat.of().formatHex(bytes);
     }
 
-    private static void deleteQuietly(Path dir) {
+    static void deleteQuietly(Path dir) {
         if (!Files.exists(dir, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
             return;
         }

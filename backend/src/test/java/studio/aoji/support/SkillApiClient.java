@@ -55,6 +55,25 @@ public final class SkillApiClient {
                 .andReturn();
     }
 
+    /** 미리보기(multipart {@code file}). */
+    public MvcResult preview(byte[] zip) throws Exception {
+        return mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart(
+                                "/api/skills/import/preview")
+                        .file(new org.springframework.mock.web.MockMultipartFile("file", "skill.zip", "application/zip", zip))
+                        .header("Origin", ORIGIN)
+                        .header("X-AojiStudio-Browser-Token", token()))
+                .andReturn();
+    }
+
+    public MvcResult importSkill(Map<String, Object> body) throws Exception {
+        return mockMvc.perform(post("/api/skills/import")
+                        .header("Origin", ORIGIN)
+                        .header("X-AojiStudio-Browser-Token", token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andReturn();
+    }
+
     public MvcResult detail(String name) throws Exception {
         return mockMvc.perform(get("/api/skills/" + name).header("Origin", ORIGIN)).andReturn();
     }

@@ -25,6 +25,8 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.53.4.0")
     // YAML frontmatter 파싱 (ADR-19). Spring Boot가 기본 포함하는 버전을 그대로 쓴다.
     implementation("org.yaml:snakeyaml")
+    // 스킬 zip 읽기(ADR-19 v1.2.0, ADR-84): 항목의 유닉스 모드(심볼릭 링크·실행 비트)를 읽는다. Spring Boot BOM 밖이라 버전 고정.
+    implementation("org.apache.commons:commons-compress:1.28.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     // Spring Boot 4.1: MockMvc 테스트 지원(@AutoConfigureMockMvc)이 starter-test에서 분리됨.

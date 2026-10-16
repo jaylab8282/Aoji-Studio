@@ -10,6 +10,12 @@ spring:
       schema-locations: classpath:schema.sql
       continue-on-error: false
 
+  # 스킬 zip 올리기(FR-021-AC2): 파일 10MB 이하. 넘으면 MaxUploadSizeExceededException → 400 IMPORT_REJECTED TOO_LARGE.
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
+
 server:
   error:
     include-stacktrace: never

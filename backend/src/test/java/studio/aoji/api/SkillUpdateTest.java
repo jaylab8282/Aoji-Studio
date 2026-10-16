@@ -288,6 +288,59 @@ class SkillUpdateTest {
     }
 
     @Test
+    @DisplayName("[FR-020-AC3][D-164] PUT body 누락(null·키 없음) → 400 VALIDATION fields.body '필수', 파일 불변. 빈 문자열 body는 허용")
+    void missingBodyIsRejected() throws Exception {
+        writeSkill("body-required", "---\nname: body-required\ndescription: d\n---\n본문\n");
+        byte[] before = Files.readAllBytes(skillFile("body-required"));
+        String revision = api.revisionOf("body-required");
+
+        Map<String, Object> withNull = request("바꾸기", false, null, revision, null);
+        MvcResult nullBody = api.update("body-required", withNull);
+        assertThat(nullBody.getResponse().getStatus()).isEqualTo(400);
+        JsonNode json = api.json(nullBody);
+        assertThat(json.get("code").asString()).isEqualTo("VALIDATION");
+        assertThat(json.get("fields").get("body").asString()).isEqualTo("필수");
+
+        Map<String, Object> withoutKey = request("바꾸기", false, "x", revision, null);
+        withoutKey.remove("body");
+        MvcResult noKey = api.update("body-required", withoutKey);
+        assertThat(noKey.getResponse().getStatus()).isEqualTo(400);
+        assertThat(api.json(noKey).get("fields").get("body").asString()).isEqualTo("필수");
+
+        // 설명도 틀리면 필드별로 함께 알린다.
+        MvcResult both = api.update("body-required", request(" ", false, null, revision, null));
+        assertThat(api.json(both).get("fields").get("description").asString()).isEqualTo("필수");
+        assertThat(api.json(both).get("fields").get("body").asString()).isEqualTo("필수");
+        assertThat(Files.readAllBytes(skillFile("body-required"))).isEqualTo(before);
+
+        MvcResult emptyBody = api.update("body-required", request("바꾸기", false, "", revision, null));
+        assertThat(emptyBody.getResponse().getStatus()).isEqualTo(200);
+        assertThat(read("body-required")).endsWith("---\n");
+    }
+
+    @Test
+    @DisplayName("[FR-020-E5][FR-020-AC6][D-164] 틀린 expectedRevision(force=false)이어도 UNEDITABLE·IMPORTED_SKILL이 REVISION_CONFLICT보다 먼저")
+    void formatAndImportedChecksPrecedeRevisionConflict() throws Exception {
+        for (String name : new String[] {"bad-yaml", "no-delimiter", "name-mismatch", "bad-utf8"}) {
+            byte[] before = Files.readAllBytes(skillFile(name));
+            MvcResult result = api.update(name, request("바꾸기", false, "b", "0-0", false));
+            assertThat(result.getResponse().getStatus()).as(name).isEqualTo(409);
+            assertThat(api.json(result).get("code").asString()).as(name).isEqualTo("UNEDITABLE");
+            assertThat(Files.readAllBytes(skillFile(name))).as(name).isEqualTo(before);
+        }
+        byte[] imported = Files.readAllBytes(skillFile("imported-lint"));
+        MvcResult importedResult = api.update("imported-lint", request("바꾸기", false, "b", "0-0", false));
+        assertThat(importedResult.getResponse().getStatus()).isEqualTo(409);
+        assertThat(api.json(importedResult).get("code").asString()).isEqualTo("IMPORTED_SKILL");
+        assertThat(Files.readAllBytes(skillFile("imported-lint"))).isEqualTo(imported);
+
+        // 대조: 정상 스킬은 같은 틀린 revision에서 REVISION_CONFLICT.
+        writeSkill("normal-skill", "---\nname: normal-skill\ndescription: d\n---\n");
+        MvcResult conflict = api.update("normal-skill", request("바꾸기", false, "b", "0-0", false));
+        assertThat(api.json(conflict).get("code").asString()).isEqualTo("REVISION_CONFLICT");
+    }
+
+    @Test
     @DisplayName("[FR-020-AC3] 없는 스킬 → 404 SKILL_NOT_FOUND")
     void missingSkillIsNotFound() throws Exception {
         MvcResult result = api.update("does-not-exist", request("d", false, "b", "x", null));
