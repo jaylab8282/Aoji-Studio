@@ -260,6 +260,40 @@ class McpCatalogTest {
     }
 
     @Test
+    @DisplayName("[NFR-07][D-166] 프로젝트 .claude 폴더가 링크면 그 안 settings.json을 읽지 않는다(마운트 밖 값이 활성 판정에 새지 않음)")
+    void linkedClaudeFolderIsNotFollowedForProjectSettings(@TempDir Path outside) throws Exception {
+        Files.writeString(
+                outside.resolve("settings.json"),
+                "{\"enableAllProjectMcpServers\": true, \"enabledMcpjsonServers\": [\"local-tool\"]}",
+                StandardCharsets.UTF_8);
+        Path claudeDir = mountRoot.resolve(".claude");
+        Path moved = mountRoot.resolve(".claude-moved-for-test");
+        McpReport baseline = all();
+        assertThat(row(baseline, "local-tool").active()).as("대조: 링크 전에는 settings의 disabled 목록이 적용").isFalse();
+
+        Files.move(claudeDir, moved);
+        try {
+            Files.createSymbolicLink(claudeDir, outside);
+            McpReport report = all();
+
+            assertThat(report.sourceErrors()).isEmpty();
+            assertThat(row(report, "local-tool").active())
+                    .as("링크 안 settings.json(enabled)을 따라가면 true가 된다")
+                    .isNotEqualTo(true);
+            for (var server : baseline.servers()) {
+                if (!Boolean.TRUE.equals(server.active())) {
+                    assertThat(row(report, server.name()).active())
+                            .as(server.name() + ": 링크 안 enableAll을 따라가면 true가 된다")
+                            .isNotEqualTo(true);
+                }
+            }
+        } finally {
+            Files.deleteIfExists(claudeDir);
+            Files.move(moved, claudeDir);
+        }
+    }
+
+    @Test
     @DisplayName("[FR-023-E1] 프로젝트 .mcp.json이 깨지면 줄 번호와 함께 sourceErrors에 넣고 다른 출처는 그대로 보인다")
     void brokenProjectMcpJsonKeepsOtherSources() throws Exception {
         rewrite(mountRoot.resolve(".mcp.json"), "{\n  \"mcpServers\": {\n    \"github\": }\n}\n");

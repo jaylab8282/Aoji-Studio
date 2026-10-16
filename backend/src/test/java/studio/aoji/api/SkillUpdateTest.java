@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -80,6 +82,8 @@ class SkillUpdateTest {
     private void writeSkill(String name, String content) throws IOException {
         Files.createDirectories(skillFolder(name));
         Files.write(skillFile(name), content.getBytes(StandardCharsets.UTF_8));
+        // revision = mtime(ms)-size. 파일 시스템 시각 해상도에 기대지 않도록 작성 시각을 과거로 못박는다(D-166).
+        Files.setLastModifiedTime(skillFile(name), FileTime.from(Instant.parse("2026-01-01T00:00:00Z")));
     }
 
     private String read(String name) throws IOException {

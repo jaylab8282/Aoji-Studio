@@ -49,6 +49,8 @@ class McpControllerTest {
     private static final String ORIGIN = "http://127.0.0.1:4180";
     private static final String HOST_PATH = "/Users/jaybee/Desktop/AojiStudio";
     private static final String URL = "/api/mcp?period=all&tz=Asia/Seoul";
+    /** 실제 폴러(1초 간격) 대기 상한. "2초 안" 기준은 주입 시계 단위 테스트가 증명한다(D-166). */
+    private static final long POLL_WAIT_MILLIS = 4000;
 
     @TempDir
     static Path mountRoot;
@@ -328,7 +330,7 @@ class McpControllerTest {
     }
 
     @Test
-    @DisplayName("[FR-023-AC5] 전역 ~/.claude.json이 바뀌면 2초 안에 목록과 globalReadAt이 갱신된다")
+    @DisplayName("[FR-023-AC5] 전역 ~/.claude.json이 바뀌면 실제 폴러가 따라와 목록과 globalReadAt이 갱신된다(상한 4초, 2초 기준은 주입 시계 단위 테스트)")
     void globalChangeIsPickedUpWithinTwoSeconds() throws Exception {
         Path claudeJson = claudeHome.resolve(".claude.json");
         originalClaudeJson = Files.readAllBytes(claudeJson);
@@ -340,7 +342,7 @@ class McpControllerTest {
         Files.setLastModifiedTime(claudeJson, FileTime.from(Instant.now().plusSeconds(300)));
         long started = System.nanoTime();
         JsonNode report = null;
-        while ((System.nanoTime() - started) / 1_000_000 < 2000) {
+        while ((System.nanoTime() - started) / 1_000_000 < POLL_WAIT_MILLIS) {
             report = getReport();
             if (names(report).contains("docs-renamed")) {
                 break;
@@ -350,7 +352,7 @@ class McpControllerTest {
 
         assertThat(report).isNotNull();
         assertThat(server(report, "docs-renamed").get("locations").get(0).get("kind").asString()).isEqualTo("global");
-        assertThat((System.nanoTime() - started) / 1_000_000).isLessThanOrEqualTo(2000);
+        assertThat((System.nanoTime() - started) / 1_000_000).isLessThanOrEqualTo(POLL_WAIT_MILLIS);
         assertThat(report.get("globalReadAt").asString()).isNotEqualTo(before);
     }
 }

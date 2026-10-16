@@ -36,7 +36,9 @@ import studio.aoji.registry.RegistryService;
  * 증가, 인증 실패 응답을 검증한다. {@code MockMvc}는 무제한 타임아웃 SSE 스트림을 실시간으로 읽기
  * 어려워 {@link SpringBootTest.WebEnvironment#RANDOM_PORT}로 실제 소켓을 연다.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "aojistudio.transcript-auto-start=false") // 대화 기록 읽기의 cost 방송이 skills 묶음 측정에 끼지 않게 한다
 class SseStreamTest {
 
     private static final String ALLOWED_ORIGIN = "http://127.0.0.1:4180";

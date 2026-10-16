@@ -111,8 +111,11 @@ public class McpCatalog {
         Map<String, Group> groups = new LinkedHashMap<>();
 
         // 프로젝트
-        McpFileParser.Result projectFile = fileParser.read(mountRoot.resolve(".mcp.json"), McpFileParser.Shape.WRAPPED_ONLY);
-        ProjectSettings projectSettings = readProjectSettings(mountRoot.resolve(".claude").resolve("settings.json"));
+        Path projectMcpFile = mountRoot.resolve(".mcp.json");
+        McpFileParser.Result projectFile = GlobalClaudeMounts.noLinkBetween(mountRoot, projectMcpFile)
+                ? fileParser.read(projectMcpFile, McpFileParser.Shape.WRAPPED_ONLY)
+                : McpFileParser.Result.absent();
+        ProjectSettings projectSettings = readProjectSettings(mountRoot, mountRoot.resolve(".claude").resolve("settings.json"));
         boolean projectError = false;
         if (projectFile.parseError()) {
             projectError = true;
@@ -359,7 +362,11 @@ public class McpCatalog {
     }
 
     /** 프로젝트 {@code .claude/settings.json}에서 {@code enableAllProjectMcpServers}·{@code enabledMcpjsonServers}·{@code disabledMcpjsonServers}만 읽는다. */
-    private ProjectSettings readProjectSettings(Path file) {
+    private ProjectSettings readProjectSettings(Path mountRoot, Path file) {
+        // 마운트 루트부터 파일까지 중간 폴더·파일이 링크면 읽지 않는다(없는 파일로 본다, NFR-07).
+        if (!GlobalClaudeMounts.noLinkBetween(mountRoot, file)) {
+            return new ProjectSettings(false, Set.of(), Set.of(), null, false);
+        }
         Set<String> enabled = new LinkedHashSet<>();
         Set<String> disabled = new LinkedHashSet<>();
         boolean enableAll = false;

@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -33,9 +34,15 @@ public class UsageChangedNotifier {
         return thread;
     });
     private final Map<String, AreaState> states = new HashMap<>();
+    private volatile Supplier<Map<String, Object>> transcriptsSupplier = () -> null;
 
     public UsageChangedNotifier(SseHub sseHub) {
         this.sseHub = sseHub;
+    }
+
+    /** {@code cost} 방송에 싣는 대화 기록 진행(realtime-spec {@code UsageChanged.transcripts}). 방송 시점의 값을 쓴다. */
+    public void setTranscriptsSupplier(Supplier<Map<String, Object>> supplier) {
+        this.transcriptsSupplier = supplier;
     }
 
     /** 영역 값이 바뀌었음을 알린다. 방송은 묶음 규칙에 따라 늦게 나갈 수 있다. */
@@ -65,7 +72,8 @@ public class UsageChangedNotifier {
             state.lastSentNanos = System.nanoTime();
         }
         try {
-            sseHub.broadcastUsageChanged(List.of(area), null);
+            Map<String, Object> transcripts = UsageArea.COST.equals(area) ? transcriptsSupplier.get() : null;
+            sseHub.broadcastUsageChanged(List.of(area), transcripts);
         } catch (RuntimeException e) {
             log.warn("usage-changed 방송 실패: area={}", area);
         }
