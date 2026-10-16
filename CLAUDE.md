@@ -24,8 +24,8 @@
   - Backend: `cd backend && ./gradlew test` (`@Tag("perf")` 제외)
   - Backend 성능 측정(Integration 전용, 1회만 — 태스크·수정 라운드에서는 돌리지 않는다. `check`/`build`에 묶여 있지 않다): `cd backend && ./gradlew perfTest`
   - Frontend: `cd frontend && npm test`
-  - Helper: `cd helper && npm test`
-  - Tools(재생 도구·fixture 형식): `cd tools/replay && npm test`
+  - Helper(Node `node --test`, 외부 의존 없음, 98개; Windows 분기·`.ps1` 정적 검사 포함): `cd helper && npm test` (또는 `npm test --prefix helper`)
+  - Tools(재생 도구·fixture 형식, 60개): `cd tools/replay && npm test`
 - lint / typecheck:
   - Frontend: `cd frontend && npm run lint && npm run typecheck`
   - Backend: `./gradlew build`에 컴파일 타입 검사 포함(별도 린터 없음, 확정 스택)
@@ -38,7 +38,7 @@
 - compose 확인 스크립트(운영 볼륨을 건드리지 않는다. x86_64 머신은 `AOJISTUDIO_PLATFORM=linux/amd64`를 앞에 붙인다):
   - 옛 앱 이름 검색 0건(컨테이너 기동 없음, NFR-13 ⑤): `tools/e2e/scripts/check-old-names.sh [루트]`
   - 옛 이름 환경 변수 거부(컨테이너 기동 없음, NFR-13 ②): `tools/e2e/scripts/check-old-env.sh`
-  - 전역 Claude 설정 연결 구성 3경우(홈 없음 → 대역 / 홈 있음 / 항목 `_SRC` 덮어쓰기, 이미지 빌드·기동 없음, ADR-79): `tools/e2e/scripts/check-compose-config.sh`
+  - 전역 Claude 설정 연결 구성 3경우(홈 없음 → 대역 / 홈 있음 / 항목 `_SRC` 덮어쓰기, 이미지 빌드·기동 없음, ADR-79): `tools/e2e/scripts/check-compose-config.sh`; 운영 `.env`가 없어도 임시 env 파일로 돈다(`docker compose config`만 쓴다)
   - 운영 `compose.yaml` 빌드·기동(포트 4186, 임시 볼륨 `aojistudio-r2check-data`): `tools/e2e/scripts/check-compose-build.sh`
 - e2e (공개 포트 `127.0.0.1:4185` — `4190`은 쓰지 않는다: WHATWG Fetch bad port, ADR-45):
   - (사전 1회) `cd tools/e2e && npm install && npx playwright install chromium`

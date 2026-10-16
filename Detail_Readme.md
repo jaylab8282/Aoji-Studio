@@ -1,4 +1,4 @@
-# Aoji Studio — 상세 문서
+# Aoji Studio v1.2.0 — 상세 문서
 
 `README.md`의 요약으로 부족할 때 보는 문서다. 열기 도우미 설치 절차(되돌리는 방법·예행 연습·권한
 대화상자·실패했을 때의 화면), 컨테이너 없는 개발 실행, E2E 하네스 동작을 전부 담았다.
@@ -12,8 +12,8 @@
 
 ## 요구 사항
 
-- Docker Desktop (macOS, Apple Silicon), `docker compose` v2 이상
-- Node 24 (프론트·헬퍼·도구), 로컬 JDK 21 이상 (Gradle toolchain이 JDK 25를 `~/.gradle/jdks/`에 자동 설치)
+- Docker Desktop (macOS Apple Silicon, 또는 Windows + WSL), `docker compose` v2 이상
+- Node 24 (프론트·헬퍼·도구. Windows 도우미는 Windows에도 Node 24), 로컬 JDK 21 이상 (Gradle toolchain이 JDK 25를 `~/.gradle/jdks/`에 자동 설치)
 - 실행 대상 프로젝트 폴더(`AOJISTUDIO_HOST_PATH`)
 
 ## 운영 실행 (컨테이너)
@@ -178,6 +178,114 @@ lsof -nP -iTCP:4181 -sTCP:LISTEN                     # 결과 없음
 
 토큰 파일은 의도적으로 남긴다(`uninstall.sh`가 안내한다). 지우려면 직접 `rm <AojiStudio 경로>/.aojistudio/helper-token`.
 
+## WSL 실행과 Windows 열기 도우미 (v1.2.0)
+
+Windows PC에서는 WSL(예: `Ubuntu-24.04`) 안에서 저장소를 받고 `docker compose`를 돌린다. 웹은 WSL의 `127.0.0.1:4180`에 뜨고 Windows 브라우저가 그대로 접속한다.
+터미널 열기만 Windows 쪽 **Windows 열기 도우미**(Windows `127.0.0.1:4181`)가 맡아 Windows Terminal의 새 탭에서 `wsl.exe -d <배포판> --cd <AojiStudio 폴더> -- claude`를 실행한다(맥북 도우미와 같은 소스, `--platform windows`).
+WSL 안에는 도우미를 설치하지 않는다(4181 리스너가 WSL에 없어 포트가 겹치지 않는다).
+
+### WSL `.env`
+
+```text
+AOJISTUDIO_HOST_PATH=/home/<사용자>/AojiStudio
+AOJISTUDIO_PLATFORM=linux/amd64
+AOJISTUDIO_HOST_OS=wsl
+AOJISTUDIO_WSL_DISTRO=Ubuntu-24.04
+```
+
+- `AOJISTUDIO_HOST_OS`: 비우면 `macos`, WSL이면 `wsl`. `wsl`이면 `AOJISTUDIO_WSL_DISTRO`(배포판 이름, `wsl -l -q`로 확인)가 필수이고 없으면 서버가 기동을 거부한다.
+- 이 변수 이름은 `.env.example`·`compose.yaml` 기준 `AOJISTUDIO_WSL_DISTRO`다(`WSL_DISTRO`만 쓰면 적용되지 않는다).
+- 값 검사를 하지 않고 구성만 확인하려면(스택 기동 없음): `.env`가 아직 없으면 임시 파일로 `docker compose --env-file <임시 파일> config`.
+
+### Windows 도우미 설치
+
+1. Windows에 **Node 24 이상**을 설치한다(`node -v`로 확인). `install.ps1`이 `PATH`에서 `node.exe`를 찾고, 못 찾거나 24 미만이면 실패한다. 다른 위치면 `-NodePath <node.exe 경로>`를 준다.
+2. **Windows PowerShell**을 열고 저장소의 `helper\windows` 폴더로 간다. 저장소는 WSL 안에 있으므로 폴더는 `\\wsl.localhost\<배포판>\<저장소 WSL 경로>\helper\windows`다.
+3. 예행 연습(아무것도 바꾸지 않고 복사 대상과 작업 XML을 출력):
+
+```powershell
+cd \\wsl.localhost\Ubuntu-24.04\home\<사용자>\Aoji-Studio\helper\windows
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro Ubuntu-24.04 -ProjectDir /home/<사용자>/AojiStudio -DryRun
+```
+
+4. 설치:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro Ubuntu-24.04 -ProjectDir /home/<사용자>/AojiStudio
+```
+
+- `-Distro` 필수, `^[A-Za-z0-9._-]{1,64}$`. `-ProjectDir` 필수, **WSL 경로**(`^/[A-Za-z0-9._/-]+$`, `..`·공백·`;` 불가)이며 `.env`의 `AOJISTUDIO_HOST_PATH`와 **같은 값**이다.
+- 선택: `-AllowedOrigins`(기본 `http://127.0.0.1:4180`, 웹 포트를 바꿨다면 맞춘다), `-Port`(기본 4181), `-NodePath`, `-HealthTimeoutSeconds`(1~120, 기본 10).
+- 하는 일: 도우미 파일을 `%LOCALAPPDATA%\AojiStudio\helper\`에 복사 → 작업 스케줄러 작업 `\AojiStudio\aojistudio-helper` 등록(`Register-ScheduledTask -Xml`) → 시작 → `http://127.0.0.1:<포트>/health` 응답 확인. 응답이 없으면 등록을 해제하고 실패한다.
+- **로그온 자동 시작**: 작업이 로그온 트리거로 등록되므로 Windows에 로그온할 때마다 `windows\start-helper.ps1`이 콘솔 창 없이 도우미를 띄운다.
+- 확인: `curl.exe -s -H "Origin: http://127.0.0.1:4180" http://127.0.0.1:4181/health` → `{"ok":true,"version":"1"}`.
+- 실제 등록·로그온 자동 시작·Windows Terminal 열림은 사람이 확인하는 절차다(자동 검증 대상이 아니다).
+
+### 토큰 위치
+
+토큰 파일은 맥북과 같은 `<AojiStudio 폴더>/.aojistudio/helper-token`(WSL 경로)이다. Windows 도우미는 `\\wsl.localhost\<배포판>\<WSL 경로의 /를 \로>\.aojistudio\helper-token`으로 읽고, 없으면 첫 실행 때 hex 64자를 만든다.
+도우미는 기동 시 1회만 읽는다. Windows에서 9P로 만든 파일은 모드 600을 보장할 수 없다(알려진 한계, 단일 사용자 WSL).
+
+### Windows 도우미 제거
+
+`uninstall.ps1`은 설치 폴더에 복사되지 않는다. **설치할 때와 같은 저장소 폴더** `\\wsl.localhost\<배포판>\<저장소 WSL 경로>\helper\windows`에서 **Windows PowerShell**(WSL 셸이 아니다)로 실행한다.
+
+```powershell
+cd \\wsl.localhost\Ubuntu-24.04\home\<사용자>\Aoji-Studio\helper\windows
+powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1 -DryRun   # 할 일만 출력
+powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1
+```
+
+작업 해제 → `aojistudio-helper.mjs`를 실행 중인 `node.exe` 종료 → `%LOCALAPPDATA%\AojiStudio\helper\` 삭제. 토큰 파일(WSL 쪽 `.aojistudio\helper-token`)은 남긴다. Windows PowerShell이 UNC 경로에서 `cd`가 안 되면 `pushd \\wsl.localhost\…\helper\windows`를 쓴다.
+
+## 전역 Claude 설정 연결 (v1.2.0)
+
+`.env`에 홈 경로를 적으면 호스트의 전역 Claude 설정 **4개만** 컨테이너에 읽기 전용(`/claude-home`)으로 연결된다.
+
+```text
+AOJISTUDIO_CLAUDE_HOME=/home/<사용자>        # macOS는 /Users/<사용자>
+```
+
+| 연결 항목 | 항목별 덮어쓰기 변수 |
+|---|---|
+| `<홈>/.claude.json` | `AOJISTUDIO_CLAUDE_JSON_SRC` |
+| `<홈>/.claude/settings.json` | `AOJISTUDIO_CLAUDE_SETTINGS_SRC` |
+| `<홈>/.claude/plugins` | `AOJISTUDIO_CLAUDE_PLUGINS_SRC` |
+| `<홈>/.claude/projects` | `AOJISTUDIO_CLAUDE_PROJECTS_SRC` |
+
+- `~/.claude` 전체와 `.credentials.json`은 연결하지 않는다. 쓰기는 불가(읽기 전용)이다.
+- 홈이 비어 있으면 저장소 안 대역 `tools/claude-home-off/`가 연결되어 화면에 `연결 안 됨`으로 보인다.
+- 홈에 없는 항목이 있으면 Docker가 그 경로를 대며 기동을 거부한다(`create_host_path: false`). 그 항목만 끄려면 `_SRC` 변수로 대역을 지정한다.
+
+```text
+AOJISTUDIO_CLAUDE_PROJECTS_SRC=./tools/claude-home-off/.claude/projects
+```
+
+- 구성 확인(이미지 빌드·기동 없음, 홈 없음 / 홈 있음 / `_SRC` 덮어쓰기 3경우): `tools/e2e/scripts/check-compose-config.sh`.
+
+## 상태줄 연동 (v1.2.0)
+
+07 설정의 `상태줄 연동` 카드가 보여 주는 **설정 예시**를 `설정 예시 복사`로 복사해 Claude Code 설정 파일(`settings.json`, 보통 `~/.claude/settings.json`)의 최상위 객체 안에 직접 붙인다. 웹은 이 파일을 쓰지 않는다.
+
+```json
+"statusLine": {
+  "type": "command",
+  "command": "node \"<AojiStudio 폴더>/.aojistudio/statusline.mjs\" --url http://127.0.0.1:4180/hooks/statusline -- <쓰던 상태줄 명령>"
+}
+```
+
+- 스크립트 `.aojistudio/statusline.mjs`는 서버가 기동 때 놓는다(없거나 내용이 다를 때만, 쓰기 가능할 때만). 수집 토큰은 같은 폴더의 `collect-token`을 스크립트가 읽는다 — 예시와 인자에 토큰을 넣지 않는다.
+- **쓰던 상태줄 명령 이어 붙이기**: `--` 뒤의 `<쓰던 상태줄 명령>`을 원래 쓰던 명령으로 바꾼다. 스크립트가 같은 입력을 그 명령에 넘기고 그 출력을 그대로 내보내므로 상태줄 표시는 그대로다. 쓰던 명령이 없으면 `-- <쓰던 상태줄 명령>`을 지운다(출력 없음).
+- **셸 기능이 필요하면 `sh -c '…'`**: 쓰던 명령은 셸 없이(`shell: false`) 실행되므로 파이프·`&&`·리다이렉트·환경 변수 치환이 필요하면 `-- sh -c '<명령>'`으로 감싼다.
+
+```text
+... --url http://127.0.0.1:4180/hooks/statusline -- sh -c 'jq -r .model.display_name | tr a-z A-Z'
+```
+
+- **전송은 루프백뿐**: `--url`은 `http://127.0.0.1`·`http://localhost`·`http://[::1]`만 받고, 다른 주소면 보내지 않는다. 보내는 값은 `subscription_type`, `rate_limits.five_hour|seven_day`의 `used_percentage`·`resets_at`뿐이다. 전송은 분리된 프로세스가 하므로 상태줄 출력을 늦추지 않고, 실패는 출력에 나오지 않는다.
+- **데스크톱 앱 한계**: Claude Code CLI 세션이 돌 때만 상태줄이 갱신된다. 데스크톱 앱 세션에서는 상태줄이 돌지 않을 수 있다. 그 경우 한도는 `.claude.json`의 한도 캐시(전역 연결 필요)가 더 최근이면 그 값을 쓴다.
+- 마지막 수신 시각은 07 카드에 보이고, 받은 적이 없으면 `받은 적 없음`이다.
+
 ## 개발 실행 (컨테이너 없이)
 
 Backend와 Frontend를 따로 띄운다. 실제 `AojiStudio/.claude`·`.aojistudio`는 쓰지 않고 임시 폴더를 사용한다.
@@ -235,7 +343,7 @@ cd tools/e2e
 E2E_FIXTURE=project-configured npx playwright test tests/e2e-03.spec.ts
 ```
 
-`run-e2e.sh`는 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 10배치를 돈다.
+`run-e2e.sh`는 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 14배치를 돈다. 배치별 단독 실행 명령은 프로젝트 `CLAUDE.md`의 Commands(e2e)에 있다.
 x86_64 머신(윈도우·리눅스)은 명령 앞에 `E2E_PLATFORM=linux/amd64`를 붙인다(기본은 `linux/arm64`).
 
 compose 확인 스크립트는 운영 볼륨 `aojistudio-data`를 건드리지 않는다(x86_64 머신은 앞에 `AOJISTUDIO_PLATFORM=linux/amd64`):
@@ -243,6 +351,7 @@ compose 확인 스크립트는 운영 볼륨 `aojistudio-data`를 건드리지 �
 ```bash
 tools/e2e/scripts/check-old-names.sh           # 옛 앱 이름 검색 0건 (컨테이너 기동 없음)
 tools/e2e/scripts/check-old-env.sh             # 옛 이름 환경 변수 거부 (컨테이너 기동 없음)
+tools/e2e/scripts/check-compose-config.sh      # 전역 Claude 설정 연결 구성 3경우 (이미지 빌드·기동 없음)
 tools/e2e/scripts/check-compose-build.sh       # 운영 compose.yaml 빌드·기동 (포트 4186, 임시 볼륨)
 ```
 
@@ -251,7 +360,7 @@ tools/e2e/scripts/check-compose-build.sh       # 운영 compose.yaml 빌드·기
 ```text
 backend/    Spring Boot 4.1.x · Java 25 · Gradle Kotlin DSL
 frontend/   React 19.3 · TS · Vite 8 · Tailwind 4.3 · React Router v7
-helper/     맥북 호스트에서 도는 열기 도우미 (Node 24, 외부 의존 없음)
+helper/     호스트에서 도는 열기 도우미(맥북 launchd · Windows 작업 스케줄러) (Node 24, 외부 의존 없음)
 tools/      replay(이벤트 재생) · fixtures(테스트용 프로젝트 폴더) · e2e(Playwright)
 ```
 

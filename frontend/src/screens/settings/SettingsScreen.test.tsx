@@ -875,4 +875,31 @@ describe("SettingsScreen (SCR-07)", () => {
     expect(calls).toBe(2);
     usageSignalStore.reset();
   });
+
+  it("[usage-changed settings][D-180] 재조회가 실패해도 화면에 보이던 값은 유지되고 에러 카드는 뜨지 않는다", async () => {
+    usageSignalStore.reset();
+    let calls = 0;
+    stubFetch({
+      settings: () => {
+        calls += 1;
+        return calls === 1
+          ? jsonResponse(buildSettingsFixture())
+          : jsonResponse({ code: "INTERNAL", message: "설정을 읽지 못했습니다" }, 500);
+      },
+    });
+    renderScreen();
+    await waitFor(() => expect(rowText("settings-row-mount-path")).toContain("/Users/jaybee/Desktop/AojiStudio"));
+
+    act(() => {
+      usageSignalStore.signal(["settings"], null);
+    });
+    await waitFor(() => expect(calls).toBe(2), { timeout: 3000 });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(rowText("settings-row-mount-path")).toContain("/Users/jaybee/Desktop/AojiStudio");
+    expect(rowText("settings-row-agents")).not.toBe("");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    usageSignalStore.reset();
+  });
 });

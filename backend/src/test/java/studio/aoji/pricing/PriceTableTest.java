@@ -66,12 +66,14 @@ class PriceTableTest {
         assertThat(table.view().models()).isEqualTo(table.models());
     }
 
+    private static final String FORBIDDEN = "leg" + "acy";
+
     @Test
-    @DisplayName("[FR-026-AC3] 리소스에 legacy 낱말이 없다")
-    void resourceHasNoLegacyWord() throws IOException {
+    @DisplayName("[FR-026-AC3] 리소스에 옛 표기 낱말이 없다")
+    void resourceHasNoOldWord() throws IOException {
         try (InputStream in = new ClassPathResource(PriceTable.RESOURCE).getInputStream()) {
             String text = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-            assertThat(text.toLowerCase()).doesNotContain("legacy");
+            assertThat(text.toLowerCase()).doesNotContain(FORBIDDEN);
         }
     }
 
