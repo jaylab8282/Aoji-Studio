@@ -204,6 +204,30 @@ class RegistryServiceTest {
         });
     }
 
+    @Test
+    @DisplayName("[FR-001-AC3] 재스캔 실패 주입 시 기준선 불변, 성공하면 기준선이 현재 파일 상태로 오른다")
+    void failedRescanKeepsBaselineAndSuccessfulRescanRaisesIt() throws IOException {
+        contextRunner().run(context -> {
+            RegistryService registryService = context.getBean(RegistryService.class);
+            studio.aoji.files.DataDirectory dataDirectory = context.getBean(studio.aoji.files.DataDirectory.class);
+            java.util.function.Supplier<java.util.Map<String, WatchedFiles.FileStat>> capture =
+                    () -> WatchedFiles.capture(mountRoot, dataDirectory.helperTokenFile(), dataDirectory.teamsDir());
+            assertThat(registryService.baselineDiffers(capture.get())).isFalse();
+
+            writeAgent("added.md", "added-agent");
+            assertThat(registryService.baselineDiffers(capture.get())).isTrue();
+
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> registryService.rescanNow(snapshot -> {
+                        throw new IllegalStateException("broadcast failed");
+                    }))
+                    .isInstanceOf(IllegalStateException.class);
+            assertThat(registryService.baselineDiffers(capture.get())).isTrue();
+
+            registryService.rescanNow();
+            assertThat(registryService.baselineDiffers(capture.get())).isFalse();
+        });
+    }
+
     @Configuration
     @EnableConfigurationProperties(AppProperties.class)
     static class TestConfig {

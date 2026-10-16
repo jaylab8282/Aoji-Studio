@@ -24,7 +24,8 @@ import studio.aoji.files.PathGuard;
 /**
  * 스캔한 결과를 불변 {@link RegistrySnapshot}으로 만들어 {@code AtomicReference}로 교체한다
  * (architecture.md §3.2). 읽기 API는 락 없이 {@link #current()}만 읽는다.
- * 폴링(T-004)·변경 API 후 재스캔(T-008~T-011)은 {@link #rescanNow()}를 호출한다.
+ * 폴링(T-004)·변경 API 후 재스캔(T-008~T-011)은 {@link #rescanNow()}를 호출한다. 폴러의 파일 변경
+ * 기준선도 여기서 갱신한다(ADR-87).
  *
  * <p>{@link #rescanNow()}는 {@link #rescanLock}으로 스캔("빌드")과 {@code revision} 채번,
  * {@code current.set(...)}을 하나의 임계 구역으로 묶는다. 폴러(T-004 {@code FolderPoller})와
@@ -48,6 +49,8 @@ public class RegistryService {
     private final AtomicInteger revisionCounter = new AtomicInteger(0);
     private final AtomicReference<RegistrySnapshot> current = new AtomicReference<>();
     private final ReentrantLock rescanLock = new ReentrantLock();
+    /** 마지막으로 성공한 재스캔 직전에 캡처한 감시 대상 상태(ADR-87). 기동 시 {@link #init()}가 처음 채운다. */
+    private volatile Map<String, WatchedFiles.FileStat> baseline = Map.of();
 
     public RegistryService(
             AppProperties appProperties,
@@ -88,13 +91,27 @@ public class RegistryService {
     public RegistrySnapshot rescanNow(Consumer<RegistrySnapshot> afterCommit) {
         rescanLock.lock();
         try {
+            // 캡처를 스캔보다 먼저 한다 — 그사이 바뀐 파일은 다음 폴링에서 다시 잡힌다(ADR-87).
+            Map<String, WatchedFiles.FileStat> captured = captureWatched();
             RegistrySnapshot snapshot = buildSnapshot();
             current.set(snapshot);
             afterCommit.accept(snapshot);
+            // 스캔·방송이 성공한 뒤에만 기준선을 올린다. 실패하면 같은 변경을 다음 폴링이 다시 감지한다.
+            baseline = captured;
             return snapshot;
         } finally {
             rescanLock.unlock();
         }
+    }
+
+    /** 폴러가 방금 캡처한 상태가 기준선과 다르면 {@code true}. */
+    boolean baselineDiffers(Map<String, WatchedFiles.FileStat> captured) {
+        return !captured.equals(baseline);
+    }
+
+    private Map<String, WatchedFiles.FileStat> captureWatched() {
+        return WatchedFiles.capture(
+                Path.of(appProperties.getMountPath()), dataDirectory.helperTokenFile(), dataDirectory.teamsDir());
     }
 
     private RegistrySnapshot buildSnapshot() {

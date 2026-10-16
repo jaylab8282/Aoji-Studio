@@ -38,6 +38,8 @@ class FolderPollerRetryTest {
         RegistryService registryService = mock(RegistryService.class);
         SseHub hub = mock(SseHub.class);
         RegistrySnapshot registry = mock(RegistrySnapshot.class);
+        // 재스캔이 실패하면 기준선이 오르지 않으므로 baselineDiffers는 계속 true, 성공 뒤에야 false가 된다.
+        when(registryService.baselineDiffers(any())).thenReturn(true, true, false);
         when(registryService.rescanNow(any(Consumer.class)))
                 .thenThrow(new IllegalStateException("scan failed"))
                 .thenAnswer(inv -> {
@@ -47,7 +49,6 @@ class FolderPollerRetryTest {
 
         FolderPoller poller =
                 new FolderPoller(props, dataDirectory, registryService, mock(LiveStateService.class), hub);
-        poller.init();
         Files.writeString(agents.resolve("a.md"), "---\nname: a\ndescription: d\n---\n", StandardCharsets.UTF_8);
 
         poller.poll(); // 재스캔 실패 - 예외를 삼키고 기준선을 올리지 않는다
