@@ -107,6 +107,18 @@ public class ApiException extends RuntimeException {
                 new ApiError("REVISION_CONFLICT", "파일이 다른 곳에서 수정되었습니다", null, details));
     }
 
+    /** 스킬 조회 404 (ADR-91 문구). */
+    public static ApiException skillNotFound() {
+        return new ApiException(
+                HttpStatus.NOT_FOUND, new ApiError("SKILL_NOT_FOUND", studio.aoji.skills.SkillMessages.SKILL_NOT_FOUND));
+    }
+
+    /** 형식 오류 SKILL.md는 웹에서 열 수 없다(FR-018-E1, FR-020-E5; ADR-91 문구). */
+    public static ApiException skillUneditable() {
+        return new ApiException(
+                HttpStatus.CONFLICT, new ApiError("UNEDITABLE", studio.aoji.skills.SkillMessages.UNEDITABLE));
+    }
+
     public HttpStatus status() {
         return status;
     }

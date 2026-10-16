@@ -21,7 +21,7 @@ class ProjectFolderScannerTest {
     @TempDir
     Path mountRoot;
 
-    private final ProjectFolderScanner scanner = new ProjectFolderScanner(new AgentDefinitionParser());
+    private final ProjectFolderScanner scanner = new ProjectFolderScanner(new AgentDefinitionParser(), new studio.aoji.skills.SkillScanner(new studio.aoji.skills.SkillFileParser()));
 
     private PathGuard pathGuard() {
         return new PathGuard(mountRoot);

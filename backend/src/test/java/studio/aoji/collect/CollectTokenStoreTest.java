@@ -114,7 +114,7 @@ class CollectTokenStoreTest {
     static class TestConfig {
         @Bean
         studio.aoji.registry.ProjectFolderScanner projectFolderScanner() {
-            return new studio.aoji.registry.ProjectFolderScanner(new studio.aoji.registry.AgentDefinitionParser());
+            return new studio.aoji.registry.ProjectFolderScanner(new studio.aoji.registry.AgentDefinitionParser(), new studio.aoji.skills.SkillScanner(new studio.aoji.skills.SkillFileParser()));
         }
 
         @Bean

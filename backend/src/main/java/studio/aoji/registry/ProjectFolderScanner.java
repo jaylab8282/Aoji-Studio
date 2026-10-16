@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Component;
 import studio.aoji.files.PathGuard;
+import studio.aoji.skills.SkillEntry;
+import studio.aoji.skills.SkillScanner;
 
 /**
  * `.claude/agents/`, `.claude/skills/`, 마운트 쓰기 가능 여부를 읽는다
@@ -17,12 +19,13 @@ import studio.aoji.files.PathGuard;
 public class ProjectFolderScanner {
 
     private static final String AGENT_FILE_SUFFIX = ".md";
-    private static final String SKILL_FILE_NAME = "SKILL.md";
 
     private final AgentDefinitionParser agentDefinitionParser;
+    private final SkillScanner skillScanner;
 
-    public ProjectFolderScanner(AgentDefinitionParser agentDefinitionParser) {
+    public ProjectFolderScanner(AgentDefinitionParser agentDefinitionParser, SkillScanner skillScanner) {
         this.agentDefinitionParser = agentDefinitionParser;
+        this.skillScanner = skillScanner;
     }
 
     /**
@@ -68,26 +71,16 @@ public class ProjectFolderScanner {
     }
 
     /**
-     * {@code .claude/skills/} 바로 아래 폴더 중 {@code SKILL.md}를 가진 폴더 수(FR-001-AC2).
+     * {@code .claude/skills/} 바로 아래 스킬 폴더 수(FR-001-AC2, architecture.md §6.4.1 {@link SkillScanner}와 같은 결과).
      * 폴더가 없으면 0(FR-001-E3, 에러 아님).
      */
     public int scanSkills(Path mountRoot) {
-        return scanSkillNames(mountRoot).size();
+        return skillScanner.scan(mountRoot).size();
     }
 
-    /** {@code scanSkills}와 같은 규칙으로 센 스킬 폴더 이름(이름순, 형식 오류 폴더 포함). */
+    /** {@link SkillScanner} 결과의 스킬 폴더 이름(이름순, 형식 오류 폴더 포함). */
     public List<String> scanSkillNames(Path mountRoot) {
-        Path skillsDir = mountRoot.resolve(".claude").resolve("skills");
-        if (!Files.isDirectory(skillsDir)) {
-            return List.of();
-        }
-        List<String> names = new ArrayList<>();
-        for (Path entry : listDirectChildren(skillsDir)) {
-            if (Files.isDirectory(entry) && Files.isRegularFile(entry.resolve(SKILL_FILE_NAME))) {
-                names.add(entry.getFileName().toString());
-            }
-        }
-        return names;
+        return skillScanner.scan(mountRoot).stream().map(SkillEntry::name).toList();
     }
 
     /**

@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -32,7 +33,7 @@ public class EventRepository {
      * 반드시 이 잠금을 먼저 잡아야 한다 — 잠금 → 커넥션 순서를 모든 쓰기가 지켜야
      * {@link #insert}·{@link #deleteOlderThan}과 교착하지 않는다.
      */
-    public synchronized <T> T locked(java.util.function.Supplier<T> action) {
+    public synchronized <T> T locked(Supplier<T> action) {
         return action.get();
     }
 

@@ -94,7 +94,15 @@ public class AgentDefinitionParser {
         List<String> tools = normalizeTools(frontmatter.get("tools"));
 
         AgentDefinition definition =
-                new AgentDefinition(name, description, tools, model, hasLiteralInheritModel, body);
+                new AgentDefinition(
+                name,
+                description,
+                tools,
+                model,
+                hasLiteralInheritModel,
+                body,
+                normalizeNames(frontmatter.get("skills")),
+                normalizeMcpServers(frontmatter.get("mcpServers")));
         return ParsedAgentFile.ok(relativeFilePath, fileName, definition);
     }
 
@@ -149,6 +157,33 @@ public class AgentDefinitionParser {
                     .toList();
         }
         return null;
+    }
+
+    /** 쉼표 문자열 또는 YAML 목록 → 이름 목록(빈 값 제외). 그 밖 모양은 빈 목록. */
+    private static List<String> normalizeNames(Object raw) {
+        List<String> tools = normalizeTools(raw);
+        return tools == null ? List.of() : tools;
+    }
+
+    /** 목록 원소가 문자열이면 그 이름, {@code {이름: 정의}} 객체면 키들. 쉼표 문자열도 허용한다. */
+    private static List<String> normalizeMcpServers(Object raw) {
+        if (raw instanceof List<?> list) {
+            List<String> names = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Map<?, ?> map) {
+                    map.keySet().stream()
+                            .filter(java.util.Objects::nonNull)
+                            .map(String::valueOf)
+                            .map(String::trim)
+                            .filter(v -> !v.isEmpty())
+                            .forEach(names::add);
+                } else if (item != null && !String.valueOf(item).isBlank()) {
+                    names.add(String.valueOf(item).trim());
+                }
+            }
+            return List.copyOf(names);
+        }
+        return normalizeNames(raw);
     }
 
     private static String decodeStrict(Path file) throws IOException {

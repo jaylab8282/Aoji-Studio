@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,7 +24,7 @@ public class EventRetentionJob {
     private final Clock clock;
 
     /** 운영 생성자: 시스템 시계. 공용 {@code Clock} 빈(휴지통 접미사용, 테스트가 교체함)과 분리해 둔다. */
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public EventRetentionJob(EventRepository eventRepository) {
         this(eventRepository, Clock.systemDefaultZone());
     }

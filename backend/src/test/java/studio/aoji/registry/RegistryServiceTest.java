@@ -243,7 +243,7 @@ class RegistryServiceTest {
 
         @Bean
         ProjectFolderScanner projectFolderScanner(AgentDefinitionParser parser) {
-            return new ProjectFolderScanner(parser);
+            return new ProjectFolderScanner(parser, new studio.aoji.skills.SkillScanner(new studio.aoji.skills.SkillFileParser()));
         }
 
         @Bean

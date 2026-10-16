@@ -10,6 +10,8 @@ import java.util.List;
  * @param model frontmatter {@code model} 원본 값. 없으면 null
  * @param hasLiteralInheritModel 원본에 {@code model: inherit} 줄이 있음(ADR-13 보존용)
  * @param body frontmatter 닫는 줄 다음의 본문 원문
+ * @param skills frontmatter {@code skills} 원본 목록(쉼표 문자열 또는 YAML 목록). 없으면 빈 목록
+ * @param mcpServers frontmatter {@code mcpServers} 원본 목록(문자열 이름 또는 {@code {이름: 정의}} 객체의 이름). 없으면 빈 목록
  */
 public record AgentDefinition(
         String name,
@@ -17,5 +19,7 @@ public record AgentDefinition(
         List<String> tools,
         String model,
         boolean hasLiteralInheritModel,
-        String body) {
+        String body,
+        List<String> skills,
+        List<String> mcpServers) {
 }
