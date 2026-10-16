@@ -69,7 +69,6 @@ class FolderPollerBaselineTest {
         registry.add("aojistudio.public-port", () -> "4180");
         registry.add("aojistudio.mount-path", () -> mountRoot.toString());
         registry.add("aojistudio.data-path", () -> dataDir.toString());
-        registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + dataDir.resolve("events.db"));
         registry.add("server.shutdown", () -> "immediate");
     }
 
@@ -77,6 +76,16 @@ class FolderPollerBaselineTest {
     void dirs() throws IOException {
         Files.createDirectories(mountRoot.resolve(".claude").resolve("agents"));
         Files.createDirectories(mountRoot.resolve(".aojistudio").resolve("teams"));
+        // 정적 @TempDir를 같은 컨텍스트가 공유하므로 앞 테스트가 남긴 파일을 지우고 시작한다
+        for (Path dir : new Path[] {
+            mountRoot.resolve(".claude").resolve("agents"), mountRoot.resolve(".aojistudio").resolve("teams")
+        }) {
+            try (var files = Files.list(dir)) {
+                for (Path file : (Iterable<Path>) files::iterator) {
+                    Files.deleteIfExists(file);
+                }
+            }
+        }
     }
 
     @Test
@@ -84,16 +93,17 @@ class FolderPollerBaselineTest {
         // [FR-001-AC3] 정의 파일 수정 -> POST /api/registry/rescan -> 1초 안에 원래 바이트(와 mtime)로 되돌림
         // -> 2초 안 SSE registry가 되돌린 상태
         Path agent = mountRoot.resolve(".claude").resolve("agents").resolve("base-agent.md");
-        Files.writeString(agent, ORIGINAL, StandardCharsets.UTF_8);
-        FileTime originalMtime = FileTime.fromMillis(1_700_000_000_000L);
-        Files.setLastModifiedTime(agent, originalMtime);
-        Thread.sleep(1_500); // 폴러가 원본 상태를 기준선으로 삼도록 한 주기 이상 기다린다
-
         HttpClient client = HttpClient.newHttpClient();
         try {
             HttpResponse<InputStream> response = connect(client);
             BlockingQueue<String[]> frames = readFrames(response.body());
             assertThat(waitFor(frames, "snapshot", d -> true, 5_000)).isNotNull();
+
+            // 고정 대기 대신 조건 대기: 폴러가 원본 파일을 새로 보고 registry를 방송했다 = 원본 상태가 기준선
+            Files.writeString(agent, ORIGINAL, StandardCharsets.UTF_8);
+            FileTime originalMtime = FileTime.fromMillis(1_700_000_000_000L);
+            Files.setLastModifiedTime(agent, originalMtime);
+            assertThat(waitFor(frames, "registry", d -> d.contains("original-desc"), 5_000)).isNotNull();
 
             Files.writeString(agent, CHANGED, StandardCharsets.UTF_8);
             rescan();
@@ -126,10 +136,14 @@ class FolderPollerBaselineTest {
                     .andExpect(status().isCreated());
             Path config = mountRoot.resolve(".aojistudio").resolve("teams").resolve("baseline-wf.json");
             assertThat(config).exists();
-            Files.delete(config);
 
-            String gone = waitFor(
-                    frames, "registry", d -> !d.contains("baseline-wf"), 2_000);
+            // 1단계: baseline-wf가 들어 있는 registry 프레임을 먼저 받는다(삭제 전 프레임이 허위 통과하지 않게)
+            assertThat(waitFor(frames, "registry", d -> d.contains("baseline-wf"), 3_000))
+                    .contains("baseline-wf");
+
+            // 2단계: 밖에서 삭제 -> 그 뒤 baseline-wf가 없는 registry 프레임
+            Files.delete(config);
+            String gone = waitFor(frames, "registry", d -> !d.contains("baseline-wf"), 2_000);
             assertThat(gone).isNotNull().doesNotContain("baseline-wf");
             response.body().close();
         } finally {

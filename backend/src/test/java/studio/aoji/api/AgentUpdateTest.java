@@ -28,9 +28,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import studio.aoji.files.DefinitionFileDeleter;
+import studio.aoji.registry.AgentDefinitionWriter;
 import studio.aoji.registry.RegistryService;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -69,13 +71,15 @@ class AgentUpdateTest {
     @MockitoBean(answers = Answers.CALLS_REAL_METHODS)
     DefinitionFileDeleter definitionFileDeleter;
 
+    @MockitoSpyBean
+    AgentDefinitionWriter agentDefinitionWriter;
+
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry registry) {
         registry.add("aojistudio.host-path", () -> "/Users/jaybee/Desktop/AojiStudio");
         registry.add("aojistudio.public-port", () -> "4180");
         registry.add("aojistudio.mount-path", () -> mountRoot.toString());
         registry.add("aojistudio.data-path", () -> dataDir.toString());
-        registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + dataDir.resolve("events.db"));
     }
 
     @BeforeEach
@@ -566,5 +570,64 @@ class AgentUpdateTest {
         JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
         assertThat(body.get("code").asString()).isEqualTo("VALIDATION");
         assertThat(body.get("fields").get("description")).isNotNull();
+    }
+
+    @Test
+    void roleOnlyChangeDefinitionWriteFailureRestoresConfig() throws Exception {
+        // [FR-011-AC6] 이름·소속은 그대로 두고 역할만 바꿀 때 정의 파일 쓰기 실패 → 500 IO_FAILED,
+        // 먼저 쓴 구성 파일을 원본 바이트로 되돌리고 정의 파일은 그대로
+        createWorkflow("역할롤백팀");
+        createAgent("role-rollback-agent", "역할롤백팀", "member");
+        String revision = getAgent("role-rollback-agent").get("revision").asString();
+        byte[] originalDefinitionBytes = Files.readAllBytes(definitionFile("role-rollback-agent"));
+        byte[] originalConfigBytes = Files.readAllBytes(configFile("역할롤백팀"));
+
+        doThrow(new IOException("디스크 가득 참")).when(agentDefinitionWriter).updateFile(any(), any(), any(), any());
+
+        MvcResult result = putAgent(
+                "role-rollback-agent",
+                baseUpdateRequest("role-rollback-agent", "설명입니다", "역할롤백팀", "lead", revision));
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(500);
+        JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
+        assertThat(body.get("code").asString()).isEqualTo("IO_FAILED");
+        assertThat(Files.readAllBytes(configFile("역할롤백팀"))).isEqualTo(originalConfigBytes);
+        assertThat(Files.readAllBytes(definitionFile("role-rollback-agent"))).isEqualTo(originalDefinitionBytes);
+    }
+
+    @Test
+    void commentAndQuotedFrontmatterLinesArePreserved() throws Exception {
+        // [FR-011-AC1] 주석 줄·따옴표로 감싼 알 수 없는 키 줄·빈 줄은 바이트 그대로 남고 설명만 바뀐다
+        String name = "quoted-agent";
+        String content = "---\n"
+                + "name: " + name + "\n"
+                + "# 손으로 쓴 주석 줄\n"
+                + "description: \"따옴표 설명\"\n"
+                + "argument-hint: \"[issue-number]\"\n"
+                + "\n"
+                + "color: 'blue'\n"
+                + "---\n"
+                + "본문\n";
+        writeRawDefinitionFile(name, content);
+        registryService.rescanNow();
+        JsonNode detail = getAgent(name);
+
+        Map<String, Object> request = baseUpdateRequest(
+                name, "새 설명", null, null, detail.get("revision").asString());
+        request.put("body", detail.get("body").asString());
+        MvcResult result = putAgent(name, request);
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+
+        String written = Files.readString(definitionFile(name), StandardCharsets.UTF_8);
+        assertThat(written)
+                .contains("# 손으로 쓴 주석 줄\n")
+                .contains("argument-hint: \"[issue-number]\"\n")
+                .contains("\ncolor: 'blue'\n")
+                .contains("\n\ncolor:")
+                .doesNotContain("따옴표 설명")
+                .endsWith("---\n" + detail.get("body").asString());
+        assertThat(getAgent(name).get("description").asString()).isEqualTo("새 설명");
+        assertThat(written.indexOf("# 손으로 쓴 주석 줄")).isLessThan(written.indexOf("description:"));
+        assertThat(written.indexOf("description:")).isLessThan(written.indexOf("argument-hint:"));
     }
 }

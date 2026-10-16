@@ -76,7 +76,6 @@ class SseStreamTest {
         registry.add("aojistudio.public-port", () -> "4180");
         registry.add("aojistudio.mount-path", () -> mountRoot.toString());
         registry.add("aojistudio.data-path", () -> dataDir.toString());
-        registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + dataDir.resolve("events.db"));
         // 무제한 timeout SSE 연결이 남아 있으면 graceful shutdown이 매번 30초를 기다린다(운영 동작과
         // 무관, 테스트 종료 속도만을 위한 설정). SseHub의 @PreDestroy가 실제 종료 시 emitter를
         // complete()하지만(architecture.md §9), 웹 서버의 graceful shutdown 단계가 그보다 먼저 실행돼

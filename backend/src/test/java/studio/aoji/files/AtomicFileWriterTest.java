@@ -15,6 +15,10 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * 파일 원자적 쓰기 (architecture.md §3.1, ADR-08). tmp + ATOMIC_MOVE, 실패 시 원본 보호.
+ *
+ * <p>AC·E ID 태그가 없는 이유: 사용자 요구가 아니라 인프라 보증이다. 정의·구성 파일을 쓰는 모든 기능
+ * 이 "쓰다 실패해도 원본이 그대로"(ADR-08)를 이 클래스에 기댄다. 그 기능의 AC·E는
+ * 각 컨트롤러 테스트가 증명하고, 이 테스트는 쓰기 방식 자체(tmp 정리·원자 교체·폴러 무시 이름·실패 시 원본 보호)만 고정한다.
  */
 class AtomicFileWriterTest {
 

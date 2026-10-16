@@ -70,7 +70,6 @@ class WorkflowControllerTest {
         registry.add("aojistudio.public-port", () -> "4180");
         registry.add("aojistudio.mount-path", () -> mountRoot.toString());
         registry.add("aojistudio.data-path", () -> dataDir.toString());
-        registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + dataDir.resolve("events.db"));
     }
 
     @BeforeEach
@@ -317,6 +316,8 @@ class WorkflowControllerTest {
     @Test
     @Order(24)
     void deleteMissingWorkflowIsNotFound() throws Exception {
+        // ID 태그 없음: api-spec DELETE /api/workflows/{workflow}의 404 WORKFLOW_NOT_FOUND 계약 확인이다.
+        // FR-012의 AC·E는 에이전트 삭제 범위라서 워크플로우 삭제 계약을 직접 가리키는 ID가 없다(ADR-08 계약 테스트).
         mockMvc.perform(delete("/api/workflows/{workflow}", "없는워크플로우")
                         .header("Origin", ALLOWED_ORIGIN)
                         .header("X-AojiStudio-Browser-Token", issuedBrowserToken()))

@@ -13,10 +13,13 @@ import java.sql.Statement;
 import java.util.stream.Stream;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -31,6 +34,7 @@ class SqliteConfigTest {
 
     @Nested
     @SpringBootTest
+    @ExtendWith(OutputCaptureExtension.class)
     class CorruptedDatabaseFile {
 
         @TempDir
@@ -67,6 +71,15 @@ class SqliteConfigTest {
 
             Long count = new JdbcTemplate(dataSource).queryForObject("SELECT COUNT(*) FROM events", Long.class);
             assertThat(count).isZero();
+        }
+
+        @Test
+        void recoveryLogDoesNotExposeFileContent(CapturedOutput output) {
+            // [architecture §9] 복구 로그에는 경로·판정만 남고 손상 파일의 내용(원문)은 남지 않는다
+            assertThat(output.getAll())
+                    .contains("quick_check 실패")
+                    .doesNotContain(GARBAGE_TEXT)
+                    .doesNotContain("not a real sqlite");
         }
     }
 
@@ -108,11 +121,11 @@ class SqliteConfigTest {
         }
     }
 
+    private static final String GARBAGE_TEXT = "not a real sqlite database, just garbage bytes 0123456789";
+
     private static void writeGarbageFile(Path dbFile) {
         try {
-            Files.write(
-                    dbFile,
-                    "not a real sqlite database, just garbage bytes 0123456789".getBytes(StandardCharsets.UTF_8));
+            Files.write(dbFile, GARBAGE_TEXT.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

@@ -70,7 +70,6 @@ class SseHubLatencyTest {
         registry.add("aojistudio.public-port", () -> "4180");
         registry.add("aojistudio.mount-path", () -> mountRoot.toString());
         registry.add("aojistudio.data-path", () -> dataDir.toString());
-        registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + dataDir.resolve("events.db"));
         registry.add("server.shutdown", () -> "immediate");
     }
 

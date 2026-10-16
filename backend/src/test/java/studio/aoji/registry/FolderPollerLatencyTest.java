@@ -2,10 +2,8 @@ package studio.aoji.registry;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -15,8 +13,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -28,6 +24,8 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import studio.aoji.config.BrowserTokenFilter;
+import studio.aoji.support.SseFrames;
+import studio.aoji.support.SseFrames.SseFrame;
 
 /**
  * 파일 변경 → SSE {@code registry} 수신 지연 측정 (architecture.md ADR-04 측정 의무, FR-001-AC3,
@@ -68,7 +66,6 @@ class FolderPollerLatencyTest {
         registry.add("aojistudio.public-port", () -> "4180");
         registry.add("aojistudio.mount-path", () -> mountRoot.toString());
         registry.add("aojistudio.data-path", () -> dataDir.toString());
-        registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + dataDir.resolve("events.db"));
         registry.add("server.shutdown", () -> "immediate");
         registry.add("aojistudio.poll-interval-ms", () -> "50");
     }
@@ -174,16 +171,16 @@ class FolderPollerLatencyTest {
         try {
             HttpResponse<InputStream> response = connectStream(client);
             assertThat(response.statusCode()).isEqualTo(200);
-            BlockingQueue<SseFrame> frames = readFramesAsync(response.body());
+            BlockingQueue<SseFrame> frames = SseFrames.readAsync(response.body(), "folder-poller-latency-test-reader");
 
-            SseFrame snapshot = pollUntilType(frames, "snapshot", 5_000);
+            SseFrame snapshot = SseFrames.pollUntilType(frames, "snapshot", 5_000);
             assertThat(snapshot).as("접속 직후 snapshot 메시지").isNotNull();
 
             long[] durationsNanos = new long[ITERATIONS];
             for (int i = 0; i < ITERATIONS; i++) {
                 long start = System.nanoTime();
                 change.accept(i);
-                SseFrame registryFrame = pollUntilType(frames, "registry", 5_000);
+                SseFrame registryFrame = SseFrames.pollUntilType(frames, "registry", 5_000);
                 durationsNanos[i] = System.nanoTime() - start;
                 assertThat(registryFrame).as("%s 반복 %d회 registry 수신", label, i).isNotNull();
             }
@@ -215,61 +212,5 @@ class FolderPollerLatencyTest {
                 .GET()
                 .build();
         return client.send(request, HttpResponse.BodyHandlers.ofInputStream());
-    }
-
-    private static SseFrame pollUntilType(BlockingQueue<SseFrame> frames, String type, long timeoutMillis)
-            throws InterruptedException {
-        long deadline = System.nanoTime() + timeoutMillis * 1_000_000L;
-        while (System.nanoTime() < deadline) {
-            long remainingMillis = (deadline - System.nanoTime()) / 1_000_000L;
-            if (remainingMillis <= 0) {
-                break;
-            }
-            SseFrame frame = frames.poll(remainingMillis, TimeUnit.MILLISECONDS);
-            if (frame == null) {
-                break;
-            }
-            if (type.equals(frame.type())) {
-                return frame;
-            }
-        }
-        throw new AssertionError("timed out waiting for frame type=" + type);
-    }
-
-    private record SseFrame(String type, long id, String data) {}
-
-    private static BlockingQueue<SseFrame> readFramesAsync(InputStream body) {
-        BlockingQueue<SseFrame> frames = new LinkedBlockingQueue<>();
-        Thread reader = new Thread(
-                () -> {
-                    try (BufferedReader in = new BufferedReader(new InputStreamReader(body, StandardCharsets.UTF_8))) {
-                        String type = null;
-                        Long id = null;
-                        String data = null;
-                        String line;
-                        while ((line = in.readLine()) != null) {
-                            if (line.isEmpty()) {
-                                if (type != null) {
-                                    frames.add(new SseFrame(type, id == null ? -1 : id, data));
-                                }
-                                type = null;
-                                id = null;
-                                data = null;
-                            } else if (line.startsWith("event:")) {
-                                type = line.substring("event:".length()).trim();
-                            } else if (line.startsWith("id:")) {
-                                id = Long.parseLong(line.substring("id:".length()).trim());
-                            } else if (line.startsWith("data:")) {
-                                data = line.substring("data:".length()).trim();
-                            }
-                        }
-                    } catch (IOException ignored) {
-                        // 연결 종료(테스트가 스트림을 닫음) — 정상 종료로 취급한다.
-                    }
-                },
-                "folder-poller-latency-test-reader");
-        reader.setDaemon(true);
-        reader.start();
-        return frames;
     }
 }
