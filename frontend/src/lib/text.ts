@@ -30,6 +30,7 @@ export const SIDEBAR_LABEL = "주 메뉴";
 // Sidebar 탭 (ui-spec §공통 AppShell)
 export const SIDEBAR_TAB_HOME = "홈";
 export const SIDEBAR_TAB_WORKFLOWS = "에이전트 워크플로우";
+export const SIDEBAR_TAB_SKILLS = "스킬";
 export const SIDEBAR_TAB_SETTINGS = "설정";
 
 // TopBar (ui-spec §공통 TopBar)
@@ -688,3 +689,62 @@ export function usedAgentsLabel(count: number): string {
 export function expandRowLabel(name: string, expanded: boolean): string {
   return expanded ? `${name} 접기` : `${name} 펼치기`;
 }
+
+// ── (v1.2.0) SCR-08 스킬 목록 (ui-spec SCR-08, `08-skills.html`) ──────────────────────────────────────────
+export const SKILLS_TITLE = "스킬";
+export const SKILLS_PATH = ".claude/skills/";
+export const SKILLS_SUBTITLE_AFTER_PATH = " · ";
+export const SKILLS_SUBTITLE_AFTER_COUNT = "개 · 이름순 · 사용자 전용 스킬은 ";
+export const SKILLS_SUBTITLE_SLASH_NAME = "/<이름>";
+export const SKILLS_SUBTITLE_TAIL = "으로만 부릅니다";
+export const SKILLS_LIST_LABEL = "스킬 목록";
+export const SKILLS_COL_NAME = "스킬";
+export const SKILLS_COL_USAGE_LEAD = "활용도 · ";
+export const SKILLS_COL_AGENTS = "사용 에이전트";
+export const SKILLS_COL_ACTIONS = "동작";
+/** 기간 줄·펼친 내용에 붙는 기간 표기(`최근 7일`·`최근 30일`·`전체`). */
+export const PERIOD_WINDOW_TEXT: Record<UsagePeriod, string> = { "7d": "최근 7일", "30d": "최근 30일", all: "전체" };
+export const SKILLS_SUM_LEAD = "· 사용 합계 ";
+export const SKILLS_SUM_TAIL = "회";
+export const SKILLS_HOW_TEXT = "활용도 = 스킬 사용 횟수 / 모든 스킬 사용 횟수 합 · 사용 횟수 = 호출 + 직접 호출 + 미리 넣음";
+export const SKILLS_NO_HOOK_NOTE = "hook 이벤트가 없어 호출 기록을 셀 수 없습니다";
+export const SKILL_CHIP_USER_ONLY = "사용자 전용";
+export const SKILL_CHIP_IMPORTED = "가져온 스킬";
+export const SKILL_CHIP_FORMAT_ERROR = "형식 오류";
+export const USAGE_NO_RECORD_TEXT = "기록 없음";
+export function usageMeterLabel(percentText: string): string {
+  return `활용도 ${percentText}%`;
+}
+export const SKILL_DELETE_BUTTON_LABEL = "삭제";
+export const SKILL_DETAIL_DESCRIPTION = "설명";
+export const SKILL_DETAIL_USAGE_LEAD = "사용 횟수 · ";
+export const SKILL_DETAIL_CALL = "호출";
+export const SKILL_DETAIL_SLASH = "직접 호출";
+export const SKILL_DETAIL_PRELOAD = "미리 넣음";
+export const SKILL_DETAIL_DEFINED = "정의상 (skills:)";
+export const SKILL_DETAIL_ACTUAL = "실제 사용 (횟수)";
+export const DEFAULT_SESSION_AGENT_TEXT = "기본 세션";
+export const DEFINED_UNUSED_CHIP_TEXT = "정의됨 · 사용 0";
+export const SKILLS_EMPTY_TITLE = "스킬이 없습니다";
+export const SKILLS_EMPTY_BODY_AFTER_PATH = "에 스킬 폴더가 없습니다. 새로 만들거나 외부 스킬 zip을 가져오세요.";
+export const SKILLS_LOAD_FAILED_LABEL = "스킬 목록을 불러오지 못했습니다";
+
+// ── (v1.2.0) SCR-08-3 스킬 삭제 확인 ─────────────────────────────────────────────────────────────────────
+export function skillDeleteTitle(name: string): string {
+  return `${name} 스킬을 삭제할까요?`;
+}
+export const SKILL_DELETE_TRASH_LEAD = "스킬 폴더가 ";
+export const SKILL_DELETE_TRASH_PATH = ".aojistudio/trash/";
+export const SKILL_DELETE_TRASH_TAIL = "로 이동합니다 (폴더를 옮겨 복구할 수 있습니다)";
+export function skillDeleteUsedByTitle(count: number): string {
+  return `이 스킬을 미리 넣어 쓰는 에이전트 ${count}명`;
+}
+export const SKILL_DELETE_USED_BY_NOTE_LEAD = "에이전트 정의 파일의 ";
+export const SKILL_DELETE_USED_BY_NOTE_CODE = "skills:";
+export const SKILL_DELETE_USED_BY_NOTE_TAIL = " 항목은 바뀌지 않습니다";
+export const SKILL_DELETE_INPUT_LABEL = "확인을 위해 스킬 이름 입력";
+export function skillDeleteReason(name: string): string {
+  return `${name}을(를) 똑같이 입력하면 삭제 버튼이 켜집니다`;
+}
+export const SKILL_DELETE_CONFIRM_LABEL = "삭제";
+export const SKILL_DELETE_CONFIRM_PENDING_LABEL = "삭제 중…";

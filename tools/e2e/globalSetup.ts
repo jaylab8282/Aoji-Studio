@@ -251,7 +251,21 @@ function prepareFixture(): Fixture {
   const dir = mkdtempSync(join(realpathSync(tmpdir()), "aojistudio-e2e-"));
   // 숨은 항목까지 그대로 복사한다(`<source>/.` 형식).
   execFileSync("cp", ["-R", `${source}/.`, dir], { stdio: "inherit" });
+  alignHookUrlsToE2ePort(name, dir);
   return { name, dir, owned: true };
+}
+
+/**
+ * `project-usage`의 `.claude/settings.json` hook URL은 운영 포트(4180)를 가리킨다. E2E 서버의 수집 주소는 공개 포트(BASE_URL)라
+ * 그대로 두면 `hookConfigured=false`가 되어 호출·직접 호출 횟수가 0으로 집계된다(FR-019-E1). 이 fixture의 **임시 사본**만
+ * E2E 수집 주소로 맞춘다(원본은 그대로). 다른 fixture(project-configured·showcase 등)는 4180 URL로 기존 단언이 서 있어 건드리지 않는다.
+ */
+function alignHookUrlsToE2ePort(fixtureName: string, dir: string): void {
+  if (fixtureName !== "project-usage") return;
+  const settings = join(dir, ".claude", "settings.json");
+  if (!existsSync(settings)) return;
+  const text = readFileSync(settings, "utf8");
+  writeFileSync(settings, text.split("http://127.0.0.1:4180/hooks/").join(`${BASE_URL}/hooks/`), "utf8");
 }
 
 type ClaudeHome = { dir: string | null; owned: boolean };

@@ -6,10 +6,11 @@ import { WorkflowsScreen } from "../screens/workflows/WorkflowsScreen";
 import { WorkflowsHeader } from "../screens/workflows/WorkflowsHeader";
 import { WorkflowDetailScreen } from "../screens/workflow-detail/WorkflowDetailScreen";
 import { WorkflowBreadcrumb } from "../screens/workflow-detail/Breadcrumb";
+import { SkillsScreen } from "../screens/skills/SkillsScreen";
 import { SettingsScreen } from "../screens/settings/SettingsScreen";
-import { SIDEBAR_TAB_HOME, SIDEBAR_TAB_SETTINGS, SIDEBAR_TAB_WORKFLOWS } from "../lib/text";
+import { SIDEBAR_TAB_HOME, SIDEBAR_TAB_SETTINGS, SIDEBAR_TAB_SKILLS, SIDEBAR_TAB_WORKFLOWS } from "../lib/text";
 
-// ui-spec.md §공통: 라우트 4개. 알 수 없는 경로 → `/`로 이동.
+// ui-spec.md §공통: 라우트(`/`·`/workflows`·`/workflows/:name`·`/skills`·`/settings`, MCP·비용은 T-R4-17·18). 알 수 없는 경로 → `/`로 이동.
 // `handle.breadcrumb`은 App.tsx가 TopBar에 넘긴다. `handle.rightExtra`는 TopBar 오른쪽 추가 버튼
 // (02는 "Claude 열기 · 기본 세션", ui-spec.md §공통 TopBar).
 // `handle.ownLoading`은 화면이 첫 스냅샷 전 스켈레톤(04-2)을 직접 그리는 라우트(01·02·03)다.
@@ -41,6 +42,7 @@ export const routes: RouteObject[] = [
           ownLoading: true,
         },
       },
+      { path: "/skills", element: <SkillsScreen />, handle: { breadcrumb: SIDEBAR_TAB_SKILLS, topBarWf: "08-1" } },
       { path: "/settings", element: <SettingsScreen />, handle: { breadcrumb: SIDEBAR_TAB_SETTINGS, topBarWf: "07-1" } },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
@@ -58,8 +60,10 @@ export interface DialogRoute {
   workflow: string | null;
   /** `?agent=` 값(06 수정·06-6 제거 대상 name). 없으면 null */
   agent: string | null;
+  /** `?skill=` 값(08-1 수정·08-3 삭제 대상 스킬 이름). 없으면 null */
+  skill: string | null;
   /**
-   * 팝업을 닫는다: `?dialog`·`?workflow`만 지우고 나머지 쿼리는 보존한다.
+   * 팝업을 닫는다: `?dialog`·`?workflow`·`?skill`만 지우고 나머지 쿼리는 보존한다.
    * `?agent=`는 03 선택 패널의 선택 상태이기도 하므로(FR-007-AC4) 지우지 않는다.
    */
   close: () => void;
@@ -72,6 +76,7 @@ export function useDialog(): DialogRoute {
     const next = new URLSearchParams(searchParams);
     next.delete("dialog");
     next.delete("workflow");
+    next.delete("skill");
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
@@ -79,6 +84,7 @@ export function useDialog(): DialogRoute {
     name: searchParams.get("dialog"),
     workflow: searchParams.get("workflow"),
     agent: searchParams.get("agent"),
+    skill: searchParams.get("skill"),
     close,
   };
 }

@@ -139,8 +139,15 @@ const PARTICLE_ONLY = /^(이|가|을|를|은|는|와|과|로|으로)$/;
 const JONGSEONG_MATH =
   /0x[Aa][Cc]00|44032|charCodeAt|codePointAt|normalize\s*\(|[\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uD7B0-\uD7FF]|\\u11[0-9A-Fa-f]{2}|\\u31[3-8][0-9A-Fa-f]/;
 
+/**
+ * 화면 원본이 정적 글자 그대로 쓰는 `<...>` 표기(ui-spec SCR-08 제목 보조 글자 `/<이름>`, 08 `사용자 전용 스킬은 /<이름>으로만 부릅니다`).
+ * 값 자리가 아니라 사용자가 입력하는 슬래시 명령의 모양이라 자리표시 검사에서 뺀다.
+ */
+const STATIC_ANGLE_TEXT = /\/<이름>/g;
+
 function isOffender(text: string): boolean {
-  return PLACEHOLDER_PATTERN.test(text) || FORBIDDEN_WORDS.test(text);
+  const checked = text.replace(STATIC_ANGLE_TEXT, "");
+  return PLACEHOLDER_PATTERN.test(checked) || FORBIDDEN_WORDS.test(checked);
 }
 
 describe("화면 문구", () => {

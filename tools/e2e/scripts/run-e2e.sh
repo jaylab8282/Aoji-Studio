@@ -35,6 +35,7 @@ run_batch() {
 
   echo ""
   echo "===== $label (E2E_FIXTURE=$fixture) ====="
+  # 전역 연결 fixture는 호출 줄에서 `E2E_CLAUDE_HOME_FIXTURE=...`를 앞에 붙여 넘긴다(없으면 대역 `연결 안 됨`).
   if E2E_FIXTURE="$fixture" npx playwright test "$@"; then
     RESULTS+=("PASS  $label  [fixture $fixture]")
   else
@@ -153,7 +154,18 @@ run_batch "배치 10 — project-old-name (E2E-17 옛 이름 미지원)" project
 run_batch "배치 11 — project-basic (E2E-13 04-2·04-7·05-L·04-1 캡처)" project-basic \
   tests/e2e-13.spec.ts --grep "project-basic"
 
-# E2E-01~17이 위 11개 배치로 끝난다(architecture.md §8.2·§8.4). 새 시나리오를 넣을 때는 fixture가 같고
+# 배치 12 — project-skills + 전역 연결 `claude-home-empty`(연결됨·내용 없음, `E2E_CLAUDE_HOME_FIXTURE`). 스킬 파일을 쓰는 배치(E2E-18).
+# e2e-18a(T-R4-15: 08-3 삭제·밖에서 바뀐 스킬 2초 반영·형식 오류·가져온 스킬 행)가 파일 이름순으로 먼저 돌고, 이후 태스크(T-R4-16)가
+# e2e-18b(만들기·수정·08-4·가져오기·위험 zip)를 같은 배치에 더한다. 각 spec은 자기가 만든 스킬만 치우므로 서로의 전제를 건드리지 않는다.
+E2E_CLAUDE_HOME_FIXTURE=claude-home-empty run_batch "배치 12 — project-skills + claude-home-empty (E2E-18a 스킬 삭제·밖에서 바뀐 스킬·형식 오류·가져온 스킬)" project-skills \
+  tests/e2e-18a-skills-list.spec.ts
+
+# 배치 13 — project-usage + 전역 연결 `claude-home-basic`. **이벤트 0건인 새 컨테이너가 전제**다: e2e-19a가 첫 테스트에서 `기록 없음`을 단언한 뒤
+# `usage.jsonl`을 스스로 재생하고, 이후 spec(e2e-19b·e2e-20~22·24~26 — 이후 태스크가 더한다)은 그 데이터를 이어 쓴다. 파일 이름순 실행에 기댄다.
+E2E_CLAUDE_HOME_FIXTURE=claude-home-basic run_batch "배치 13 — project-usage + claude-home-basic (E2E-19a 08 스킬 사용 집계)" project-usage \
+  tests/e2e-19a-skill-usage.spec.ts
+
+# E2E-01~17이 위 11개 배치로 끝난다(architecture.md §8.2·§8.4). 배치 12·13은 v1.2.0 스킬·사용 집계 배치다. 새 시나리오를 넣을 때는 fixture가 같고
 # 서로의 전제를 건드리지 않는 배치에 덧붙이고, 컨테이너 상태를 바꾸는 spec(예: pause)은 단독 배치로 둔다.
 # 모든 배치가 끝날 때마다 globalTeardown이 컨테이너 로그의 옛 호환 경고 0줄을 단언한다(NFR-13 ⑥).
 # E2E-13 캡처 60장은 `tools/e2e/screenshots/<원본 이름>@<W>x<H>.png`에 남는다(.gitignore 대상).

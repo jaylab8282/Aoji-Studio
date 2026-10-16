@@ -1,18 +1,22 @@
 /**
  * ui-spec.md §공통 상태 칩 / 경로 칩 (`_base.css:60-65`): 높이 24·`rounded-chip`·aux 600.
- * 시안(`live`)·주황(`waiting`)·빨강(`danger`)·중립(`neutral`). 칩은 표시 요소라 hover를 주지 않는다(ADR-69).
+ * 시안(`live`)·주황(`waiting`)·빨강(`danger`)·중립(`neutral`)·테두리(`outline`)·점선(`dash`). 칩은 표시 요소라 hover를 주지 않는다(ADR-69).
  * `path`는 경로 칩: 고정폭 400 `text-mono`, 줄지 않고 말줄임(`title`·`data-clamp`는 호출부가 넘긴다).
  * `data-*`·`title` 같은 HTML 속성은 그대로 넘긴다.
  */
 import type { HTMLAttributes, ReactNode } from "react";
 
-export type ChipTone = "live" | "waiting" | "danger" | "neutral";
+export type ChipTone = "live" | "waiting" | "danger" | "neutral" | "outline" | "dash";
 
 const TONE_CLASSES: Record<ChipTone, string> = {
   live: "bg-live-soft text-live",
   waiting: "bg-waiting-soft text-waiting",
   danger: "bg-danger-soft text-danger",
   neutral: "bg-selected text-text-muted",
+  // `_base.css` `.chip.ol`(08 `사용자 전용`): 투명 + 1px `border-strong`.
+  outline: "border border-border-strong bg-transparent text-text-secondary",
+  // `_base.css` `.chip.dash`(08 `정의됨 · 사용 0`): 투명 + 1px 점선 + 400.
+  dash: "border border-dashed border-border-dashed bg-transparent font-normal text-text-secondary",
 };
 
 const BASE_CLASSES = "h-chip rounded-chip px-2 text-aux whitespace-nowrap";

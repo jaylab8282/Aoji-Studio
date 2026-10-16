@@ -37,6 +37,8 @@ interface ConfirmByNameDialogProps {
    * 같은 요청을 두 번 보내지 않기 위함 — ADR-34). `취소`·ESC는 그대로 열려 있다.
    */
   confirmDisabled?: boolean;
+  /** 점 목록과 입력 사이 추가 영역(08-3 `미리 넣어 쓰는 에이전트` 상자). 없으면 그리지 않는다. */
+  extra?: ReactNode;
   /** 서버 `ApiError.message` 등 팝업 안에 표시할 사유. */
   errorMessage: string | null;
   onConfirm: () => void;
@@ -55,6 +57,7 @@ export function ConfirmByNameDialog({
   reason,
   pending,
   confirmDisabled = false,
+  extra,
   errorMessage,
   onConfirm,
   onClose,
@@ -79,6 +82,8 @@ export function ConfirmByNameDialog({
             </li>
           ))}
         </ul>
+
+        {extra}
 
         <div data-wf={wf.input}>
           <Field label={inputLabel} htmlFor={inputId}>

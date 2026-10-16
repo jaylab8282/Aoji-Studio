@@ -41,6 +41,8 @@ interface ExpandableListProps<T> {
   chevWf?: string;
   /** 펼친 영역의 `data-wf`(08 `08-13`). */
   detailWf?: string;
+  /** 행(`li`)의 `data-wf`(08 `08-9`·`08-10`·`08-11` — 해당 행에만 값을 돌려준다). */
+  rowWf?: (row: T) => string | undefined;
 }
 
 const ROW_GRID = "grid items-center gap-x-4 gap-y-1 px-4 py-2";
@@ -60,6 +62,7 @@ export function ExpandableList<T>({
   loading = false,
   chevWf,
   detailWf,
+  rowWf,
 }: ExpandableListProps<T>) {
   const baseId = useId();
   const columnCount = headers.length + 1;
@@ -101,6 +104,7 @@ export function ExpandableList<T>({
                 <li
                   key={key}
                   data-open={isOpen ? "" : undefined}
+                  data-wf={rowWf?.(row)}
                   className={`border-b border-border last:border-b-0 ${isOpen ? "bg-inset" : ""}`}
                 >
                   <div className={`${ROW_GRID} ${columnsClass}`}>

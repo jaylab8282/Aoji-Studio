@@ -43,7 +43,7 @@
 - e2e (공개 포트 `127.0.0.1:4185` — `4190`은 쓰지 않는다: WHATWG Fetch bad port, ADR-45):
   - (사전 1회) `cd tools/e2e && npm install && npx playwright install chromium`
   - 전체: `cd tools/e2e && ./scripts/run-e2e.sh`
-    - 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 **11배치**(63·16·5·4·9·12·2·25·7·3·6 = 152)를 순서대로 돈다.
+    - 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 **13배치**(63·16·5·4·9·12·2·25·7·3·6·5·3 = 160)를 순서대로 돈다.
     - `globalSetup`이 fixture 임시 복사 → `compose.e2e.yaml up -d --build` → dry-run 도우미(4191) → 다른 Origin 페이지 서버(4192)까지 준비하고, `globalTeardown`이 컨테이너·프로세스·임시 폴더를 정리한다. 사전 준비 명령 없음
     - 기동 전에 4185·4191·4192 선점 검사를 한다 — 낡은 스택이 남아 있으면 소유 pid와 정리 명령을 출력하고 즉시 실패한다
   - 배치 단독 실행(fixture가 다른 시나리오는 실행을 나눈다. `cd tools/e2e && ` 뒤에 쓴다):
@@ -58,7 +58,9 @@
     - 배치 9 `E2E_FIXTURE=project-large npx playwright test tests/e2e-12.spec.ts`
     - 배치 10 `E2E_FIXTURE=project-old-name npx playwright test tests/e2e-17-old-name.spec.ts`
     - 배치 11 `E2E_FIXTURE=project-basic npx playwright test tests/e2e-13.spec.ts --grep "project-basic"`
-  - E2E-13 화면 대조 캡처 60장은 `tools/e2e/screenshots/<원본 이름>@<W>x<H>.png`에 남는다(`docs/ui/screens/`의 원본 PNG와 같은 이름, `.gitignore` 대상). 배치 3·4·7·8·11이 나눠 만든다.
+    - 배치 12 `E2E_FIXTURE=project-skills E2E_CLAUDE_HOME_FIXTURE=claude-home-empty npx playwright test tests/e2e-18a-skills-list.spec.ts` (T-R4-15, 5개. 이후 태스크가 `e2e-18b`를 더한다. 2026-10-16 단독 실행 확인)
+    - 배치 13 `E2E_FIXTURE=project-usage E2E_CLAUDE_HOME_FIXTURE=claude-home-basic npx playwright test tests/e2e-19a-skill-usage.spec.ts` (T-R4-15, 3개. 이벤트 0건인 새 컨테이너 전제 — `usage.jsonl`은 e2e-19a가 재생한다. 이후 태스크가 `e2e-19b`·`e2e-20`~을 더한다. 2026-10-16 단독 실행 확인)
+  - E2E-13 화면 대조 캡처 60장은 `tools/e2e/screenshots/<원본 이름>@<W>x<H>.png`에 남는다(`docs/ui/screens/`의 원본 PNG와 같은 이름, `.gitignore` 대상). 배치 3·4·7·8·11이 나눠 만든다. 배치 12는 `08-3-skill-delete@1920x1080` 1장을 e2e-18a 안에서 만든다.
   - 전역 Claude 설정 연결(선택): 기본은 대역(`tools/claude-home-off`, 연결 안 됨). `E2E_CLAUDE_HOME_FIXTURE=claude-home-basic`을 앞에 붙이면 그 fixture를 임시 폴더로 복사(자리표시 문자열 치환)해 읽기 전용으로 연결하고 teardown이 지운다. `E2E_HOST_OS`·`E2E_WSL_DISTRO`는 서버 실행 환경 값. `E2E_HELPER_PLATFORM=windows`면 dry-run 도우미를 Windows 분기(`--platform windows --wsl-distro`)로 띄우고 서버도 `wsl`(기본 배포판 `Ubuntu-24.04`)로 띄운다. 실제 홈(`~/.claude`)은 연결하지 않는다.
   - x86_64 머신(WSL 등)은 위 e2e 명령 앞에 `E2E_PLATFORM=linux/amd64`를 붙인다.
   - 실패 조사: 위 명령 앞에 `E2E_KEEP_UP=1`을 붙이면 정리를 건너뛴다. 조사 후 출력된 정리 명령을 그대로 실행하고 `lsof -nP -iTCP:4185 -iTCP:4191 -iTCP:4192`로 확인한다
