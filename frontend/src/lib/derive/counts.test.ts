@@ -81,6 +81,8 @@ describe("counts", () => {
       members: ["qa", "backend-dev"],
       brokenRefs: [],
       rawMemberCount: 3,
+      rawLead: "architect",
+      rawMembers: ["qa", "backend-dev"],
     };
     const liveAgents: Record<string, AgentLive> = {
       architect: buildAgentLive("architect", "running"),
@@ -104,6 +106,8 @@ describe("counts", () => {
       members: ["only-member"],
       brokenRefs: [],
       rawMemberCount: 1,
+      rawLead: null,
+      rawMembers: ["only-member"],
     };
     const liveAgents: Record<string, AgentLive> = {
       "only-member": buildAgentLive("only-member", "running"),

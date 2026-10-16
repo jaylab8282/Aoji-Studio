@@ -18,6 +18,8 @@ const createdWorkflow: Workflow = {
   members: [],
   brokenRefs: [],
   rawMemberCount: 0,
+  rawLead: null,
+  rawMembers: [],
 };
 
 function stubFetch() {
@@ -101,6 +103,8 @@ describe("DialogHost", () => {
         members: [],
         brokenRefs: [],
         rawMemberCount: 0,
+        rawLead: null,
+        rawMembers: [],
       },
     ]);
     const router = renderAt("/workflows");
@@ -124,6 +128,8 @@ describe("DialogHost", () => {
         members: [],
         brokenRefs: [],
         rawMemberCount: 0,
+        rawLead: null,
+        rawMembers: [],
       },
     ]);
     const router = renderAt("/workflows?dialog=import");
@@ -153,6 +159,8 @@ describe("DialogHost", () => {
         members: [],
         brokenRefs: [],
         rawMemberCount: 0,
+        rawLead: null,
+        rawMembers: [],
       },
     ]);
     const router = renderAt("/workflows?dialog=import&workflow=%EA%B0%9C%EB%B0%9C%EB%B6%80%EC%84%9C");

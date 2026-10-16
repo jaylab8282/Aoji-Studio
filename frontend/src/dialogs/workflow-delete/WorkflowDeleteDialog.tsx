@@ -1,13 +1,20 @@
 /**
- * ui-spec.md SCR-05-3 워크플로우 삭제 확인 (`?dialog=workflow-delete&workflow=<이름>`, FR-017, `05-3-workflow-delete.html`).
+ * `?dialog=workflow-delete&workflow=<이름>` 한 곳으로 열리는 삭제 창 (FR-017-AC1, ADR-88 결정 3).
+ * 창을 열 때의 `registry.workflows[이름].rawMemberCount`로 05-3(0명)과 05-4(1명 이상)를 고른다. 고른 뒤에는 바꾸지 않는다
+ * (05-3이 열린 사이 인원이 늘면 409 `WORKFLOW_NOT_EMPTY` 안내로 처리한다 — FR-017-E1). 첫 스냅샷 전에는 아무것도 그리지 않는다.
+ *
+ * ui-spec.md SCR-05-3 워크플로우 삭제 확인 (`05-3-workflow-delete.html`).
  * 계약: api-spec.yaml `DELETE /api/workflows/{workflow}` — 204, 409 `WORKFLOW_NOT_EMPTY`, 500 `IO_FAILED`.
  * 구성은 06-6과 같으므로 공통 `ConfirmByNameDialog`를 쓴다(FR-017-AC2). 이름 변경 입력은 없다(FR-017-AC5).
  * 층이 사라지는 것은 SSE `registry`가 반영한다(FR-017-AC4).
  */
 import { useEffect, useRef, useState } from "react";
+import type { Registry } from "../../api/types";
 import { ApiError, apiDelete } from "../../api/client";
 import { ConfirmByNameDialog } from "../../components/ui/ConfirmByNameDialog";
 import { MonoText } from "../../components/ui/MonoText";
+import { useSnapshotStore } from "../../state/snapshotStore";
+import { WorkflowDeleteBlockedDialog, type RemainingAgent } from "./WorkflowDeleteBlockedDialog";
 import {
   UNKNOWN_ERROR_MESSAGE,
   WORKFLOW_DELETE_CONFIRM_LABEL,
@@ -35,7 +42,59 @@ interface WorkflowDeleteDialogProps {
   onClose: () => void;
 }
 
+/** 열 때 고른 창. `blocked`는 05-4(목록은 열 때 값으로 고정), `confirm`은 05-3. */
+type Opened =
+  | { kind: "confirm" }
+  | { kind: "blocked"; agents: RemainingAgent[]; count: number };
+
+/** 05-4 목록: 구성 파일 원본 기준(`rawLead` 첫 행 + `rawMembers` name 오름차순, 깨진 참조 포함). */
+function openedFor(registry: Registry, workflowName: string): Opened {
+  const workflow = registry.workflows.find((candidate) => candidate.name === workflowName);
+  if (workflow === undefined || workflow.rawMemberCount === 0) return { kind: "confirm" };
+  const members = [...workflow.rawMembers].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const agents: RemainingAgent[] = [
+    ...(workflow.rawLead === null ? [] : [{ name: workflow.rawLead, role: "lead" as const }]),
+    ...members.map((name) => ({ name, role: "member" as const })),
+  ];
+  return { kind: "blocked", agents, count: workflow.rawMemberCount };
+}
+
 export function WorkflowDeleteDialog({ workflowName, onClose }: WorkflowDeleteDialogProps) {
+  const { registry } = useSnapshotStore();
+  const [opened, setOpened] = useState<Opened | null>(null);
+  if (opened === null && registry !== null) {
+    setOpened(openedFor(registry, workflowName));
+  }
+
+  // 05-4가 열린 사이 워크플로우가 사라지면(registry에 없음) 창을 닫는다. 02는 그대로다.
+  const gone =
+    opened?.kind === "blocked" &&
+    registry !== null &&
+    !registry.workflows.some((candidate) => candidate.name === workflowName);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+  useEffect(() => {
+    if (gone) onCloseRef.current();
+  }, [gone]);
+
+  if (opened === null) return null;
+  if (opened.kind === "blocked") {
+    return (
+      <WorkflowDeleteBlockedDialog
+        workflowName={workflowName}
+        agents={opened.agents}
+        count={opened.count}
+        onClose={onClose}
+      />
+    );
+  }
+  return <WorkflowDeleteConfirmDialog workflowName={workflowName} onClose={onClose} />;
+}
+
+/** SCR-05-3: 이름 입력 확인형 삭제. */
+function WorkflowDeleteConfirmDialog({ workflowName, onClose }: WorkflowDeleteDialogProps) {
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [closingAfterNotice, setClosingAfterNotice] = useState(false);

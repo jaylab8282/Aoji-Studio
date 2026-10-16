@@ -2,6 +2,8 @@ import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { Sidebar } from "./Sidebar";
+import { NAV_ITEMS } from "./navItems";
+import { routes } from "../../app/router";
 import { snapshotStore } from "../../state/snapshotStore";
 import { SIDEBAR_TAB_HOME, SIDEBAR_TAB_SETTINGS, SIDEBAR_TAB_WORKFLOWS } from "../../lib/text";
 
@@ -145,6 +147,31 @@ describe("Sidebar", () => {
       expect(tab, label).not.toContain("bg-selected");
       expect(tab, label).toContain("text-text-secondary");
       expect(tab.filter((cls) => OUTLINE_RESET_CLASSES.includes(cls))).toEqual([]);
+    }
+  });
+  it("[NFR-12] NAV_ITEMS 한 배열로 가로형·레일을 그린다: 항목 수 = 링크 수, 순서·아이콘·글자가 배열과 같다", () => {
+    const { container } = renderAt("/");
+    const links = within(container.querySelector('[data-wf="NAV-2"]') as HTMLElement).getAllByRole("link");
+
+    expect(links).toHaveLength(NAV_ITEMS.length);
+    NAV_ITEMS.forEach((item, index) => {
+      const anchor = links[index] as HTMLElement;
+      expect(anchor).toHaveAttribute("href", item.to);
+      expect(anchor).toHaveAttribute("aria-label", item.label);
+      expect(anchor.querySelector(`svg.lucide-${item.icon}`)).not.toBeNull();
+    });
+  });
+
+  it("[NFR-12] 눌러도 아무 일 없는 메뉴가 없다: 모든 NAV_ITEMS 경로가 실제 라우트이고 구현 전 화면(스킬·MCP·비용)은 아직 없다", () => {
+    const children = routes[0]?.children ?? [];
+    const definedPaths = children.map((route) => route.path).filter((path): path is string => path !== undefined && path !== "*");
+
+    for (const item of NAV_ITEMS) {
+      expect(definedPaths, `${item.label} → ${item.to}`).toContain(item.to);
+    }
+    expect(NAV_ITEMS.map((item) => item.to)).toEqual(["/", "/workflows", "/settings"]);
+    for (const label of ["스킬", "MCP", "비용"]) {
+      expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
     }
   });
 });

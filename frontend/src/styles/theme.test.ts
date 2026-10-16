@@ -166,6 +166,30 @@ const LAYOUT: ReadonlyArray<readonly [string, string]> = [
   ["--spacing-role-select", "30px"],
   ["--spacing-kv7-label", "132px"],
   ["--spacing-reason-min", "200px"],
+  // (v1.2.0) 데이터 화면 08·09·10
+  ["--spacing-tab", "40px"],
+  ["--spacing-meter", "8px"],
+  ["--spacing-meter-min", "60px"],
+  ["--spacing-meter-limit", "10px"],
+  ["--spacing-col-skill-use", "280px"],
+  ["--spacing-col-skill-agents", "150px"],
+  ["--spacing-col-skill-acts", "200px"],
+  ["--spacing-pct", "48px"],
+  ["--spacing-connector", "380px"],
+  ["--spacing-col-mcp-agents", "150px"],
+  ["--spacing-limits", "480px"],
+  ["--spacing-chart-min", "320px"],
+  ["--spacing-chart-min-short", "248px"],
+  ["--spacing-chart-portrait", "400px"],
+  ["--spacing-chart-axis", "44px"],
+  ["--spacing-chart-xlabel", "20px"],
+  ["--spacing-chart-bar-min", "6px"],
+  ["--spacing-progress", "160px"],
+  ["--spacing-limit-label", "72px"],
+  ["--container-dialog-price", "680px"],
+  ["--spacing-prev-label", "72px"],
+  ["--spacing-file-chip", "20px"],
+  ["--spacing-skill-body-min", "160px"],
   ["--tracking-tagline", "-0.03em"],
   ["--tracking-desk", "-0.02em"],
 ];
@@ -203,6 +227,17 @@ describe("theme.css [NFR-11]", () => {
     expect(o["--spacing-panel"]).toBe("320px");
   });
 
+  it("[NFR-11] 폭 1599 이하: 10 오른쪽 한도 열 420", () => {
+    expect(mediaVars("(max-width: 1599px)")["--spacing-limits"]).toBe("420px");
+  });
+
+  it("[NFR-11] 폭 1399 이하·세로형: 08 행 열 사용 200 · 에이전트 130 · 동작 190", () => {
+    const o = mediaVars("(max-width: 1399px), (orientation: portrait)");
+    expect(o["--spacing-col-skill-use"]).toBe("200px");
+    expect(o["--spacing-col-skill-agents"]).toBe("130px");
+    expect(o["--spacing-col-skill-acts"]).toBe("190px");
+  });
+
   it("[NFR-11] 폭 1599 이하 가로형: 미니맵 168×104", () => {
     const o = mediaVars("(max-width: 1599px) and (orientation: landscape)");
     expect(o["--spacing-minimap-w"]).toBe("168px");
@@ -220,6 +255,11 @@ describe("theme.css [NFR-11]", () => {
     expect(themeCss).toContain("@custom-variant portrait (@media (orientation: portrait));");
     expect(themeCss).toContain("@custom-variant rail (@media (orientation: portrait), (max-width: 1199px));");
     expect(themeCss).toContain("@custom-variant narrow (@media (max-width: 1599px));");
+  });
+
+  it("[NFR-11] (v1.2.0) 배치 변형 narrow-1400·short의 미디어 조건", () => {
+    expect(themeCss).toContain("@custom-variant narrow-1400 (@media (max-width: 1399px));");
+    expect(themeCss).toContain("@custom-variant short (@media (max-height: 900px) and (orientation: landscape));");
   });
 
   it("[NFR-11] 색 값은 _tokens.css의 외부 글꼴 import를 쓰지 않는다", () => {

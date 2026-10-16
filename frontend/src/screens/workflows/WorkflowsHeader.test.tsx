@@ -257,4 +257,26 @@ describe("WorkflowsHeader", () => {
     expect(await screen.findByTestId("helper-missing-dialog")).toBeInTheDocument();
     expect(calls.filter((call) => call.url.endsWith("/open"))).toEqual([]);
   });
+  it("[FR-013-AC1] 명령 복사는 config.defaultSessionCommand 그대로다: wsl 실행 환경이면 `wsl -d <배포판> --cd <hostPath> -- claude` + wsl 설치 안내", async () => {
+    vi.useFakeTimers();
+    const wslCommand = "wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- claude";
+    const base = buildSnapshotFixture();
+    snapshotStore.replace({
+      ...base,
+      config: { ...base.config, hostOs: "wsl", wslDistro: "Ubuntu-24.04", defaultSessionCommand: wslCommand },
+    });
+    stubFetch({ open: (signal) => neverResolving(signal) });
+    render(<WorkflowsHeader />);
+
+    fireEvent.click(openButton());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    expect(screen.getByText(wslCommand)).toBeInTheDocument();
+    expect(screen.getByText("helper/windows/install.ps1로 설치한 뒤 다시 시도하세요")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "명령 복사" }));
+    await act(async () => {});
+    expect(writeText).toHaveBeenCalledWith(wslCommand);
+  });
 });

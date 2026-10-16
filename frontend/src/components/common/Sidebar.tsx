@@ -2,6 +2,7 @@
  * ui-spec.md §공통 `Sidebar`(`data-wf="NAV"`)·SCR-00. 가로형 232px(로고 lockup + 태그라인, 메뉴 아이콘 + 글자),
  * `rail:`(세로형·폭 1199 이하) 64px 레일(로고 심볼만, 메뉴 44×40 아이콘 + 툴팁 + `aria-label`).
  * 배치 전환은 CSS `rail:`만 쓴다(ADR-66) — 두 형태의 요소가 모두 DOM에 있고 CSS가 보이는 쪽을 고른다.
+ * 메뉴는 `navItems.ts`의 `NAV_ITEMS` 배열 하나로 그린다(ADR-88).
  * 현재 메뉴 = `bg-selected` + `text-text` 600 + 아이콘 `text-link` + 왼쪽 2px `brand-blue` 막대 + `aria-current="page"`
  * (`/workflows*`는 03까지 `에이전트 워크플로우`가 현재).
  * 비선택 메뉴의 hover·`:focus-visible`은 `bg-soft` + `text-text`다(ADR-46 A): 선택 표시에 `bg-selected`를 쓰므로
@@ -10,22 +11,10 @@
  */
 import { NavLink } from "react-router-dom";
 import { CollectorStatus } from "./CollectorStatus";
-import { Icon, type IconName } from "../ui/Icon";
+import { Icon } from "../ui/Icon";
 import { Tooltip } from "../ui/Tooltip";
-import {
-  APP_TAGLINE,
-  APP_WORDMARK,
-  SIDEBAR_LABEL,
-  SIDEBAR_TAB_HOME,
-  SIDEBAR_TAB_SETTINGS,
-  SIDEBAR_TAB_WORKFLOWS,
-} from "../../lib/text";
-
-const TABS: Array<{ to: string; label: string; icon: IconName; end: boolean }> = [
-  { to: "/", label: SIDEBAR_TAB_HOME, icon: "house", end: true },
-  { to: "/workflows", label: SIDEBAR_TAB_WORKFLOWS, icon: "building", end: false },
-  { to: "/settings", label: SIDEBAR_TAB_SETTINGS, icon: "settings", end: true },
-];
+import { NAV_ITEMS } from "./navItems";
+import { APP_TAGLINE, APP_WORDMARK, SIDEBAR_LABEL } from "../../lib/text";
 
 const NAV_BASE =
   "relative flex min-h-control items-center gap-3 rounded-control px-3 transition-colors duration-120 ease-standard rail:min-h-rail-item-h rail:w-rail-item-w rail:justify-center rail:p-0";
@@ -61,7 +50,7 @@ export function Sidebar() {
         </p>
       </div>
       <nav data-wf="NAV-2" className="grid gap-1 rail:justify-items-center">
-        {TABS.map((tab) => (
+        {NAV_ITEMS.map((tab) => (
           <Tooltip key={tab.to} bubble="rail" content={tab.label} className="block">
             <NavLink
               to={tab.to}

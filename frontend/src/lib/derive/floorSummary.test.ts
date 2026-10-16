@@ -12,6 +12,8 @@ function buildWorkflow(overrides: Partial<Workflow> = {}): Workflow {
     members: ["dev-02", "dev-03"],
     brokenRefs: [],
     rawMemberCount: 3,
+    rawLead: "dev-lead",
+    rawMembers: ["dev-02", "dev-03"],
     ...overrides,
   };
 }

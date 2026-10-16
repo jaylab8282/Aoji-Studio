@@ -4,14 +4,21 @@ import {
   Check,
   ChevronDown,
   ChevronLeft,
+  ChevronRight,
+  Coins,
   CircleAlert,
   Copy,
+  FileArchive,
   FileWarning,
   FolderX,
   House,
   Import,
+  Info,
   Pencil,
+  Plug,
   Plus,
+  Puzzle,
+  Receipt,
   RefreshCw,
   Scan,
   Search,
@@ -27,7 +34,7 @@ import {
 
 /**
  * 아이콘 단일 진입점 (ADR-65 결정 5, conventions.md §7).
- * `lucide-react` 직접 import는 이 파일 한 곳뿐이다. 이름은 ui-spec 아이콘 표 23종만 받는다.
+ * `lucide-react` 직접 import는 이 파일 한 곳뿐이다. 이름은 ui-spec 아이콘 표 30종(v1.1.0 23종 + v1.2.0 7종)만 받는다.
  */
 const ICONS = {
   house: House,
@@ -53,6 +60,14 @@ const ICONS = {
   "circle-alert": CircleAlert,
   check: Check,
   "file-warning": FileWarning,
+  // v1.2.0 새 이름 7종 (ui-spec §아이콘, ADR-88)
+  puzzle: Puzzle,
+  plug: Plug,
+  coins: Coins,
+  receipt: Receipt,
+  info: Info,
+  "chevron-right": ChevronRight,
+  "file-archive": FileArchive,
 } as const satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

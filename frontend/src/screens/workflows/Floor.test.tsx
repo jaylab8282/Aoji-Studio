@@ -13,6 +13,8 @@ function buildWorkflow(overrides: Partial<Workflow> = {}): Workflow {
     members: ["dev-02"],
     brokenRefs: [],
     rawMemberCount: 2,
+    rawLead: "dev-lead",
+    rawMembers: ["dev-02"],
     ...overrides,
   };
 }
@@ -204,23 +206,43 @@ describe("Floor", () => {
     expect(screen.queryByRole("button", { name: /dup-agent/ })).not.toBeInTheDocument();
   });
 
-  it("[FR-006-AC12][FR-017-AC1] rawMemberCount>0 → 삭제 비활성 + 왼쪽에 이유 '팀원을 먼저 제거하세요'(aria-describedby)", () => {
+  it("[FR-006-AC12] 인원이 있어도(rawMemberCount>0) 삭제는 활성(danger)이고 이유 줄·aria-describedby가 없다", () => {
     renderFloor({ workflow: buildWorkflow({ rawMemberCount: 2 }) });
 
     const remove = screen.getByRole("button", { name: "삭제" });
-    expect(remove).toBeDisabled();
-    const reason = screen.getByText("팀원을 먼저 제거하세요");
-    expect(remove).toHaveAttribute("aria-describedby", reason.id);
-    // 이유는 버튼 왼쪽(문서 순서상 앞)이다.
-    expect(reason.compareDocumentPosition(remove) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(remove).toBeEnabled();
+    expect(remove.className).toContain("text-danger");
+    expect(remove).not.toHaveAttribute("aria-describedby");
+    expect(screen.queryByText("팀원을 먼저 제거하세요")).not.toBeInTheDocument();
+    expect(screen.queryByText("쓰기 권한 없음")).not.toBeInTheDocument();
   });
 
-  it("[FR-006-AC12][FR-017-AC1] rawMemberCount 0 → 삭제 활성(danger), 이유 줄 없음", () => {
+  it("[FR-006-AC12] rawMemberCount 0 → 삭제 활성(danger), 이유 줄 없음", () => {
     renderFloor({ workflow: buildWorkflow({ lead: null, members: [], rawMemberCount: 0 }) });
     const remove = screen.getByRole("button", { name: "삭제" });
     expect(remove).toBeEnabled();
     expect(remove.className).toContain("text-danger");
     expect(screen.queryByText("팀원을 먼저 제거하세요")).not.toBeInTheDocument();
+  });
+
+  it("[FR-006-AC12] writable=false만 삭제를 비활성으로 만든다(인원 0·1명 이상 모두 이유는 '쓰기 권한 없음' 하나)", () => {
+    const withMembers = renderFloor({ writable: false, workflow: buildWorkflow({ rawMemberCount: 2 }) });
+    expect(screen.getByRole("button", { name: "삭제" })).toBeDisabled();
+    expect(screen.queryByText("팀원을 먼저 제거하세요")).not.toBeInTheDocument();
+    const reason = screen.getAllByText("쓰기 권한 없음").at(-1) as HTMLElement;
+    expect(screen.getByRole("button", { name: "삭제" })).toHaveAttribute("aria-describedby", reason.id);
+    withMembers.unmount();
+
+    renderFloor({ writable: false, workflow: buildWorkflow({ lead: null, members: [], rawMemberCount: 0 }) });
+    expect(screen.getByRole("button", { name: "삭제" })).toBeDisabled();
+  });
+
+  it("[FR-006-AC12][FR-017-AC1] 인원이 있어도 삭제를 누르면 같은 ?dialog=workflow-delete&workflow=<이름>으로 열린다(05-4는 창이 고른다)", () => {
+    renderFloor({ workflow: buildWorkflow({ name: "워크플로우A", rawMemberCount: 2 }) });
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      `?dialog=workflow-delete&workflow=${encodeURIComponent("워크플로우A")}`,
+    );
   });
 
   it("[FR-017-AC1] 삭제를 누르면 ?dialog=workflow-delete&workflow=<이름>으로 열린다", () => {
@@ -294,6 +316,8 @@ describe("Floor", () => {
         lead: "dev-lead",
         members: ["dev-02", "dev-03", "dev-04", "dev-05", "dev-06", "dev-07"],
         rawMemberCount: 7,
+        rawLead: "dev-lead",
+        rawMembers: ["dev-02", "dev-03", "dev-04", "dev-05", "dev-06", "dev-07"],
       }),
     });
     const desks = screen.getByTestId("floor-desks");

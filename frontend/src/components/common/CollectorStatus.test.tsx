@@ -83,6 +83,22 @@ describe("CollectorStatus", () => {
     expect(rail()).toHaveTextContent("미설정");
   });
 
+  it("[FR-003-AC6] 04-4 원본: hook 설정 안 됨 + 수신 이력 있음(쓰다가 hook 설정을 지움) → 빨강 'hook 설정 안 됨' + '마지막 수신 13:58:12', 레일 '미설정'", () => {
+    // 디자인 v2 04-4 시안의 사이드 탭(`wireframes/04-4-collect-stopped.html` 번호 설명 S)과 같은 상태.
+    seed(false, true, "2026-09-22T13:58:12+09:00");
+
+    render(<CollectorStatus />);
+
+    const chip = within(box()).getByText("hook 설정 안 됨");
+    expect(chip).toHaveAttribute("data-stage", "unset");
+    expect(chip).toHaveClass("bg-danger-soft", "text-danger");
+    expect(within(box()).queryByText("hook 설정됨")).not.toBeInTheDocument();
+    expect(box()).toHaveTextContent("마지막 수신 13:58:12");
+    expect(within(box()).queryByText("마지막 수신 없음")).not.toBeInTheDocument();
+    expect(rail()).toHaveTextContent("미설정");
+    expect(rail()).toHaveAttribute("aria-label", "수집 상태 · hook 설정 안 됨 · 마지막 수신 13:58:12");
+  });
+
   it("[FR-003-AC6] 시간이 지나도 단계가 바뀌지 않는다(이력 없음 + 수 시간 뒤에도 중립)", () => {
     seed(true, false, null);
     render(<CollectorStatus />);

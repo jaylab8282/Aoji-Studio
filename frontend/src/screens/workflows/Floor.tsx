@@ -1,10 +1,11 @@
 /**
  * ui-spec.md SCR-02 층 카드(워크플로우마다, `02-6`·`02-7`·`02-8`). FR-006-AC1·AC3·AC5·AC11·AC12, FR-017-AC1, FR-001-E2.
  * 그리드 배치(열 수·넓은 층 span, FR-006-AC2)는 상위 `FloorGrid`가 맡는다.
+ * 층 `삭제`는 v1.2.0부터 항상 활성이다(FR-006-AC12): 인원이 있으면 누른 뒤 05-4가 이유를 안내한다. `writable=false`만 비활성(FR-001-E2).
  *
  * 카드 테두리는 상태와 무관하다(워크플로우 단위의 상태색은 없다, FR-006-AC5, `ui-rules.md` 색의 역할):
  * 기본 `border-border`, 팀장 없는 층만 점선 `border-border-dashed`. 요약 줄만 상태 사각형 + 상태 글자를 쓴다.
- * 헤더는 2줄 — ① 이름·`N명` 칩·요약·`상세`(arrow-right 아이콘) ② `가져오기`·`만들기`·(이유)`삭제`. 카드 폭 440px 이하면 둘째 줄이 줄바꿈하고
+ * 헤더는 2줄 — ① 이름·`N명` 칩·요약·`상세`(arrow-right 아이콘) ② `가져오기`·`만들기`·`삭제`. 카드 폭 440px 이하면 둘째 줄이 줄바꿈하고
  * 이유 글자가 다음 줄 오른쪽으로 간다(`floor-header`·`floor-reason`, `layout.css`).
  * 경고 줄(`팀장이 없습니다`·`여러 워크플로우에 있습니다`)은 `bg-inset` 중립 줄 + `triangle-alert`이고 주황·빨강을 쓰지 않는다.
  * 책상 영역은 칸 100px 고정 `repeat(auto-fill, 100px)`, 인원 0이면 책상 영역을 그리지 않는다.
@@ -22,7 +23,6 @@ import { useDialogNavigate } from "../../lib/dialogNavigate";
 import {
   FLOOR_CREATE_BUTTON_LABEL,
   FLOOR_DELETE_BUTTON_LABEL,
-  FLOOR_DELETE_DISABLED_REASON,
   FLOOR_DETAIL_BUTTON_LABEL,
   FLOOR_IMPORT_BUTTON_LABEL,
   FLOOR_NO_LEAD_TEXT,
@@ -122,7 +122,6 @@ export function Floor({ workflow, registryAgents, live, writable, matchedAgentNa
   const summary = floorSummary(workflow, live.agents);
   const hasLead = workflow.lead !== null;
   const writeReason = writable ? undefined : WRITABLE_FALSE_REASON;
-  const deleteReason = writeReason ?? (workflow.rawMemberCount > 0 ? FLOOR_DELETE_DISABLED_REASON : undefined);
 
   return (
     <section
@@ -169,16 +168,17 @@ export function Floor({ workflow, registryAgents, live, writable, matchedAgentNa
             {FLOOR_CREATE_BUTTON_LABEL}
           </Button>
           <span className="flex-1" />
-          {/* 이유는 버튼 왼쪽. 카드 폭 440 이하면 `floor-reason`이 다음 줄 오른쪽으로 보낸다. */}
-          {deleteReason === undefined ? null : (
+          {/* v1.2.0(FR-006-AC12): `삭제`는 인원과 무관하게 활성이다(이유 줄 없음). 쓰기 권한이 없을 때만 비활성 + 이유.
+              이유는 버튼 왼쪽, 카드 폭 440 이하면 `floor-reason`이 다음 줄 오른쪽으로 보낸다. */}
+          {writeReason === undefined ? null : (
             <span id={reasonId} className="floor-reason text-aux whitespace-nowrap text-text-muted">
-              {deleteReason}
+              {writeReason}
             </span>
           )}
           <Button
             variant="danger"
-            disabled={deleteReason !== undefined}
-            aria-describedby={deleteReason === undefined ? undefined : reasonId}
+            disabled={writeReason !== undefined}
+            aria-describedby={writeReason === undefined ? undefined : reasonId}
             onClick={() => openDialog({ dialog: "workflow-delete", workflow: workflow.name })}
           >
             <Icon name="trash-2" />

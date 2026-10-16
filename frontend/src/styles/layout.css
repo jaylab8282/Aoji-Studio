@@ -367,3 +367,73 @@
   transform: scale(var(--zoom-scale));
   transform-origin: top left;
 }
+
+/* 05-4 남은 에이전트 목록: 창 안 스크롤(많으면), 창은 화면 안 (`05-4-workflow-delete-blocked.html` `.alist` max-height 100vh − 380). */
+@utility alist-scroll {
+  max-height: calc(100vh - var(--spacing) * 95);
+  overflow: auto;
+}
+
+/* ── (v1.2.0) 데이터 화면 08·09·10 공통 (`_base.css:191-247`) ───────────────────────────────── */
+
+/* 제목 묶음의 왼쪽 글자 칸: 최소 360에서 줄바꿈하며 남는 폭을 차지한다 (`.ttl .grow`). */
+@utility ttl-grow {
+  flex: 1 1 calc(var(--spacing) * 90);
+  min-width: 0;
+}
+
+/* 기간 선택 칸 선택 표시: 안쪽 1px `action-border` (`.seg button[aria-pressed="true"]`). */
+@utility seg-selected {
+  box-shadow: inset 0 0 0 1px var(--color-action-border);
+}
+
+/* 중립 막대 채움: 폭 = `--meter-ratio`(0~1)만큼. 색은 값과 무관하게 `text/muted` (ADR-88 결정 2·5). */
+@utility meter-fill {
+  display: block;
+  height: 100%;
+  width: calc(var(--meter-ratio, 0) * 100%);
+  background: var(--color-text-muted);
+}
+
+/* 10 첫 읽기 진행 막대 채움: 폭 = `--progress-ratio`(0~1). */
+@utility progress-fill {
+  display: block;
+  height: 100%;
+  width: calc(var(--progress-ratio, 0) * 100%);
+  background: var(--color-text-muted);
+}
+
+/* 펼친 영역 `exp`: 왼쪽 2px 선, 2열(세로형 1열), 펼침 버튼 열만큼 들여 쓴다. */
+@utility expand-panel {
+  margin: 0 calc(var(--spacing) * 4) calc(var(--spacing) * 3)
+    calc(var(--spacing) * 4 + var(--spacing-control) + var(--spacing) * 4);
+  padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
+  border-left: 2px solid var(--color-border-strong);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: calc(var(--spacing) * 3) calc(var(--spacing) * 6);
+  font-size: var(--text-aux);
+  color: var(--color-text-secondary);
+
+  @media (orientation: portrait) {
+    margin-left: calc(var(--spacing) * 4);
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 08 행 열: 펼침 버튼 · 이름 · 활용도 · 사용 에이전트 · 동작 (폭 1399 이하·세로형은 토큰이 좁아지고 간격도 줄어든다). */
+@utility skill-row-grid {
+  grid-template-columns:
+    var(--spacing-control) minmax(0, 1fr) var(--spacing-col-skill-use) var(--spacing-col-skill-agents)
+    var(--spacing-col-skill-acts);
+
+  @media (orientation: portrait), (max-width: 1399px) {
+    column-gap: calc(var(--spacing) * 3);
+  }
+}
+
+/* 09 행 열: 펼침 버튼 · 이름 · 정의 위치/설정 · 사용 에이전트. */
+@utility mcp-row-grid {
+  grid-template-columns:
+    var(--spacing-control) minmax(0, 1fr) minmax(0, 1.2fr) var(--spacing-col-mcp-agents);
+}

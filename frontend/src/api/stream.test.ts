@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createStreamClient } from "./stream";
 import { snapshotStore } from "../state/snapshotStore";
 import { connectionStore } from "../state/connectionStore";
+import { usageSignalStore } from "../state/usageSignalStore";
 import { buildSnapshotFixture } from "../test/fixtures/snapshot";
 
 type Listener = (event: { lastEventId: string; data: string }) => void;
@@ -69,6 +70,7 @@ describe("stream", () => {
     );
     snapshotStore.reset();
     connectionStore.reset();
+    usageSignalStore.reset();
   });
 
   afterEach(() => {
@@ -171,5 +173,45 @@ describe("stream", () => {
     es.emit("snapshot", "3", stale); // seq 3 <= 5 → 무시
 
     expect(snapshotStore.getSnapshot().config?.hostPath).toBe("/first");
+  });
+  it("[realtime-spec §5] usage-changed → 영역별 카운터 + cost일 때 transcripts, lastUpdatedAt 갱신", async () => {
+    const client = createStreamClient();
+    client.connect();
+    await flush();
+    const es = FakeEventSource.instances[0]!;
+    es.emit("snapshot", "1", buildSnapshotFixture());
+    const before = connectionStore.getSnapshot().lastUpdatedAt;
+    usageSignalStore.reset();
+
+    es.emit("usage-changed", "2", { areas: ["skills"], transcripts: null });
+    expect(usageSignalStore.getSnapshot().counters).toEqual({ skills: 1, mcp: 0, cost: 0, limits: 0, settings: 0 });
+    expect(usageSignalStore.getSnapshot().transcripts).toBeNull();
+
+    const transcripts = { connected: true, state: "reading", readFiles: 412, totalFiles: 1280, skippedFiles: 3 };
+    es.emit("usage-changed", "3", { areas: ["cost"], transcripts });
+    expect(usageSignalStore.getSnapshot().counters.cost).toBe(1);
+    expect(usageSignalStore.getSnapshot().transcripts).toEqual(transcripts);
+    expect(connectionStore.getSnapshot().lastUpdatedAt).not.toBeNull();
+    expect(before).not.toBeNull();
+
+    // seq가 이전보다 작거나 같으면 무시한다(중복 방어).
+    es.emit("usage-changed", "3", { areas: ["mcp"], transcripts: null });
+    expect(usageSignalStore.getSnapshot().counters.mcp).toBe(0);
+  });
+
+  it("[realtime-spec §5] 재연결 성공(두 번째 snapshot) → 전 영역 신호, 첫 연결에서는 올리지 않는다", async () => {
+    const client = createStreamClient();
+    client.connect();
+    await flush();
+    FakeEventSource.instances[0]!.emit("snapshot", "1", buildSnapshotFixture());
+    expect(usageSignalStore.getSnapshot().counters).toEqual({ skills: 0, mcp: 0, cost: 0, limits: 0, settings: 0 });
+
+    FakeEventSource.instances[0]!.triggerError();
+    await flush();
+    await vi.advanceTimersByTimeAsync(5_000);
+    const next = FakeEventSource.instances.at(-1)!;
+    next.emit("snapshot", "2", buildSnapshotFixture());
+
+    expect(usageSignalStore.getSnapshot().counters).toEqual({ skills: 1, mcp: 1, cost: 1, limits: 1, settings: 1 });
   });
 });

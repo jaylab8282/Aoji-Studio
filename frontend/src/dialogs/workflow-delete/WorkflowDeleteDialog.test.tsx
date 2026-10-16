@@ -1,10 +1,11 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkflowDeleteDialog } from "./WorkflowDeleteDialog";
 import { WorkflowAddDialog } from "../workflow-add/WorkflowAddDialog";
 import { MemoryRouter } from "react-router-dom";
 import { snapshotStore } from "../../state/snapshotStore";
 import { buildSnapshotFixture } from "../../test/fixtures/snapshot";
+import type { Workflow } from "../../api/types";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -43,7 +44,29 @@ async function flushPromises() {
   });
 }
 
+function buildWorkflow(overrides: Partial<Workflow> = {}): Workflow {
+  return {
+    name: "개발부서",
+    description: "",
+    filePath: ".aojistudio/teams/개발부서.json",
+    lead: null,
+    members: [],
+    brokenRefs: [],
+    rawMemberCount: 0,
+    rawLead: null,
+    rawMembers: [],
+    ...overrides,
+  };
+}
+
+/** 열 때의 registry를 만든다. 기본은 인원 0명(05-3). */
+function seedWorkflows(...workflows: Workflow[]) {
+  const base = buildSnapshotFixture();
+  snapshotStore.replace({ ...base, registry: { ...base.registry, workflows } });
+}
+
 function renderDialog(onClose = vi.fn(), workflowName = "개발부서") {
+  if (!snapshotStore.getSnapshot().ready) seedWorkflows(buildWorkflow({ name: workflowName }));
   render(<WorkflowDeleteDialog workflowName={workflowName} onClose={onClose} />);
   return onClose;
 }
@@ -59,6 +82,7 @@ describe("WorkflowDeleteDialog", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    snapshotStore.reset();
   });
 
   it("[FR-017-AC2] 제목·안내·입력·취소·삭제 구성(06-6과 같은 컴포넌트 ConfirmByNameDialog)", () => {
@@ -298,5 +322,143 @@ describe("WorkflowDeleteDialog", () => {
       expect(button.textContent).not.toMatch(/이름 변경|이름 수정|이름 바꾸기/);
     }
     snapshotStore.reset();
+  });
+  describe("05-4 삭제 불가 안내 (FR-017-AC1)", () => {
+    const blocked = buildWorkflow({
+      name: "디자인부서",
+      lead: "design-lead",
+      members: ["design-motion", "design-reviewer", "design-ui"],
+      rawMemberCount: 5,
+      rawLead: "design-lead",
+      // 구성 파일 원본 기준: 깨진 참조(`ghost-agent`)도 나온다. 순서는 일부러 섞어 둔다.
+      rawMembers: ["design-ui", "ghost-agent", "design-motion", "design-reviewer"],
+    });
+
+    function renderBlocked(onClose = vi.fn()) {
+      seedWorkflows(blocked);
+      const calls = stubFetch(() => emptyResponse(204));
+      render(<WorkflowDeleteDialog workflowName="디자인부서" onClose={onClose} />);
+      return { onClose, calls };
+    }
+
+    it("[FR-017-AC1] 인원 1명 이상 → 05-4: alertdialog·제목·data-wf, 05-3 요소(입력·삭제) 없음", () => {
+      renderBlocked();
+
+      const dialog = screen.getByRole("alertdialog", { name: "디자인부서 워크플로우를 삭제할 수 없습니다" });
+      expect(dialog).toHaveAttribute("data-wf", "05-4-1");
+      expect(dialog).toHaveClass("max-w-dialog-sm");
+      expect(screen.getByRole("heading", { name: "디자인부서 워크플로우를 삭제할 수 없습니다" })).toBeInTheDocument();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("확인을 위해 워크플로우 이름 입력")).not.toBeInTheDocument();
+      expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
+      expect(document.querySelector('[data-wf="05-3-1"]')).toBeNull();
+    });
+
+    it("[FR-017-AC1] 조건 문구는 한 요소에 정확히 `팀장·팀원이 0명일 때만 삭제할 수 있습니다 · 팀원을 먼저 제거하세요`(창 설명)", () => {
+      renderBlocked();
+
+      const condition = screen.getByText("팀장·팀원이 0명일 때만 삭제할 수 있습니다 · 팀원을 먼저 제거하세요");
+      expect(condition.textContent).toBe("팀장·팀원이 0명일 때만 삭제할 수 있습니다 · 팀원을 먼저 제거하세요");
+      expect(screen.getByRole("alertdialog")).toHaveAccessibleDescription(condition.textContent ?? "");
+    });
+
+    it("[FR-017-AC1] `남은 에이전트 N명` + 행: 팀장 먼저, 팀원 name 오름차순, 깨진 참조 포함, 행 글자는 `<name> 팀장|팀원`뿐", () => {
+      renderBlocked();
+
+      const box = document.querySelector('[data-wf="05-4-2"]') as HTMLElement;
+      expect(within(box).getByRole("heading", { name: "남은 에이전트 5명" })).toBeInTheDocument();
+      const rows = within(box).getAllByRole("listitem");
+      expect(rows.map((row) => row.textContent)).toEqual([
+        "design-lead팀장",
+        "design-motion팀원",
+        "design-reviewer팀원",
+        "design-ui팀원",
+        "ghost-agent팀원",
+      ]);
+      expect(rows[0]?.textContent).toMatch(/^design-lead\s*팀장$/);
+      // 팀장은 Badge, 팀원은 muted 글자. name은 말줄임 대상이라 title에 전체를 담는다.
+      expect(within(rows[0] as HTMLElement).getByText("팀장")).toHaveClass("bg-selected");
+      expect(within(rows[1] as HTMLElement).getByText("팀원")).toHaveClass("text-text-muted");
+      expect(within(rows[0] as HTMLElement).getByText("design-lead")).toHaveAttribute("data-clamp");
+      expect(within(rows[0] as HTMLElement).getByText("design-lead")).toHaveAttribute("title", "design-lead");
+    });
+
+    it("[FR-017-AC1] 팀장이 없으면(rawLead null) 팀원만, 05-4-3에는 `확인` 버튼 하나뿐이고 열리면 초점이 `확인`", () => {
+      seedWorkflows(buildWorkflow({ name: "디자인부서", rawMemberCount: 1, rawLead: null, rawMembers: ["design-ui"] }));
+      render(<WorkflowDeleteDialog workflowName="디자인부서" onClose={vi.fn()} />);
+
+      expect(screen.getAllByRole("listitem").map((row) => row.textContent)).toEqual(["design-ui팀원"]);
+      expect(screen.getByRole("heading", { name: "남은 에이전트 1명" })).toBeInTheDocument();
+      const footer = document.querySelector('[data-wf="05-4-3"]') as HTMLElement;
+      expect(within(footer).getAllByRole("button").map((button) => button.textContent)).toEqual(["확인"]);
+      expect(screen.getAllByRole("button")).toHaveLength(1);
+      expect(screen.getByRole("button", { name: "확인" })).toHaveFocus();
+    });
+
+    it("[FR-017-AC1] `확인`·ESC → 창만 닫히고 삭제 요청 0회", async () => {
+      const { onClose, calls } = renderBlocked();
+
+      fireEvent.click(screen.getByRole("button", { name: "확인" }));
+      expect(onClose).toHaveBeenCalledTimes(1);
+      fireEvent.keyDown(window, { key: "Escape" });
+      expect(onClose).toHaveBeenCalledTimes(2);
+
+      await flushPromises();
+      expect(calls).toEqual([]);
+      expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+    });
+
+    it("[FR-017-AC1] 목록은 열 때 값으로 고정된다: 열린 사이 registry가 바뀌어도 다시 그리지 않는다", () => {
+      renderBlocked();
+
+      act(() => {
+        seedWorkflows({ ...blocked, rawMemberCount: 1, rawLead: null, rawMembers: ["design-ui"] });
+      });
+
+      expect(screen.getByRole("heading", { name: "남은 에이전트 5명" })).toBeInTheDocument();
+      expect(screen.getAllByRole("listitem")).toHaveLength(5);
+    });
+
+    it("[FR-017-AC1] 05-4가 열린 사이 워크플로우가 registry에서 사라지면 창을 닫는다", () => {
+      const { onClose } = renderBlocked();
+      expect(onClose).not.toHaveBeenCalled();
+
+      act(() => {
+        seedWorkflows();
+      });
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("[FR-017-AC1] 인원 0명 → 05-3(dialog, 05-3-1, 이름 입력·삭제), 05-4 요소는 없다", () => {
+      seedWorkflows(buildWorkflow({ name: "개발부서", rawMemberCount: 0 }));
+      render(<WorkflowDeleteDialog workflowName="개발부서" onClose={vi.fn()} />);
+
+      expect(screen.getByRole("dialog")).toHaveAttribute("data-wf", "05-3-1");
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+      expect(screen.getByLabelText("확인을 위해 워크플로우 이름 입력")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "삭제" })).toBeDisabled();
+      expect(document.querySelector('[data-wf="05-4-1"]')).toBeNull();
+    });
+
+    it("[FR-017-E1] 05-3이 열린 사이 인원이 늘어도 05-3을 유지하고, 그 뒤 409는 3초 안내 후 닫힌다(05-4로 바뀌지 않는다)", () => {
+      seedWorkflows(buildWorkflow({ name: "개발부서", rawMemberCount: 0 }));
+      render(<WorkflowDeleteDialog workflowName="개발부서" onClose={vi.fn()} />);
+
+      act(() => {
+        seedWorkflows(buildWorkflow({ name: "개발부서", rawMemberCount: 2, rawLead: "dev-lead", rawMembers: ["dev-01"] }));
+      });
+
+      expect(screen.getByRole("dialog")).toHaveAttribute("data-wf", "05-3-1");
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    });
+
+    it("첫 스냅샷 전에는 어느 창도 그리지 않는다(registry 없이는 05-3·05-4를 고를 수 없다)", () => {
+      render(<WorkflowDeleteDialog workflowName="개발부서" onClose={vi.fn()} />);
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    });
   });
 });

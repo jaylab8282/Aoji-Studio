@@ -17,10 +17,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { openHelperSession } from "../../api/helper";
 import type { HelperOpenRequest, HelperOpenResult } from "../../api/helper";
+import type { HostOs } from "../../api/types";
 import { HELPER_AUTH_FAILED_TEXT } from "../../lib/text";
 import { useSnapshotStore } from "../../state/snapshotStore";
 
 export interface HelperOpenController {
+  /** 실행 환경. 미응답 팝업의 설치 안내가 이 값으로 달라진다(첫 스냅샷 전에는 macos). */
+  hostOs: HostOs;
   /** 미응답 팝업에 실을 명령. `null`이면 팝업이 닫혀 있다. */
   missingCommand: string | null;
   /** 버튼 옆에 붙는 인라인 사유(403 확정 문구 · 도우미 message · `팀장이 없습니다`). */
@@ -46,6 +49,7 @@ export interface HelperOpenController {
 export function useHelperOpen(onResult?: (result: HelperOpenResult) => void): HelperOpenController {
   const { config } = useSnapshotStore();
   const helperUrl = config === null ? null : config.helperUrl;
+  const hostOs: HostOs = config === null ? "macos" : config.hostOs;
   const [missingCommand, setMissingCommand] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // 응답을 기다리는 동안 다시 눌러도 같은 요청을 두 번 보내지 않는다(버튼은 ui-spec대로 활성이다).
@@ -93,5 +97,5 @@ export function useHelperOpen(onResult?: (result: HelperOpenResult) => void): He
 
   const closeMissingDialog = useCallback(() => setMissingCommand(null), []);
 
-  return { missingCommand, errorMessage, open, showError, closeMissingDialog };
+  return { hostOs, missingCommand, errorMessage, open, showError, closeMissingDialog };
 }

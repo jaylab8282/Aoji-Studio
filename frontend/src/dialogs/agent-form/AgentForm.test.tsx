@@ -52,6 +52,8 @@ const 개발부서 = {
   members: ["qa-02"],
   brokenRefs: [],
   rawMemberCount: 2,
+  rawLead: "dev-lead",
+  rawMembers: ["qa-02"],
 };
 const 운영팀 = { ...개발부서, name: "운영팀", filePath: ".aojistudio/teams/운영팀.json", lead: null, members: [], rawMemberCount: 0 };
 

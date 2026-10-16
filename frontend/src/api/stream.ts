@@ -7,14 +7,15 @@ import { apiGet, getBrowserToken } from "./client";
 import { agentEventsStore } from "../state/agentEventsStore";
 import { connectionStore } from "../state/connectionStore";
 import { snapshotStore } from "../state/snapshotStore";
-import type { EventRow, Live, Registry, Snapshot } from "./types";
+import { usageSignalStore } from "../state/usageSignalStore";
+import type { EventRow, Live, Registry, Snapshot, UsageChanged } from "./types";
 
 const HEARTBEAT_TIMEOUT_MS = 45_000;
 const INITIAL_BACKOFF_SEC = 5;
 const MAX_BACKOFF_SEC = 30;
 
-type MessageType = "snapshot" | "registry" | "live" | "event" | "heartbeat";
-const MESSAGE_TYPES: MessageType[] = ["snapshot", "registry", "live", "event", "heartbeat"];
+type MessageType = "snapshot" | "registry" | "live" | "event" | "heartbeat" | "usage-changed";
+const MESSAGE_TYPES: MessageType[] = ["snapshot", "registry", "live", "event", "heartbeat", "usage-changed"];
 
 export interface StreamClient {
   connect: () => void;
@@ -116,6 +117,8 @@ export function createStreamClient(): StreamClient {
         snapshotStore.replace(data);
         connectionStore.touch(receivedAt);
         connectionStore.setConnected();
+        // 재연결 성공(v1.2.0): 끊긴 동안 놓친 변화를 열려 있는 08·09·10·07이 다시 조회한다(realtime-spec §5).
+        if (hasEverConnected) usageSignalStore.signalAll();
         hasEverConnected = true;
         backoffSec = INITIAL_BACKOFF_SEC;
         break;
@@ -137,6 +140,12 @@ export function createStreamClient(): StreamClient {
         snapshotStore.prependEvent(data);
         // 03 선택 패널의 최근 이벤트 목록(realtime-spec.md §5, FR-007-AC6).
         agentEventsStore.prependIfMatches(data);
+        connectionStore.touch(receivedAt);
+        break;
+      }
+      case "usage-changed": {
+        const data = JSON.parse(raw) as UsageChanged;
+        usageSignalStore.signal(data.areas, data.transcripts);
         connectionStore.touch(receivedAt);
         break;
       }

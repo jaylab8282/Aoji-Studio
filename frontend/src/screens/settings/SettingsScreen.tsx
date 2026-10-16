@@ -132,7 +132,7 @@ export function SettingsScreen() {
         />
       </div>
       {helper.missingCommand === null ? null : (
-        <HelperMissingDialog command={helper.missingCommand} onClose={helper.closeMissingDialog} />
+        <HelperMissingDialog command={helper.missingCommand} hostOs={helper.hostOs} onClose={helper.closeMissingDialog} />
       )}
     </div>
   );

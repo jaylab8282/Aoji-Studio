@@ -3,7 +3,7 @@
  * → 오른쪽 주 동작 `팀장 호출 · 터미널 열기`(`square-terminal`). FR-007-AC8·AC9, FR-013-AC2·AC4·AC6·AC9, FR-013-E2~E4.
  *
  * 칩은 04-4 동안 중립 `모두 대기`로 고정한다(ADR-68). 도우미에는 `{target:'lead', leadName}`만 보낸다(FR-013-AC6).
- * 화면에 보여주고 복사하는 명령 `cd "<hostPath>" && claude --agent <lead>`은 프론트가 조립하지만 도우미에는 보내지 않는다.
+ * 화면에 보여주고 복사하는 명령 `config.defaultSessionCommand + " --agent " + <lead>`(실행 환경별)은 프론트가 조립하지만 도우미에는 보내지 않는다.
  * 팀장이 없으면 버튼 왼쪽에 이유 `팀장 없음`과 함께 비활성(FR-007-AC8, FR-013-AC4). 누른 시점에 `registry.agents`에서 팀장이
  * 사라졌으면 호출하지 않고 `팀장이 없습니다`만 남긴다(FR-013-E4). 첫 스냅샷 전(04-2)에는 수·칩·팀장이 스켈레톤이고 주 동작은 비활성이다(ADR-44).
  */
@@ -66,13 +66,13 @@ interface HeaderProps {
   liveAgents: Record<string, AgentLive>;
   /** 누른 시점의 정의 목록(FR-013-E4 판정용). SSE `registry`가 갱신한 값 그대로다. */
   registryAgents: AgentDef[];
-  /** 맥북 경로. 팀장 명령 표시·복사에만 쓴다(FR-013-AC2). */
-  hostPath: string;
+  /** `config.defaultSessionCommand`(실행 환경별). 팀장 명령 = 이 값 + ` --agent <팀장>`, 표시·복사에만 쓴다(FR-013-AC2). */
+  defaultSessionCommand: string;
   /** 04-4 표시 중이면 칩을 중립 `모두 대기`로 고정한다(ADR-68). */
   collectorDown: boolean;
 }
 
-export function Header({ workflow, skillCount, liveAgents, registryAgents, hostPath, collectorDown }: HeaderProps) {
+export function Header({ workflow, skillCount, liveAgents, registryAgents, defaultSessionCommand, collectorDown }: HeaderProps) {
   const helper = useHelperOpen();
   const reasonId = useId();
   const lead = workflow.lead;
@@ -86,7 +86,7 @@ export function Header({ workflow, skillCount, liveAgents, registryAgents, hostP
       helper.showError(LEAD_GONE_TEXT);
       return;
     }
-    helper.open({ target: "lead", leadName }, leadSessionCommand(hostPath, leadName));
+    helper.open({ target: "lead", leadName }, leadSessionCommand(defaultSessionCommand, leadName));
   }
 
   return (
@@ -131,7 +131,7 @@ export function Header({ workflow, skillCount, liveAgents, registryAgents, hostP
         </Button>
       </span>
       {helper.missingCommand === null ? null : (
-        <HelperMissingDialog command={helper.missingCommand} onClose={helper.closeMissingDialog} />
+        <HelperMissingDialog command={helper.missingCommand} hostOs={helper.hostOs} onClose={helper.closeMissingDialog} />
       )}
     </div>
   );

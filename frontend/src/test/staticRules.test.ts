@@ -35,12 +35,14 @@ const IMPLEMENTATION_SOURCES: ReadonlyArray<readonly [string, string]> = SOURCES
 
 /**
  * hover·`:focus-visible` 클래스를 가질 수 있는 파일 전수(conventions.md §7 MUST, ADR-46 A, ADR-49):
- * 공용 컴포넌트 3개(`Sidebar`·`Button`·`Link` — 입력 4종은 ADR-69로 hover가 없어졌다) + 화면 전용 클릭 영역 3곳(01 대표 카드,
+ * 공용 컴포넌트 3개(`Sidebar`·`Button`·`Link` — 입력 4종은 ADR-69로 hover가 없어졌다) + (v1.2.0) 08·09 펼침 버튼 1곳(`ExpandableList`의 `chev`,
+ * 화면 원본 `_base.css` `.chev:hover` — 테두리 `border-strong` + 글자 `text-primary`) + 화면 전용 클릭 영역 3곳(01 대표 카드,
  * 02 책상 칸(`Desk.tsx`), 03 오피스 칸(`OfficeCell.tsx`)) + ④ 링크 1곳(03 브레드크럼).
  * 05-R 목록 행(`ImportAgentTable.tsx`)은 행에 클릭 동작이 없어 목록에서 빠졌다(ADR-49 1).
  */
 const HOVER_FOCUS_FILES: ReadonlyArray<string> = [
   "src/components/common/Sidebar.tsx",
+  "src/components/data/ExpandableList.tsx",
   "src/components/ui/Button.tsx",
   "src/components/ui/Link.tsx",
   "src/screens/home/FeaturedWorkflows.tsx",
@@ -164,14 +166,14 @@ describe("정적 단언", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("[ADR-46 A][ADR-49] hover:·focus-visible: 클래스는 공용 컴포넌트 3개 + 화면 전용 클릭 영역 3곳 + ④ 링크 1곳(03 브레드크럼)에만 있다", () => {
+  it("[ADR-46 A][ADR-49] hover:·focus-visible: 클래스는 공용 컴포넌트 3개 + (v1.2.0) 펼침 버튼 1곳 + 화면 전용 클릭 영역 3곳 + ④ 링크 1곳(03 브레드크럼)에만 있다", () => {
     const files = IMPLEMENTATION_SOURCES.filter(([, text]) => /hover:|focus-visible:/.test(text)).map(
       ([path]) => path,
     );
     expect([...files].sort()).toEqual([...HOVER_FOCUS_FILES].sort());
     // 05-R 목록 행은 행에 클릭 동작이 없어 목록에서 빠졌다(ADR-49 1).
     expect(HOVER_FOCUS_FILES).not.toContain("src/dialogs/import-agents/ImportAgentTable.tsx");
-    expect(HOVER_FOCUS_FILES).toHaveLength(7);
+    expect(HOVER_FOCUS_FILES).toHaveLength(8);
   });
 
   it("[ADR-69] 03 오피스 칸의 hover는 테두리 border-dashed 하나뿐이고 배경·글자색을 바꾸지 않으며 focus-visible 별도 표현이 없다(공통 초점 링이 맡는다)", () => {
@@ -219,6 +221,48 @@ describe("정적 단언", () => {
     expect(topBar).not.toMatch(/from\s*"react-router(?:-dom)?"/);
     // prop 방식이라는 근거: 시그니처에 기본값 false인 showProjectChip이 있다.
     expect(topBar).toMatch(/showProjectChip\s*=\s*false/);
+  });
+
+  it("[v1.2.0 펼침 버튼] ExpandableList의 hover는 chev 하나(테두리 border-strong + 글자 text)뿐이고 focus-visible 별도 표현이 없다", () => {
+    const text = sourceOf("src/components/data/ExpandableList.tsx");
+    const values = [...text.matchAll(/(?:^|[\s"`])((?:group-)?(?:hover|focus-visible|focus):[a-z0-9-]+(?:-[a-z0-9]+)*)/g)].map((match) => match[1]);
+    expect(values).toEqual(["hover:border-border-strong", "hover:text-text"]);
+  });
+
+  it("[conventions §7 예외][ADR-88 결정 5] 인라인 style은 `style={{ … }}` 객체이고 키가 모두 `--`로 시작하는 CSS 변수뿐이다(색·크기·간격 값 직접 지정 금지)", () => {
+    const offenders: string[] = [];
+    let found = 0;
+    for (const [path, text] of IMPLEMENTATION_SOURCES) {
+      for (const match of text.matchAll(/\bstyle=\{/g)) {
+        found += 1;
+        const open = match.index + match[0].length - 1; // `style={`의 `{`
+        if (text[open + 1] !== "{") {
+          offenders.push(path + ": style={…} 변수·식 전달(객체 리터럴이 아님)");
+          continue;
+        }
+        const close = blockEndIndex(text, open + 1);
+        const body = text.slice(open + 2, close);
+        // 최상위 키만 본다: 값 안의 `${…}` 템플릿·중첩 괄호를 빼고 `키:` 모양을 찾는다.
+        const flat = body.replace(/\$\{[^{}]*\}/g, "").replace(/\([^()]*\)/g, "");
+        const keys = [...flat.matchAll(/(?:^|,)\s*(?:"([^"]+)"|'([^']+)'|([A-Za-z_][\w-]*))\s*:/g)].map(
+          (key) => key[1] ?? key[2] ?? key[3] ?? "",
+        );
+        if (keys.length === 0 || keys.some((key) => !key.startsWith("--"))) {
+          offenders.push(`${path}: style 키 ${JSON.stringify(keys)}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+    // 현재 사용처 전수(StatusBar·Minimap·Canvas + v1.2.0 Meter·ProgressBar): 검사가 실제로 5곳을 봤는지 고정한다.
+    expect(found).toBe(5);
+  });
+
+  it("[conventions §7 예외] 인라인 style 판정 규칙 자체: `--` 키만 통과, 색·크기 키나 변수 전달은 걸린다", () => {
+    const keysOf = (body: string) =>
+      [...body.matchAll(/(?:^|,)\s*(?:"([^"]+)"|'([^']+)'|([A-Za-z_][\w-]*))\s*:/g)].map((key) => key[1] ?? key[2] ?? key[3] ?? "");
+    expect(keysOf(' "--a": 1, "--b": `${x}%` ')).toEqual(["--a", "--b"]);
+    expect(keysOf(' color: "red" ')).toEqual(["color"]);
+    expect(keysOf(' "--a": 1, width: 10 ')).toEqual(["--a", "width"]);
   });
 
   it("[conventions §6] frontend/src에 '0.0.0.0' 문자열이 없다", () => {

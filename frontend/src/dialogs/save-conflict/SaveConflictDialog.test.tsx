@@ -55,6 +55,8 @@ const 개발부서 = {
   members: [],
   brokenRefs: [],
   rawMemberCount: 1,
+  rawLead: "dev-lead",
+  rawMembers: [],
 };
 
 function replaceSnapshot() {

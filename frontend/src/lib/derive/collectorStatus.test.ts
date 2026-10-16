@@ -41,6 +41,18 @@ describe("collectorStatus [FR-003-AC6]", () => {
     expect(v.label).toBe("수집 상태 · hook 설정 안 됨 · 마지막 수신 없음");
   });
 
+  it("[FR-003-AC6] 04-4 원본 상태(쓰다가 hook 설정을 지움): unset(빨강) 'hook 설정 안 됨' + 마지막 수신 13:58:12 · 레일 미설정", () => {
+    const v = deriveCollectorStatus(
+      { hookConfigured: false, everReceived: true, lastReceivedAt: "2026-10-06T13:58:12+09:00" },
+      new Date("2026-10-06T15:00:00+09:00"),
+    );
+    expect(v.stage).toBe("unset");
+    expect(v.chipText).toBe("hook 설정 안 됨");
+    expect(v.lastReceivedText).toBe("13:58:12");
+    expect(v.railText).toBe("미설정");
+    expect(v.label).toBe("수집 상태 · hook 설정 안 됨 · 마지막 수신 13:58:12");
+  });
+
   it("[FR-003-AC6] 설정이 없으면 수신 기록이 있어도 unset", () => {
     expect(collectorStage({ hookConfigured: false, everReceived: true })).toBe("unset");
   });

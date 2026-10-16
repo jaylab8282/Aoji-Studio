@@ -14,6 +14,8 @@ function buildWorkflow(name: string, memberCount: number): Workflow {
     members: Array.from({ length: memberCount }, (_, index) => `${name}-${index}`),
     brokenRefs: [],
     rawMemberCount: memberCount + 1,
+    rawLead: "lead",
+    rawMembers: Array.from({ length: memberCount }, (_, index) => `${name}-${index}`),
   };
 }
 

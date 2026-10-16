@@ -87,7 +87,7 @@ export function WorkflowDetailScreen() {
         skillCount={registry.skillCount}
         liveAgents={live.agents}
         registryAgents={registry.agents}
-        hostPath={config.hostPath}
+        defaultSessionCommand={config.defaultSessionCommand}
         collectorDown={collectorDown}
       />
       <DetailBody>

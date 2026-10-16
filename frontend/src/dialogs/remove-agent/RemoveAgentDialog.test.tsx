@@ -49,6 +49,8 @@ const 개발부서 = {
   members: ["qa-02"],
   brokenRefs: [],
   rawMemberCount: 2,
+  rawLead: "dev-lead",
+  rawMembers: ["qa-02"],
 };
 
 function replaceSnapshot(overrides: Partial<Registry> = {}) {

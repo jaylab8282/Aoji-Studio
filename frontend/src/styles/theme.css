@@ -142,18 +142,57 @@
   --spacing-role-select: 30px;
   --spacing-kv7-label: 132px;
   --spacing-reason-min: 200px;
+
+  /* (v1.2.0) 데이터 화면 08·09·10 (ui-spec "레이아웃 치수" v1.2.0 행) */
+  --spacing-tab: 40px;
+  --spacing-meter: 8px;
+  --spacing-meter-min: 60px;
+  --spacing-meter-limit: 10px;
+  --spacing-col-skill-use: 280px;
+  --spacing-col-skill-agents: 150px;
+  --spacing-col-skill-acts: 200px;
+  --spacing-pct: 48px;
+  --spacing-connector: 380px;
+  --spacing-col-mcp-agents: 150px;
+  --spacing-limits: 480px;
+  --spacing-chart-min: 320px;
+  --spacing-chart-min-short: 248px;
+  --spacing-chart-portrait: 400px;
+  --spacing-chart-axis: 44px;
+  --spacing-chart-xlabel: 20px;
+  --spacing-chart-bar-min: 6px;
+  --spacing-progress: 160px;
+  --spacing-limit-label: 72px;
+  --container-dialog-price: 680px;
+  --spacing-prev-label: 72px;
+  --spacing-file-chip: 20px;
+  --spacing-skill-body-min: 160px;
 }
 
 /* 배치 변형 (ADR-66): CSS 미디어 쿼리만. JS로 창 크기를 판정하지 않는다. */
 @custom-variant portrait (@media (orientation: portrait));
 @custom-variant rail (@media (orientation: portrait), (max-width: 1199px));
 @custom-variant narrow (@media (max-width: 1599px));
+/* (v1.2.0) 08 행 열을 좁히는 폭 1399 이하, 10 차트를 낮추는 낮은 가로형 창. */
+@custom-variant narrow-1400 (@media (max-width: 1399px));
+@custom-variant short (@media (max-height: 900px) and (orientation: landscape));
 
 /* 폭에 따라 바뀌는 토큰: 같은 변수를 덮어쓴다 (_tokens.css:108-109와 같은 조건). */
 @media (max-width: 1599px) {
   :root {
     --spacing-gutter: 24px;
     --spacing-panel: 320px;
+    /* (v1.2.0) 10 오른쪽 한도 열 */
+    --spacing-limits: 420px;
+  }
+}
+
+/* (v1.2.0) 08 행 열: 폭 1399 이하·세로형 34 · 1fr · 200 · 130 · 190 (`08-skills.html:30`). */
+@media (max-width: 1399px), (orientation: portrait) {
+  :root {
+    --spacing-col-skill-use: 200px;
+    --spacing-col-skill-agents: 130px;
+    --spacing-col-skill-acts: 190px;
   }
 }
 

@@ -10,7 +10,7 @@ export interface ConnectionStoreState {
   state: ConnectionState;
   /** 연결 끊김일 때 남은 재연결 대기 초. 그 외 상태에서는 0. */
   retryInSec: number;
-  /** snapshot·registry·live·event·heartbeat를 받은 마지막 시각(ISO). 04-3 "마지막 갱신" 표시용. */
+  /** snapshot·registry·live·event·heartbeat·usage-changed를 받은 마지막 시각(ISO). 04-3 "마지막 갱신" 표시용. */
   lastUpdatedAt: string | null;
 }
 

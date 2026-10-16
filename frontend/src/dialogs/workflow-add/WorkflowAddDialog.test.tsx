@@ -18,6 +18,8 @@ const createdWorkflow: Workflow = {
   members: [],
   brokenRefs: [],
   rawMemberCount: 0,
+  rawLead: null,
+  rawMembers: [],
 };
 
 /** `/api/workflows` POST에 대한 응답만 바꿔 가며 쓰는 fetch 대역(테스트 전용). */

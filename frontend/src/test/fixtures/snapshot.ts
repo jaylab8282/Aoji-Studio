@@ -12,6 +12,8 @@ export function buildSnapshotFixture(overrides: Partial<Snapshot> = {}): Snapsho
       collectUrl: "http://127.0.0.1:4180/hooks/events",
       helperUrl: "http://127.0.0.1:4181",
       defaultSessionCommand: 'cd "/Users/jaybee/Desktop/AojiStudio" && claude',
+      hostOs: "macos",
+      wslDistro: null,
     },
     registry: {
       revision: 1,

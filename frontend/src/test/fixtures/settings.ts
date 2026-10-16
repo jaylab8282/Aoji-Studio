@@ -6,6 +6,22 @@ import type { Settings } from "../../api/types";
 
 export function buildSettingsFixture(overrides: Partial<Settings> = {}): Settings {
   return {
+    hostOs: "macos",
+    wslDistro: null,
+    statusline: {
+      settingsExample:
+        '"statusLine": {\n  "type": "command",\n  "command": "node \\"/Users/jaybee/Desktop/AojiStudio/.aojistudio/statusline.mjs\\" --url http://127.0.0.1:4180/hooks/statusline -- <쓰던 상태줄 명령>"\n}',
+      lastReceivedAt: null,
+    },
+    globalClaude: {
+      items: [
+        { key: "claudeJson", connected: false },
+        { key: "settings", connected: false },
+        { key: "plugins", connected: false },
+        { key: "projects", connected: false },
+      ],
+      readAt: null,
+    },
     hostPath: "/Users/jaybee/Desktop/AojiStudio",
     agentCount: 7,
     skillCount: 3,

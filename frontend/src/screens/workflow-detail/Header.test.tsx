@@ -8,6 +8,7 @@ import { snapshotStore } from "../../state/snapshotStore";
 import { buildSnapshotFixture } from "../../test/fixtures/snapshot";
 
 const HOST_PATH = "/Users/jaybee/Desktop/AojiStudio";
+const DEFAULT_SESSION_COMMAND = `cd "${HOST_PATH}" && claude`;
 const HELPER_URL = "http://127.0.0.1:4181";
 const HELPER_TOKEN = "b".repeat(64);
 const LEAD_COMMAND = 'cd "/Users/jaybee/Desktop/AojiStudio" && claude --agent dev-lead';
@@ -79,6 +80,8 @@ function buildWorkflow(overrides: Partial<Workflow> = {}): Workflow {
     members: ["dev-01", "dev-02"],
     brokenRefs: [],
     rawMemberCount: 3,
+    rawLead: "dev-lead",
+    rawMembers: ["dev-01", "dev-02"],
     ...overrides,
   };
 }
@@ -127,7 +130,7 @@ function renderHeader(
         skillCount={4}
         liveAgents={liveAgents}
         registryAgents={registryAgents}
-        hostPath={HOST_PATH}
+        defaultSessionCommand={DEFAULT_SESSION_COMMAND}
         collectorDown={collectorDown}
       />
     </MemoryRouter>,
@@ -254,7 +257,7 @@ describe("Header", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("[FR-014-AC5] 무응답 → 03 HelperMissingDialog에 팀장 명령(cd \"<hostPath>\" && claude --agent <lead>)이 실리고 그 명령을 복사한다", async () => {
+  it("[FR-014-AC5] 무응답 → 03 HelperMissingDialog에 팀장 명령(config.defaultSessionCommand + \" --agent \" + <lead>)이 실리고 그 명령을 복사한다", async () => {
     vi.useFakeTimers();
     stubFetch({ open: (signal) => neverResolving(signal) });
     renderHeader(buildWorkflow());

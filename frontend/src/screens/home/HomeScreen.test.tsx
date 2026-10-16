@@ -35,6 +35,8 @@ function buildWorkflow(name: string, lead: string, members: string[] = []): Work
     members,
     brokenRefs: [],
     rawMemberCount: members.length + 1,
+    rawLead: lead,
+    rawMembers: members,
   };
 }
 

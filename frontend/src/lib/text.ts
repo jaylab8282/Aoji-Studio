@@ -2,7 +2,7 @@
  * 화면 문구 상수 (conventions.md §2 MUST). ui-spec.md·final 문서의 문구를 글자 그대로 쓴다.
  * 컴포넌트는 이 파일의 상수만 쓰고 문자열을 직접 적지 않는다.
  */
-import type { ImportRejectedReason, Role, Status } from "../api/types";
+import type { HostOs, ImportRejectedReason, Role, Status, UsagePeriod } from "../api/types";
 import type { ModelChoice } from "./derive/agentForm";
 import type { FloorSummary } from "./derive/floorSummary";
 
@@ -82,17 +82,25 @@ export const COPY_COMMAND_LABEL = "명령 복사";
 // ── 열기 도우미 (FR-013, ui-spec §공통 `HelperMissingDialog` · SCR-02 · SCR-03 · SCR-07) ─────
 /** 도우미가 없거나 2초 안에 응답하지 않을 때 뜨는 팝업(FR-013-AC9·E1). */
 export const HELPER_MISSING_DIALOG_TITLE = "열기 도우미가 응답하지 않습니다";
-export const HELPER_MISSING_DIALOG_BODY = "helper/install.sh로 설치한 뒤 다시 시도하세요";
+/** 실행 환경별 설치 스크립트(ADR-91 — wsl 문장). macos `helper/install.sh` / wsl `helper/windows/install.ps1`. */
+export const HELPER_INSTALL_SCRIPT: Record<HostOs, string> = {
+  macos: "helper/install.sh",
+  wsl: "helper/windows/install.ps1",
+};
+export function helperMissingDialogBody(hostOs: HostOs): string {
+  return `${HELPER_INSTALL_SCRIPT[hostOs]}로 설치한 뒤 다시 시도하세요`;
+}
 /** 도우미가 403으로 거부했을 때 버튼 옆에 붙는 확정 문구(FR-013-E2). */
 export const HELPER_AUTH_FAILED_TEXT = "도우미 인증 실패 · 도우미를 다시 설치하세요";
 /** 버튼을 누른 시점에 `registry.agents`에 팀장이 없을 때(FR-013-E4). 도우미를 호출하지 않는다. */
 export const LEAD_GONE_TEXT = "팀장이 없습니다";
 /**
- * 03 `팀장 호출 · 터미널 열기`가 표시·복사하는 명령(FR-013-AC2, ui-spec SCR-03).
+ * 03 `팀장 호출 · 터미널 열기`가 표시·복사하는 명령(FR-013-AC2, ui-spec SCR-03) = `config.defaultSessionCommand + " --agent " + 팀장 name`.
+ * 실행 환경별 기본 명령(macos `cd "<hostPath>" && claude` / wsl `wsl -d <배포판> --cd <hostPath> -- claude`, ADR-77)에 프론트가 붙인다.
  * 도우미에게는 이 문자열이 아니라 팀장 name만 보낸다(FR-013-AC6).
  */
-export function leadSessionCommand(hostPath: string, leadName: string): string {
-  return `cd "${hostPath}" && claude --agent ${leadName}`;
+export function leadSessionCommand(defaultSessionCommand: string, leadName: string): string {
+  return `${defaultSessionCommand} --agent ${leadName}`;
 }
 
 // AgentsDirMissing (SCR-04-5, 01·02·07 공통)
@@ -244,7 +252,6 @@ export const FLOOR_IMPORT_BUTTON_LABEL = "가져오기";
 export const FLOOR_CREATE_BUTTON_LABEL = "만들기";
 export const FLOOR_DETAIL_BUTTON_LABEL = "상세";
 export const FLOOR_DELETE_BUTTON_LABEL = "삭제";
-export const FLOOR_DELETE_DISABLED_REASON = "팀원을 먼저 제거하세요";
 export const LEAD_BADGE_TEXT = "팀장";
 
 /** 04-6 카드 머리·보조 줄(`04-6-1`, FR-002-AC2). */
@@ -400,6 +407,17 @@ export const WORKFLOW_DELETE_CONFIRM_LABEL = "삭제";
 export const WORKFLOW_DELETE_CONFIRM_PENDING_LABEL = "삭제 중…";
 /** FR-017-E1: 409 `WORKFLOW_NOT_EMPTY`. */
 export const WORKFLOW_NOT_EMPTY_MESSAGE = "팀원이 있어 삭제할 수 없습니다";
+
+// SCR-05-4 워크플로우 삭제 불가 안내 (v1.2.0, FR-017-AC1)
+export function workflowDeleteBlockedTitle(name: string): string {
+  return `${name} 워크플로우를 삭제할 수 없습니다`;
+}
+/** 조건 안내 한 요소(`05-4-1` 본문). */
+export const WORKFLOW_DELETE_BLOCKED_CONDITION = "팀장·팀원이 0명일 때만 삭제할 수 있습니다 · 팀원을 먼저 제거하세요";
+export function workflowDeleteBlockedListTitle(count: number): string {
+  return `남은 에이전트 ${count}명`;
+}
+export const WORKFLOW_DELETE_BLOCKED_CONFIRM_LABEL = "확인";
 
 // SCR-05-R 기존 에이전트 가져오기 (FR-009)
 /** 대상 워크플로우가 정해지지 않았을 때의 제목(ui-spec.md SCR-05-R 제목 행 "헤더 링크로 열면"). */
@@ -647,3 +665,26 @@ export const SETTINGS_ROW_RETENTION = "이벤트 보존";
 export const SETTINGS_TEAMS_NOTE = "팀장·팀원 목록";
 export const SETTINGS_TRASH_NOTE = "제거한 정의 파일 보관";
 export const SETTINGS_RETENTION_SUFFIX = "일";
+
+// ── (v1.2.0) 08·09·10 데이터 화면 공통 (ui-spec §공통 `PeriodSelector`·`ExpandableList`·`UsedAgentsButton`, ADR-86·88) ─────
+/** 기간 선택 라벨(`aria-labelledby`의 글자). */
+export const PERIOD_LABEL = "기간";
+/** 기간 선택 3칸. 기본은 `7d`다. */
+export const PERIOD_OPTIONS: ReadonlyArray<{ value: UsagePeriod; label: string }> = [
+  { value: "7d", label: "7일" },
+  { value: "30d", label: "30일" },
+  { value: "all", label: "전체" },
+];
+/** `range.from`이 null(집계가 없는 전체 기간)일 때 날짜 범위 자리. */
+export const PERIOD_RANGE_NONE_TEXT = "-";
+/** `MM-DD ~ MM-DD`: `YYYY-MM-DD` 두 날짜에서 연도를 뗀다. */
+export function periodRangeText(from: string, to: string): string {
+  return `${from.slice(5)} ~ ${to.slice(5)}`;
+}
+export function usedAgentsLabel(count: number): string {
+  return `사용 에이전트 ${count}명`;
+}
+/** 행 펼침 버튼의 접근 이름. */
+export function expandRowLabel(name: string, expanded: boolean): string {
+  return expanded ? `${name} 접기` : `${name} 펼치기`;
+}

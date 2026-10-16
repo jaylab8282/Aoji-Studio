@@ -12,6 +12,8 @@ function buildWorkflow(name: string): Workflow {
     members: [],
     brokenRefs: [],
     rawMemberCount: 0,
+    rawLead: null,
+    rawMembers: [],
   };
 }
 
