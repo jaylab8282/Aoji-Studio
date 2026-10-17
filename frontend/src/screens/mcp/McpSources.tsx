@@ -77,7 +77,7 @@ function SourceCell({ keyName, source }: { keyName: McpSourceKey; source: McpSou
   return (
     <div className="grid min-w-0 gap-0.5">
       <b className="font-semibold text-text">{meta.title}</b>
-      <MonoText className="truncate" title={meta.path}>
+      <MonoText className="truncate" title={meta.path} clamp>
         {meta.path}
       </MonoText>
       {source === undefined ? (

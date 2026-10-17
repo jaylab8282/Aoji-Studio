@@ -6,7 +6,7 @@
 // 상태줄을 아직 받지 않은 새 컨테이너가 전제다: 한도 카드는 한도 캐시 값(21%·48%)과 `알 수 없음` 플랜을 보인다.
 // **맨 마지막 describe(`FR-025-AC6`)가 fixture 대화 기록에 줄을 덧붙인다.** 한 번 반영된 집계는 되돌릴 수 없으므로(`transcript_msg` 키 유지) 그 describe 앞의 테스트만 expected.json과 같다.
 // 목킹 없음(conventions §8).
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
@@ -36,10 +36,21 @@ import {
   weekdayKo,
 } from "./cost-helpers";
 import { mcpPeriodButton } from "./mcp-helpers";
-import { expectRegionsVisible, navRegions, SCREENSHOT_DIR, settle, sizeLabel } from "./screen-helpers";
+import {
+  COST_REGIONS,
+  captureBaseSizesAndRestore,
+  expectCostLayout,
+  expectDialogWidth,
+  expectRegionsVisible,
+  settle,
+  sizeLabel,
+} from "./screen-helpers";
+import { check } from "./showcase-helpers";
 import { gotoReady } from "./ui-helpers";
 
 test.describe.configure({ mode: "serial" });
+// 3크기 캡처의 전환 완료 판정(ADR-75 5)을 위해 전환을 줄인다.
+test.use({ reducedMotion: "reduce" });
 
 const CAPTURE_SIZE = { width: 1920, height: 1080 } as const;
 const SEOUL = "Asia/Seoul";
@@ -293,27 +304,23 @@ test.describe("[E2E-21] 10 비용 (Asia/Seoul)", () => {
     );
   });
 
-  test("[E2E-13][FR-025-AC1] 캡처 10-cost@1920x1080 (D-172)", async ({ page }) => {
+  test("[E2E-13][FR-025-AC1] 캡처 10-cost 3크기 (D-172, T-R4-22)", async ({ page }) => {
     await page.setViewportSize(CAPTURE_SIZE);
     await openCostAll(page);
     await expect(tokenTile(page, "입력 토큰")).toContainText(comma(costExpected.totals.input));
     await expect(splitCard(page).getByRole("tabpanel").locator('[data-wf="10-9"]')).toHaveCount(1);
     await settle(page);
 
-    await expectRegionsVisible(
+    await captureBaseSizesAndRestore(
       page,
-      [...navRegions(CAPTURE_SIZE), "10-1", "10-2", "10-3", "10-4", "10-5", "10-6", "10-7", "10-8", "10-9", "10-10"],
-      `10 ${sizeLabel(CAPTURE_SIZE)}`,
+      "10-cost",
+      check(page, "10 비용", [...COST_REGIONS, "10-9"], async (size) => {
+        await expectCostLayout(page, size, true);
+      }),
     );
-    mkdirSync(SCREENSHOT_DIR, { recursive: true });
-    await page.screenshot({
-      path: join(SCREENSHOT_DIR, `10-cost@${sizeLabel(CAPTURE_SIZE)}.png`),
-      caret: "hide",
-      animations: "disabled",
-    });
   });
 
-  test("[FR-026-AC3][FR-026-AC4][FR-026-AC1] 단가 창 `?dialog=price`: 출처·확인 날짜·모델 4가지 단가 = `GET /api/pricing`(이름 오름차순), 입력·저장 없음·`닫기`·ESC, 단가를 바꾸는 API 없음 + 캡처 10-1-price-panel@1920x1080", async ({
+  test("[FR-026-AC3][FR-026-AC4][FR-026-AC1] 단가 창 `?dialog=price`: 출처·확인 날짜·모델 4가지 단가 = `GET /api/pricing`(이름 오름차순), 입력·저장 없음·`닫기`·ESC, 단가를 바꾸는 API 없음 + 캡처 10-1-price-panel 3크기", async ({
     page,
     request,
   }) => {
@@ -386,12 +393,9 @@ test.describe("[E2E-21] 10 비용 (Asia/Seoul)", () => {
     await expect(close).toBeFocused();
     await settle(page);
 
-    await expectRegionsVisible(page, ["10-1-1", "10-1-2", "10-1-3", "10-1-4"], `10-1 ${sizeLabel(CAPTURE_SIZE)}`);
-    mkdirSync(SCREENSHOT_DIR, { recursive: true });
-    await page.screenshot({
-      path: join(SCREENSHOT_DIR, `10-1-price-panel@${sizeLabel(CAPTURE_SIZE)}.png`),
-      caret: "hide",
-      animations: "disabled",
+    await captureBaseSizesAndRestore(page, "10-1-price-panel", async (size) => {
+      await expectRegionsVisible(page, ["NAV", "10-1-1", "10-1-2", "10-1-3", "10-1-4"], `10-1 ${sizeLabel(size)}`);
+      await expectDialogWidth(page, size, "10-1-1", "price");
     });
 
     // ESC로 닫으면 10으로 돌아온다

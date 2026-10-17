@@ -1,13 +1,10 @@
 // E2E-20: 09 MCP 화면(T-R4-17, 배치 13). fixture: `project-usage` + `E2E_CLAUDE_HOME_FIXTURE=claude-home-basic`(architecture §8.2 배치 13).
 // 검증 ID: FR-023-AC1~AC5·E1, FR-024-AC1·AC4 = `project-usage/expected.json`의 `mcp`, FR-023-AC2 표지 0회(화면), FR-023-AC5 `.mcp.json` 수정 2초 반영,
-// FR-023-AC6(입력·쓰기 버튼 0), 캡처 `09-mcp@1920x1080`(`github` 펼침, D-172).
+// FR-023-AC6(입력·쓰기 버튼 0), 캡처 `09-mcp` 3크기(`github` 펼침, D-172·T-R4-22).
 //
 // 파일 이름순으로 e2e-19a(`usage.jsonl` 재생)와 e2e-19b 뒤에 돈다. 이 spec은 다시 재생하지 않고 쌓인 데이터를 쓴다.
 // e2e-19b가 기본 세션의 github 호출을 더했을 수 있어 그 한 칸만 `expected` 값 또는 + `LIVE_EXTRA_GITHUB_MAIN_CALLS`를 허용한다.
 // `.mcp.json`을 바꾸는 테스트는 맨 뒤에 두고 `finally`로 원래 내용을 되돌린다. 목킹 없음(conventions §8).
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
-
 import { expect, test } from "@playwright/test";
 
 import {
@@ -24,7 +21,8 @@ import {
   mcpRowNames,
   type McpExpectedRow,
 } from "./mcp-helpers";
-import { expectRegionsVisible, navRegions, SCREENSHOT_DIR, settle, sizeLabel } from "./screen-helpers";
+import { MCP_REGIONS, captureBaseSizesAndRestore, expectMcpLayout, settle } from "./screen-helpers";
+import { check } from "./showcase-helpers";
 import {
   fixturePath,
   gotoReady,
@@ -34,6 +32,8 @@ import {
 } from "./ui-helpers";
 
 test.describe.configure({ mode: "serial" });
+// 3크기 캡처의 전환 완료 판정(ADR-75 5)을 위해 전환을 줄인다.
+test.use({ reducedMotion: "reduce" });
 
 const CAPTURE_SIZE = { width: 1920, height: 1080 } as const;
 const TRANSPORT: Record<string, string> = {
@@ -196,7 +196,7 @@ test("[FR-023-AC4][FR-023-AC5][FR-023-AC6] 읽은 곳 카드·커넥터 안내·
   await expect(main.getByRole("button", { name: /추가|수정|삭제|저장|만들기|활성화|비활성화|점검/ })).toHaveCount(0);
 });
 
-test("[E2E-13][FR-023-AC1] 캡처 09-mcp@1920x1080: `github` 행 펼침 (D-172)", async ({ page }) => {
+test("[E2E-13][FR-023-AC1] 캡처 09-mcp 3크기: `github` 행 펼침 (D-172, T-R4-22)", async ({ page }) => {
   await page.setViewportSize(CAPTURE_SIZE);
   await gotoReady(page, "/mcp");
   await expect(mcpList(page)).toBeVisible();
@@ -204,17 +204,13 @@ test("[E2E-13][FR-023-AC1] 캡처 09-mcp@1920x1080: `github` 행 펼침 (D-172)"
   await expandMcpRow(page, "github");
   await settle(page);
 
-  await expectRegionsVisible(
+  await captureBaseSizesAndRestore(
     page,
-    [...navRegions(CAPTURE_SIZE), "09-1", "09-2", "09-3", "09-4", "09-5", "09-6", "09-7", "09-8", "09-9", "09-11", "09-12"],
-    `09 ${sizeLabel(CAPTURE_SIZE)}`,
+    "09-mcp",
+    check(page, "09 MCP", MCP_REGIONS, async (size) => {
+      await expectMcpLayout(page, size);
+    }),
   );
-  mkdirSync(SCREENSHOT_DIR, { recursive: true });
-  await page.screenshot({
-    path: join(SCREENSHOT_DIR, `09-mcp@${sizeLabel(CAPTURE_SIZE)}.png`),
-    caret: "hide",
-    animations: "disabled",
-  });
 });
 
 test("[FR-023-AC5] `.mcp.json`에 서버를 더했다 빼면 2초 안에 목록에 나타났다 사라진다", async ({ page }, testInfo) => {

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # 운영 compose.yaml의 실제 빌드·기동 확인 (ADR-59, D-109, conventions §6).
 # `name:` 고정 볼륨은 `-p`로 격리되지 않으므로 확인 전용 override로 볼륨 이름을 덮어쓴다.
+# 확인 항목: config 볼륨 이름 · GET / 200 · 전역 연결 4개 읽기 전용(쓰기 거부)·`.credentials.json` 없음(NFR-04·06·15) · 포트 `127.0.0.1:` 접두
+#          · 빌드 뒤 Docker 빌드 캐시 크기 보고(D-143, prune은 제안만) · 운영 볼륨 불변.
 # 사용법: [AOJISTUDIO_PLATFORM=linux/amd64] check-compose-build.sh
 set -euo pipefail
 
@@ -108,16 +110,36 @@ for d in want:
     if m[d]["RW"] is not False or m[d]["Type"] != "bind":
         sys.exit("FAIL: %s 가 읽기 전용 bind가 아닙니다: %s" % (d, m[d]))
 ' || fail "전역 연결 마운트 검사 실패"
+# 6-2. 읽기 전용·자격증명 비노출 (NFR-04·NFR-06·NFR-15, T-R4-22). 컨테이너 안에서 실제로 쓰기를 시도해 4개 모두 거부되는지 본다(삭제는 시도하지 않는다 — 마운트 원본이 저장소 안 대역일 수 있다).
+#      `.credentials.json`은 /claude-home 아래 어디에도 없어야 한다(마운트 목록에 없을 뿐 아니라 파일 시스템에서도 보이지 않는다).
 if "${C[@]}" exec -T aojistudio sh -c 'test -e /claude-home/.claude/.credentials.json'; then
-  fail "컨테이너 안에 .credentials.json이 보입니다"
+  fail "[NFR-04·NFR-06] 컨테이너 안에 .credentials.json이 보입니다"
 fi
-if "${C[@]}" exec -T aojistudio sh -c 'touch /claude-home/.claude/projects/write-test' 2> /dev/null; then
-  fail "/claude-home에 쓰기가 가능합니다"
-fi
-echo "PASS: 전역 연결 4개 읽기 전용·.credentials.json 없음"
+FOUND="$("${C[@]}" exec -T aojistudio sh -c 'find /claude-home -name ".credentials*" 2> /dev/null' || true)"
+[[ -z "$FOUND" ]] || fail "[NFR-04·NFR-06] /claude-home 아래에 자격증명 파일이 보입니다: $FOUND"
+LISTED="$("${C[@]}" exec -T aojistudio sh -c 'ls -A /claude-home /claude-home/.claude' | sort | tr '\n' ' ')"
+echo "INFO: /claude-home 목록: $LISTED"
+for target in /claude-home/.claude.json /claude-home/.claude/settings.json; do
+  if "${C[@]}" exec -T aojistudio sh -c "echo e2e >> '$target'" 2> /dev/null; then
+    fail "[NFR-04·NFR-15] $target 에 쓰기가 가능합니다(읽기 전용이어야 합니다)"
+  fi
+done
+for target in /claude-home/.claude/plugins /claude-home/.claude/projects; do
+  if "${C[@]}" exec -T aojistudio sh -c "touch '$target/write-test'" 2> /dev/null; then
+    fail "[NFR-04·NFR-15] $target 에 쓰기가 가능합니다(읽기 전용이어야 합니다)"
+  fi
+done
+echo "PASS: 전역 연결 4개 읽기 전용(쓰기 거부)·.credentials.json 없음 [NFR-04·NFR-06·NFR-15]"
 PORT_OUT="$("${C[@]}" port aojistudio 4180)"
 [[ "$PORT_OUT" == "127.0.0.1:$PORT" ]] || fail "port 출력이 127.0.0.1:$PORT 가 아닙니다: $PORT_OUT"
 echo "PASS: port $PORT_OUT"
+
+# 6-3. Docker 빌드 캐시 크기 보고(D-143). 보고만 한다 — 정리(prune)는 이 스크립트가 하지 않는다.
+echo "----- Docker 빌드 캐시 (빌드 뒤) -----"
+docker system df 2> /dev/null | sed -n '1p;/Build Cache/p' || true
+docker buildx du 2> /dev/null | tail -n 1 || true
+echo "정리 명령(제안만, 직접 실행하세요): docker builder prune --filter until=168h   # 7일 지난 캐시만"
+echo "                                    docker builder prune -a             # 전부(다음 빌드가 오래 걸립니다)"
 
 # 7·8. 정리(trap) 전에 내려서 정리 뒤 단언한다.
 "${C[@]}" down --remove-orphans

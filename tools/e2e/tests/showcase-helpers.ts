@@ -109,7 +109,8 @@ export function detailRegions(size: Size): string[] {
   const regions = ["03-1", "03-2", "03-3", "03-4", "03-5", "03-7", "03-8", "03-9"];
   return DETAIL_SEATS % columns === 0 ? regions : [...regions, "03-6"];
 }
-export const SETTINGS_REGIONS = ["07-1", "07-2", "07-3", "07-4", "07-5"];
+/** 07 영역(v1.2.0: 상태줄 연동 `07-6`·전역 Claude 설정 연결 `07-7` 추가). */
+export const SETTINGS_REGIONS = ["07-1", "07-2", "07-3", "07-4", "07-5", "07-6", "07-7"];
 
 /** `GET /api/state`(Origin 헤더가 있어야 한다 — FR-003-AC1) 스냅샷의 live 부분. */
 export async function fetchLive(request: APIRequestContext): Promise<{ agents: Record<string, { status: string }> }> {

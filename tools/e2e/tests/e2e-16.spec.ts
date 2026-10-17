@@ -1,11 +1,12 @@
 // E2E-16 사이 크기 넘침 판정 (architecture.md §8.4, ADR-75 4, NFR-11).
-// 01·02·03·07을 1512×982·1280×800·900×1600에서 열어(E2E-13과 같은 showcase 상태) 네 가지를 자동 판정한다:
+// 01·02·03을 1512×982·1280×800·900×1600에서 열어(E2E-13과 같은 showcase 상태) 네 가지를 자동 판정한다:
 // ① 페이지 가로 스크롤 ② 가로로 넘치는 overflow 요소(의도한 말줄임 = `data-clamp`만 제외) ③ 영역 안 버튼·링크·입력·칩의 잘림
 // ④ 같은 영역 안·서로 다른 최상위 영역끼리의 겹침. 실패 메시지에 크기·화면·요소(`data-wf` + 태그 + 글자 앞 20자)·수치를 적는다.
 //
 // 실행: E2E_FIXTURE=project-showcase — 배치 8 순서 9. 파일 이름순으로 e2e-13(순서 1~8) 바로 뒤, 상태를 바꾸는
 // 순서 10~14(e2e-16z-e2e13-state-changes.spec.ts) 앞에서 돈다(ui-spec "배치별 캡처 순서"):
 //   E2E_FIXTURE=project-showcase npx playwright test tests/e2e-13.spec.ts tests/e2e-16.spec.ts tests/e2e-16z-e2e13-state-changes.spec.ts --grep "project-showcase"
+// (v1.2.0) 07·08·09·10은 전역 연결·사용 집계가 있는 배치 13 순서 7(`e2e-22z-screens-v120.spec.ts`)로 옮겼다.
 // 목킹 없음: 실제 컨테이너·재생 상태만 본다(conventions.md §8).
 import { expect, test, type Page } from "@playwright/test";
 
@@ -17,7 +18,6 @@ import {
   expectNavWidth,
   expectOfficeLayout,
   expectRegionsVisible,
-  expectSettingsLayout,
   navRegions,
   settle,
   sizeLabel,
@@ -27,7 +27,6 @@ import {
   detailRegions,
   DEV,
   HOME_REGIONS,
-  SETTINGS_REGIONS,
   WORKFLOWS_REGIONS,
   assertFixture,
 } from "./showcase-helpers";
@@ -59,15 +58,9 @@ const SCREENS: readonly Screen[] = [
     regions: detailRegions,
     layout: (page, size) => expectOfficeLayout(page, size),
   },
-  {
-    label: "07 설정",
-    path: "/settings",
-    regions: SETTINGS_REGIONS,
-    layout: (page, size) => expectSettingsLayout(page, size),
-  },
 ];
 
-test.describe("[E2E-16] project-showcase 배치 8 순서 9 — 사이 크기 넘침 판정(4화면 × 3크기 = 12경우)", () => {
+test.describe("[E2E-16] project-showcase 배치 8 순서 9 — 사이 크기 넘침 판정(3화면 × 3크기 = 9경우)", () => {
   test.use({ reducedMotion: "reduce" });
 
   test.beforeAll(() => {

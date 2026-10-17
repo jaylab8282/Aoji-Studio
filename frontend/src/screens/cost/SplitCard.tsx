@@ -316,7 +316,7 @@ export function SplitCard({ report }: SplitCardProps) {
         role="tabpanel"
         id={tabPanelId(ID_PREFIX)}
         aria-labelledby={tabId(ID_PREFIX, selected)}
-        className="min-h-0 overflow-auto px-2"
+        className="min-h-0 overflow-auto px-2 cost-split-pad"
       >
         {selected === "model" ? <ModelTable report={report} /> : selected === "session" ? <SessionTable report={report} /> : <AgentTable report={report} />}
       </div>

@@ -142,6 +142,11 @@ export async function expectNavWidth(page: Page, size: Size): Promise<void> {
   const context = `사이드 탭 ${sizeLabel(size)}`;
   const box = await boxOf(page, '[data-wf="NAV"]', context);
   expectNear(box.width, isRail(size) ? 64 : 232, `${context} 폭`);
+  // (v1.2.0) 메뉴 6개: 홈·에이전트 워크플로우·스킬·MCP·비용·설정 (가로형·레일 모두 `aria-label`이 같다, ui-spec SCR-00).
+  const labels = await page
+    .locator('[data-wf="NAV-2"] a')
+    .evaluateAll((links) => links.map((link) => link.getAttribute("aria-label")));
+  expect(labels, `${context} 메뉴 6개`).toEqual(["홈", "에이전트 워크플로우", "스킬", "MCP", "비용", "설정"]);
 }
 
 /** 03 오피스 열 수(ui-spec SCR-03 "크기별 배치 차이"). */
@@ -210,17 +215,106 @@ export async function expectHomeLayout(page: Page, size: Size): Promise<void> {
   expect(await distinctColumns(page, '[data-wf="01-5"] a'), `${context} 대표 카드 열 수`).toBe(isPortrait(size) ? 1 : 3);
 }
 
-/** 07 카드 열: 가로형 2열, 세로형 1열. */
+/**
+ * 07 카드 열(v1.2.0). 가로형 2열: 왼쪽 프로젝트 폴더(07-3) → 수집(07-5) → 전역 연결(07-7) / 오른쪽 Claude 열기(07-4) → 상태줄 연동(07-6), 위 정렬.
+ * 세로형 1열: 프로젝트 폴더 → 수집 → Claude 열기 → 상태줄 연동 → 전역 연결 순서(CSS `order`, ui-spec SCR-07).
+ */
 export async function expectSettingsLayout(page: Page, size: Size): Promise<void> {
   const context = `07 ${sizeLabel(size)}`;
-  const selector = '[data-wf="07-3"], [data-wf="07-4"], [data-wf="07-5"]';
-  expect(await distinctColumns(page, selector), `${context} 카드 열 수`).toBe(isPortrait(size) ? 1 : 2);
+  const all = '[data-wf="07-3"], [data-wf="07-4"], [data-wf="07-5"], [data-wf="07-6"], [data-wf="07-7"]';
+  expect(await distinctColumns(page, all), `${context} 카드 열 수`).toBe(isPortrait(size) ? 1 : 2);
+
+  const box = async (wf: string) => boxOf(page, `[data-wf="${wf}"]`, context);
+  const [folder, open, collect, statusline, global] = [
+    await box("07-3"),
+    await box("07-4"),
+    await box("07-5"),
+    await box("07-6"),
+    await box("07-7"),
+  ];
+  if (isPortrait(size)) {
+    const order = [folder, collect, open, statusline, global];
+    order.slice(1).forEach((card, index) => {
+      const previous = order[index] as typeof card;
+      expect(card.y, `${context} 세로형 카드 순서(위에서 아래)`).toBeGreaterThanOrEqual(previous.y + previous.height - 1);
+    });
+  } else {
+    expect(await distinctColumns(page, '[data-wf="07-3"], [data-wf="07-5"], [data-wf="07-7"]'), `${context} 왼쪽 열`).toBe(1);
+    expect(await distinctColumns(page, '[data-wf="07-4"], [data-wf="07-6"]'), `${context} 오른쪽 열`).toBe(1);
+    expect(open.x, `${context} Claude 열기는 왼쪽 열 오른쪽`).toBeGreaterThan(folder.x + folder.width - 1);
+    expectNear(open.y, folder.y, `${context} 두 열 위 정렬`);
+    expect(collect.y, `${context} 수집은 프로젝트 폴더 아래`).toBeGreaterThanOrEqual(folder.y + folder.height - 1);
+    expect(global.y, `${context} 전역 연결은 수집 아래`).toBeGreaterThanOrEqual(collect.y + collect.height - 1);
+    expect(statusline.y, `${context} 상태줄 연동은 Claude 열기 아래`).toBeGreaterThanOrEqual(open.y + open.height - 1);
+  }
 }
 
-/** 팝업 폭(card `data-wf`): sm 480 / md 560 / lg 880(세로형 920). */
-export async function expectDialogWidth(page: Page, size: Size, wf: string, kind: "sm" | "md" | "lg"): Promise<void> {
+// ── (v1.2.0) 08·09·10 데이터 화면 영역·배치 (ui-spec SCR-08·09·10 "크기별 배치 차이") ─────────────────────
+
+export const SKILLS_REGIONS = ["08-1", "08-2", "08-3", "08-5", "08-6", "08-7", "08-8", "08-12", "08-13"];
+export const SKILLS_EMPTY_REGIONS = ["08-1", "08-2", "08-3"]; // + 빈 카드 `08-5`
+export const MCP_REGIONS = ["09-1", "09-2", "09-3", "09-4", "09-5", "09-6", "09-7", "09-8", "09-9", "09-11", "09-12"];
+export const MCP_EMPTY_REGIONS = ["09-1", "09-2", "09-3", "09-4", "09-5"];
+export const COST_REGIONS = ["10-1", "10-2", "10-3", "10-4", "10-5", "10-6", "10-7", "10-8", "10-10"];
+export const COST_DISCONNECTED_REGIONS = ["10-1", "10-2", "10-3", "10-4", "10-5", "10-6", "10-7", "10-8"];
+
+/** 08 행 열: 가로형(폭 1400 이상) 280·150·200, 폭 1399 이하·세로형 200·130·190. 행이 하나 이상 있어야 한다. */
+export async function expectSkillsLayout(page: Page, size: Size): Promise<void> {
+  const context = `08 ${sizeLabel(size)}`;
+  const narrowCols = isPortrait(size) || size.width <= 1399;
+  const [use, agents, acts] = narrowCols ? [200, 130, 190] : [280, 150, 200];
+  expectNear((await boxOf(page, '[data-wf="08-6"]', context)).width, use, `${context} 활용도 칸 폭`);
+  expectNear((await boxOf(page, '[data-wf="08-7"]', context)).width, agents, `${context} 사용 에이전트 칸 폭`);
+  expectNear((await boxOf(page, '[data-wf="08-8"]', context)).width, acts, `${context} 행 동작 칸 폭`);
+}
+
+/** 09 위쪽 줄: 가로형 2열(읽은 곳 1fr | 커넥터 안내 380), 세로형 1열(커넥터 안내가 아래 전체 폭). */
+export async function expectMcpLayout(page: Page, size: Size): Promise<void> {
+  const context = `09 ${sizeLabel(size)}`;
+  const sources = await boxOf(page, '[data-wf="09-3"]', context);
+  const connector = await boxOf(page, '[data-wf="09-4"]', context);
+  if (isPortrait(size)) {
+    expect(await distinctColumns(page, '[data-wf="09-3"], [data-wf="09-4"]'), `${context} 위쪽 줄 열 수`).toBe(1);
+    expect(connector.y, `${context} 커넥터 안내는 읽은 곳 아래`).toBeGreaterThanOrEqual(sources.y + sources.height - 1);
+    expectNear(connector.width, sources.width, `${context} 커넥터 안내 전체 폭`);
+  } else {
+    expect(await distinctColumns(page, '[data-wf="09-3"], [data-wf="09-4"]'), `${context} 위쪽 줄 열 수`).toBe(2);
+    expectNear(connector.width, 380, `${context} 커넥터 안내 폭`);
+    expect(connector.x, `${context} 커넥터 안내는 읽은 곳 오른쪽`).toBeGreaterThanOrEqual(sources.x + sources.width - 1);
+  }
+}
+
+/**
+ * 10 본문 그리드: 가로형 2열(1fr | 한도 480, 폭 1599 이하 420), 차트 줄 최소 320(높이 900 이하 248),
+ * 세로형 1열(차트 높이 400, 한도 카드는 차트 아래). `chart`는 날짜별 차트가 있는 화면(연결 안 됨 화면은 안내 카드가 그 자리).
+ */
+export async function expectCostLayout(page: Page, size: Size, chart: boolean): Promise<void> {
+  const context = `10 ${sizeLabel(size)}`;
+  const limits = await boxOf(page, '[data-wf="10-6"]', context);
+  const main = await boxOf(page, '[data-wf="10-7"]', context);
+  if (isPortrait(size)) {
+    expect(await distinctColumns(page, '[data-wf="10-5"], [data-wf="10-6"], [data-wf="10-7"]'), `${context} 열 수`).toBe(1);
+    expect(limits.y, `${context} 구독·한도는 날짜별 아래`).toBeGreaterThanOrEqual(main.y + main.height - 1);
+    if (chart) expectNear(main.height, 400, `${context} 차트 높이`);
+  } else {
+    expectNear(limits.width, isNarrow(size) ? 420 : 480, `${context} 구독·한도 폭`);
+    expect(limits.x, `${context} 구독·한도는 날짜별 오른쪽`).toBeGreaterThanOrEqual(main.x + main.width - 1);
+    if (chart) {
+      const min = size.height <= 900 ? 248 : 320;
+      expect(main.height, `${context} 차트 줄 최소 높이 ${min}`).toBeGreaterThanOrEqual(min - 1);
+    }
+  }
+}
+
+/** 팝업 폭(card `data-wf`): sm 480 / md 560 / lg 880(세로형 920) / price 680(10-1, 가로형·세로형 같음). */
+export async function expectDialogWidth(
+  page: Page,
+  size: Size,
+  wf: string,
+  kind: "sm" | "md" | "lg" | "price",
+): Promise<void> {
   const context = `팝업 ${wf} ${sizeLabel(size)}`;
-  const expected = kind === "sm" ? 480 : kind === "md" ? 560 : isPortrait(size) ? 920 : 880;
+  const expected = kind === "sm" ? 480 : kind === "md" ? 560 : kind === "price" ? 680 : isPortrait(size) ? 920 : 880;
   const box = await boxOf(page, `[data-wf="${wf}"]`, context);
   expectNear(box.width, expected, `${context} 폭`);
 }
@@ -250,6 +344,21 @@ export async function captureBaseSizes(
     await page.screenshot({ path, caret: "hide", animations: "disabled" });
     files.push(path);
   }
+  return files;
+}
+
+/**
+ * `captureBaseSizes` 뒤에 뷰포트를 첫 기준 크기(1920×1080)로 되돌린다. 캡처 뒤에도 같은 테스트가 화면을 계속 조작하는 spec용
+ * (기본은 마지막 크기 1080×1920에 머문다).
+ */
+export async function captureBaseSizesAndRestore(
+  page: Page,
+  originalName: string,
+  check: (size: Size) => Promise<void>,
+): Promise<string[]> {
+  const files = await captureBaseSizes(page, originalName, check);
+  await page.setViewportSize(BASE_SIZES[0] as Size);
+  await settle(page);
   return files;
 }
 

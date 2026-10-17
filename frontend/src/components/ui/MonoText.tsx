@@ -7,11 +7,13 @@ interface MonoTextProps {
   children: ReactNode;
   className?: string;
   title?: string;
+  /** 의도한 말줄임(`text-overflow: ellipsis`) 요소 표식 `data-clamp`(E2E-16 넘침 판정 제외 대상). */
+  clamp?: boolean;
 }
 
-export function MonoText({ children, className = "", title }: MonoTextProps) {
+export function MonoText({ children, className = "", title, clamp = false }: MonoTextProps) {
   return (
-    <span className={`font-mono text-text-mono ${className}`} title={title}>
+    <span className={`font-mono text-text-mono ${className}`} title={title} data-clamp={clamp ? "" : undefined}>
       {children}
     </span>
   );

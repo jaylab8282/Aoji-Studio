@@ -138,8 +138,8 @@ AOJISTUDIO_CLAUDE_PROJECTS_SRC=./tools/claude-home-off/.claude/projects
 
 ```bash
 # 유닛
-(cd backend && ./gradlew test)
-(cd frontend && npm install && npm test)
+(cd backend && ./gradlew test)                 # 603
+(cd frontend && npm install && npm test)       # 982
 (cd helper && npm test)                        # 98
 (cd tools/replay && npm test)                  # 60
 
@@ -149,7 +149,7 @@ AOJISTUDIO_CLAUDE_PROJECTS_SRC=./tools/claude-home-off/.claude/projects
 
 # E2E — 실제 컨테이너, 목킹 없음
 (cd tools/e2e && npm install && npx playwright install chromium)   # 사전 1회
-(cd tools/e2e && ./scripts/run-e2e.sh)         # 14배치
+(cd tools/e2e && ./scripts/run-e2e.sh)         # 14배치 253
 ```
 
 `run-e2e.sh`는 fixture 복사 → 컨테이너 기동 → dry-run 도우미(4191)·다른 Origin 서버(4192) 준비 →

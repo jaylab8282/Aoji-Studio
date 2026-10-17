@@ -6,12 +6,11 @@
 // 각 테스트는 자기가 쓰는 스킬(`e2e18a-*`)을 호스트 폴더(임시 사본)에 직접 만들고 끝에서 치우므로 실행 순서에 기대지 않는다.
 // 같은 배치의 e2e-18b가 스킬을 더하거나 바꿔도 이 spec은 스킬 수를 "시작 시 읽은 값 ± 변화량"으로만 단언한다.
 // 가져온 스킬은 가져오기 UI(T-R4-16) 없이 SOURCE.md가 있는 폴더를 호스트에서 만들어 준비한다. 목킹 없음(conventions §8).
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { expectRegionsVisible, SCREENSHOT_DIR, settle, sizeLabel } from "./screen-helpers";
+import { captureBaseSizesAndRestore, expectDialogWidth, expectRegionsVisible, sizeLabel } from "./screen-helpers";
 import {
   fixturePath,
   fixturePathExists,
@@ -23,8 +22,6 @@ import {
   trashDir,
   writeFixtureFile,
 } from "./ui-helpers";
-
-const CAPTURE_SIZE = { width: 1920, height: 1080 } as const;
 
 // ── 화면 도우미 (ui-spec SCR-08·08-3) ────────────────────────────────────────────
 
@@ -88,6 +85,9 @@ function trashedSkillDirs(name: string): string[] {
   return listFixtureDir(trashDir()).filter((entry) => pattern.test(entry));
 }
 
+// 3크기 캡처의 전환 완료 판정(ADR-75 5)을 위해 전환을 줄인다.
+test.use({ reducedMotion: "reduce" });
+
 test.beforeEach(async ({ page }) => {
   await gotoReady(page, "/skills");
   await expect(skillList(page)).toBeVisible();
@@ -127,14 +127,9 @@ test("[FR-022-AC1][FR-022-AC2][E2E-18] 08-3 `design-review`(미리 넣어 쓰는
 
   // 캡처(입력 전 상태 — ui-spec 배치 12 순서 4)
   await input.fill("");
-  await page.setViewportSize(CAPTURE_SIZE);
-  await settle(page);
-  await expectRegionsVisible(page, ["08-3-1", "08-3-2", "08-3-3", "08-3-4"], `08-3 ${sizeLabel(CAPTURE_SIZE)}`);
-  mkdirSync(SCREENSHOT_DIR, { recursive: true });
-  await page.screenshot({
-    path: join(SCREENSHOT_DIR, `08-3-skill-delete@${sizeLabel(CAPTURE_SIZE)}.png`),
-    caret: "hide",
-    animations: "disabled",
+  await captureBaseSizesAndRestore(page, "08-3-skill-delete", async (size) => {
+    await expectRegionsVisible(page, ["NAV", "08-3-1", "08-3-2", "08-3-3", "08-3-4"], `08-3 ${sizeLabel(size)}`);
+    await expectDialogWidth(page, size, "08-3-1", "sm");
   });
 
   await dialog.getByRole("button", { name: "취소", exact: true }).click();

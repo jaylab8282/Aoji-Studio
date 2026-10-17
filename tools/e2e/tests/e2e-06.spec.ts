@@ -135,10 +135,10 @@ test.describe("[E2E-06] project-no-agents-dir — 04-5 에이전트 폴더 읽�
       await expect(body.getByText("에이전트 수", { exact: true }).locator("xpath=..")).toContainText("1");
     } finally {
       // 같은 배치의 뒤 spec(E2E-13 04-5 캡처)이 `에이전트 폴더 없음` 상태를 전제로 하므로 만든 폴더를 되돌린다.
-      // 수동 재스캔은 폴링 기준선을 바꾸지 않아서, 폴링이 만든 폴더를 한 번 본 뒤(revision +2: 재스캔 + 폴링)에 되돌려야
-      // 폴링이 되돌림도 감지한다. 되돌린 뒤 04-5 상태로 돌아왔는지까지 기다린다.
+      // ADR-87(T-R4-05): 수동 재스캔이 성공하면 폴링 기준선도 갱신하므로 폴링은 만든 폴더를 다시 보지 않는다(revision +1).
+      // 재스캔(또는 재스캔이 실패했을 때 폴링)이 반영된 뒤에 되돌리면 폴링이 되돌림을 감지한다. 되돌린 뒤 04-5로 돌아왔는지까지 기다린다.
       await expect.poll(async () => (await registrySummary(page)).revision, { timeout: SETUP_REFLECT_TIMEOUT_MS }).toBeGreaterThanOrEqual(
-        revisionBefore + 2,
+        revisionBefore + 1,
       );
       removeFixturePath(fixturePath(".claude", "agents"));
       expect(existsSync(fixturePath(".claude", "agents"))).toBe(false);

@@ -3,31 +3,41 @@
 // fixture: `project-skills` + `E2E_CLAUDE_HOME_FIXTURE=claude-home-empty`(architecture §8.2 배치 12).
 // 검증 ID: FR-020-AC2·AC3·AC4·AC6, FR-021-AC1~AC6, 위험 zip 4종 거부 + 마운트에 남은 것 0(FR-021-E1·E2, NFR-07)
 //          (+ 같은 흐름에서 보이는 FR-020-AC1·AC5, FR-018-AC5).
-// 캡처(D-172, ui-spec 배치 12 순서 1~3): `08-skills`(첫 행 펼침)·`08-1-skill-form`·`08-4-skill-conflict`·`08-2-skill-import` @1920x1080.
+// 캡처(D-172, ui-spec 배치 12 순서 1~3): `08-1-skill-form`·`08-4-skill-conflict`·`08-2-skill-import` 3크기(1920×1080·1440×810·1080×1920, T-R4-22),
+// `09-mcp-empty`·`08-skills-empty` 3크기(맨 끝 두 테스트). `08-skills`(첫 행 펼침)는 사용 집계가 있는 배치 13(e2e-19a)에서 찍는다(ui-spec 배치 13 순서 2).
 //
 // 각 테스트는 자기가 쓰는 스킬(`e2e18b-*`, `design-token-audit`)만 만들고 afterAll에서 치운다. 서로의 순서에 기대지 않는다.
 // zip은 spec이 테스트별 출력 폴더(임시)에 만든다. 목킹 없음(conventions §8) — 실제 컨테이너 화면과 API만 쓴다.
 // 화면 셀렉터는 ui-spec SCR-08·08-1·08-2·08-4의 문구·`data-wf`·역할만 쓴다(`data-testid` 없음).
-import { mkdirSync, readdirSync } from "node:fs";
+import { mkdirSync, readdirSync, renameSync } from "node:fs";
 import { join, relative } from "node:path";
 
 import { expect, test, type APIRequestContext, type Locator, type Page } from "@playwright/test";
 
 import { readE2eState } from "../lib/e2e-state";
-import { expectRegionsVisible, SCREENSHOT_DIR, settle, sizeLabel } from "./screen-helpers";
+import {
+  MCP_EMPTY_REGIONS,
+  SKILLS_EMPTY_REGIONS,
+  captureBaseSizesAndRestore,
+  expectMcpLayout,
+  expectDialogWidth,
+  expectRegionsVisible,
+  sizeLabel,
+} from "./screen-helpers";
 import {
   choose,
   fixturePath,
   fixturePathExists,
   gotoReady,
+  measureFileChangeReflection,
   readFixtureFile,
   removeFixturePath,
   trashDir,
   writeFixtureFile,
 } from "./ui-helpers";
+import { check } from "./showcase-helpers";
 import { writeZip, type ZipEntry } from "./zip-builder";
 
-const CAPTURE_SIZE = { width: 1920, height: 1080 } as const;
 const SAVE_NOTICE = "Claude Code가 새 스킬을 바로 인식하지 못하면 재시작이 필요할 수 있습니다";
 const CREATED_SKILLS = [
   "design-token-audit",
@@ -74,15 +84,16 @@ function splitSkillMd(content: string): { lines: string[]; body: string } {
   return { lines: (match[1] as string).split("\n"), body: match[2] as string };
 }
 
-async function capture(page: Page, name: string, regions: readonly string[]): Promise<void> {
-  await page.setViewportSize(CAPTURE_SIZE);
-  await settle(page);
-  await expectRegionsVisible(page, regions, `${name} ${sizeLabel(CAPTURE_SIZE)}`);
-  mkdirSync(SCREENSHOT_DIR, { recursive: true });
-  await page.screenshot({
-    path: join(SCREENSHOT_DIR, `${name}@${sizeLabel(CAPTURE_SIZE)}.png`),
-    caret: "hide",
-    animations: "disabled",
+/** 3크기(1920×1080·1440×810·1080×1920) 캡처 + 영역·팝업 폭 판정. 끝나면 뷰포트를 1920×1080으로 되돌린다. */
+async function capture(
+  page: Page,
+  name: string,
+  regions: readonly string[],
+  dialog: { wf: string; kind: "sm" | "md" | "lg" },
+): Promise<void> {
+  await captureBaseSizesAndRestore(page, name, async (size) => {
+    await expectRegionsVisible(page, ["NAV", ...regions], `${name} ${sizeLabel(size)}`);
+    await expectDialogWidth(page, size, dialog.wf, dialog.kind);
   });
 }
 
@@ -178,6 +189,9 @@ async function chooseZip(dialog: Locator, zipPath: string): Promise<void> {
   await dialog.locator('input[type="file"]').setInputFiles(zipPath);
 }
 
+// 캡처 전환이 끝났음을 `document.getAnimations()`로 확인하는 판정(ADR-75 5)이 안정적이도록 전환을 줄인다.
+test.use({ reducedMotion: "reduce" });
+
 test.beforeEach(async ({ page }) => {
   await gotoReady(page, "/skills");
   await expect(skillList(page)).toBeVisible();
@@ -191,7 +205,7 @@ test.afterAll(() => {
 
 // ── 08 목록 캡처 (버튼이 다 붙은 상태) ────────────────────────────────────────────
 
-test("[FR-020-E2][E2E-18] 08 제목 줄에 `가져오기`·`스킬 만들기`, 행에 `수정`·`삭제`가 활성이고 가져온 스킬 `수정`은 비활성 사유가 보인다 → 첫 행을 펼쳐 캡처 `08-skills@1920x1080`", async ({
+test("[FR-020-E2][E2E-18] 08 제목 줄에 `가져오기`·`스킬 만들기`, 행에 `수정`·`삭제`가 활성이고 가져온 스킬 `수정`은 비활성 사유가 보인다", async ({
   page,
 }) => {
   await expect(pageButton(page, "가져오기")).toBeEnabled();
@@ -207,20 +221,11 @@ test("[FR-020-E2][E2E-18] 08 제목 줄에 `가져오기`·`스킬 만들기`, �
   await expect(imported.getByText("가져온 스킬", { exact: true })).toBeVisible();
   await expect(imported.getByRole("button", { name: "수정", exact: true })).toBeDisabled();
   await expect(imported.getByText("가져온 스킬은 수정할 수 없습니다", { exact: true })).toBeVisible();
-
-  // 캡처: 첫 행 펼침(ui-spec 배치 12 — 08-skills)
-  const firstToggle = skillList(page)
-    .getByRole("listitem")
-    .first()
-    .getByRole("button", { name: /펼치기$/ });
-  await firstToggle.click();
-  await expect(skillList(page).locator('[data-wf="08-13"]').first()).toBeVisible();
-  await capture(page, "08-skills", ["08-1", "08-2", "08-3", "08-5", "08-12", "08-13"]);
 });
 
 // ── 08-1 만들기 ─────────────────────────────────────────────────────────────────
 
-test("[FR-020-AC2][FR-020-AC1][FR-020-AC5][E2E-18] 스킬 만들기 `design-token-audit`: 접두어 안내·캡처 `08-1-skill-form@1920x1080` → 저장하면 SKILL.md frontmatter 순서가 name → description → disable-model-invocation이고 본문이 붙으며 안내 줄·새 행이 보인다", async ({
+test("[FR-020-AC2][FR-020-AC1][FR-020-AC5][E2E-18] 스킬 만들기 `design-token-audit`: 접두어 안내·캡처 `08-1-skill-form` 3크기 → 저장하면 SKILL.md frontmatter 순서가 name → description → disable-model-invocation이고 본문이 붙으며 안내 줄·새 행이 보인다", async ({
   page,
 }) => {
   const skill = "design-token-audit";
@@ -251,7 +256,7 @@ test("[FR-020-AC2][FR-020-AC1][FR-020-AC5][E2E-18] 스킬 만들기 `design-toke
   await expect(fields.save).toBeEnabled();
 
   // 캡처(ui-spec 배치 12 순서 1 — 저장 전)
-  await capture(page, "08-1-skill-form", ["08-1-1", "08-1-2", "08-1-3", "08-1-4", "08-1-5", "08-1-6"]);
+  await capture(page, "08-1-skill-form", ["08-1-1", "08-1-2", "08-1-3", "08-1-4", "08-1-5", "08-1-6"], { wf: "08-1-1", kind: "lg" });
 
   await fields.save.click();
   await expect(dialog).toHaveCount(0);
@@ -339,7 +344,7 @@ test("[FR-020-AC3][E2E-18] 스킬 수정: 이름은 고정 글자이고, 설명�
 
 // ── 08-4 충돌 ───────────────────────────────────────────────────────────────────
 
-test("[FR-020-AC4][E2E-18] 08-4 충돌: 폼을 연 뒤 밖에서 SKILL.md가 바뀌면 저장 시 08-4(캡처 `08-4-skill-conflict@1920x1080`) → `최신 파일 다시 불러오기`는 파일을 쓰지 않고 폼을 새로 채우고, `덮어쓰기`는 폼 내용으로 저장한다", async ({
+test("[FR-020-AC4][E2E-18] 08-4 충돌: 폼을 연 뒤 밖에서 SKILL.md가 바뀌면 저장 시 08-4(캡처 `08-4-skill-conflict` 3크기) → `최신 파일 다시 불러오기`는 파일을 쓰지 않고 폼을 새로 채우고, `덮어쓰기`는 폼 내용으로 저장한다", async ({
   page,
 }) => {
   const skill = "e2e18b-conflict";
@@ -358,7 +363,7 @@ test("[FR-020-AC4][E2E-18] 08-4 충돌: 폼을 연 뒤 밖에서 SKILL.md가 바
   await expect(conflict.getByRole("heading", { name: "파일이 다른 곳에서 수정되었습니다", exact: true })).toBeVisible();
   await expect(conflict).toContainText(`${skill}/SKILL.md`);
   await expect(conflict).toContainText("덮어쓰면 그 변경이 사라집니다");
-  await capture(page, "08-4-skill-conflict", ["08-4-1", "08-4-2"]);
+  await capture(page, "08-4-skill-conflict", ["08-4-1", "08-4-2"], { wf: "08-4-1", kind: "sm" });
 
   await conflict.getByRole("button", { name: "최신 파일 다시 불러오기", exact: true }).click();
   await expect(conflict).toHaveCount(0);
@@ -434,7 +439,7 @@ test("[FR-020-AC6][E2E-18] 가져온 스킬(`imported-lint`, SOURCE.md 있음)�
 
 // ── 08-2 가져오기 ───────────────────────────────────────────────────────────────
 
-test("[FR-021-AC4][E2E-18] 08-2: 정상 zip(스크립트 2개)을 고르면 미리보기·`스크립트`/`실행 파일` 칩·경고 상자가 보이고 출처를 넣은 뒤 캡처 `08-2-skill-import@1920x1080` → `취소`하면 아무것도 쓰지 않는다", async ({
+test("[FR-021-AC4][E2E-18] 08-2: 정상 zip(스크립트 2개)을 고르면 미리보기·`스크립트`/`실행 파일` 칩·경고 상자가 보이고 출처를 넣은 뒤 캡처 `08-2-skill-import` 3크기 → `취소`하면 아무것도 쓰지 않는다", async ({
   page,
 }, testInfo) => {
   const zipPath = testInfo.outputPath("e2e18b-imported.zip");
@@ -469,7 +474,7 @@ test("[FR-021-AC4][E2E-18] 08-2: 정상 zip(스크립트 2개)을 고르면 미�
   await source.getByRole("textbox", { name: /^라이선스/ }).fill("MIT");
   await expect(importButton).toBeEnabled();
 
-  await capture(page, "08-2-skill-import", ["08-2-1", "08-2-2", "08-2-3", "08-2-4", "08-2-5", "08-2-6"]);
+  await capture(page, "08-2-skill-import", ["08-2-1", "08-2-2", "08-2-3", "08-2-4", "08-2-5", "08-2-6"], { wf: "08-2-1", kind: "lg" });
 
   await dialog.getByRole("button", { name: "취소", exact: true }).click();
   await expect(dialog).toHaveCount(0);
@@ -657,3 +662,59 @@ for (const dangerous of DANGEROUS_ZIPS) {
     expect(fixturePathExists(join(trashDir(), "escape-e2e18b.txt"))).toBe(false);
   });
 }
+
+// ── (v1.2.0) 상태 화면 캡처: 09-mcp-empty · 08-skills-empty (ui-spec 배치 12 순서 5·6) ─────────────────────
+
+test("[FR-023-AC1][FR-024-AC1][E2E-13][NFR-11] 09-mcp-empty: 프로젝트에 MCP 정의가 없고 전역은 연결됨·서버 0 → `설치된 MCP가 없습니다` 3크기 캡처 + 영역·배치 판정", async ({
+  page,
+}) => {
+  await gotoReady(page, "/mcp");
+  await expect(page.getByText("설치된 MCP가 없습니다", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-wf="09-10"]')).toHaveCount(0);
+  await captureBaseSizesAndRestore(
+    page,
+    "09-mcp-empty",
+    check(page, "09 MCP(빈 상태)", MCP_EMPTY_REGIONS, async (size) => {
+      await expectMcpLayout(page, size);
+    }),
+  );
+});
+
+test("[FR-018-AC4][E2E-13][NFR-11] 08-skills-empty: 스킬 폴더를 모두 임시 위치로 옮겨 0개 → 2초 안에 `스킬이 없습니다` → 3크기 캡처 → 원래대로 → 행 수 복구", async ({
+  page,
+}, testInfo) => {
+  const skillsRoot = fixturePath(".claude", "skills");
+  const parked = fixturePath(".e2e18b-skills-parked");
+  const names = readdirSync(skillsRoot);
+  expect(names.length, "옮길 스킬이 있어야 합니다").toBeGreaterThan(0);
+  const before = await titleCount(page);
+  expect(before, "08 제목 줄의 스킬 수").not.toBeNull();
+  const empty = page.getByText("스킬이 없습니다", { exact: true });
+
+  mkdirSync(parked, { recursive: true });
+  try {
+    await measureFileChangeReflection(
+      testInfo,
+      "스킬 폴더 전부 이동 → 08 빈 상태",
+      () => {
+        for (const name of names) renameSync(join(skillsRoot, name), join(parked, name));
+      },
+      async () => (await empty.count()) === 1,
+    );
+    await expect(empty).toBeVisible();
+    await expect(page.locator('[data-wf="08-5"]').getByRole("button", { name: "스킬 만들기", exact: true })).toBeEnabled();
+    await captureBaseSizesAndRestore(
+      page,
+      "08-skills-empty",
+      check(page, "08 스킬(0개)", [...SKILLS_EMPTY_REGIONS, "08-5"]),
+    );
+  } finally {
+    for (const name of readdirSync(parked)) renameSync(join(parked, name), join(skillsRoot, name));
+    removeFixturePath(parked);
+  }
+
+  // 복구 단언: 폴더가 모두 돌아왔고 화면의 행 수도 원래대로다.
+  expect(readdirSync(skillsRoot).sort()).toEqual([...names].sort());
+  await expect.poll(() => titleCount(page), { timeout: 10_000 }).toBe(before);
+  await expect(empty).toHaveCount(0);
+});

@@ -12,6 +12,8 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { FIXTURES_DIR } from "../lib/e2e-state";
 import { replayScenarioLines, SCENARIOS_DIR } from "../lib/replay";
+import { SKILLS_REGIONS, captureBaseSizesAndRestore, expectSkillsLayout } from "./screen-helpers";
+import { check } from "./showcase-helpers";
 import { gotoReady, measureFileChangeReflection } from "./ui-helpers";
 
 test.describe.configure({ mode: "serial" });
@@ -220,4 +222,27 @@ test("[FR-019-AC5][FR-018-AC7][E2E-19] 기간을 바꿔도 목록 순서·펼침
     );
     await expect(expandedRow.locator('[data-wf="08-13"]')).toBeVisible();
   }
+});
+
+// 화면 대조 캡처(ui-spec 배치 13 순서 2): 사용 집계가 쌓인 08, 첫 행 펼침. 3크기 + 영역·행 열 폭 판정.
+test.describe("[E2E-13] 08-skills 캡처", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test("[E2E-13][FR-019-AC1][NFR-11] 08-skills: `usage.jsonl` 재생 뒤 첫 행 펼침 → 3크기 캡처 + 영역·배치 판정", async ({ page }) => {
+    await gotoReady(page, "/skills");
+    await expect(skillList(page)).toBeVisible();
+    await expect.poll(() => rowNames(page)).toEqual(expected.skills.rows.map((row) => row.name));
+
+    const first = skillList(page).getByRole("listitem").first();
+    await first.getByRole("button", { name: /펼치기$/ }).click();
+    await expect(skillList(page).locator('[data-wf="08-13"]').first()).toBeVisible();
+
+    await captureBaseSizesAndRestore(
+      page,
+      "08-skills",
+      check(page, "08 스킬", SKILLS_REGIONS, async (size) => {
+        await expectSkillsLayout(page, size);
+      }),
+    );
+  });
 });

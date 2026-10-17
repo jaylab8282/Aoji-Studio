@@ -39,6 +39,8 @@ public class LiveStateService {
     private final ApplicationEventPublisher eventPublisher;
     private final Object lock = new Object();
     private final AtomicReference<LiveState> current = new AtomicReference<>(LiveState.empty());
+    /** 상태 전이에 쓴 마지막 시각. 락 안에서만 읽고 쓴다. */
+    private OffsetDateTime lastTransitionAt;
 
     public LiveStateService(
             EventRepository eventRepository,
@@ -70,7 +72,8 @@ public class LiveStateService {
         LiveState updated;
         synchronized (lock) {
             LiveState before = current.get();
-            LiveState afterTransition = sessionStateMachine.apply(before, payload, eventRow.receivedAt());
+            OffsetDateTime transitionAt = monotonicTransitionTime(eventRow.receivedAt());
+            LiveState afterTransition = sessionStateMachine.apply(before, payload, transitionAt);
 
             Map<String, EventRow> lastEventByAgent = afterTransition.lastEventByAgent();
             if (payload.agentType() != null && !payload.agentType().isBlank()) {
@@ -89,6 +92,22 @@ public class LiveStateService {
             current.set(updated);
         }
         eventPublisher.publishEvent(new LiveStateChanged(this, updated, eventRow));
+    }
+
+    /**
+     * 같은 에이전트의 여러 세션 중 표시할 하나는 "동률이면 마지막 이벤트가 최신인 쪽"으로 고른다(FR-004-AC3).
+     * 수신 시각은 요청 스레드가 락 밖에서 {@code now()}로 찍으므로, 거의 동시에 온 이벤트나 시계 보정(뒤로 감김)에서는
+     * 상태에 반영하는 순서와 시각 순서가 달라질 수 있다. 그래서 전이에 쓰는 시각은 지금까지 쓴 시각보다 항상
+     * 뒤로 맞춘다 — 반영한 순서가 곧 "최신" 순서다. 화면에 보이는 수신 시각({@code lastReceivedAt})과 저장된
+     * 행은 원래 값을 그대로 쓴다. 락 안에서만 부른다.
+     */
+    private OffsetDateTime monotonicTransitionTime(OffsetDateTime receivedAt) {
+        OffsetDateTime at = receivedAt;
+        if (lastTransitionAt != null && !receivedAt.isAfter(lastTransitionAt)) {
+            at = lastTransitionAt.plusNanos(1_000);
+        }
+        lastTransitionAt = at;
+        return at;
     }
 
     /** api-spec {@code Live} (호출 시점 registry로 조립, ADR-09). */

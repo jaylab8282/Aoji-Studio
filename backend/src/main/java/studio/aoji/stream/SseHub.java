@@ -73,10 +73,11 @@ public class SseHub {
     @Async
     public void onLiveStateChanged(LiveStateChanged event) {
         EventRowResponse eventRow = liveStateService.toEventRowResponse(event.eventRow());
-        Live live = liveStateService.live();
         synchronized (lock) {
             broadcastToAll("event", eventRow);
-            broadcastToAll("live", live);
+            // live는 락 안에서 조립한다: 락 밖에서 만들면 registry 방송(다른 스레드)이 더 새 live를 먼저 내보낸 뒤
+            // 이 낡은 live가 나가 화면이 되돌아갈 수 있다.
+            broadcastToAll("live", liveStateService.live());
         }
     }
 
@@ -87,7 +88,9 @@ public class SseHub {
     public void broadcast(RegistrySnapshot registry, Live live) {
         synchronized (lock) {
             broadcastToAll("registry", registry);
-            broadcastToAll("live", live);
+            // 호출자가 락 밖에서 만든 live는 그 사이 방송된 더 새 live 뒤에 낡은 값으로 나갈 수 있다(화면이 되돌아가
+            // 다음 이벤트까지 남는다). 락 안에서 최신 상태로 다시 조립해 보낸다.
+            broadcastToAll("live", liveStateService.live());
         }
     }
 

@@ -31,7 +31,7 @@ interface ReadingStripProps {
   transcripts: TranscriptStatus | null;
 }
 
-const STRIP_CLASSES = "flex min-w-0 items-center gap-3 rounded-card border border-border bg-card px-4 py-2 whitespace-nowrap";
+const STRIP_CLASSES = "flex min-w-0 items-center gap-3 rounded-card border border-border bg-card px-4 py-2 whitespace-nowrap cost-strip-wrap";
 
 export function ReadingStrip({ transcripts }: ReadingStripProps) {
   const navigate = useNavigate();

@@ -564,6 +564,20 @@
   }
 }
 
+/* 폭 999 이하(900 세로형 등 사이 크기, E2E-16): 읽기 띠는 줄바꿈, 나눔 표 패널 좌우 여백은 8→4(표 최소 폭이 패널보다 2px 넓어 생기던 가로 넘침 제거). 1080 이상은 시안 그대로. */
+@utility cost-strip-wrap {
+  @media (max-width: 999px) {
+    flex-wrap: wrap;
+  }
+}
+
+@utility cost-split-pad {
+  @media (max-width: 999px) {
+    padding-left: calc(var(--spacing) * 1);
+    padding-right: calc(var(--spacing) * 1);
+  }
+}
+
 /* 날짜별 막대: 높이 `--bar-height`(%), 안은 위 `나머지` / 아래 `캐시 읽기`를 `--bar-cache-ratio`(0~1)로 나눈다. 1px 띄운다. */
 @utility chart-bar {
   position: absolute;

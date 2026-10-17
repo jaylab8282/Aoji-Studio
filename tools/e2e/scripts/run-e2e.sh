@@ -6,7 +6,11 @@
 # 순서대로 돌린다. 각 배치는 fixture를 새로 복사하고 컨테이너를 다시 띄우므로 배치 사이에
 # 파일 상태가 섞이지 않는다.
 #
-# 사용법: cd tools/e2e && ./scripts/run-e2e.sh
+# 사용법: cd tools/e2e && ./scripts/run-e2e.sh [--from N] [--only N,M,...]
+#   --from N      배치 N부터 끝까지 돈다(환경 변수 E2E_FROM_BATCH=N 도 같다).
+#   --only N,M    지정한 배치만 돈다(환경 변수 E2E_ONLY_BATCHES=N,M 도 같다). --from과 같이 쓰면 둘 다 만족하는 배치만 돈다.
+#   사전 2단계(check-old-names·check-old-env)는 항상 돌고, 실패하면 즉시 중단한다.
+#   배치가 실패해도 멈추지 않고 나머지 배치를 계속 돈 뒤, 마지막 "배치별 결과"와 종료 코드(실패가 있으면 1)로 알린다.
 # 배치 하나만 돌리려면 그 배치의 명령을 직접 쓴다(각 run_batch 줄 참고).
 # 실패 조사: E2E_KEEP_UP=1을 붙이면 컨테이너·도우미를 남긴다(조사 후 직접 정리해야 한다).
 set -euo pipefail
@@ -14,6 +18,26 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 RESULTS=()
+FAILED=0
+FROM_BATCH="${E2E_FROM_BATCH:-1}"
+ONLY_BATCHES="${E2E_ONLY_BATCHES:-}"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --from) FROM_BATCH="${2:?--from 뒤에 배치 번호가 필요합니다}"; shift 2 ;;
+    --from=*) FROM_BATCH="${1#--from=}"; shift ;;
+    --only) ONLY_BATCHES="${2:?--only 뒤에 배치 번호(쉼표 구분)가 필요합니다}"; shift 2 ;;
+    --only=*) ONLY_BATCHES="${1#--only=}"; shift ;;
+    *) echo "알 수 없는 인자: $1 (사용법: run-e2e.sh [--from N] [--only N,M])" >&2; exit 2 ;;
+  esac
+done
+[[ "$FROM_BATCH" =~ ^[0-9]+$ ]] || { echo "--from은 숫자여야 합니다: $FROM_BATCH" >&2; exit 2; }
+[[ -z "$ONLY_BATCHES" || "$ONLY_BATCHES" =~ ^[0-9]+(,[0-9]+)*$ ]] || { echo "--only는 쉼표로 구분한 숫자여야 합니다: $ONLY_BATCHES" >&2; exit 2; }
+
+batch_selected() {
+  local n="$1"
+  [ "$n" -ge "$FROM_BATCH" ] || return 1
+  [ -z "$ONLY_BATCHES" ] || [[ ",$ONLY_BATCHES," == *",$n,"* ]]
+}
 
 print_summary() {
   echo ""
@@ -33,15 +57,23 @@ run_batch() {
   local fixture="$2"
   shift 2
 
+  local number=0
+  if [[ "$label" =~ ^배치\ ([0-9]+) ]]; then number="${BASH_REMATCH[1]}"; fi
+  if ! batch_selected "$number"; then
+    RESULTS+=("SKIP  $label  [선택 안 됨: --from $FROM_BATCH${ONLY_BATCHES:+ --only $ONLY_BATCHES}]")
+    return 0
+  fi
+
   echo ""
   echo "===== $label (E2E_FIXTURE=$fixture) ====="
   # 전역 연결 fixture는 호출 줄에서 `E2E_CLAUDE_HOME_FIXTURE=...`를 앞에 붙여 넘긴다(없으면 대역 `연결 안 됨`).
+  # 실패해도 멈추지 않고 다음 배치를 계속 돈다(마지막 요약과 종료 코드로 알린다). 배치마다 globalSetup/Teardown이 스택을 새로 띄우고 정리한다.
   if E2E_FIXTURE="$fixture" npx playwright test "$@"; then
     RESULTS+=("PASS  $label  [fixture $fixture]")
   else
     RESULTS+=("FAIL  $label  [fixture $fixture]")
-    echo "배치 실패: $label" >&2
-    exit 1
+    echo "배치 실패: $label (다음 배치를 계속 돕니다)" >&2
+    FAILED=1
   fi
 }
 
@@ -122,8 +154,8 @@ run_batch "배치 6 — project-configured (E2E-09 터미널 열기·E2E-11 07 �
 run_batch "배치 7 — project-configured (E2E-05 04-3 재연결 · E2E-13 04-3 캡처 · pause/unpause 단독)" project-configured \
   tests/e2e-05.spec.ts tests/e2e-13.spec.ts --grep "E2E-05|project-configured 04-3"
 
-# 배치 8 — project-showcase. `showcase.jsonl` 30줄을 재생한 상태에서 E2E-13(화면 대조 20화면 중 01·02·03·04-4·05-R·05-3·06·06-6·06-5·07)과
-# E2E-16(사이 크기 넘침 12경우)이 돈다. 이벤트 0건인 새 컨테이너에서 시작해야 재생 결과 수치(실시간 이벤트 30, 상태 집계 7·1·13)가
+# 배치 8 — project-showcase. `showcase.jsonl` 30줄을 재생한 상태에서 E2E-13(화면 대조 01·02·03·04-4·05-R·05-3·05-4(v1.2.0 순서 5a)·06·06-6·06-5)과
+# E2E-16(사이 크기 넘침 01·02·03 × 3크기 = 9경우; v1.2.0에서 07은 배치 13 순서 6·7로 옮겼다)이 돈다. 이벤트 0건인 새 컨테이너에서 시작해야 재생 결과 수치(실시간 이벤트 30, 상태 집계 7·1·13)가
 # 맞으므로 다른 spec과 합치지 않는다. 순서는 ui-spec "배치별 캡처 순서" 표 그대로이고 **파일 이름순 실행**에 기댄다:
 #   e2e-13.spec.ts(순서 1~8) → e2e-16.spec.ts(순서 9, E2E-16) → e2e-16z-e2e13-state-changes.spec.ts(순서 10~14, 상태를 바꾼다).
 # 마지막 파일은 이름이 `e2e-16.spec.ts`보다 뒤가 되게 `e2e-16z-`로 시작한다(코드 단위·ICU 정렬 모두에서 뒤).
@@ -150,15 +182,16 @@ run_batch "배치 9 — project-large (E2E-12 줌·미니맵·검색·드롭다�
 run_batch "배치 10 — project-old-name (E2E-17 옛 이름 미지원)" project-old-name \
   tests/e2e-17-old-name.spec.ts
 
-# 배치 11 — project-basic(이벤트 0건·워크플로우 0개인 새 컨테이너). E2E-13의 04-2·04-7·05-L(성공·E1·E3)·04-1 캡처를 이 순서대로 만든다
+# 배치 11 — project-basic(이벤트 0건·워크플로우 0개인 새 컨테이너). E2E-13의 04-2·04-7·05-L(성공·E1·E3)·04-1 캡처를 이 순서대로 만들고,
+# (v1.2.0) 순서 7 `10-cost-disconnected`(fixture 상태줄 입력으로 스크립트 1회 → 한도 카드 값, 전역 연결 대역)가 맨 끝이다
 # (`[E2E-13] project-basic …`). 04-2는 `/api/state`·`/api/stream`의 `route.continue()`만 늦추고(ADR-75 6) E3는 호스트의
 # `.aojistudio/teams/`를 0555로 만들었다 0755로 되돌린다. 다른 spec과 합치지 않는다(워크플로우 0개가 전제).
-run_batch "배치 11 — project-basic (E2E-13 04-2·04-7·05-L·04-1 캡처)" project-basic \
+run_batch "배치 11 — project-basic (E2E-13 04-2·04-7·05-L·04-1·10-cost-disconnected 캡처)" project-basic \
   tests/e2e-13.spec.ts --grep "project-basic"
 
 # 배치 12 — project-skills + 전역 연결 `claude-home-empty`(연결됨·내용 없음, `E2E_CLAUDE_HOME_FIXTURE`). 스킬 파일을 쓰는 배치(E2E-18).
 # e2e-18a(T-R4-15: 08-3 삭제·밖에서 바뀐 스킬 2초 반영·형식 오류·가져온 스킬 행)가 파일 이름순으로 먼저 돌고, e2e-18b(T-R4-16: 08-1 만들기·수정·08-4 충돌·
-# 08-2 가져오기·위험 zip 4종)가 이어서 돈다. 각 spec은 자기가 만든 스킬만 치우므로 서로의 전제를 건드리지 않는다. zip은 e2e-18b가 임시 폴더에 직접 만든다.
+# 08-2 가져오기·위험 zip 4종 + (T-R4-22) 09-mcp-empty·08-skills-empty 상태 화면 캡처 — 08-skills-empty는 스킬 폴더를 모두 옮겼다 되돌린다)가 이어서 돈다. 각 spec은 자기가 만든 스킬만 치우므로 서로의 전제를 건드리지 않는다. zip은 e2e-18b가 임시 폴더에 직접 만든다.
 E2E_CLAUDE_HOME_FIXTURE=claude-home-empty run_batch "배치 12 — project-skills + claude-home-empty (E2E-18a 스킬 삭제·밖에서 바뀐 스킬 + E2E-18b 스킬 만들기·수정·충돌·가져오기·위험 zip)" project-skills \
   tests/e2e-18a-skills-list.spec.ts \
   tests/e2e-18b-skills-write.spec.ts
@@ -169,14 +202,17 @@ E2E_CLAUDE_HOME_FIXTURE=claude-home-empty run_batch "배치 12 — project-skill
 # e2e-21-cost(T-R4-18)는 e2e-19a 재생 뒤(에이전트 나눔에 `기본 세션`) 상태줄을 받기 전(한도 카드 = 한도 캐시 값)에 돈다. 맨 마지막 describe가 fixture 대화 기록에 줄을 덧붙여 집계를 바꾸므로(되돌릴 수 없다)
 # 그 뒤에 도는 spec은 expected.json의 토큰 합계(`claude-home-basic`)에 기대면 안 된다(입력 +100·출력 +50, haiku). e2e-22-statusline(T-R4-18)은 비용 합계를 보지 않고, 상태줄 값(`statusline_last` 한 행)을 덮어쓰며
 # 한도 캐시(`.claude.json` 사본)를 잠시 바꿨다 원복한다. 마지막 테스트가 컨테이너를 `docker compose pause`했다 `unpause`(finally)한다(running 단언) — pause 테스트는 e2e-22 안에서 맨 끝에 유지한다.
+# e2e-22z-screens-v120(T-R4-22)은 이름순으로 e2e-22 바로 뒤에 돈다: 순서 6 `07-settings` 3크기 캡처(전역 4항목 연결됨·상태줄 마지막 수신 있음) + 순서 7 E2E-16(07·08·09·10 × 사이 크기 3 = 12경우), 읽기만 한다.
+# 순서 2~5의 캡처는 각 spec 안에서 만든다: 08-skills(e2e-19a)·09-mcp(e2e-20)·10-cost·10-1-price-panel(e2e-21-cost), 모두 3크기.
 # e2e-24·25·26(T-R4-20)은 이름순으로 e2e-22 **뒤**에 돈다(일부러): e2e-25는 재생·대화 기록 읽기·상태줄 수신(표지가 든 입력)이 모두 끝난 상태의 DB·로그를 봐야 하고,
 # 셋 다 beforeAll에서 컨테이너가 running임을 단언해 pause 뒤 상태를 확인한다. e2e-24·25·26은 상태를 바꾸지 않는다.
-E2E_CLAUDE_HOME_FIXTURE=claude-home-basic run_batch "배치 13 — project-usage + claude-home-basic (E2E-19a 08 스킬 사용 집계·E2E-19b 09 MCP 사용·E2E-20 09 MCP·E2E-21 10 비용·E2E-22 상태줄·E2E-24 외부 요청 0·E2E-25 표지 0·E2E-26 전역 연결 격리)" project-usage \
+E2E_CLAUDE_HOME_FIXTURE=claude-home-basic run_batch "배치 13 — project-usage + claude-home-basic (E2E-19a 08 스킬 사용 집계·E2E-19b 09 MCP 사용·E2E-20 09 MCP·E2E-21 10 비용·E2E-22 상태줄·E2E-13/16 07·08·09·10 화면 대조·사이 크기·E2E-24 외부 요청 0·E2E-25 표지 0·E2E-26 전역 연결 격리)" project-usage \
   tests/e2e-19a-skill-usage.spec.ts \
   tests/e2e-19b-mcp-usage.spec.ts \
   tests/e2e-20-mcp.spec.ts \
   tests/e2e-21-cost.spec.ts \
   tests/e2e-22-statusline.spec.ts \
+  tests/e2e-22z-screens-v120.spec.ts \
   tests/e2e-24-no-external.spec.ts \
   tests/e2e-25-markers.spec.ts \
   tests/e2e-26-claude-home-isolation.spec.ts
@@ -192,4 +228,10 @@ E2E_HOST_OS=wsl E2E_WSL_DISTRO=Ubuntu-24.04 E2E_HELPER_PLATFORM=windows run_batc
 # E2E-01~17이 위 11개 배치로 끝난다(architecture.md §8.2·§8.4). 배치 12·13은 v1.2.0 스킬·사용 집계 배치, 배치 14는 WSL 실행 환경 배치다. 새 시나리오를 넣을 때는 fixture가 같고
 # 서로의 전제를 건드리지 않는 배치에 덧붙이고, 컨테이너 상태를 바꾸는 spec(예: pause)은 단독 배치로 둔다.
 # 모든 배치가 끝날 때마다 globalTeardown이 컨테이너 로그의 옛 호환 경고 0줄을 단언한다(NFR-13 ⑥).
-# E2E-13 캡처 60장은 `tools/e2e/screenshots/<원본 이름>@<W>x<H>.png`에 남는다(.gitignore 대상).
+# E2E-13 캡처 96장(v1.2.0 32화면 × 3크기)은 `tools/e2e/screenshots/<원본 이름>@<W>x<H>.png`에 남는다(.gitignore 대상).
+
+# 배치가 하나라도 실패했으면 요약(EXIT trap) 뒤 종료 코드 1.
+if [ "$FAILED" -ne 0 ]; then
+  echo "실패한 배치가 있습니다 — 위 '배치별 결과' 참고. 다시 돌릴 때: ./scripts/run-e2e.sh --only <번호,...>" >&2
+  exit 1
+fi
