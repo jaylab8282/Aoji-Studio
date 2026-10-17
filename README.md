@@ -1,69 +1,69 @@
+# Aoji Studio (v1.2.1)
+Docker 컨테이너로 돌리는 **개인용 Claude Code 에이전트 관제 웹**. `127.0.0.1`에서만 접근한다.
 
-## 설치 전 준비사항(installed based)
-1. Claude-Code를 설치합니다.
-2. Docker-Desktop을 설치합니다.
-3. .claude/agents 폴더가 준비되어 있어야합니다.
-
-v1.2.0부터 Windows + WSL 실행을 지원합니다(아래 WSL 실행). 맥북 절차는 그대로입니다.
-
-### 지원 환경
+## 지원 환경
 | 환경 | 상태 | 준비 |
 |---|---|---|
 | **macOS** (Apple Silicon) | ✅ | |
-| **Windows + WSL** (x86_64, v1.2.0) | ✅ | `.env`에 `AOJISTUDIO_PLATFORM=linux/amd64` 주석 해제(윈도우일 경우) |
+| **Windows + WSL** (x86_64, v1.2.0부터 지원) | ✅ | `.env`에서 `AOJISTUDIO_PLATFORM=linux/amd64` 주석 해제 |
 
 웹 본체는 전부 컨테이너 안에 있어 OS를 타지 않는다. 이미지 아키텍처만 `.env`에서 맞추면 된다.
+Windows + WSL 실행은 아래 [Windows + WSL 실행](#windows--wsl-실행)을 본다. 맥북 절차는 그대로다.
 
-
-# Aoji Studio (v1.2.1)
-Docker 컨테이너로 돌리는 **개인용 Claude Code 에이전트 관제 웹**. `127.0.0.1`에서만 접근한다.<br>
-확정 환경은 macOS(Apple Silicon)와 Windows + WSL이다(아래 [지원 환경](#지원-환경)).
-
-## 1. 사용 용도
+## 사용 용도
 1. 에이전트 정의 파일(`.claude/agents/*.md`)과 워크플로우 구성을 웹에서 만들고 고친다.
 2. 에이전트를 워크플로우(부서)로 묶어서 관리한다.
 3. Claude Code의 hook 이벤트를 받아 **에이전트마다 지금 무슨 상태인지**(`작업 중` / `권한·입력 대기` / `대기`)
-   실시간으로 보여준다. 
-4. **웹은 에이전트를 실행하지 않는다.** 작업 지시는 사용자가 클로드 코드 터미널에서 팀장 에이전트에게 직접 한다.
+   실시간으로 보여 준다.
+4. 스킬(`.claude/skills`)을 만들고 고치고 가져오고 삭제하며, 스킬별 사용 현황을 본다.
+5. MCP 연결 정보와 호출 기록을 읽기 전용으로 본다.
+6. 토큰 사용량, 추정 비용, 구독·한도(5시간·주간)를 본다.
+7. **웹은 에이전트를 실행하지 않는다.** 작업 지시는 사용자가 클로드 코드 터미널에서 팀장 에이전트에게 직접 한다.
    웹의 버튼은 맥북 기본 터미널(WSL이면 Windows Terminal 새 탭)을 **열어 주는 것**까지만 한다(`claude` 또는 `claude --agent <팀장>`).
-5. 로그인이 없다. 대신 이 기기 밖에서 조작할 수 없게 막는다.(Origin + 토큰).
-6. 웹은 `AojiStudio/` 폴더를 읽고 쓰며, `.claude/settings.json`은 쓰지 않는다.
-  (hook 설정은 07 화면의 예시를 사용자가 복사해 넣는다).
+8. 로그인이 없다. 대신 이 기기 밖에서 조작할 수 없게 막는다(Origin + 토큰).
+9. 웹은 `AojiStudio/` 폴더를 읽고 쓰지만 `.claude/settings.json`은 쓰지 않는다.
+   hook 설정은 07 화면의 예시를 사용자가 복사해 넣는다.
 
-화면은 **01** 홈 · **02** 워크플로우 층 뷰 · **03** 워크플로우 상세(픽셀 오피스) ·
+화면은 사이드 탭의 6개 메뉴(홈 · 에이전트 워크플로우 · 스킬 · MCP · 비용 · 설정)로 이동하며, 번호는 다음과 같다.
+**01** 홈 · **02** 워크플로우 층 뷰 · **03** 워크플로우 상세(픽셀 오피스) ·
 **04** 상태 화면(이벤트 없음 / 첫 로딩 / 연결 끊김 / 수집 중단 / 폴더 읽기 실패 / 형식 오류 / 워크플로우 0개) ·
-**05** 워크플로우 추가·가져오기 · **06** 에이전트 만들기·수정·제거 · **07** 설정(읽기 전용) 일곱 개다.
+**05** 워크플로우 추가·가져오기·삭제 확인(05-4는 삭제 불가 안내) · **06** 에이전트 만들기·수정·제거 · **07** 설정(읽기 전용) ·
+**08** 스킬(08-1~08-4: 만들기·수정, 가져오기, 삭제 확인, 저장 충돌) · **09** MCP(읽기 전용) · **10** 비용(10-1은 단가표)이다.
 
+## 설치
+### 준비사항
+1. [Claude Code](https://claude.com/claude-code)를 설치한다.
+2. Docker Desktop을 설치한다(WSL이면 Docker Desktop의 WSL 통합을 켠다).
+3. `AojiStudio` 폴더(`.claude/agents`가 있는 작업 폴더)가 준비되어 있어야 한다.
+4. 열기 도우미를 쓸 때만 Node 24 이상이 필요하다(`node -v`). 맥북은 도우미가 도는 맥북에, Windows는 Windows에 설치한다.
 
-## 2. 설치 가이드
-필수 1) 관제폴더 지정 및 .env 셋업
-현재 .claude가 있는 작업폴더에 깃 클론 합니다.
-.env.example에 아래 내용을 수정하여 .env로 파일 이름을 변경한다.
-> .env의 AOJISTUDIO_HOST_PATH=<AojiStudio 폴더 절대 경로> 를 채운다. <br>
->  윈도우(x86_64) 머신이면 .env에서 AOJISTUDIO_PLATFORM=linux/amd64 주석도 푼다. (맥북이면 패스)
+### 필수 1) 저장소 받기와 .env 설정
+저장소는 아무 폴더에나 받아도 된다. 웹이 읽는 폴더는 저장소 위치와 무관하게 `.env`의 `AOJISTUDIO_HOST_PATH`(`.claude/agents`가 있는 AojiStudio 폴더의 절대 경로)로 정한다.
+```bash
+git clone https://github.com/jaylab8282/Aoji-Studio.git
+cd Aoji-Studio
+```
+`.env.example`을 `.env`로 복사해 아래 내용을 수정한다.
+> `.env`의 `AOJISTUDIO_HOST_PATH=<AojiStudio 폴더 절대 경로>`를 채운다. <br>
+> 윈도우(x86_64) 머신이면 `.env`에서 `AOJISTUDIO_PLATFORM=linux/amd64` 주석도 푼다(맥북이면 건너뛴다).
 
 ```bash
 cp .env.example .env
 nano .env
 ```
 
-필수 2) 도커 컨테이너 실행
+### 필수 2) 도커 컨테이너 실행
 ```bash
 docker compose up -d --build --remove-orphans
 ```
 > 내리려면 `docker compose down --remove-orphans`.
 > `docker compose down -v`는 이벤트 볼륨(`aojistudio-data`)까지 지우므로 쓰지 않는다.
-> v1.0.0 사용자는 `v1.0.1` 태그로 먼저 올린다(그 태그의 `UPGRADE-v1.0.1.md`).
 
+### 필수 3) Hook 설정
+http://127.0.0.1:4180 에 접속한다. <br>
+hook 설정은 실시간 에이전트 관제에 필요하다. 07 설정 화면의 hook 설정 예시를 `설정 예시 복사`로 복사해 `AojiStudio/.claude/settings.json`에 직접 넣는다(웹은 이 파일을 쓰지 않는다).
 
-필수 3) Hook 설정 
-http://127.0.0.1:4180 접속 <br>
-실시간 에이전트 관제에 필요한 것으로, <br>
-hook 설정은 브라우저의 설정 탭 예시를 사용자가 복사해 파일을 만든다.
-
-
-*선택) 열기 도우미 설치 — **macOS 전용**, 터미널 열기 버튼을 쓸 때만
------------------------------------------------------------------
+### 선택) 열기 도우미 설치 — macOS 전용, 터미널 열기 버튼을 쓸 때만
 컨테이너는 호스트 앱을 실행할 수 없으므로, 터미널을 여는 일은 맥북에서 도는 작은 Node 프로세스가 한다.
 ```bash
 cd helper
@@ -76,10 +76,8 @@ cd helper
 > 되돌리는 방법, 예행 연습(`--dry-run`), 설치 확인 명령, 실패했을 때의 화면, 토큰 파일 취급은 <br>
 > **[Detail_Readme.md](Detail_Readme.md)**에 있다. 처음 설치한다면 그쪽을 보고 하는 편이 안전하다.
 
-
-
-### WSL 실행 (Windows PC)
-Windows PC에서는 WSL 안에서 저장소를 받고 컨테이너를 띄운다. `.env`에 아래를 적는다(`.env.example`에 주석으로 있다).
+### Windows + WSL 실행
+Windows PC에서는 WSL 안에서 저장소를 받고 컨테이너를 띄운다. 저장소(예: `/home/<사용자>/Aoji-Studio`)와 AojiStudio 폴더(`AOJISTUDIO_HOST_PATH`, 예: `/home/<사용자>/AojiStudio`)는 별개 폴더다. `.env`에 아래를 적는다(`.env.example`에 주석으로 있다).
 ```text
 AOJISTUDIO_HOST_PATH=/home/<사용자>/AojiStudio     # WSL 경로
 AOJISTUDIO_PLATFORM=linux/amd64                    # 주석 해제
@@ -88,7 +86,7 @@ AOJISTUDIO_WSL_DISTRO=Ubuntu-26.04                 # wsl이면 필수. wsl -l -q
 ```
 `AOJISTUDIO_HOST_OS=wsl`이면 `AOJISTUDIO_WSL_DISTRO`가 반드시 있어야 하고(없으면 서버가 기동을 거부한다), 07 설정의 `열기 도우미` 행이 Windows 도우미 기준으로 바뀐다.
 
-*선택) Windows 열기 도우미 — 터미널 열기 버튼을 쓸 때만*
+#### 선택) Windows 열기 도우미 — 터미널 열기 버튼을 쓸 때만
 1. Windows에 **Node 24 이상**을 설치한다(`node -v`). 외부 npm 의존은 없다.
 2. **Windows PowerShell**에서, WSL에 받은 저장소의 `helper\windows` 폴더(`\\wsl.localhost\<배포판>\<저장소 WSL 경로>\helper\windows`)로 가서 실행한다.
 ```powershell
@@ -107,7 +105,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1        # -Dr
 ```
 > 설치 폴더에는 `uninstall.ps1`이 복사되지 않으므로 저장소의 것을 쓴다. 자세한 절차는 **[Detail_Readme.md](Detail_Readme.md)**.
 
-### 전역 Claude 설정 연결 (선택)
+### 선택) 전역 Claude 설정 연결
 사용량·MCP·스킬 사용 화면(08~10)은 전역 Claude 설정을 **읽기 전용**으로 읽는다. `.env`에 홈을 적으면 4개만 연결된다.
 ```text
 AOJISTUDIO_CLAUDE_HOME=/home/<사용자>      # macOS는 /Users/<사용자>
@@ -122,7 +120,7 @@ AOJISTUDIO_CLAUDE_PROJECTS_SRC=./tools/claude-home-off/.claude/projects
 ```
 `AOJISTUDIO_CLAUDE_HOME`을 비우면 모두 대역이 연결되어 화면에 `연결 안 됨`으로 보인다.
 
-### 상태줄 연동 (선택)
+### 선택) 상태줄 연동
 5시간·주간 한도와 구독 플랜을 07 화면의 `상태줄 연동` 카드로 받는다. 카드의 **설정 예시**를 `설정 예시 복사`로 복사해 Claude Code 설정 파일(`settings.json`)에 직접 넣는다(웹은 설정 파일을 쓰지 않는다).
 ```json
 "statusLine": {
@@ -136,7 +134,8 @@ AOJISTUDIO_CLAUDE_PROJECTS_SRC=./tools/claude-home-off/.claude/projects
 - 스크립트는 **루프백(`127.0.0.1`·`localhost`·`[::1]`)의 `http` 주소로만** 전송한다. 다른 주소를 `--url`에 주면 보내지 않는다. 보내는 값은 구독 플랜과 5시간·주간 한도(사용률·초기화 시각)뿐이다.
 - 상태줄은 **Claude Code CLI 세션이 돌 때만** 갱신된다. 데스크톱 앱 세션에서는 상태줄이 돌지 않을 수 있다(그때는 `.claude.json`의 한도 캐시 값을 쓴다).
 
-### v1.2.0 → v1.2.1 업그레이드
+## 업그레이드
+### v1.2.0 → v1.2.1
 1. 컨테이너를 다시 빌드해 올린다.
 ```bash
 docker compose up -d --build --remove-orphans
@@ -150,8 +149,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro <배�
 > 맥북 도우미·`.env`·hook 설정·상태줄 설정은 그대로 동작한다(다시 할 것 없음).
 > `명령 복사`로 복사한 팀장 명령을 터미널에 직접 붙여 넣을 때는 cmd 또는 WSL 터미널에서 붙인다(Windows PowerShell에서는 `--agent`가 빠질 수 있다). 버튼으로 여는 실행은 해당 없다.
 
-## 3. 빌드 · 테스트
-각 줄은 **저장소 루트에서** 시작한다. 주석의 숫자는 통과해야 하는 테스트 수다(줄면 뭔가 빠진 것이다). 숫자가 없는 줄은 전부 통과하면 된다.
+### v1.0.0 → v1.0.1
+v1.0.0 사용자는 `v1.0.1` 태그로 먼저 올린다(그 태그의 `UPGRADE-v1.0.1.md`).
+
+## 빌드 · 테스트
+각 줄은 **저장소 루트에서** 시작한다. 주석의 숫자는 통과해야 하는 테스트 수다(줄어들면 뭔가 빠진 것이다). 숫자가 없는 줄은 전부 통과하면 된다.
 
 ```bash
 # 유닛
@@ -174,15 +176,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro <배�
 x86_64 머신은 `E2E_PLATFORM=linux/amd64`를 앞에 붙인다. 운영 `compose.yaml`의 빌드·기동 확인은 `tools/e2e/scripts/check-compose-build.sh`다(`-p`만 바꿔 `down -v` 하지 않는다).
 
 
-## 4. 저장소 구조
+## 저장소 구조
 
 ```text
 backend/    Spring Boot 4.1.x · Java 25 · Gradle Kotlin DSL
 frontend/   React 19.3 · TS · Vite 8 · Tailwind 4.3 · React Router v7
 helper/     호스트에서 도는 열기 도우미(맥북 launchd · Windows 작업 스케줄러) (Node 24, 외부 의존 없음)
 tools/      replay(이벤트 재생) · fixtures(테스트용 프로젝트 폴더) · e2e(Playwright)
-docs/       요구사항 · 설계 · 태스크 · 진행 기록 · 리뷰
 ```
+`docs/`(요구사항 · 설계 · 태스크 · 진행 기록 · 리뷰)는 저장소에 포함되지 않는다.
 
 | 문서 | 내용 |
 |---|---|
