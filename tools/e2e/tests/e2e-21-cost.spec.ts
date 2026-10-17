@@ -14,6 +14,8 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 import { readE2eState } from "../lib/e2e-state";
 import {
   comma,
+  splitTitleSum,
+  tokenText,
   CONVO_MARKER,
   costExpected,
   EMAIL_MARKER,
@@ -23,7 +25,6 @@ import {
   millions,
   monthDay,
   monthDayTime,
-  numberOf,
   percentPattern,
   priceText,
   readingStrip,
@@ -101,10 +102,10 @@ test.describe("[E2E-21] 10 비용 (Asia/Seoul)", () => {
     await openCostAll(page);
     const totals = costExpected.totals;
 
-    await expect(tokenTile(page, "입력 토큰")).toContainText(comma(totals.input));
-    await expect(tokenTile(page, "출력 토큰")).toContainText(comma(totals.output));
-    await expect(tokenTile(page, "캐시 생성 토큰")).toContainText(comma(totals.cacheCreation));
-    await expect(tokenTile(page, "캐시 읽기 토큰")).toContainText(comma(totals.cacheRead));
+    await expect(tokenTile(page, "입력 토큰")).toContainText(tokenText(totals.input));
+    await expect(tokenTile(page, "출력 토큰")).toContainText(tokenText(totals.output));
+    await expect(tokenTile(page, "캐시 생성 토큰")).toContainText(tokenText(totals.cacheCreation));
+    await expect(tokenTile(page, "캐시 읽기 토큰")).toContainText(tokenText(totals.cacheRead));
 
     // FR-026-AC1: `$` + 소수 둘째 자리. FR-026-AC6: 단가 없는 모델은 합계에서 빠지고 칩으로 알린다
     const amount = page.locator('[data-wf="10-5"]');
@@ -179,11 +180,11 @@ test.describe("[E2E-21] 10 비용 (Asia/Seoul)", () => {
       const cells = data[index] ?? [];
       expect(cells.slice(0, 6), `모델 ${model.model}`).toEqual([
         model.model,
-        comma(model.input),
-        comma(model.output),
-        comma(model.cacheCreation),
-        comma(model.cacheRead),
-        comma(model.total),
+        tokenText(model.input),
+        tokenText(model.output),
+        tokenText(model.cacheCreation),
+        tokenText(model.cacheRead),
+        tokenText(model.total),
       ]);
       if (model.usd === null) {
         expect(cells[6] ?? "", `${model.model} 금액`).toContain("단가 없음");
@@ -198,15 +199,15 @@ test.describe("[E2E-21] 10 비용 (Asia/Seoul)", () => {
     // FR-025-AC4: 합계 줄 = totals, 모델 나눔의 합 = 합계
     const totals = costExpected.totals;
     expect(total.slice(1, 6)).toEqual([
-      comma(totals.input),
-      comma(totals.output),
-      comma(totals.cacheCreation),
-      comma(totals.cacheRead),
-      comma(totals.total),
+      tokenText(totals.input),
+      tokenText(totals.output),
+      tokenText(totals.cacheCreation),
+      tokenText(totals.cacheRead),
+      tokenText(totals.total),
     ]);
     expect(total[6] ?? "").toContain(usd2(totals.usd));
     expect(total[6] ?? "").toContain(`단가 없는 모델 ${costExpected.excludedModelCount}개 제외`);
-    expect(data.reduce((sum, cells) => sum + numberOf(cells[5] ?? ""), 0)).toBe(totals.total);
+    expect(await splitTitleSum(panel, 5)).toBe(totals.total);
   });
 
   test("[FR-025-AC3][FR-025-AC4] 세션별 표: 세션 id 앞 8자·프로젝트 폴더·시작 시각(브라우저 시간대)·진입 방식, 토큰 합 내림차순·합 = 합계", async ({
@@ -230,13 +231,13 @@ test.describe("[E2E-21] 10 비용 (Asia/Seoul)", () => {
       expect(cells[1] ?? "", `${session.short} 프로젝트 폴더`).toContain(session.project);
       expect(cells[2], `${session.short} 시작 시각`).toBe(monthDayTime(session.startedAt, SEOUL));
       expect(cells[3], `${session.short} 진입 방식`).toBe(entrypointLabel(session.entrypoint));
-      expect(cells[4], `${session.short} 토큰 합`).toBe(comma(session.total));
+      expect(cells[4], `${session.short} 토큰 합`).toBe(tokenText(session.total));
       expect(cells[5] ?? "", `${session.short} 금액`).toMatch(/^\$\d+\.\d{2}$/);
     });
     // 전체 id는 화면에 나오지 않는다(앞 8자만)
     await expect(panel).not.toContainText(costExpected.bySession[0]?.sessionId ?? "");
-    expect(total.some((cell) => cell.includes(comma(costExpected.totals.total)))).toBe(true);
-    expect(data.reduce((sum, cells) => sum + numberOf(cells[4] ?? ""), 0)).toBe(costExpected.totals.total);
+    expect(total.some((cell) => cell.includes(tokenText(costExpected.totals.total)))).toBe(true);
+    expect(await splitTitleSum(panel, 4)).toBe(costExpected.totals.total);
   });
 
   test("[FR-025-AC2][FR-025-AC4] 에이전트별 표: 에이전트 name·`기본 세션`·`미확인`, 토큰 합 내림차순·금액·합 = 합계", async ({ page }) => {
@@ -257,23 +258,23 @@ test.describe("[E2E-21] 10 비용 (Asia/Seoul)", () => {
     expectedAgents.forEach((agent, index) => {
       expect(data[index] ?? [], `에이전트 ${agent.agent}`).toEqual([
         agent.agent,
-        comma(agent.input),
-        comma(agent.output),
-        comma(agent.cacheCreation),
-        comma(agent.cacheRead),
-        comma(agent.total),
+        tokenText(agent.input),
+        tokenText(agent.output),
+        tokenText(agent.cacheCreation),
+        tokenText(agent.cacheRead),
+        tokenText(agent.total),
         usd2(agent.usd),
       ]);
     });
     const totals = costExpected.totals;
     expect(total.slice(1, 6)).toEqual([
-      comma(totals.input),
-      comma(totals.output),
-      comma(totals.cacheCreation),
-      comma(totals.cacheRead),
-      comma(totals.total),
+      tokenText(totals.input),
+      tokenText(totals.output),
+      tokenText(totals.cacheCreation),
+      tokenText(totals.cacheRead),
+      tokenText(totals.total),
     ]);
-    expect(data.reduce((sum, cells) => sum + numberOf(cells[5] ?? ""), 0)).toBe(totals.total);
+    expect(await splitTitleSum(panel, 5)).toBe(totals.total);
   });
 
   test("[FR-025-AC4] 날짜별 차트(Asia/Seoul): 막대 `MM-DD (요일) 합계 N.NM 토큰, 추정 $N.NN`·툴팁 토큰 4가지 = expected.json `byDate.Asia/Seoul`, 기록 없는 날은 0", async ({
@@ -307,7 +308,7 @@ test.describe("[E2E-21] 10 비용 (Asia/Seoul)", () => {
   test("[E2E-13][FR-025-AC1] 캡처 10-cost 3크기 (D-172, T-R4-22)", async ({ page }) => {
     await page.setViewportSize(CAPTURE_SIZE);
     await openCostAll(page);
-    await expect(tokenTile(page, "입력 토큰")).toContainText(comma(costExpected.totals.input));
+    await expect(tokenTile(page, "입력 토큰")).toContainText(tokenText(costExpected.totals.input));
     await expect(splitCard(page).getByRole("tabpanel").locator('[data-wf="10-9"]')).toHaveCount(1);
     await settle(page);
 
@@ -402,7 +403,7 @@ test.describe("[E2E-21] 10 비용 (Asia/Seoul)", () => {
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
     await expect(page).not.toHaveURL(/dialog=price/);
-    await expect(tokenTile(page, "입력 토큰")).toContainText(comma(costExpected.totals.input));
+    await expect(tokenTile(page, "입력 토큰")).toContainText(tokenText(costExpected.totals.input));
     // `닫기` 버튼으로도 닫힌다
     await priceButton.click();
     await expect(dialog).toBeVisible();
@@ -524,7 +525,7 @@ test.describe("[E2E-21] 10 비용 새 기록 반영", () => {
 
     await openCostAll(page);
     const totals = costExpected.totals;
-    await expect(tokenTile(page, "입력 토큰")).toContainText(comma(totals.input));
+    await expect(tokenTile(page, "입력 토큰")).toContainText(tokenText(totals.input));
     const before = await readingStrip(page).innerText();
     expect(before).toMatch(new RegExp(`/\\s*${costExpected.fileCount}(?!\\d)`));
 
@@ -539,26 +540,26 @@ test.describe("[E2E-21] 10 비용 새 기록 반영", () => {
         timeout: 15_000,
         message: "덧붙인 줄이 15초 안에 입력 토큰에 반영되지 않았습니다(기능 결함)",
       })
-      .toContain(comma(totals.input + added.input));
+      .toContain(tokenText(totals.input + added.input));
     const elapsedMs = Date.now() - startedAt;
     testInfo.annotations.push({ type: "FR-025-AC6 반영 시간", description: `줄 덧붙임 → 10 입력 토큰: ${elapsedMs}ms (기한 10000ms)` });
     process.stdout.write(`[FR-025-AC6 반영 시간] 줄 덧붙임 → 10 입력 토큰: ${elapsedMs}ms (기한 10000ms)\n`);
     expect(elapsedMs, `반영이 10초를 넘었습니다(실측 ${elapsedMs}ms)`).toBeLessThanOrEqual(10_000);
 
-    await expect(tokenTile(page, "출력 토큰")).toContainText(comma(totals.output + added.output));
-    await expect(tokenTile(page, "캐시 생성 토큰")).toContainText(comma(totals.cacheCreation));
-    await expect(tokenTile(page, "캐시 읽기 토큰")).toContainText(comma(totals.cacheRead));
+    await expect(tokenTile(page, "출력 토큰")).toContainText(tokenText(totals.output + added.output));
+    await expect(tokenTile(page, "캐시 생성 토큰")).toContainText(tokenText(totals.cacheCreation));
+    await expect(tokenTile(page, "캐시 읽기 토큰")).toContainText(tokenText(totals.cacheRead));
     const panel = await selectSplitTab(page, "모델별");
     const haiku = costExpected.byModel.find((row) => row.model === "claude-haiku-4-5");
     expect(haiku).toBeDefined();
     await expect
       .poll(async () => (await splitRows(panel)).find((cells) => cells[0] === "claude-haiku-4-5")?.[1])
-      .toBe(comma((haiku?.input ?? 0) + added.input));
+      .toBe(tokenText((haiku?.input ?? 0) + added.input));
 
     // 증분 읽기 주기(5초, ADR-81)보다 길게 두고 다시 확인한다: 이미 읽은 줄을 다시 세지 않는다(멱등). 고정 대기는 이 부정 확인 하나뿐이다.
     await page.waitForTimeout(6_500);
-    await expect(tokenTile(page, "입력 토큰")).toContainText(comma(totals.input + added.input));
-    await expect(tokenTile(page, "출력 토큰")).toContainText(comma(totals.output + added.output));
+    await expect(tokenTile(page, "입력 토큰")).toContainText(tokenText(totals.input + added.input));
+    await expect(tokenTile(page, "출력 토큰")).toContainText(tokenText(totals.output + added.output));
     await expect(readingStrip(page)).toContainText(new RegExp(`/\\s*${costExpected.fileCount}(?!\\d)`));
   });
 });

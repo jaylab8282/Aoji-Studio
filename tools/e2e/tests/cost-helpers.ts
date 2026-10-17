@@ -50,9 +50,37 @@ export const EMAIL_MARKER = "AOJI-MARKER-EMAIL-55d0";
 
 // ── 표기 ─────────────────────────────────────────────────────────────────────────
 
-/** 천 단위 쉼표. */
+/** 천 단위 쉼표(수치 요소 `title`·차트 툴팁). */
 export function comma(value: number): string {
   return value.toLocaleString("en-US");
+}
+
+/** 10 토큰 수치 축약(FR-025-AC8): 1,000 미만 정수, 이상은 K·M·B 소수 둘째 자리(끝자리 0 유지), 1000.00 이상이면 다음 단위, B 초과 없음. */
+export function tokenText(value: number): string {
+  if (value < 1_000) return String(value);
+  const units = [
+    ["K", 1_000],
+    ["M", 1_000_000],
+    ["B", 1_000_000_000],
+  ] as const;
+  let index = value >= 1_000_000_000 ? 2 : value >= 1_000_000 ? 1 : 0;
+  for (;;) {
+    const [suffix, divisor] = units[index] ?? units[2];
+    const hundredths = Math.floor((value * 100 + divisor / 2) / divisor);
+    if (hundredths >= 100_000 && index < 2) {
+      index += 1;
+      continue;
+    }
+    return `${Math.floor(hundredths / 100).toLocaleString("en-US")}.${String(hundredths % 100).padStart(2, "0")}${suffix}`;
+  }
+}
+
+/** 나눔 표 데이터 줄(합계 줄 제외)의 `column`번째 칸 `title`(정확한 값)을 모두 더한다. */
+export async function splitTitleSum(panel: Locator, column: number): Promise<number> {
+  const titles = await panel
+    .locator("tbody tr")
+    .evaluateAll((rows, index) => rows.slice(0, -1).map((row) => row.querySelectorAll("td")[index]?.getAttribute("title") ?? ""), column);
+  return titles.reduce((sum, title) => sum + Number(title.replace(/,/g, "")), 0);
 }
 
 /** 십진수 문자열 → `$N.NN`(소수 둘째 자리, 셋째 자리에서 반올림). 부동소수 오차가 끼지 않게 문자열로 계산한다. */

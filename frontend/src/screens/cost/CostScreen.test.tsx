@@ -89,25 +89,32 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+function titlesOf(panel: HTMLElement): string[][] {
+  return Array.from(panel.querySelectorAll("tbody tr")).map((row) =>
+    Array.from(row.querySelectorAll("td")).map((cell) => cell.getAttribute("title") ?? ""),
+  );
+}
+
 describe("CostScreen 합계·금액", () => {
-  it("[FR-025-AC1] 토큰 4칸: 라벨과 값이 형제(부모가 칸)이고 값은 천 단위 쉼표", async () => {
+  it("[FR-025-AC1][FR-025-AC8] 토큰 4칸: 라벨과 값이 형제(부모가 칸)이고 값은 K·M·B 축약, title은 쉼표 정확한 값", async () => {
     stubApi();
     const { container } = renderScreen();
     await waitForTiles();
 
     const tiles = container.querySelector('[data-wf="10-4"]') as HTMLElement;
-    const expected: Array<[string, string]> = [
-      ["입력 토큰", "1,000"],
-      ["출력 토큰", "500"],
-      ["캐시 생성 토큰", "200"],
-      ["캐시 읽기 토큰", "98,300"],
+    const expected: Array<[string, string, string]> = [
+      ["입력 토큰", "1.00K", "1,000"],
+      ["출력 토큰", "500", "500"],
+      ["캐시 생성 토큰", "200", "200"],
+      ["캐시 읽기 토큰", "98.30K", "98,300"],
     ];
-    for (const [label, value] of expected) {
+    for (const [label, value, title] of expected) {
       const tile = tileOf(label);
       expect(tile.tagName).toBe("SECTION");
       expect(tiles).toContainElement(tile);
       expect(tile.children).toHaveLength(2);
       expect(tile.children[1]).toHaveTextContent(value);
+      expect(tile.children[1]).toHaveAttribute("title", title);
       expect(tile).toHaveTextContent(new RegExp(`^${label}${value}$`));
     }
   });
@@ -349,11 +356,13 @@ describe("CostScreen 나눔", () => {
     ]);
     const rows = rowsOf(panel);
     expect(rows).toEqual([
-      ["claude-opus-4-6", "700", "300", "200", "90,000", "91,200", "$1.23"],
-      ["claude-haiku-4-5", "300", "200", "0", "8,300", "8,800", "$0.00"],
+      ["claude-opus-4-6", "700", "300", "200", "90.00K", "91.20K", "$1.23"],
+      ["claude-haiku-4-5", "300", "200", "0", "8.30K", "8.80K", "$0.00"],
       ["claude-opus-5-5", "0", "0", "0", "0", "0", "단가 없음"],
-      ["합계", "1,000", "500", "200", "98,300", "100,000", "$1.23단가 없는 모델 1개 제외"],
+      ["합계", "1.00K", "500", "200", "98.30K", "100.00K", "$1.23단가 없는 모델 1개 제외"],
     ]);
+    expect(within(panel).getAllByTitle("90,000").length).toBeGreaterThan(0); // [FR-025-AC8]
+    expect(within(panel).getAllByTitle("100,000").length).toBeGreaterThan(0);
     const noPrice = panel.querySelector('[data-wf="10-9"]') as HTMLElement;
     expect(noPrice).toHaveTextContent("claude-opus-5-5");
     expect(within(noPrice).getByText("단가 없음")).toBeInTheDocument();
@@ -379,11 +388,13 @@ describe("CostScreen 나눔", () => {
       "추정 금액",
     ]);
     expect(rowsOf(panel)).toEqual([
-      ["e5f6a7b8", "/home/fixture/work/aoji-fixture-app", "10-14 09:05", "CLI", "1,550", "$0.83"],
-      ["a1b2c3d4", "-", "-", "데스크톱 앱", "98,450", "$0.40"],
+      ["e5f6a7b8", "/home/fixture/work/aoji-fixture-app", "10-14 09:05", "CLI", "1.55K", "$0.83"],
+      ["a1b2c3d4", "-", "-", "데스크톱 앱", "98.45K", "$0.40"],
       ["c0ffee00", "/home/fixture/work/other", "10-13 23:30", "sdk-ts", "0", "$0.00"],
-      ["합계", "", "", "", "100,000", "$1.23단가 없는 모델 1개 제외"],
+      ["합계", "", "", "", "100.00K", "$1.23단가 없는 모델 1개 제외"],
     ]);
+    // [FR-025-AC8] 토큰 합 칸 title = 정확한 값(합계 줄 포함)
+    expect(titlesOf(panel).map((cells) => cells[4])).toEqual(["1,550", "98,450", "0", "100,000"]);
     expect(within(panel).getByText("/home/fixture/work/aoji-fixture-app")).toHaveAttribute("title", "/home/fixture/work/aoji-fixture-app");
     expect(panel).not.toHaveTextContent("e5f6a7b8-0000");
   });
@@ -398,10 +409,17 @@ describe("CostScreen 나눔", () => {
     const panel = within(card).getByRole("tabpanel");
     expect(within(panel).getAllByRole("columnheader")[0]).toHaveTextContent("에이전트");
     expect(rowsOf(panel)).toEqual([
-      ["기본 세션", "800", "400", "200", "90,000", "91,400", "$1.00"],
-      ["web-reviewer", "200", "100", "0", "8,300", "8,600", "$0.23"],
+      ["기본 세션", "800", "400", "200", "90.00K", "91.40K", "$1.00"],
+      ["web-reviewer", "200", "100", "0", "8.30K", "8.60K", "$0.23"],
       ["미확인", "0", "0", "0", "0", "0", "$0.00"],
-      ["합계", "1,000", "500", "200", "98,300", "100,000", "$1.23단가 없는 모델 1개 제외"],
+      ["합계", "1.00K", "500", "200", "98.30K", "100.00K", "$1.23단가 없는 모델 1개 제외"],
+    ]);
+    // [FR-025-AC8] 토큰 칸 title = 정확한 값(합계 줄 포함)
+    expect(titlesOf(panel).map((cells) => cells.slice(1, 6))).toEqual([
+      ["800", "400", "200", "90,000", "91,400"],
+      ["200", "100", "0", "8,300", "8,600"],
+      ["0", "0", "0", "0", "0"],
+      ["1,000", "500", "200", "98,300", "100,000"],
     ]);
   });
 

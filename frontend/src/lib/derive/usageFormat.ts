@@ -12,6 +12,34 @@ export function commaText(value: number): string {
   return value.toLocaleString("en-US");
 }
 
+const TOKEN_UNITS = [
+  { suffix: "K", divisor: 1_000 },
+  { suffix: "M", divisor: 1_000_000 },
+  { suffix: "B", divisor: 1_000_000_000 },
+] as const;
+
+/**
+ * 10 토큰 수치 축약(FR-025-AC8): 1,000 미만은 정수 그대로, 이상은 K·M·B 소수 둘째 자리(끝자리 0 유지).
+ * 반올림 결과가 1000.00 이상이면 다음 단위로 올리고, B 초과 단위는 없다(정수부 천 단위 쉼표). 정수 연산으로 반올림한다.
+ */
+export function tokenText(value: number): string {
+  if (!Number.isFinite(value)) return String(value);
+  if (value < 1_000) return String(Math.round(value));
+  let index = value >= 1_000_000_000 ? 2 : value >= 1_000_000 ? 1 : 0;
+  for (;;) {
+    const unit = TOKEN_UNITS[index] ?? TOKEN_UNITS[2];
+    const hundredths = Math.floor(
+      (value * 100 + unit.divisor / 2) / unit.divisor,
+    );
+    if (hundredths >= 100_000 && index < 2) {
+      index += 1;
+      continue;
+    }
+    const whole = Math.floor(hundredths / 100).toLocaleString("en-US");
+    return `${whole}.${String(hundredths % 100).padStart(2, "0")}${unit.suffix}`;
+  }
+}
+
 /** `$` + 소수 둘째 자리(FR-026-AC1). 서버 값은 반올림 전이다. */
 export function usdText(usd: number): string {
   return `$${usd.toFixed(2)}`;

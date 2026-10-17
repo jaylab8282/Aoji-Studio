@@ -11,7 +11,7 @@ import { Chip } from "../../components/ui/Chip";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { formatDateHm } from "../../lib/format/time";
 import { entrypointText } from "../../lib/derive/costRows";
-import { commaText, usdText } from "../../lib/derive/usageFormat";
+import { commaText, tokenText, usdText } from "../../lib/derive/usageFormat";
 import {
   COST_AGENT_MAIN,
   COST_AGENT_UNKNOWN,
@@ -47,7 +47,8 @@ const TABS: readonly TabItem<SplitTab>[] = [
 const ID_PREFIX = "cost-split";
 const LOADING_ROWS = 4;
 
-const HEAD = "border-b border-border px-3 py-2 text-left text-aux font-semibold whitespace-nowrap text-text-muted";
+const HEAD =
+  "border-b border-border px-3 py-2 text-left text-aux font-semibold whitespace-nowrap text-text-muted";
 const HEAD_N = `${HEAD} text-right`;
 const CELL = "px-3 py-2 whitespace-nowrap";
 const NUMBER = "text-right font-mono tabular-nums";
@@ -72,28 +73,56 @@ function TextCell({ line, children }: CellProps) {
   return <td className={`${CELL} ${line} text-text-secondary`}>{children}</td>;
 }
 
-function MonoCell({ line, children, title, grow = false }: CellProps & { grow?: boolean }) {
+function MonoCell({
+  line,
+  children,
+  title,
+  grow = false,
+}: CellProps & { grow?: boolean }) {
   return (
-    <td className={`${CELL} ${line} font-mono text-text-mono ${grow ? "max-w-0 overflow-hidden text-ellipsis" : ""}`} title={title}>
+    <td
+      className={`${CELL} ${line} font-mono text-text-mono ${grow ? "max-w-0 overflow-hidden text-ellipsis" : ""}`}
+      title={title}
+    >
       {children}
     </td>
   );
 }
 
 /** 숫자 칸: 오른쪽 정렬 고정폭. `strong`은 `토큰 합`·`추정 금액`(굵은 느낌의 밝은 글자). */
-function NumberCell({ line, children, strong = false }: CellProps & { strong?: boolean }) {
-  return <td className={`${CELL} ${line} ${NUMBER} ${strong ? "text-text" : "text-text-mono"}`}>{children}</td>;
+function NumberCell({
+  line,
+  children,
+  title,
+  strong = false,
+}: CellProps & { strong?: boolean }) {
+  return (
+    <td
+      className={`${CELL} ${line} ${NUMBER} ${strong ? "text-text" : "text-text-mono"}`}
+      title={title}
+    >
+      {children}
+    </td>
+  );
 }
 
 function TokenCells({ tokens, line }: { tokens: TokenSums; line: string }) {
   return (
     <>
-      <NumberCell line={line}>{commaText(tokens.input)}</NumberCell>
-      <NumberCell line={line}>{commaText(tokens.output)}</NumberCell>
-      <NumberCell line={line}>{commaText(tokens.cacheCreation)}</NumberCell>
-      <NumberCell line={line}>{commaText(tokens.cacheRead)}</NumberCell>
-      <NumberCell line={line} strong>
-        {commaText(tokens.total)}
+      <NumberCell line={line} title={commaText(tokens.input)}>
+        {tokenText(tokens.input)}
+      </NumberCell>
+      <NumberCell line={line} title={commaText(tokens.output)}>
+        {tokenText(tokens.output)}
+      </NumberCell>
+      <NumberCell line={line} title={commaText(tokens.cacheCreation)}>
+        {tokenText(tokens.cacheCreation)}
+      </NumberCell>
+      <NumberCell line={line} title={commaText(tokens.cacheRead)}>
+        {tokenText(tokens.cacheRead)}
+      </NumberCell>
+      <NumberCell line={line} strong title={commaText(tokens.total)}>
+        {tokenText(tokens.total)}
       </NumberCell>
     </>
   );
@@ -122,7 +151,15 @@ function TokenHeads() {
 }
 
 /** 합계 줄: `cost.totals`·`estimate`. `blanks`는 합계 글자와 숫자 칸 사이 빈 칸 수(세션 표 3). */
-function TotalRow({ report, blanks, onlyTotal = false }: { report: CostReport; blanks: number; onlyTotal?: boolean }) {
+function TotalRow({
+  report,
+  blanks,
+  onlyTotal = false,
+}: {
+  report: CostReport;
+  blanks: number;
+  onlyTotal?: boolean;
+}) {
   const excluded = report.estimate.excludedModelCount;
   const line = "border-t border-border-strong font-semibold";
   const number = `${CELL} ${line} ${NUMBER} text-text`;
@@ -134,17 +171,29 @@ function TotalRow({ report, blanks, onlyTotal = false }: { report: CostReport; b
       ))}
       {onlyTotal ? null : (
         <>
-          <td className={number}>{commaText(report.totals.input)}</td>
-          <td className={number}>{commaText(report.totals.output)}</td>
-          <td className={number}>{commaText(report.totals.cacheCreation)}</td>
-          <td className={number}>{commaText(report.totals.cacheRead)}</td>
+          <td className={number} title={commaText(report.totals.input)}>
+            {tokenText(report.totals.input)}
+          </td>
+          <td className={number} title={commaText(report.totals.output)}>
+            {tokenText(report.totals.output)}
+          </td>
+          <td className={number} title={commaText(report.totals.cacheCreation)}>
+            {tokenText(report.totals.cacheCreation)}
+          </td>
+          <td className={number} title={commaText(report.totals.cacheRead)}>
+            {tokenText(report.totals.cacheRead)}
+          </td>
         </>
       )}
-      <td className={number}>{commaText(report.totals.total)}</td>
+      <td className={number} title={commaText(report.totals.total)}>
+        {tokenText(report.totals.total)}
+      </td>
       <td className={number}>
         {usdText(report.estimate.usd)}
         {excluded > 0 ? (
-          <span className="ml-2 font-sans text-min font-normal text-text-muted">{costExcludedChip(excluded)}</span>
+          <span className="ml-2 font-sans text-min font-normal text-text-muted">
+            {costExcludedChip(excluded)}
+          </span>
         ) : null}
       </td>
     </tr>
@@ -187,11 +236,18 @@ function ModelTable({ report }: { report: CostReport | null }) {
             {report.byModel.map((row, index) => {
               const line = lineClass(index === report.byModel.length - 1);
               return (
-                <tr key={row.model} data-wf={row.usd === null ? "10-9" : undefined}>
+                <tr
+                  key={row.model}
+                  data-wf={row.usd === null ? "10-9" : undefined}
+                >
                   <MonoCell line={line}>{row.model}</MonoCell>
                   <TokenCells tokens={row.tokens} line={line} />
                   <NumberCell line={line} strong>
-                    {row.usd === null ? <Chip tone="dash">{COST_NO_PRICE_CHIP}</Chip> : usdText(row.usd)}
+                    {row.usd === null ? (
+                      <Chip tone="dash">{COST_NO_PRICE_CHIP}</Chip>
+                    ) : (
+                      usdText(row.usd)
+                    )}
                   </NumberCell>
                 </tr>
               );
@@ -243,11 +299,19 @@ function SessionTable({ report }: { report: CostReport | null }) {
                     {row.project ?? EMPTY_VALUE_TEXT}
                   </MonoCell>
                   <MonoCell line={line}>
-                    {row.startedAt === null ? EMPTY_VALUE_TEXT : formatDateHm(row.startedAt).slice(5)}
+                    {row.startedAt === null
+                      ? EMPTY_VALUE_TEXT
+                      : formatDateHm(row.startedAt).slice(5)}
                   </MonoCell>
-                  <TextCell line={line}>{entrypointText(row.entrypoint)}</TextCell>
-                  <NumberCell line={line} strong>
-                    {commaText(row.tokens.total)}
+                  <TextCell line={line}>
+                    {entrypointText(row.entrypoint)}
+                  </TextCell>
+                  <NumberCell
+                    line={line}
+                    strong
+                    title={commaText(row.tokens.total)}
+                  >
+                    {tokenText(row.tokens.total)}
                   </NumberCell>
                   <NumberCell line={line} strong>
                     {usdText(row.usd)}
@@ -286,7 +350,9 @@ function AgentTable({ report }: { report: CostReport | null }) {
               const line = lineClass(index === report.byAgent.length - 1);
               return (
                 <tr key={`${row.kind}:${row.agent ?? ""}`}>
-                  <TextCell line={line}>{agentText(row.agent, row.kind)}</TextCell>
+                  <TextCell line={line}>
+                    {agentText(row.agent, row.kind)}
+                  </TextCell>
                   <TokenCells tokens={row.tokens} line={line} />
                   <NumberCell line={line} strong>
                     {usdText(row.usd)}
@@ -310,15 +376,31 @@ interface SplitCardProps {
 export function SplitCard({ report }: SplitCardProps) {
   const [selected, setSelected] = useState<SplitTab>("model");
   return (
-    <section data-wf="10-10" aria-label={COST_SPLIT_LABEL} className="col-span-full flex min-h-0 min-w-0 flex-col rounded-card border border-border bg-card">
-      <Tabs tabs={TABS} selected={selected} onSelect={setSelected} label={COST_SPLIT_LABEL} idPrefix={ID_PREFIX} />
+    <section
+      data-wf="10-10"
+      aria-label={COST_SPLIT_LABEL}
+      className="col-span-full flex min-h-0 min-w-0 flex-col rounded-card border border-border bg-card"
+    >
+      <Tabs
+        tabs={TABS}
+        selected={selected}
+        onSelect={setSelected}
+        label={COST_SPLIT_LABEL}
+        idPrefix={ID_PREFIX}
+      />
       <div
         role="tabpanel"
         id={tabPanelId(ID_PREFIX)}
         aria-labelledby={tabId(ID_PREFIX, selected)}
         className="min-h-0 overflow-auto px-2 cost-split-pad"
       >
-        {selected === "model" ? <ModelTable report={report} /> : selected === "session" ? <SessionTable report={report} /> : <AgentTable report={report} />}
+        {selected === "model" ? (
+          <ModelTable report={report} />
+        ) : selected === "session" ? (
+          <SessionTable report={report} />
+        ) : (
+          <AgentTable report={report} />
+        )}
       </div>
     </section>
   );

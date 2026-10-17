@@ -5,7 +5,7 @@
 import type { CostReport } from "../../api/types";
 import { Chip } from "../../components/ui/Chip";
 import { Skeleton } from "../../components/ui/Skeleton";
-import { commaText, usdText } from "../../lib/derive/usageFormat";
+import { commaText, tokenText, usdText } from "../../lib/derive/usageFormat";
 import {
   COST_AMOUNT_LABEL,
   COST_NOT_ACTUAL_BILL,
@@ -27,19 +27,29 @@ interface TokenTilesProps {
   hasPlan: boolean;
 }
 
-const TILE = "grid content-start gap-0.5 rounded-card border border-border bg-card px-4 py-3";
+const TILE =
+  "grid content-start gap-0.5 rounded-card border border-border bg-card px-4 py-3";
 const KEY = "text-aux text-text-muted";
-const VALUE = "cost-tile-value font-mono font-medium tracking-desk tabular-nums text-text";
+const VALUE =
+  "cost-tile-value font-mono font-medium tracking-desk tabular-nums text-text";
 
 interface TileValueProps {
   text: string | null;
+  title?: string;
   disconnected: boolean;
 }
 
-function TileValue({ text, disconnected }: TileValueProps) {
-  if (disconnected) return <span className={`${VALUE} text-text-muted`}>{EMPTY_VALUE_TEXT}</span>;
+function TileValue({ text, title, disconnected }: TileValueProps) {
+  if (disconnected)
+    return (
+      <span className={`${VALUE} text-text-muted`}>{EMPTY_VALUE_TEXT}</span>
+    );
   if (text === null) return <Skeleton big className="mt-0.5 w-3/4" />;
-  return <span className={VALUE}>{text}</span>;
+  return (
+    <span className={VALUE} title={title}>
+      {text}
+    </span>
+  );
 }
 
 export function TokenTiles({ report, disconnected, hasPlan }: TokenTilesProps) {
@@ -55,14 +65,20 @@ export function TokenTiles({ report, disconnected, hasPlan }: TokenTilesProps) {
       {tiles.map(([label, value]) => (
         <section key={label} className={TILE}>
           <span className={KEY}>{label}</span>
-          <TileValue text={value === undefined ? null : commaText(value)} disconnected={disconnected} />
+          <TileValue
+            text={value === undefined ? null : tokenText(value)}
+            title={value === undefined ? undefined : commaText(value)}
+            disconnected={disconnected}
+          />
         </section>
       ))}
       <section data-wf="10-5" className={`${TILE} cost-tile-amount`}>
         <span className={KEY}>{COST_AMOUNT_LABEL}</span>
         <div className="flex min-w-0 items-center gap-3">
           {disconnected ? (
-            <span className="cost-amount-value font-mono font-medium tracking-desk text-text-muted">{EMPTY_VALUE_TEXT}</span>
+            <span className="cost-amount-value font-mono font-medium tracking-desk text-text-muted">
+              {EMPTY_VALUE_TEXT}
+            </span>
           ) : report === null ? (
             <Skeleton big className="mt-0.5 w-1/2" />
           ) : (
@@ -70,13 +86,17 @@ export function TokenTiles({ report, disconnected, hasPlan }: TokenTilesProps) {
               <span className="cost-amount-value font-mono font-medium tracking-desk tabular-nums text-text">
                 {usdText(report.estimate.usd)}
               </span>
-              {excluded > 0 ? <Chip tone="dash">{costExcludedChip(excluded)}</Chip> : null}
+              {excluded > 0 ? (
+                <Chip tone="dash">{costExcludedChip(excluded)}</Chip>
+              ) : null}
             </>
           )}
         </div>
         <span className="text-aux text-text-secondary">
           <b className="font-semibold text-text">{COST_NOT_ACTUAL_BILL}</b>
-          {hasPlan ? <span className="text-text-muted">{COST_SUBSCRIPTION_NOTE}</span> : null}
+          {hasPlan ? (
+            <span className="text-text-muted">{COST_SUBSCRIPTION_NOTE}</span>
+          ) : null}
         </span>
       </section>
     </div>
