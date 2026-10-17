@@ -100,6 +100,11 @@ public class LiveStateService {
      * 상태에 반영하는 순서와 시각 순서가 달라질 수 있다. 그래서 전이에 쓰는 시각은 지금까지 쓴 시각보다 항상
      * 뒤로 맞춘다 — 반영한 순서가 곧 "최신" 순서다. 화면에 보이는 수신 시각({@code lastReceivedAt})과 저장된
      * 행은 원래 값을 그대로 쓴다. 락 안에서만 부른다.
+     *
+     * <p>시계가 Δ만큼 뒤로 가면 실제 시각이 {@code lastTransitionAt}을 다시 넘을 때까지 전이 시각이
+     * {@code lastTransitionAt + 1µs}씩으로 당겨진다. 보정 폭은 역행 폭 Δ 이하이고 실제 시계가
+     * {@code lastTransitionAt}을 넘으면 끝난다. 영향은 그 사이 시작·재시작한 세션의 {@code startedAt} 표시뿐이며
+     * 정렬은 FR-004-AC3대로 맞다.
      */
     private OffsetDateTime monotonicTransitionTime(OffsetDateTime receivedAt) {
         OffsetDateTime at = receivedAt;

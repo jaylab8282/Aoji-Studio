@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import studio.aoji.files.PathGuard;
 import studio.aoji.files.WriteLock;
-import studio.aoji.live.LiveStateService;
 import studio.aoji.registry.AgentDef;
 import studio.aoji.registry.FormatError;
 import studio.aoji.registry.RegistryService;
@@ -49,7 +48,6 @@ public class WorkflowController {
     private final WriteLock writeLock;
     private final WriteAccessGuard writeAccessGuard;
     private final SseHub sseHub;
-    private final LiveStateService liveStateService;
     private final PathGuard pathGuard;
 
     public WorkflowController(
@@ -58,14 +56,12 @@ public class WorkflowController {
             WriteLock writeLock,
             WriteAccessGuard writeAccessGuard,
             SseHub sseHub,
-            LiveStateService liveStateService,
             PathGuard pathGuard) {
         this.registryService = registryService;
         this.workflowConfigStore = workflowConfigStore;
         this.writeLock = writeLock;
         this.writeAccessGuard = writeAccessGuard;
         this.sseHub = sseHub;
-        this.liveStateService = liveStateService;
         this.pathGuard = pathGuard;
     }
 
@@ -97,7 +93,7 @@ public class WorkflowController {
             }
 
             RegistrySnapshot after =
-                    registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot, liveStateService.live()));
+                    registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot));
             return after.workflows().stream()
                     .filter(workflow -> workflow.name().equals(normalizedName))
                     .findFirst()
@@ -128,7 +124,7 @@ public class WorkflowController {
                 throw ApiException.ioFailed("구성 파일 삭제 실패 · 파일을 그대로 두었습니다");
             }
 
-            registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot, liveStateService.live()));
+            registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot));
             return null;
         });
 
@@ -223,7 +219,7 @@ public class WorkflowController {
             }
 
             RegistrySnapshot after =
-                    registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot, liveStateService.live()));
+                    registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot));
             Workflow updated = after.workflows().stream()
                     .filter(w -> w.name().equals(workflow))
                     .findFirst()

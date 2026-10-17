@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import studio.aoji.files.PathGuard;
 import studio.aoji.files.WriteLock;
-import studio.aoji.live.LiveStateService;
 import studio.aoji.registry.RegistryService;
 import studio.aoji.skills.SkillEntry;
 import studio.aoji.skills.SkillImportException;
@@ -43,7 +42,6 @@ public class SkillImportController {
     private final WriteLock writeLock;
     private final WriteAccessGuard writeAccessGuard;
     private final SseHub sseHub;
-    private final LiveStateService liveStateService;
     private final PathGuard pathGuard;
     private final Clock clock;
 
@@ -54,7 +52,6 @@ public class SkillImportController {
             WriteLock writeLock,
             WriteAccessGuard writeAccessGuard,
             SseHub sseHub,
-            LiveStateService liveStateService,
             PathGuard pathGuard,
             Clock clock) {
         this.skillImportService = skillImportService;
@@ -63,7 +60,6 @@ public class SkillImportController {
         this.writeLock = writeLock;
         this.writeAccessGuard = writeAccessGuard;
         this.sseHub = sseHub;
-        this.liveStateService = liveStateService;
         this.pathGuard = pathGuard;
         this.clock = clock;
     }
@@ -105,7 +101,7 @@ public class SkillImportController {
             } catch (SkillImportException e) {
                 throw toApi(e);
             }
-            registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot, liveStateService.live()));
+            registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot));
             return detailOf(name);
         });
         return ResponseEntity.status(HttpStatus.CREATED).body(detail);

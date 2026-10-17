@@ -27,7 +27,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import studio.aoji.config.BrowserTokenFilter;
-import studio.aoji.live.LiveStateService;
 import studio.aoji.registry.RegistryService;
 
 /**
@@ -61,9 +60,6 @@ class SseStreamTest {
 
     @Autowired
     RegistryService registryService;
-
-    @Autowired
-    LiveStateService liveStateService;
 
     private HttpResponse<InputStream> openConnection;
     private HttpClient openClient;
@@ -318,7 +314,7 @@ class SseStreamTest {
         assertThat(first).isNotNull();
         assertThat(first.type()).isEqualTo("snapshot");
 
-        sseHub.broadcast(registryService.current(), liveStateService.live());
+        sseHub.broadcast(registryService.current());
 
         SseFrame registryFrame = frames.poll(5, TimeUnit.SECONDS);
         SseFrame liveFrame = frames.poll(5, TimeUnit.SECONDS);

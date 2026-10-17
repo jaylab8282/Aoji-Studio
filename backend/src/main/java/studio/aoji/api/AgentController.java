@@ -181,7 +181,7 @@ public class AgentController {
             }
 
             RegistrySnapshot after =
-                    registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot, liveStateService.live()));
+                    registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot));
             AgentDef def = findAgentDef(after, name).orElseThrow(() -> ApiException.ioFailed("생성 확인 실패 · 다시 읽어보세요"));
             try {
                 return buildAgentDetail(after, def, file);
@@ -325,7 +325,7 @@ public class AgentController {
             }
 
             RegistrySnapshot after =
-                    registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot, liveStateService.live()));
+                    registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot));
             AgentDef updatedDef =
                     findAgentDef(after, newName).orElseThrow(() -> ApiException.ioFailed("수정 확인 실패 · 다시 읽어보세요"));
             try {
@@ -365,7 +365,7 @@ public class AgentController {
                 }
             }
 
-            registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot, liveStateService.live()));
+            registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot));
             return new AgentRemoveResult(moved.relativePath(), removedFromWorkflow);
         });
 

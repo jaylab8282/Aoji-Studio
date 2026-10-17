@@ -40,14 +40,93 @@ class NoOutboundHttpTest {
 
         List<String> violations = new ArrayList<>();
         for (Path file : files) {
-            String text = Files.readString(file);
-            for (Pattern pattern : FORBIDDEN) {
-                if (pattern.matcher(text).find()) {
-                    violations.add(file + ": " + pattern.pattern());
-                }
+            for (String violation : violationsIn(Files.readString(file))) {
+                violations.add(file + ": " + violation);
             }
         }
 
         assertThat(violations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("[NFR-17] 주석 안의 금지 낱말은 위반이 아니다")
+    void forbiddenWordsInCommentsAreNotViolations() {
+        String source = "/** HttpClient, new URL( 설명 */\n"
+                + "class A {\n"
+                + "    // RestTemplate, java.net.http\n"
+                + "    String url = \"http://example\"; /* HttpClient */ // RestClient\n"
+                + "}\n";
+
+        assertThat(violationsIn(source)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("[NFR-17] 코드의 new URL( 은 위반 1건이다")
+    void newUrlInCodeIsOneViolation() {
+        String source = "class A {\n"
+                + "    // HttpClient 는 주석\n"
+                + "    Object u = new URL(\"http://x\");\n"
+                + "}\n";
+
+        assertThat(violationsIn(source)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("[NFR-17] 리터럴 안의 // 와 /* 는 주석이 아니어서 뒤 코드의 금지 호출이 위반으로 남는다")
+    void literalsKeepFollowingCodeVisible() {
+        String stringLiteral = "class A { String s = \"http://x\"; Object u = new URL(s); }\n";
+        String charLiteral = "class A { char c = '/'; Object u = new URL(\"x\"); }\n";
+        String textBlock = "class A { String t = \"\"\"\n    http://x /* y\n    \"\"\"; Object u = new URL(t); }\n";
+
+        assertThat(violationsIn(stringLiteral)).hasSize(1);
+        assertThat(violationsIn(charLiteral)).hasSize(1);
+        assertThat(violationsIn(textBlock)).hasSize(1);
+    }
+
+    private static List<String> violationsIn(String source) {
+        String code = stripComments(source);
+        List<String> found = new ArrayList<>();
+        for (Pattern pattern : FORBIDDEN) {
+            if (pattern.matcher(code).find()) {
+                found.add(pattern.pattern());
+            }
+        }
+        return found;
+    }
+
+    /** 주석만 지운다. 문자열·문자 리터럴·텍스트 블록 안의 {@code //}·{@code /*}는 주석이 아니다(conventions §8 v1.2.1). */
+    static String stripComments(String s) {
+        StringBuilder out = new StringBuilder();
+        int i = 0;
+        int n = s.length();
+        while (i < n) {
+            char c = s.charAt(i);
+            if (s.startsWith("\"\"\"", i)) {
+                int end = s.indexOf("\"\"\"", i + 3);
+                end = end < 0 ? n : end + 3;
+                out.append(s, i, end);
+                i = end;
+            } else if (c == '"' || c == '\'') {
+                int j = i + 1;
+                while (j < n && s.charAt(j) != c && s.charAt(j) != '\n') {
+                    j += s.charAt(j) == '\\' ? 2 : 1;
+                }
+                j = Math.min(j + 1, n);
+                out.append(s, i, j);
+                i = j;
+            } else if (s.startsWith("//", i)) {
+                while (i < n && s.charAt(i) != '\n') {
+                    i++;
+                }
+            } else if (s.startsWith("/*", i)) {
+                int end = s.indexOf("*/", i + 2);
+                i = end < 0 ? n : end + 2;
+                out.append(' ');
+            } else {
+                out.append(c);
+                i++;
+            }
+        }
+        return out.toString();
     }
 }

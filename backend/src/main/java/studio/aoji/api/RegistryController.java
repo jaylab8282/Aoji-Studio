@@ -3,7 +3,6 @@ package studio.aoji.api;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import studio.aoji.live.LiveStateService;
 import studio.aoji.registry.RegistryService;
 import studio.aoji.registry.RegistrySnapshot;
 import studio.aoji.stream.SseHub;
@@ -18,12 +17,10 @@ import studio.aoji.stream.SseHub;
 public class RegistryController {
 
     private final RegistryService registryService;
-    private final LiveStateService liveStateService;
     private final SseHub sseHub;
 
-    public RegistryController(RegistryService registryService, LiveStateService liveStateService, SseHub sseHub) {
+    public RegistryController(RegistryService registryService, SseHub sseHub) {
         this.registryService = registryService;
-        this.liveStateService = liveStateService;
         this.sseHub = sseHub;
     }
 
@@ -37,6 +34,6 @@ public class RegistryController {
      */
     @PostMapping("/rescan")
     public RegistrySnapshot rescan() {
-        return registryService.rescanNow(registry -> sseHub.broadcast(registry, liveStateService.live()));
+        return registryService.rescanNow(registry -> sseHub.broadcast(registry));
     }
 }

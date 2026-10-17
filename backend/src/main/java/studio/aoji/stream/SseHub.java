@@ -15,7 +15,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import studio.aoji.events.EventRowResponse;
-import studio.aoji.live.Live;
 import studio.aoji.live.LiveStateChanged;
 import studio.aoji.live.LiveStateService;
 import studio.aoji.registry.RegistrySnapshot;
@@ -50,7 +49,14 @@ public class SseHub {
         this.liveStateService = liveStateService;
     }
 
-    /** 새 SSE 연결을 등록하고 접속 직후 {@code snapshot} 1건을 보낸다. timeout 0(무제한). */
+    /**
+     * 새 SSE 연결을 등록하고 접속 직후 {@code snapshot} 1건을 보낸다. timeout 0(무제한).
+     *
+     * <p>{@code snapshot} 조립은 락 안에서 한다: 접속 직후 첫 메시지가 {@code snapshot}이고 그 뒤 방송과 사이에
+     * 빠짐이 없어야 하기 때문이다(조립을 락 밖으로 빼면 조립과 등록 사이의 방송을 놓친다). 그래서 락을 기다리는
+     * 쪽의 대기 상한은 진행 중인 DB 작업 1건 + {@code findRecent} 조회 1건이다. 커넥션 풀이 1인 것은 SQLite 쓰기
+     * 주체를 하나로 두기 위해서다({@code SqliteConfig} {@code setMaximumPoolSize(1)}).
+     */
     public SseEmitter connect() {
         SseEmitter emitter = new SseEmitter(0L);
         emitter.onCompletion(() -> emitters.remove(emitter));
@@ -85,7 +91,7 @@ public class SseHub {
      * registry 변경 방송(T-004 {@code FolderPoller}·변경 API가 파일 쓰기 후 호출, realtime-spec
      * "registry 변경 시 registry → live 순서").
      */
-    public void broadcast(RegistrySnapshot registry, Live live) {
+    public void broadcast(RegistrySnapshot registry) {
         synchronized (lock) {
             broadcastToAll("registry", registry);
             // 호출자가 락 밖에서 만든 live는 그 사이 방송된 더 새 live 뒤에 낡은 값으로 나갈 수 있다(화면이 되돌아가

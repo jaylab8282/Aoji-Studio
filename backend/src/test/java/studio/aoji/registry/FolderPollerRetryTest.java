@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import studio.aoji.config.AppProperties;
 import studio.aoji.files.DataDirectory;
-import studio.aoji.live.LiveStateService;
 import studio.aoji.stream.SseHub;
 
 /** FolderPoller는 재스캔이 실패하면 기준선을 올리지 않아 같은 변경을 다음 주기에 다시 감지한다. */
@@ -48,13 +47,13 @@ class FolderPollerRetryTest {
                 });
 
         FolderPoller poller =
-                new FolderPoller(props, dataDirectory, registryService, mock(LiveStateService.class), hub);
+                new FolderPoller(props, dataDirectory, registryService, hub);
         Files.writeString(agents.resolve("a.md"), "---\nname: a\ndescription: d\n---\n", StandardCharsets.UTF_8);
 
         poller.poll(); // 재스캔 실패 - 예외를 삼키고 기준선을 올리지 않는다
-        verify(hub, times(0)).broadcast(any(), any());
+        verify(hub, times(0)).broadcast(any());
         poller.poll(); // 같은 변경을 다시 감지해 방송한다
-        verify(hub, times(1)).broadcast(any(), any());
+        verify(hub, times(1)).broadcast(any());
         poller.poll(); // 기준선이 올라갔으니 더 방송하지 않는다
         verify(registryService, times(2)).rescanNow(any(Consumer.class));
         assertThat(Files.exists(agents.resolve("a.md"))).isTrue();

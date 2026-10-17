@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import studio.aoji.files.PathGuard;
 import studio.aoji.files.WriteLock;
-import studio.aoji.live.LiveStateService;
 import studio.aoji.registry.RegistryService;
 import studio.aoji.skills.SkillEntry;
 import studio.aoji.skills.SkillMessages;
@@ -49,7 +48,6 @@ public class SkillWriteController {
     private final WriteLock writeLock;
     private final WriteAccessGuard writeAccessGuard;
     private final SseHub sseHub;
-    private final LiveStateService liveStateService;
     private final PathGuard pathGuard;
     private final Clock clock;
 
@@ -61,7 +59,6 @@ public class SkillWriteController {
             WriteLock writeLock,
             WriteAccessGuard writeAccessGuard,
             SseHub sseHub,
-            LiveStateService liveStateService,
             PathGuard pathGuard,
             Clock clock) {
         this.skillScanner = skillScanner;
@@ -71,7 +68,6 @@ public class SkillWriteController {
         this.writeLock = writeLock;
         this.writeAccessGuard = writeAccessGuard;
         this.sseHub = sseHub;
-        this.liveStateService = liveStateService;
         this.pathGuard = pathGuard;
         this.clock = clock;
     }
@@ -200,7 +196,7 @@ public class SkillWriteController {
     }
 
     private void rescanAndBroadcast() {
-        registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot, liveStateService.live()));
+        registryService.rescanNow(snapshot -> sseHub.broadcast(snapshot));
     }
 
     private SkillDetail detailOf(String name, String failureMessage) {

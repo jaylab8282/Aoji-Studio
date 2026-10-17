@@ -161,6 +161,9 @@ class TranscriptIngestPerfTest {
         assertThat(mbPerSecond).as("처리 속도 MB/s").isGreaterThanOrEqualTo(0.9);
         assertThat(callsWhileReading).as("읽는 동안 겹친 GET /api/state 호출 수").isGreaterThanOrEqualTo(1);
         assertThat(maxStateMillis).as("읽는 동안 GET /api/state 최대 ms").isLessThan(1000);
+        // 한 스레드의 CPU 시간/경과는 정의상 <= 1.0이다. ADR-81 단일 스레드 전제(ingestOnce가 호출 스레드 하나에서
+        // 끝까지 돈다)에서만 NFR-16 "한 코어 이하"를 뜻하며, 병렬 작업자가 생겨도 이 단언은 잡지 못한다.
+        // 프로세스 CPU는 GC 등이 섞여 로그만 남긴다.
         assertThat(readerCpuRatio).as("읽기 스레드 CPU / 경과 시간").isLessThanOrEqualTo(1.0);
     }
 }

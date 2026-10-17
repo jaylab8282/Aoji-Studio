@@ -179,7 +179,7 @@ class SkillDeleteTest {
 
         assertThat(registryService.current().skillCount()).isEqualTo(before - 1);
         assertThat(registryService.skillNames()).doesNotContain("count-me");
-        verify(sseHub, atLeastOnce()).broadcast(argThat(s -> s != null && s.skillCount() == before - 1), any());
+        verify(sseHub, atLeastOnce()).broadcast(argThat(s -> s != null && s.skillCount() == before - 1));
         JsonNode state =
                 objectMapper.readTree(mockMvc.perform(
                                 org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/state")

@@ -8,7 +8,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import studio.aoji.config.AppProperties;
 import studio.aoji.files.DataDirectory;
-import studio.aoji.live.LiveStateService;
 import studio.aoji.stream.SseHub;
 
 /**
@@ -34,19 +33,16 @@ public class FolderPoller {
     private final AppProperties appProperties;
     private final DataDirectory dataDirectory;
     private final RegistryService registryService;
-    private final LiveStateService liveStateService;
     private final SseHub sseHub;
 
     public FolderPoller(
             AppProperties appProperties,
             DataDirectory dataDirectory,
             RegistryService registryService,
-            LiveStateService liveStateService,
             SseHub sseHub) {
         this.appProperties = appProperties;
         this.dataDirectory = dataDirectory;
         this.registryService = registryService;
-        this.liveStateService = liveStateService;
         this.sseHub = sseHub;
     }
 
@@ -61,7 +57,7 @@ public class FolderPoller {
                 // 방송을 rescanNow()의 락 안에서 실행해 RegistryController의 동시 rescan과 경합해도
                 // registry 방송 순서가 revision 순서를 따르게 한다. 재스캔이 실패하면 기준선이 오르지 않아
                 // 같은 변경을 다음 주기에 다시 감지한다.
-                registryService.rescanNow(registry -> sseHub.broadcast(registry, liveStateService.live()));
+                registryService.rescanNow(registry -> sseHub.broadcast(registry));
             }
         } catch (Exception e) {
             // 폴링 1회 실패로 스케줄 자체가 멈추면 안 된다 — 다음 주기에 다시 시도한다.
