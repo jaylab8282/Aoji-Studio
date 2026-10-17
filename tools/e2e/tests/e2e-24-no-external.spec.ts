@@ -4,6 +4,7 @@
 //
 // 파일 이름순으로 e2e-22-statusline(마지막에 컨테이너 pause → unpause) 뒤에 돈다. 첫 테스트가 컨테이너가 running인지 단언한다.
 // 요청은 `context.on('request')`로 모은다(페이지·워커·팝업 창 포함). 목킹·가로채기 없음(conventions §8).
+// 교차 확인: visit()가 `performance.getEntriesByType('resource')` 이름도 같은 목록에 더해 같은 호스트 판정을 받는다.
 import { expect, test, type Page } from "@playwright/test";
 
 import { containerStatus } from "./container-helpers";
@@ -31,6 +32,9 @@ test.beforeEach(({ context }) => {
 async function visit(page: Page, path: string): Promise<void> {
   await gotoReady(page, path);
   await page.waitForTimeout(500);
+  // 교차 확인: 브라우저가 실제로 받은 리소스 이름(Performance API)도 같은 판정에 넣는다.
+  const resources = await page.evaluate(() => performance.getEntriesByType("resource").map((e) => e.name));
+  requested.push(...resources);
 }
 
 async function expectDialog(page: Page, name: string | RegExp): Promise<void> {

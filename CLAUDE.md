@@ -29,6 +29,7 @@
 - lint / typecheck:
   - Frontend: `cd frontend && npm run lint && npm run typecheck`
   - Backend: `./gradlew build`에 컴파일 타입 검사 포함(별도 린터 없음, 확정 스택)
+  - E2E: `cd tools/e2e && npm run typecheck` (`tsc --noEmit`, 오류 0)
 - up (전체 기동):
   - `cp .env.example .env` 후 `.env`의 `AOJISTUDIO_HOST_PATH`를 채운다(x86_64 머신은 `AOJISTUDIO_PLATFORM=linux/amd64` 주석도 푼다) → `docker compose up -d --build --remove-orphans`
   - 확인: `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:4180/` → `200`

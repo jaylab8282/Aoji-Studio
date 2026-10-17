@@ -174,7 +174,7 @@ test("[FR-022-AC3][FR-022-AC5][FR-022-AC2][E2E-18] 스킬 삭제: 폴더가 `.ao
   expect(fixturePathExists(skillDir(skill))).toBe(false);
   const trashed = trashedSkillDirs(skill);
   expect(trashed, `휴지통 항목: ${JSON.stringify(listFixtureDir(trashDir()))}`).toHaveLength(1);
-  const trashedPath = join(trashDir(), trashed[0]);
+  const trashedPath = join(trashDir(), trashed[0] as string);
   expect(readFixtureFile(join(trashedPath, "SKILL.md"))).toBe(skillMd(skill, "삭제 시험용 스킬"));
   expect(readFixtureFile(join(trashedPath, "notes.txt"))).toBe("폴더째 옮겨지는지 보는 보조 파일\n");
 
@@ -210,7 +210,7 @@ test("[FR-022-AC4][FR-018-AC5][E2E-18] 가져온 스킬(SOURCE.md 있는 폴더)
   expect(fixturePathExists(skillDir(skill))).toBe(false);
   const trashed = trashedSkillDirs(skill);
   expect(trashed).toHaveLength(1);
-  const trashedPath = join(trashDir(), trashed[0]);
+  const trashedPath = join(trashDir(), trashed[0] as string);
   expect(fixturePathExists(join(trashedPath, "SOURCE.md"))).toBe(true);
   expect(fixturePathExists(join(trashedPath, "scripts", "run.sh"))).toBe(true);
 });

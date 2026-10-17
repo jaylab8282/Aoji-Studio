@@ -211,7 +211,7 @@ test("[FR-014-AC6][FR-027-AC3] 07 설정 예시의 명령(`<쓰던 상태줄 명
   const command = parsed.statusLine.command;
   const match = /^node "([^"]+)" --url (\S+) -- (<쓰던 상태줄 명령>)$/.exec(command);
   expect(match, `예시 명령 형식: ${command}`).not.toBeNull();
-  const [, examplePath, exampleUrl] = match as RegExpExecArray;
+  const [, examplePath, exampleUrl] = match as unknown as [string, string, string, string];
   expect(basename(examplePath)).toBe("statusline.mjs");
   expect(basename(dirname(examplePath))).toBe(".aojistudio");
   expect(realpathSync(examplePath), "예시 경로 = 컨테이너가 배치한 스크립트").toBe(realpathSync(scriptPath()));

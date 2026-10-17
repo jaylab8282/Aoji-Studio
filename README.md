@@ -7,8 +7,11 @@
 v1.2.0부터 Windows + WSL 실행을 지원합니다(아래 WSL 실행). 맥북 절차는 그대로입니다.
 
 ### 지원 환경
-|✅| **macOS** (Apple Silicon) <br> 
-|✅| **Windows + WSL** (x86_64, v1.2.0) | ✅ `.env`에 `AOJISTUDIO_PLATFORM=linux/amd64` 주석해제(윈도우일 경우)<br>
+| 환경 | 상태 | 준비 |
+|---|---|---|
+| **macOS** (Apple Silicon) | ✅ | |
+| **Windows + WSL** (x86_64, v1.2.0) | ✅ | `.env`에 `AOJISTUDIO_PLATFORM=linux/amd64` 주석 해제(윈도우일 경우) |
+
 웹 본체는 전부 컨테이너 안에 있어 OS를 타지 않는다. 이미지 아키텍처만 `.env`에서 맞추면 된다.
 
 
