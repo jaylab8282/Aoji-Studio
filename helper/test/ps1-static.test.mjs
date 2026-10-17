@@ -9,7 +9,9 @@ import { join } from 'node:path';
 
 const WINDOWS_DIR = fileURLToPath(new URL('../windows/', import.meta.url));
 const FILES = ['install.ps1', 'uninstall.ps1', 'start-helper.ps1'];
-const read = (name) => readFileSync(join(WINDOWS_DIR, name), 'utf8');
+const readRaw = (name) => readFileSync(join(WINDOWS_DIR, name));
+/** BOM을 뗀 본문. */
+const read = (name) => readRaw(name).toString('utf8').replace(/^\uFEFF/, '');
 /** 주석 줄을 뺀 코드만 (주석 속 설명 문구는 검사 대상이 아니다). */
 const code = (name) =>
   read(name)
@@ -32,6 +34,13 @@ for (const name of FILES) {
     assert.doesNotMatch(text, /\b(TODO|FIXME)\b/);
   });
 }
+
+test('[FR-013-AC12] 모든 .ps1은 UTF-8 BOM으로 시작한다 (Windows PowerShell 5.1 호환)', () => {
+  for (const name of readdirSync(WINDOWS_DIR).filter((n) => n.endsWith('.ps1'))) {
+    const head = [...readRaw(name).subarray(0, 3)];
+    assert.deepEqual(head, [0xef, 0xbb, 0xbf], `${name}: BOM 없음`);
+  }
+});
 
 test('[FR-013-AC12] install.ps1: Register-ScheduledTask -Xml · -DryRun · Node 순수 함수 호출', () => {
   const text = read('install.ps1');

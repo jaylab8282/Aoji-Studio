@@ -1,4 +1,4 @@
-# Aoji Studio 열기 도우미 Windows 설치 (ADR-78 결정 4)
+﻿# Aoji Studio 열기 도우미 Windows 설치 (ADR-78 결정 4)
 # 도우미 파일을 %LOCALAPPDATA%\AojiStudio\helper\ 로 복사하고, 작업 스케줄러 작업을 등록한 뒤 /health를 확인한다.
 # -DryRun 이면 아무것도 바꾸지 않고 복사 대상과 작업 XML만 출력한다.
 param(

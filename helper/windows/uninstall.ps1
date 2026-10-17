@@ -1,4 +1,4 @@
-# Aoji Studio 열기 도우미 Windows 제거 (ADR-78 결정 4)
+﻿# Aoji Studio 열기 도우미 Windows 제거 (ADR-78 결정 4)
 # 작업 해제, 도우미 프로세스 종료, 설치 폴더 삭제. 토큰 파일(WSL 쪽 .aojistudio\helper-token)은 남긴다.
 # -DryRun 이면 아무것도 바꾸지 않고 할 일만 출력한다.
 param(
