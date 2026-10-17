@@ -15,7 +15,7 @@ v1.2.0부터 Windows + WSL 실행을 지원합니다(아래 WSL 실행). 맥북 
 웹 본체는 전부 컨테이너 안에 있어 OS를 타지 않는다. 이미지 아키텍처만 `.env`에서 맞추면 된다.
 
 
-# Aoji Studio (v1.2.0)
+# Aoji Studio (v1.2.1)
 Docker 컨테이너로 돌리는 **개인용 Claude Code 에이전트 관제 웹**. `127.0.0.1`에서만 접근한다.<br>
 확정 환경은 macOS(Apple Silicon)와 Windows + WSL이다(아래 [지원 환경](#지원-환경)).
 
@@ -135,6 +135,20 @@ AOJISTUDIO_CLAUDE_PROJECTS_SRC=./tools/claude-home-off/.claude/projects
 - 파이프(`|`)·`&&`·변수처럼 **셸 기능이 필요한 명령**은 `sh -c '…'`로 감싼다. 예: `-- sh -c 'jq -r .model.display_name | tr a-z A-Z'`
 - 스크립트는 **루프백(`127.0.0.1`·`localhost`·`[::1]`)의 `http` 주소로만** 전송한다. 다른 주소를 `--url`에 주면 보내지 않는다. 보내는 값은 구독 플랜과 5시간·주간 한도(사용률·초기화 시각)뿐이다.
 - 상태줄은 **Claude Code CLI 세션이 돌 때만** 갱신된다. 데스크톱 앱 세션에서는 상태줄이 돌지 않을 수 있다(그때는 `.claude.json`의 한도 캐시 값을 쓴다).
+
+### v1.2.0 → v1.2.1 업그레이드
+1. 컨테이너를 다시 빌드해 올린다.
+```bash
+docker compose up -d --build --remove-orphans
+```
+2. (WSL) Windows 도우미를 제거하고 v1.2.1 소스로 다시 설치한다. install만 다시 돌리면 옛 도우미가 4181을 쥔 채 남을 수 있다. Windows PowerShell에서, 저장소의 `helper\windows` 폴더(`\\wsl.localhost\<배포판>\<저장소 WSL 경로>\helper\windows`)에서 실행한다.
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro <배포판> -ProjectDir /home/<사용자>/AojiStudio
+```
+> 토큰 파일(`.aojistudio/helper-token`)은 제거해도 남고 위치는 그대로다.
+> 맥북 도우미·`.env`·hook 설정·상태줄 설정은 그대로 동작한다(다시 할 것 없음).
+> `명령 복사`로 복사한 팀장 명령을 터미널에 직접 붙여 넣을 때는 cmd 또는 WSL 터미널에서 붙인다(Windows PowerShell에서는 `--agent`가 빠질 수 있다). 버튼으로 여는 실행은 해당 없다.
 
 ## 3. 빌드 · 테스트
 각 줄은 **저장소 루트에서** 시작한다. 주석의 숫자는 통과해야 하는 테스트 수다(줄면 뭔가 빠진 것이다). 숫자가 없는 줄은 전부 통과하면 된다.

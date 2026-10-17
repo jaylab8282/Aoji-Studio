@@ -1,4 +1,4 @@
-# Aoji Studio v1.2.0 — 상세 문서
+# Aoji Studio v1.2.1 — 상세 문서
 
 `README.md`의 요약으로 부족할 때 보는 문서다. 열기 도우미 설치 절차(되돌리는 방법·예행 연습·권한
 대화상자·실패했을 때의 화면), 컨테이너 없는 개발 실행, E2E 하네스 동작을 전부 담았다.
@@ -181,7 +181,7 @@ lsof -nP -iTCP:4181 -sTCP:LISTEN                     # 결과 없음
 ## WSL 실행과 Windows 열기 도우미 (v1.2.0)
 
 Windows PC에서는 WSL(예: `Ubuntu-26.04`) 안에서 저장소를 받고 `docker compose`를 돌린다. 웹은 WSL의 `127.0.0.1:4180`에 뜨고 Windows 브라우저가 그대로 접속한다.
-터미널 열기만 Windows 쪽 **Windows 열기 도우미**(Windows `127.0.0.1:4181`)가 맡아 Windows Terminal의 새 탭에서 `wsl.exe -d <배포판> --cd <AojiStudio 폴더> -- claude`를 실행한다(맥북 도우미와 같은 소스, `--platform windows`).
+터미널 열기만 Windows 쪽 **Windows 열기 도우미**(Windows `127.0.0.1:4181`)가 맡아 Windows Terminal의 새 탭에서 `wsl.exe -d <배포판> --cd <AojiStudio 폴더> -- bash -lic 'exec claude "$@"' claude [--agent <팀장>]`을 실행한다(맥북 도우미와 같은 소스, `--platform windows`). 로그인 셸(`bash -l`)로 띄워야 `~/.local/bin`이 PATH에 잡혀 `claude`를 찾는다.
 WSL 안에는 도우미를 설치하지 않는다(4181 리스너가 WSL에 없어 포트가 겹치지 않는다).
 
 ### WSL `.env`
@@ -220,6 +220,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro Ubuntu
 - **로그온 자동 시작**: 작업이 로그온 트리거로 등록되므로 Windows에 로그온할 때마다 `windows\start-helper.ps1`이 콘솔 창 없이 도우미를 띄운다.
 - 확인: `curl.exe -s -H "Origin: http://127.0.0.1:4180" http://127.0.0.1:4181/health` → `{"ok":true,"version":"1"}`.
 - 실제 등록·로그온 자동 시작·Windows Terminal 열림은 사람이 확인하는 절차다(자동 검증 대상이 아니다).
+
+### v1.2.0 → v1.2.1 업그레이드
+
+1. `docker compose up -d --build --remove-orphans`
+2. Windows PowerShell에서 `helper\windows`의 `uninstall.ps1` 실행 → v1.2.1 소스의 `install.ps1 -Distro <배포판> -ProjectDir <WSL 경로>` 실행. install만 다시 돌리면 옛 도우미가 4181을 쥔 채 남을 수 있다. 토큰 파일(`.aojistudio/helper-token`)은 제거해도 남고 위치는 그대로다.
+3. `명령 복사`한 팀장 명령을 직접 붙여 넣을 때는 cmd 또는 WSL 터미널에서(Windows PowerShell에서는 `--agent`가 빠질 수 있다). 버튼 실행은 해당 없다.
 
 ### 토큰 위치
 
