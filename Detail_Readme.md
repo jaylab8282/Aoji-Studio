@@ -4,23 +4,32 @@
 대화상자·실패했을 때의 화면), 컨테이너 없는 개발 실행, E2E 하네스 동작을 전부 담았다.
 
 - 요약은 `README.md`
-- 설계는 `docs/architecture.md`, `docs/conventions.md`, `docs/api-spec.yaml`, `docs/realtime-spec.md`, `docs/ui-spec.md`
-- 진행 기록·결정 이력은 `docs/progress.md`, 태스크는 `docs/tasks.md`
+- 설계(`docs/architecture.md`, `docs/conventions.md`, `docs/api-spec.yaml`, `docs/realtime-spec.md`, `docs/ui-spec.md`)와 진행 기록·결정 이력(`docs/progress.md`), 태스크(`docs/tasks.md`)는 저장소에 포함되지 않는다(`docs/`는 `.gitignore` 대상).
 
 ---
 
-
 ## 요구 사항
 
-- Docker Desktop (macOS Apple Silicon, 또는 Windows + WSL), `docker compose` v2 이상
-- Node 24 (프론트·헬퍼·도구. Windows 도우미는 Windows에도 Node 24), 로컬 JDK 21 이상 (Gradle toolchain이 JDK 25를 `~/.gradle/jdks/`에 자동 설치)
-- 실행 대상 프로젝트 폴더(`AOJISTUDIO_HOST_PATH`)
+운영 실행(컨테이너만 쓴다)
+- Docker Desktop (macOS Apple Silicon, 또는 Windows + WSL의 WSL 통합), `docker compose` v2 이상. 이미지 빌드는 컨테이너 안에서 하므로 호스트에 Node·JDK가 필요 없다.
+- 읽을 AojiStudio 폴더(`.claude/agents`가 있는 폴더, `AOJISTUDIO_HOST_PATH`)
+- 열기 도우미를 쓸 때만: 도우미가 도는 호스트(맥북, Windows)에 Node 24 이상
+
+개발 실행·빌드·테스트
+- Node 24 (프론트·헬퍼·도구)
+- Backend는 `./gradlew`가 최초 빌드 시 Gradle과 JDK 25 toolchain을 `~/.gradle/`에 자동 설치한다(Gradle을 돌릴 JDK는 호스트에 21 이상이 필요하다. 호스트에 JDK가 없으면 아래 "빌드·테스트"의 JDK 컨테이너 방식을 쓴다).
 
 ## 운영 실행 (컨테이너)
 
+저장소는 아무 폴더에나 받아도 된다. 웹이 읽는 폴더는 저장소 위치와 무관하게 `.env`의 `AOJISTUDIO_HOST_PATH`(`.claude/agents`가 있는 AojiStudio 폴더의 절대 경로)로 정한다.
+
 ```bash
+git clone https://github.com/jaylab8282/Aoji-Studio.git
+cd Aoji-Studio
 cp .env.example .env
-# .env에서 AOJISTUDIO_HOST_PATH=<맥북의 AojiStudio 폴더 절대 경로> 로 채운다.
+# .env에서 AOJISTUDIO_HOST_PATH=<AojiStudio 폴더 절대 경로> 로 채운다.
+#   macOS: /Users/<사용자>/Desktop/AojiStudio, WSL: /home/<사용자>/AojiStudio
+# x86_64 머신(윈도우)이면 AOJISTUDIO_PLATFORM=linux/amd64 주석도 푼다. WSL 설정은 아래 "WSL 실행과 Windows 열기 도우미".
 docker compose up -d --build --remove-orphans
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:4180/   # 200
 docker compose down --remove-orphans
@@ -30,6 +39,7 @@ docker compose down --remove-orphans
 운영 `compose.yaml`의 빌드·기동 확인은 `tools/e2e/scripts/check-compose-build.sh`로 한다.
 
 포트(`AOJISTUDIO_PORT`, 기본 4180)와 마운트 경로(`AOJISTUDIO_HOST_PATH`)는 `.env`에만 둔다. 값이 없으면 `docker compose up`이 실패한다.
+hook 설정은 07 설정 화면의 예시를 `설정 예시 복사`로 복사해 `AojiStudio/.claude/settings.json`에 직접 넣는다(웹은 이 파일을 쓰지 않는다).
 
 ## 열기 도우미 설치 (맥북 호스트)
 
@@ -178,9 +188,9 @@ lsof -nP -iTCP:4181 -sTCP:LISTEN                     # 결과 없음
 
 토큰 파일은 의도적으로 남긴다(`uninstall.sh`가 안내한다). 지우려면 직접 `rm <AojiStudio 경로>/.aojistudio/helper-token`.
 
-## WSL 실행과 Windows 열기 도우미 (v1.2.0)
+## WSL 실행과 Windows 열기 도우미 (v1.2.0부터)
 
-Windows PC에서는 WSL(예: `Ubuntu-26.04`) 안에서 저장소를 받고 `docker compose`를 돌린다. 웹은 WSL의 `127.0.0.1:4180`에 뜨고 Windows 브라우저가 그대로 접속한다.
+Windows PC에서는 WSL(예: `Ubuntu-26.04`) 안에서 저장소(예: `/home/<사용자>/Aoji-Studio`)를 받고 `docker compose`를 돌린다. AojiStudio 폴더(`AOJISTUDIO_HOST_PATH`, 예: `/home/<사용자>/AojiStudio`)는 저장소와 별개 폴더다. 웹은 WSL의 `127.0.0.1:4180`에 뜨고 Windows 브라우저가 그대로 접속한다.
 터미널 열기만 Windows 쪽 **Windows 열기 도우미**(Windows `127.0.0.1:4181`)가 맡아 Windows Terminal의 새 탭에서 `wsl.exe -d <배포판> --cd <AojiStudio 폴더> -- bash -lic 'exec claude "$@"' claude [--agent <팀장>]`을 실행한다(맥북 도우미와 같은 소스, `--platform windows`). 로그인 셸(`bash -l`)로 띄워야 `~/.local/bin`이 PATH에 잡혀 `claude`를 찾는다.
 WSL 안에는 도우미를 설치하지 않는다(4181 리스너가 WSL에 없어 포트가 겹치지 않는다).
 
@@ -221,11 +231,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro Ubuntu
 - 확인: `curl.exe -s -H "Origin: http://127.0.0.1:4180" http://127.0.0.1:4181/health` → `{"ok":true,"version":"1"}`.
 - 실제 등록·로그온 자동 시작·Windows Terminal 열림은 사람이 확인하는 절차다(자동 검증 대상이 아니다).
 
-### v1.2.0 → v1.2.1 업그레이드
+## 업그레이드
+
+### v1.2.0 → v1.2.1
 
 1. `docker compose up -d --build --remove-orphans`
 2. Windows PowerShell에서 `helper\windows`의 `uninstall.ps1` 실행 → v1.2.1 소스의 `install.ps1 -Distro <배포판> -ProjectDir <WSL 경로>` 실행. install만 다시 돌리면 옛 도우미가 4181을 쥔 채 남을 수 있다. 토큰 파일(`.aojistudio/helper-token`)은 제거해도 남고 위치는 그대로다.
 3. `명령 복사`한 팀장 명령을 직접 붙여 넣을 때는 cmd 또는 WSL 터미널에서(Windows PowerShell에서는 `--agent`가 빠질 수 있다). 버튼 실행은 해당 없다.
+4. 맥북 도우미·`.env`·hook 설정·상태줄 설정은 그대로 동작한다(다시 할 것 없음).
+
+### v1.0.0 → v1.0.1
+
+v1.0.0 사용자는 `v1.0.1` 태그로 먼저 올린다(그 태그의 `UPGRADE-v1.0.1.md`).
 
 ### 토큰 위치
 
@@ -244,7 +261,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1
 
 작업 해제 → `aojistudio-helper.mjs`를 실행 중인 `node.exe` 종료 → `%LOCALAPPDATA%\AojiStudio\helper\` 삭제. 토큰 파일(WSL 쪽 `.aojistudio\helper-token`)은 남긴다. Windows PowerShell이 UNC 경로에서 `cd`가 안 되면 `pushd \\wsl.localhost\…\helper\windows`를 쓴다.
 
-## 전역 Claude 설정 연결 (v1.2.0)
+## 전역 Claude 설정 연결 (v1.2.0부터)
 
 `.env`에 홈 경로를 적으면 호스트의 전역 Claude 설정 **4개만** 컨테이너에 읽기 전용(`/claude-home`)으로 연결된다.
 
@@ -269,7 +286,7 @@ AOJISTUDIO_CLAUDE_PROJECTS_SRC=./tools/claude-home-off/.claude/projects
 
 - 구성 확인(이미지 빌드·기동 없음, 홈 없음 / 홈 있음 / `_SRC` 덮어쓰기 3경우): `tools/e2e/scripts/check-compose-config.sh`.
 
-## 상태줄 연동 (v1.2.0)
+## 상태줄 연동 (v1.2.0부터)
 
 07 설정의 `상태줄 연동` 카드가 보여 주는 **설정 예시**를 `설정 예시 복사`로 복사해 Claude Code 설정 파일(`settings.json`, 보통 `~/.claude/settings.json`)의 최상위 객체 안에 직접 붙인다. 웹은 이 파일을 쓰지 않는다.
 
@@ -316,25 +333,43 @@ npm run dev
 
 ## 빌드·테스트
 
+각 줄은 **저장소 루트에서** 시작한다.
+
 ```bash
-# Backend
-cd backend && ./gradlew build
+# Backend (테스트 606)
+(cd backend && ./gradlew build)          # 컴파일·테스트·bootJar
+(cd backend && ./gradlew test)           # 테스트만
 
-# Frontend
-cd frontend && npm install && npm run build && npm test && npm run lint && npm run typecheck
+# Frontend (테스트 982)
+(cd frontend && npm install && npm run build && npm test && npm run lint && npm run typecheck)
 
-# Helper
-cd helper && npm test
+# Helper (테스트 103)
+(cd helper && npm test)
+
+# 재생 도구 (테스트 60)
+(cd tools/replay && npm test)
+
+# E2E 하네스 타입체크 (오류 0)
+(cd tools/e2e && npm install && npm run typecheck)
 ```
+
+호스트에 JDK가 없으면(예: WSL) Gradle을 JDK 컨테이너 안에서 돌린다. 저장소 루트를 통째로 마운트해야 한다(`backend/`만 마운트하면 `helper/aojistudio-statusline.mjs`를 못 찾아 빌드가 실패한다).
+```bash
+docker run --rm -u "$(id -u):$(id -g)" -v "$PWD":/w -w /w/backend \
+  -e HOME=/tmp -e GRADLE_USER_HOME=/w/backend/.gradle-home \
+  eclipse-temurin:21-jdk ./gradlew build --no-daemon
+rm -rf backend/.gradle-home      # 끝나면 임시 Gradle 홈 삭제
+```
+> Docker Desktop의 자격 증명 도우미 오류(`docker-credential-desktop.exe`)로 이미지를 못 받으면 `DOCKER_CONFIG=<빈 폴더>`를 앞에 붙인다.
 
 ## E2E (실제 컨테이너, 목킹 없음)
 
 ```bash
 cd tools/e2e
 npm install
-npx playwright install chromium   # ~/Library/Caches/ms-playwright 에 설치 (사전 1회)
+npx playwright install chromium   # 사전 1회 (Playwright 브라우저 캐시에 설치)
 
-./scripts/run-e2e.sh               # fixture 배치 전체
+./scripts/run-e2e.sh               # fixture 14배치 전체, 253
 ```
 
 `globalSetup`이 fixture를 임시 폴더로 복사하고 `compose.e2e.yaml`을 띄운 뒤
@@ -349,7 +384,7 @@ cd tools/e2e
 E2E_FIXTURE=project-configured npx playwright test tests/e2e-03.spec.ts
 ```
 
-`run-e2e.sh`는 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 14배치를 돈다. 배치별 단독 실행 명령은 프로젝트 `CLAUDE.md`의 Commands(e2e)에 있다.
+`run-e2e.sh`는 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 14배치(합계 253)를 돈다. 배치별 단독 실행 명령은 프로젝트 `CLAUDE.md`의 Commands(e2e)에 있다.
 x86_64 머신(윈도우·리눅스)은 명령 앞에 `E2E_PLATFORM=linux/amd64`를 붙인다(기본은 `linux/arm64`).
 
 compose 확인 스크립트는 운영 볼륨 `aojistudio-data`를 건드리지 않는다(x86_64 머신은 앞에 `AOJISTUDIO_PLATFORM=linux/amd64`):
@@ -370,4 +405,4 @@ helper/     호스트에서 도는 열기 도우미(맥북 launchd · Windows �
 tools/      replay(이벤트 재생) · fixtures(테스트용 프로젝트 폴더) · e2e(Playwright)
 ```
 
-자세한 설계는 `docs/architecture.md`, `docs/conventions.md`, `docs/api-spec.yaml`, `docs/realtime-spec.md`, `docs/ui-spec.md`를 따른다.
+`docs/`(요구사항 · 설계 · 태스크 · 진행 기록 · 리뷰)는 저장소에 포함되지 않는다.
