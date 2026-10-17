@@ -155,9 +155,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro <배�
 
 ```bash
 # 유닛
-(cd backend && ./gradlew test)                 # 603
+(cd backend && ./gradlew test)                 # 606
 (cd frontend && npm install && npm test)       # 982
-(cd helper && npm test)                        # 98
+(cd helper && npm test)                        # 103
 (cd tools/replay && npm test)                  # 60
 
 # 린트 · 타입체크 · 빌드

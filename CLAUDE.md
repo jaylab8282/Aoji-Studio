@@ -24,7 +24,7 @@
   - Backend: `cd backend && ./gradlew test` (`@Tag("perf")` 제외)
   - Backend 성능 측정(Integration 전용, 1회만 — 태스크·수정 라운드에서는 돌리지 않는다. `check`/`build`에 묶여 있지 않다): `cd backend && ./gradlew perfTest`
   - Frontend: `cd frontend && npm test`
-  - Helper(Node `node --test`, 외부 의존 없음, 98개; Windows 분기·`.ps1` 정적 검사 포함): `cd helper && npm test` (또는 `npm test --prefix helper`)
+  - Helper(Node `node --test`, 외부 의존 없음, 103개; Windows 분기·`.ps1` 정적 검사 포함): `cd helper && npm test` (또는 `npm test --prefix helper`)
   - Tools(재생 도구·fixture 형식, 60개): `cd tools/replay && npm test`
 - lint / typecheck:
   - Frontend: `cd frontend && npm run lint && npm run typecheck`
@@ -45,7 +45,7 @@
   - (사전 1회) `cd tools/e2e && npm install && npx playwright install chromium`
   - 전체: `cd tools/e2e && ./scripts/run-e2e.sh`
     - 재개·선택: `./scripts/run-e2e.sh --from 4`(배치 4부터 끝까지, 환경 변수 `E2E_FROM_BATCH=4`), `./scripts/run-e2e.sh --only 3,8`(지정 배치만, `E2E_ONLY_BATCHES=3,8`). 사전 2단계는 항상 돌고 실패하면 즉시 중단한다. **배치가 실패해도 멈추지 않고 나머지 배치를 계속 돈 뒤**, 마지막 `배치별 결과`(PASS/FAIL/SKIP)와 종료 코드(실패가 있으면 1)로 알린다. x86_64 머신은 `E2E_PLATFORM=linux/amd64 ./scripts/run-e2e.sh --from 4`
-    - 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 **14배치**를 배치 1~14 순서로 돈다. 배치별 수(`npx playwright test --list`로 센 값, 2026-10-17 T-R4-22 구현 뒤): 74·17·5·4·9·17·2·22·7·3·7·19·58·9 (배치 1~14 순) — **합계 253** — 2026-10-17 T-R4-22 전체 실행 253 passed로 일치.
+    - 사전 2단계(`check-old-names.sh`·`check-old-env.sh`) 뒤 **14배치**를 배치 1~14 순서로 돈다. 배치별 수(`npx playwright test --list`로 센 값, 2026-10-17 T-R4-22 구현 뒤): 74·17·5·4·9·17·2·22·7·3·7·19·58·9 (배치 1~14 순) — **합계 253** — 2026-10-17 T-R4-22 전체 실행 253 passed, T-R5-05(v1.2.1) 전체 실행 253 passed로 일치.
     - `globalSetup`이 fixture 임시 복사 → `compose.e2e.yaml up -d --build` → dry-run 도우미(4191) → 다른 Origin 페이지 서버(4192)까지 준비하고, `globalTeardown`이 컨테이너·프로세스·임시 폴더를 정리한다. 사전 준비 명령 없음
     - 기동 전에 4185·4191·4192 선점 검사를 한다 — 낡은 스택이 남아 있으면 소유 pid와 정리 명령을 출력하고 즉시 실패한다
   - 배치 단독 실행(fixture가 다른 시나리오는 실행을 나눈다. `cd tools/e2e && ` 뒤에 쓴다):
