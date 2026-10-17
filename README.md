@@ -81,7 +81,7 @@ Windows PC에서는 WSL 안에서 저장소를 받고 컨테이너를 띄운다.
 AOJISTUDIO_HOST_PATH=/home/<사용자>/AojiStudio     # WSL 경로
 AOJISTUDIO_PLATFORM=linux/amd64                    # 주석 해제
 AOJISTUDIO_HOST_OS=wsl                             # 비우면 macos
-AOJISTUDIO_WSL_DISTRO=Ubuntu-24.04                 # wsl이면 필수. wsl -l -q 로 이름 확인
+AOJISTUDIO_WSL_DISTRO=Ubuntu-26.04                 # wsl이면 필수. wsl -l -q 로 이름 확인
 ```
 `AOJISTUDIO_HOST_OS=wsl`이면 `AOJISTUDIO_WSL_DISTRO`가 반드시 있어야 하고(없으면 서버가 기동을 거부한다), 07 설정의 `열기 도우미` 행이 Windows 도우미 기준으로 바뀐다.
 
@@ -89,8 +89,8 @@ AOJISTUDIO_WSL_DISTRO=Ubuntu-24.04                 # wsl이면 필수. wsl -l -q
 1. Windows에 **Node 24 이상**을 설치한다(`node -v`). 외부 npm 의존은 없다.
 2. **Windows PowerShell**에서, WSL에 받은 저장소의 `helper\windows` 폴더(`\\wsl.localhost\<배포판>\<저장소 WSL 경로>\helper\windows`)로 가서 실행한다.
 ```powershell
-cd \\wsl.localhost\Ubuntu-24.04\home\<사용자>\Aoji-Studio\helper\windows
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro Ubuntu-24.04 -ProjectDir /home/<사용자>/AojiStudio
+cd \\wsl.localhost\Ubuntu-26.04\home\<사용자>\Aoji-Studio\helper\windows
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro Ubuntu-26.04 -ProjectDir /home/<사용자>/AojiStudio
 ```
 `-ProjectDir`은 **WSL 경로**이고 `.env`의 `AOJISTUDIO_HOST_PATH`와 같은 값이다. `-DryRun`을 붙이면 아무것도 바꾸지 않고 복사 대상과 작업 XML만 보여 준다.
 설치하면 도우미가 `%LOCALAPPDATA%\AojiStudio\helper\`에 복사되고, 작업 스케줄러 작업 `\AojiStudio\aojistudio-helper`가 등록되어 **로그온할 때마다 자동으로 시작**한다. `http://127.0.0.1:4181/health`가 응답해야 설치가 끝난다.
@@ -99,7 +99,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro Ubuntu
 
 제거: **설치할 때와 같은 폴더**(저장소의 `helper\windows`)에서 **Windows PowerShell**로 실행한다(WSL 셸이 아니다). 작업 해제 · 도우미 프로세스 종료 · 설치 폴더 삭제를 한다.
 ```powershell
-cd \\wsl.localhost\Ubuntu-24.04\home\<사용자>\Aoji-Studio\helper\windows
+cd \\wsl.localhost\Ubuntu-26.04\home\<사용자>\Aoji-Studio\helper\windows
 powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1        # -DryRun 을 붙이면 할 일만 보여 준다
 ```
 > 설치 폴더에는 `uninstall.ps1`이 복사되지 않으므로 저장소의 것을 쓴다. 자세한 절차는 **[Detail_Readme.md](Detail_Readme.md)**.

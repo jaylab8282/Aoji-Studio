@@ -180,7 +180,7 @@ lsof -nP -iTCP:4181 -sTCP:LISTEN                     # 결과 없음
 
 ## WSL 실행과 Windows 열기 도우미 (v1.2.0)
 
-Windows PC에서는 WSL(예: `Ubuntu-24.04`) 안에서 저장소를 받고 `docker compose`를 돌린다. 웹은 WSL의 `127.0.0.1:4180`에 뜨고 Windows 브라우저가 그대로 접속한다.
+Windows PC에서는 WSL(예: `Ubuntu-26.04`) 안에서 저장소를 받고 `docker compose`를 돌린다. 웹은 WSL의 `127.0.0.1:4180`에 뜨고 Windows 브라우저가 그대로 접속한다.
 터미널 열기만 Windows 쪽 **Windows 열기 도우미**(Windows `127.0.0.1:4181`)가 맡아 Windows Terminal의 새 탭에서 `wsl.exe -d <배포판> --cd <AojiStudio 폴더> -- claude`를 실행한다(맥북 도우미와 같은 소스, `--platform windows`).
 WSL 안에는 도우미를 설치하지 않는다(4181 리스너가 WSL에 없어 포트가 겹치지 않는다).
 
@@ -190,7 +190,7 @@ WSL 안에는 도우미를 설치하지 않는다(4181 리스너가 WSL에 없�
 AOJISTUDIO_HOST_PATH=/home/<사용자>/AojiStudio
 AOJISTUDIO_PLATFORM=linux/amd64
 AOJISTUDIO_HOST_OS=wsl
-AOJISTUDIO_WSL_DISTRO=Ubuntu-24.04
+AOJISTUDIO_WSL_DISTRO=Ubuntu-26.04
 ```
 
 - `AOJISTUDIO_HOST_OS`: 비우면 `macos`, WSL이면 `wsl`. `wsl`이면 `AOJISTUDIO_WSL_DISTRO`(배포판 이름, `wsl -l -q`로 확인)가 필수이고 없으면 서버가 기동을 거부한다.
@@ -204,14 +204,14 @@ AOJISTUDIO_WSL_DISTRO=Ubuntu-24.04
 3. 예행 연습(아무것도 바꾸지 않고 복사 대상과 작업 XML을 출력):
 
 ```powershell
-cd \\wsl.localhost\Ubuntu-24.04\home\<사용자>\Aoji-Studio\helper\windows
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro Ubuntu-24.04 -ProjectDir /home/<사용자>/AojiStudio -DryRun
+cd \\wsl.localhost\Ubuntu-26.04\home\<사용자>\Aoji-Studio\helper\windows
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro Ubuntu-26.04 -ProjectDir /home/<사용자>/AojiStudio -DryRun
 ```
 
 4. 설치:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro Ubuntu-24.04 -ProjectDir /home/<사용자>/AojiStudio
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro Ubuntu-26.04 -ProjectDir /home/<사용자>/AojiStudio
 ```
 
 - `-Distro` 필수, `^[A-Za-z0-9._-]{1,64}$`. `-ProjectDir` 필수, **WSL 경로**(`^/[A-Za-z0-9._/-]+$`, `..`·공백·`;` 불가)이며 `.env`의 `AOJISTUDIO_HOST_PATH`와 **같은 값**이다.
@@ -231,7 +231,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Distro Ubuntu
 `uninstall.ps1`은 설치 폴더에 복사되지 않는다. **설치할 때와 같은 저장소 폴더** `\\wsl.localhost\<배포판>\<저장소 WSL 경로>\helper\windows`에서 **Windows PowerShell**(WSL 셸이 아니다)로 실행한다.
 
 ```powershell
-cd \\wsl.localhost\Ubuntu-24.04\home\<사용자>\Aoji-Studio\helper\windows
+cd \\wsl.localhost\Ubuntu-26.04\home\<사용자>\Aoji-Studio\helper\windows
 powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1 -DryRun   # 할 일만 출력
 powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1
 ```
