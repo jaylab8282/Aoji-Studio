@@ -34,8 +34,16 @@ export function assertWslProjectDir(projectDir) {
 }
 
 /**
+ * WSL 안 claude 실행 꼬리 (ADR-95 결정 1·3). 로그인 셸(`bash -lic`)이 `~/.local/bin` PATH를 읽는다.
+ * 고정 상수이며 배포판·경로·이름이 들어가지 않는다.
+ */
+export const WSL_CLAUDE_LAUNCH = Object.freeze(['--', 'bash', '-lic', "'exec", 'claude', '"$@"\'', 'claude']);
+
+/**
  * Windows Terminal 새 탭 인자 배열 (FR-013-AC12).
- * 같은 WSL 명령: `wsl -d <배포판> --cd <경로> -- claude [--agent <name>]`.
+ * 같은 WSL 명령: `wsl -d <배포판> --cd <경로> -- bash -lic 'exec claude "$@"' claude [--agent <name>]`.
+ * 인자 경계(ADR-95 결정 3): `wsl.exe` 뒤 원소에는 공백·탭·`;`가 없고, 따옴표 조각은 wsl.exe가 공백으로
+ * 이어 붙인 명령줄을 WSL 쪽 셸이 다시 나눈다. 이름은 `--agent` 뒤 별도 원소라 스크립트에 섞이지 않는다.
  * @param {{distro: string, projectDir: string, leadName?: string|null}} options
  * @returns {string[]}
  */
@@ -56,8 +64,7 @@ export function buildWtArgs({ distro, projectDir, leadName = null }) {
     distro,
     '--cd',
     projectDir,
-    '--',
-    'claude',
+    ...WSL_CLAUDE_LAUNCH,
     ...(leadName ? ['--agent', leadName] : []),
   ];
 }

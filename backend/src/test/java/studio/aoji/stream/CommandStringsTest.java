@@ -27,17 +27,17 @@ class CommandStringsTest {
     }
 
     @Test
-    @DisplayName("[FR-013-AC1] wsl -> 'wsl -d <배포판> --cd <경로> -- claude'")
+    @DisplayName("[FR-013-AC1] wsl -> 'wsl -d <배포판> --cd <경로> -- bash -lic …' claude")
     void wslDefaultSessionCommand() {
         assertThat(CommandStrings.defaultSessionCommand("wsl", "Ubuntu-24.04", "/home/jaybee/AojiStudio"))
-                .isEqualTo("wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- claude");
+                .isEqualTo("wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- bash -lic 'exec claude \"$@\"' claude");
     }
 
     @Test
     @DisplayName("[FR-013-AC1] wsl 경로에 공백이 있으면 --cd 경로에 따옴표")
     void wslPathWithSpaceIsQuoted() {
         assertThat(CommandStrings.defaultSessionCommand("wsl", "Ubuntu-24.04", "/home/jaybee/Aoji Studio"))
-                .isEqualTo("wsl -d Ubuntu-24.04 --cd \"/home/jaybee/Aoji Studio\" -- claude");
+                .isEqualTo("wsl -d Ubuntu-24.04 --cd \"/home/jaybee/Aoji Studio\" -- bash -lic 'exec claude \"$@\"' claude");
     }
 
     @Test
@@ -46,7 +46,7 @@ class CommandStringsTest {
         assertThat(CommandStrings.leadSessionCommandTemplate("wsl", "Ubuntu-24.04", "/home/jaybee/AojiStudio"))
                 .isEqualTo(CommandStrings.defaultSessionCommand("wsl", "Ubuntu-24.04", "/home/jaybee/AojiStudio")
                         + " --agent <팀장 name>")
-                .isEqualTo("wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- claude --agent <팀장 name>");
+                .isEqualTo("wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- bash -lic 'exec claude \"$@\"' claude --agent <팀장 name>");
         assertThat(CommandStrings.leadSessionCommandTemplate("macos", null, HOST_PATH))
                 .isEqualTo(CommandStrings.defaultSessionCommand("macos", null, HOST_PATH) + " --agent <팀장 name>");
     }

@@ -257,9 +257,9 @@ describe("WorkflowsHeader", () => {
     expect(await screen.findByTestId("helper-missing-dialog")).toBeInTheDocument();
     expect(calls.filter((call) => call.url.endsWith("/open"))).toEqual([]);
   });
-  it("[FR-013-AC1] 명령 복사는 config.defaultSessionCommand 그대로다: wsl 실행 환경이면 `wsl -d <배포판> --cd <hostPath> -- claude` + wsl 설치 안내", async () => {
+  it("[FR-013-AC1] 명령 복사는 config.defaultSessionCommand 그대로다: wsl 실행 환경이면 `wsl -d <배포판> --cd <hostPath> -- bash -lic 'exec claude \"$@\"' claude` + wsl 설치 안내", async () => {
     vi.useFakeTimers();
-    const wslCommand = "wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- claude";
+    const wslCommand = "wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- bash -lic 'exec claude \"$@\"' claude";
     const base = buildSnapshotFixture();
     snapshotStore.replace({
       ...base,

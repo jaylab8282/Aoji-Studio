@@ -69,9 +69,9 @@ class SettingsControllerWslTest {
     void settingsCommandsFollowHostOs() throws Exception {
         JsonNode body = fetch("/api/settings");
         assertThat(body.get("defaultSessionCommand").asString())
-                .isEqualTo("wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- claude");
+                .isEqualTo("wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- bash -lic 'exec claude \"$@\"' claude");
         assertThat(body.get("leadSessionCommandTemplate").asString())
-                .isEqualTo("wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- claude --agent <팀장 name>");
+                .isEqualTo("wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- bash -lic 'exec claude \"$@\"' claude --agent <팀장 name>");
         assertThat(body.get("terminalApp").asString()).isEqualTo("Windows Terminal");
         assertThat(body.get("hostOs").asString()).isEqualTo("wsl");
         assertThat(body.get("wslDistro").asString()).isEqualTo("Ubuntu-24.04");
@@ -84,6 +84,6 @@ class SettingsControllerWslTest {
         assertThat(config.get("hostOs").asString()).isEqualTo("wsl");
         assertThat(config.get("wslDistro").asString()).isEqualTo("Ubuntu-24.04");
         assertThat(config.get("defaultSessionCommand").asString())
-                .isEqualTo("wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- claude");
+                .isEqualTo("wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- bash -lic 'exec claude \"$@\"' claude");
     }
 }

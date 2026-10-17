@@ -575,8 +575,8 @@ describe("SettingsScreen (SCR-07)", () => {
   // ── v1.2.0 (T-R4-19): WSL 실행 환경 · 상태줄 연동 · 전역 Claude 설정 연결 ─────────────────────
 
   const WSL_PATH = "/home/jaybee/AojiStudio";
-  const WSL_DEFAULT = `wsl -d Ubuntu-24.04 --cd ${WSL_PATH} -- claude`;
-  const WSL_LEAD = `wsl -d Ubuntu-24.04 --cd ${WSL_PATH} -- claude --agent <팀장 name>`;
+  const WSL_DEFAULT = `wsl -d Ubuntu-24.04 --cd ${WSL_PATH} -- bash -lic 'exec claude "$@"' claude`;
+  const WSL_LEAD = `wsl -d Ubuntu-24.04 --cd ${WSL_PATH} -- bash -lic 'exec claude "$@"' claude --agent <팀장 name>`;
 
   function wslSettings() {
     return buildSettingsFixture({

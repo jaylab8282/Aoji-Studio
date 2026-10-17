@@ -11,18 +11,20 @@ import java.util.regex.Pattern;
 public final class CommandStrings {
 
     private static final Pattern SAFE_WSL_PATH = Pattern.compile("^/[A-Za-z0-9._/-]+$");
+    /** wsl 명령 꼬리: 로그인 셸로 {@code ~/.local/bin} PATH를 읽어 claude를 실행한다(ADR-95 결정 1). */
+    static final String WSL_CLAUDE_TAIL = " -- bash -lic 'exec claude \"$@\"' claude";
     private static final String LEAD_SUFFIX = " --agent <팀장 name>";
 
     private CommandStrings() {}
 
     /**
      * 기본 세션 명령(FR-013-AC1). macos {@code cd "<hostPath>" && claude}, wsl
-     * {@code wsl -d <distro> --cd <hostPath> -- claude}. wsl 경로가 안전 문자만이 아니면 {@code --cd "<hostPath>"}.
+     * {@code wsl -d <distro> --cd <hostPath> -- bash -lic 'exec claude "$@"' claude}(ADR-95). wsl 경로가 안전 문자만이 아니면 {@code --cd "<hostPath>"}.
      */
     public static String defaultSessionCommand(String hostOs, String wslDistro, String hostPath) {
         if ("wsl".equals(hostOs)) {
             String path = SAFE_WSL_PATH.matcher(hostPath).matches() ? hostPath : "\"" + hostPath + "\"";
-            return "wsl -d " + wslDistro + " --cd " + path + " -- claude";
+            return "wsl -d " + wslDistro + " --cd " + path + WSL_CLAUDE_TAIL;
         }
         return "cd \"" + hostPath + "\" && claude";
     }

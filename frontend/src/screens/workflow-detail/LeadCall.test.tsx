@@ -9,7 +9,7 @@ import { leadSessionCommand } from "../../lib/text";
 
 /** 03 `팀장 호출 · 터미널 열기`의 명령 = `config.defaultSessionCommand + " --agent " + lead`(FR-013-AC2, ADR-77 결정 3). */
 const MACOS_DEFAULT = 'cd "/Users/jaybee/Desktop/AojiStudio" && claude';
-const WSL_DEFAULT = "wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- claude";
+const WSL_DEFAULT = "wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- bash -lic 'exec claude \"$@\"' claude";
 const writeText = vi.fn<(text: string) => Promise<void>>();
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -101,7 +101,7 @@ describe("LeadCall (03 팀장 호출 명령)", () => {
   it("[FR-013-AC2] 조립 규칙: 명령 = defaultSessionCommand + ' --agent ' + 팀장 name (실행 환경 두 가지)", () => {
     expect(leadSessionCommand(MACOS_DEFAULT, "dev-lead")).toBe('cd "/Users/jaybee/Desktop/AojiStudio" && claude --agent dev-lead');
     expect(leadSessionCommand(WSL_DEFAULT, "dev-lead")).toBe(
-      "wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- claude --agent dev-lead",
+      "wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- bash -lic 'exec claude \"$@\"' claude --agent dev-lead",
     );
   });
 
@@ -123,14 +123,14 @@ describe("LeadCall (03 팀장 호출 명령)", () => {
     expect(screen.getByText("helper/install.sh로 설치한 뒤 다시 시도하세요")).toBeInTheDocument();
   });
 
-  it("[FR-013-AC2] wsl: 팝업에 `wsl -d <배포판> --cd <hostPath> -- claude --agent <팀장>` 표시, 설치 안내는 helper/windows/install.ps1", async () => {
+  it("[FR-013-AC2] wsl: 팝업에 `wsl -d <배포판> --cd <hostPath> -- bash -lic 'exec claude \"$@\"' claude --agent <팀장>` 표시, 설치 안내는 helper/windows/install.ps1", async () => {
     const opens = stubFetch();
     openMissingDialog("wsl", WSL_DEFAULT, "Ubuntu-24.04");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2000);
     });
 
-    const expected = "wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- claude --agent dev-lead";
+    const expected = "wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- bash -lic 'exec claude \"$@\"' claude --agent dev-lead";
     expect(screen.getByText(expected)).toBeInTheDocument();
     expect(JSON.parse(opens[0]?.body ?? "{}")).toEqual({ target: "lead", leadName: "dev-lead" });
     expect(screen.getByText("helper/windows/install.ps1로 설치한 뒤 다시 시도하세요")).toBeInTheDocument();

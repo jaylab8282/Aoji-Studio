@@ -97,7 +97,7 @@ export const HELPER_AUTH_FAILED_TEXT = "도우미 인증 실패 · 도우미를 
 export const LEAD_GONE_TEXT = "팀장이 없습니다";
 /**
  * 03 `팀장 호출 · 터미널 열기`가 표시·복사하는 명령(FR-013-AC2, ui-spec SCR-03) = `config.defaultSessionCommand + " --agent " + 팀장 name`.
- * 실행 환경별 기본 명령(macos `cd "<hostPath>" && claude` / wsl `wsl -d <배포판> --cd <hostPath> -- claude`, ADR-77)에 프론트가 붙인다.
+ * 실행 환경별 기본 명령(macos `cd "<hostPath>" && claude` / wsl `wsl -d <배포판> --cd <hostPath> -- bash -lic 'exec claude "$@"' claude`, ADR-77)에 프론트가 붙인다.
  * 도우미에게는 이 문자열이 아니라 팀장 name만 보낸다(FR-013-AC6).
  */
 export function leadSessionCommand(defaultSessionCommand: string, leadName: string): string {

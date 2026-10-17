@@ -7,7 +7,7 @@
 // 확인하는 것
 //  1. 서버 설정이 wsl·배포판이다(`GET /api/state` config) — 하네스 환경 변수가 실제로 적용된 배치인지 먼저 본다.
 //  2. 02 `Claude 열기 · 기본 세션` → 도우미 stdout `DRY-RUN wt.exe -w 0 new-tab --title Aoji Studio wsl.exe -d Ubuntu-24.04
-//     --cd <fixture> -- claude` 1줄, 본문은 `{target:'default'}`뿐(FR-013-AC1·AC6·AC12).
+//     --cd <fixture> -- bash -lic 'exec claude "$@"' claude` 1줄, 본문은 `{target:'default'}`뿐(FR-013-AC1·AC6·AC12).
 //  3. 03 `팀장 호출 · 터미널 열기` → 같은 줄 끝에 `--agent dev-lead`(FR-013-AC2·AC6·AC12).
 //  4. 07 실행 환경 `WSL · Ubuntu-24.04`·`Windows Terminal`·WSL 기본 세션·팀장 명령·`Windows 도우미 설치됨`,
 //     `명령 복사` = WSL 기본 세션 명령, `테스트로 열기` → 위와 같은 Windows dry-run 줄(FR-013-AC5·AC12, FR-014-AC4).
@@ -54,7 +54,7 @@ test.describe.configure({ mode: "serial" });
 
 /** 서버가 주는 WSL 기본 세션 명령 (FR-013-AC1 wsl). */
 function wslDefaultCommand(projectDir: string): string {
-  return `wsl -d ${WSL_DISTRO} --cd ${projectDir} -- claude`;
+  return `wsl -d ${WSL_DISTRO} --cd ${projectDir} -- bash -lic 'exec claude "$@"' claude`;
 }
 
 function wslLeadCommand(projectDir: string, leadName: string): string {
@@ -64,7 +64,7 @@ function wslLeadCommand(projectDir: string, leadName: string): string {
 /** Windows dry-run 도우미 stdout 한 줄 (FR-013-AC12). 인자 사이는 공백 하나(`--title Aoji Studio`도 그대로 이어진다). */
 function wtDryRunLine(projectDir: string, leadName: string | null): string {
   const tail = leadName === null ? "" : ` --agent ${leadName}`;
-  return `DRY-RUN wt.exe -w 0 new-tab --title Aoji Studio wsl.exe -d ${WSL_DISTRO} --cd ${projectDir} -- claude${tail}`;
+  return `DRY-RUN wt.exe -w 0 new-tab --title Aoji Studio wsl.exe -d ${WSL_DISTRO} --cd ${projectDir} -- bash -lic 'exec claude "$@"' claude${tail}`;
 }
 
 // ── 화면 도우미 ──────────────────────────────────────────────────────────────────────────
@@ -254,7 +254,7 @@ test("[FR-013-AC1][E2E-23] 배치 14 전제: 서버 설정이 WSL 실행 환경(
   expect(state.fixtureDir).toMatch(/^\/[A-Za-z0-9._/-]+$/);
 });
 
-test('[FR-013-AC1][FR-013-AC6][FR-013-AC12][E2E-23] 02 `Claude 열기 · 기본 세션` → 도우미에 {target:"default"}만 보내고 stdout에 `DRY-RUN wt.exe … wsl.exe -d Ubuntu-24.04 --cd <경로> -- claude` 1줄이 남는다', async ({
+test('[FR-013-AC1][FR-013-AC6][FR-013-AC12][E2E-23] 02 `Claude 열기 · 기본 세션` → 도우미에 {target:"default"}만 보내고 stdout에 `DRY-RUN wt.exe … wsl.exe -d Ubuntu-24.04 --cd <경로> -- bash -lic \'exec claude "$@"\' claude` 1줄이 남는다', async ({
   page,
 }) => {
   const state = readE2eState();
@@ -277,7 +277,7 @@ test('[FR-013-AC1][FR-013-AC6][FR-013-AC12][E2E-23] 02 `Claude 열기 · 기본 
   await expectOpenRequest(openRequests, state.helperUrl, { target: "default" }, state.fixtureDir);
 });
 
-test('[FR-013-AC2][FR-013-AC6][FR-013-AC12][E2E-23] 03 `팀장 호출 · 터미널 열기` → {target:"lead",leadName}만 보내고 stdout에 `… -- claude --agent <lead>` 1줄이 남는다', async ({
+test('[FR-013-AC2][FR-013-AC6][FR-013-AC12][E2E-23] 03 `팀장 호출 · 터미널 열기` → {target:"lead",leadName}만 보내고 stdout에 `… -- bash -lic \'exec claude "$@"\' claude --agent <lead>` 1줄이 남는다', async ({
   page,
 }) => {
   const state = readE2eState();
@@ -343,7 +343,7 @@ test("[FR-013-AC5][FR-014-AC5][E2E-23] 07 `명령 복사` → 클립보드 = WSL
   expect(copied, "맥북 형식 명령이 복사됐습니다").not.toContain("&& claude");
 });
 
-test("[FR-013-AC12][FR-013-AC5][E2E-23] 07 `테스트로 열기` → Windows dry-run 도우미가 기본 세션 `wt.exe … -- claude` 1줄을 받는다", async ({
+test("[FR-013-AC12][FR-013-AC5][E2E-23] 07 `테스트로 열기` → Windows dry-run 도우미가 기본 세션 `wt.exe … -- bash -lic 'exec claude \"$@\"' claude` 1줄을 받는다", async ({
   page,
 }) => {
   const state = readE2eState();

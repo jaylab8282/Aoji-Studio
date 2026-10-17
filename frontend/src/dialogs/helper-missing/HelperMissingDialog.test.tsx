@@ -33,7 +33,7 @@ describe("HelperMissingDialog (ui-spec §공통)", () => {
     expect(screen.queryByText(/install\.ps1/)).not.toBeInTheDocument();
     macos.unmount();
 
-    const wslCommand = "wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- claude";
+    const wslCommand = "wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- bash -lic 'exec claude \"$@\"' claude";
     render(<HelperMissingDialog command={wslCommand} hostOs="wsl" onClose={() => {}} />);
     expect(screen.getByText("helper/windows/install.ps1로 설치한 뒤 다시 시도하세요")).toBeInTheDocument();
     expect(screen.queryByText("helper/install.sh로 설치한 뒤 다시 시도하세요")).not.toBeInTheDocument();
@@ -41,8 +41,8 @@ describe("HelperMissingDialog (ui-spec §공통)", () => {
     expect(screen.getByText(wslCommand)).toBeInTheDocument();
   });
 
-  it("[FR-013-E1] wsl `명령 복사`가 실행 환경 명령(wsl -d … -- claude)을 그대로 복사한다", async () => {
-    const wslCommand = "wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- claude";
+  it("[FR-013-E1] wsl `명령 복사`가 실행 환경 명령(wsl -d … -- bash -lic …)을 그대로 복사한다", async () => {
+    const wslCommand = "wsl -d Ubuntu-24.04 --cd /home/jaybee/AojiStudio -- bash -lic 'exec claude \"$@\"' claude";
     render(<HelperMissingDialog command={wslCommand} hostOs="wsl" onClose={() => {}} />);
 
     fireEvent.click(screen.getByRole("button", { name: "명령 복사" }));

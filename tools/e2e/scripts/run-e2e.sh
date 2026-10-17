@@ -219,7 +219,7 @@ E2E_CLAUDE_HOME_FIXTURE=claude-home-basic run_batch "배치 13 — project-usage
 
 # 배치 14 — project-configured + WSL 실행 환경(E2E-23, T-R4-19). 서버는 `E2E_HOST_OS=wsl`·`E2E_WSL_DISTRO=Ubuntu-24.04`로 띄우고, dry-run 도우미는
 # `E2E_HELPER_PLATFORM=windows`(Windows 분기 `--platform windows --wsl-distro` — `wt.exe` 실행만 dry-run)로 띄운다. 전역 연결은 대역(기본).
-# 02·03 열기 → `DRY-RUN wt.exe … wsl.exe -d Ubuntu-24.04 --cd <경로> -- claude (--agent <lead>)`, 07 WSL 명령·`명령 복사`,
+# 02·03 열기 → `DRY-RUN wt.exe … wsl.exe -d Ubuntu-24.04 --cd <경로> -- bash -lic 'exec claude "$@"' claude (--agent <lead>)`, 07 WSL 명령·`명령 복사`,
 # 도우미 정지(SIGSTOP→SIGCONT, finally에서 원복) → Windows 도우미 설치 안내. 파일을 쓰지 않고 도우미를 잠시 멈췄다 되돌릴 뿐이라 단독 배치다
 # (실행 환경 변수가 다른 컨테이너 — 다른 spec과 합치지 않는다).
 E2E_HOST_OS=wsl E2E_WSL_DISTRO=Ubuntu-24.04 E2E_HELPER_PLATFORM=windows run_batch "배치 14 — project-configured + WSL 실행 환경 + Windows dry-run 도우미 (E2E-23 02·03 wt.exe dry-run·07 WSL 명령·도우미 정지 안내)" project-configured \

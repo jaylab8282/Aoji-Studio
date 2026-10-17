@@ -16,7 +16,7 @@ import {
   ensureTokenFile,
   parseArgs,
 } from '../aojistudio-helper.mjs';
-import { buildWtArgs, windowsTokenPath } from '../lib/wt.mjs';
+import { WSL_CLAUDE_LAUNCH, buildWtArgs, windowsTokenPath } from '../lib/wt.mjs';
 
 const TOKEN = 'c'.repeat(64);
 const ORIGIN = 'http://127.0.0.1:4180';
@@ -76,15 +76,50 @@ function post(baseUrl, body, { origin = ORIGIN, token = TOKEN } = {}) {
 
 test('[FR-013-AC12] 기본 세션 wt 인자 배열', () => {
   assert.deepEqual(buildWtArgs({ distro: DISTRO, projectDir: WSL_DIR }), [
-    '-w', '0', 'new-tab', '--title', 'Aoji Studio', 'wsl.exe', '-d', DISTRO, '--cd', WSL_DIR, '--', 'claude',
+    '-w', '0', 'new-tab', '--title', 'Aoji Studio', 'wsl.exe', '-d', DISTRO, '--cd', WSL_DIR,
+    '--', 'bash', '-lic', "'exec", 'claude', '"$@"\'', 'claude',
   ]);
 });
 
 test('[FR-013-AC12] 팀장 wt 인자 배열은 --agent <name>이 붙는다', () => {
   assert.deepEqual(buildWtArgs({ distro: DISTRO, projectDir: WSL_DIR, leadName: 'web-develop-tech-lead' }), [
-    '-w', '0', 'new-tab', '--title', 'Aoji Studio', 'wsl.exe', '-d', DISTRO, '--cd', WSL_DIR, '--', 'claude',
+    '-w', '0', 'new-tab', '--title', 'Aoji Studio', 'wsl.exe', '-d', DISTRO, '--cd', WSL_DIR,
+    '--', 'bash', '-lic', "'exec", 'claude', '"$@"\'', 'claude',
     '--agent', 'web-develop-tech-lead',
   ]);
+});
+
+const AFTER_WSL = (a) => a.slice(a.indexOf('wsl.exe') + 1);
+const AFTER_DASH = (a) => a.slice(a.indexOf('--', a.indexOf('wsl.exe')) + 1);
+
+test('[FR-013-AC12] wsl.exe 뒤 원소에 공백·탭·; 없음', () => {
+  const args = buildWtArgs({ distro: DISTRO, projectDir: WSL_DIR, leadName: 'lead-a' });
+  for (const el of AFTER_WSL(args)) assert.equal(/[\s;]/.test(el), false, el);
+  assert.equal(args.slice(0, args.indexOf('wsl.exe')).some((e) => e.includes(';')), false);
+});
+
+test('[FR-013-AC12] -- 뒤 원소 공백 잇기 = FR-013-AC1·AC2 꼬리', () => {
+  const base = buildWtArgs({ distro: DISTRO, projectDir: WSL_DIR });
+  const lead = buildWtArgs({ distro: DISTRO, projectDir: WSL_DIR, leadName: 'lead-a' });
+  assert.equal(AFTER_DASH(base).join(' '), `bash -lic 'exec claude "$@"' claude`);
+  assert.equal(AFTER_DASH(lead).join(' '), `bash -lic 'exec claude "$@"' claude --agent lead-a`);
+});
+
+test('[FR-013-AC11] WSL 스크립트 원소는 고정 상수이고 이름·경로가 들어가지 않는다', () => {
+  const lead = buildWtArgs({ distro: DISTRO, projectDir: WSL_DIR, leadName: 'lead-a' });
+  const i = lead.indexOf('--', lead.indexOf('wsl.exe'));
+  assert.deepEqual(lead.slice(i, i + WSL_CLAUDE_LAUNCH.length), [...WSL_CLAUDE_LAUNCH]);
+  assert.equal(Object.isFrozen(WSL_CLAUDE_LAUNCH), true);
+  for (const el of WSL_CLAUDE_LAUNCH) {
+    assert.equal(el.includes(DISTRO) || el.includes(WSL_DIR) || el.includes('lead-a'), false);
+  }
+});
+
+test('[FR-013-AC11] spawn 옵션 shell:false·windowsVerbatimArguments 없음', async () => {
+  const { calls, fakeSpawn } = createFakeSpawn();
+  await createOpenWindowsTerminal(fakeSpawn)(buildWtArgs({ distro: DISTRO, projectDir: WSL_DIR }));
+  assert.deepEqual(calls[0].options, { shell: false, detached: true, stdio: 'ignore' });
+  assert.equal('windowsVerbatimArguments' in calls[0].options, false);
 });
 
 test('[FR-013-AC11] 실행 함수가 wt.exe·배열·shell:false로 spawn을 부른다', async () => {
@@ -194,7 +229,7 @@ test('[FR-013-AC12] --dry-run은 spawn 없이 DRY-RUN wt.exe 한 줄과 204', as
       const response = await post(baseUrl, { target: 'lead', leadName: 'lead-a' });
       assert.equal(response.status, 204);
       assert.deepEqual(out, [
-        `DRY-RUN wt.exe -w 0 new-tab --title Aoji Studio wsl.exe -d ${DISTRO} --cd ${WSL_DIR} -- claude --agent lead-a\n`,
+        `DRY-RUN wt.exe -w 0 new-tab --title Aoji Studio wsl.exe -d ${DISTRO} --cd ${WSL_DIR} -- bash -lic 'exec claude "$@"' claude --agent lead-a\n`,
       ]);
     },
   );
