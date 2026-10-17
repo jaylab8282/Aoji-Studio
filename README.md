@@ -158,7 +158,7 @@ v1.0.0 사용자는 `v1.0.1` 태그로 먼저 올린다(그 태그의 `UPGRADE-v
 ```bash
 # 유닛
 (cd backend && ./gradlew test)                 # 606
-(cd frontend && npm install && npm test)       # 982
+(cd frontend && npm install && npm test)       # 999
 (cd helper && npm test)                        # 103
 (cd tools/replay && npm test)                  # 60
 

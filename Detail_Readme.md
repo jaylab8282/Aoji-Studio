@@ -340,7 +340,7 @@ npm run dev
 (cd backend && ./gradlew build)          # 컴파일·테스트·bootJar
 (cd backend && ./gradlew test)           # 테스트만
 
-# Frontend (테스트 982)
+# Frontend (테스트 999)
 (cd frontend && npm install && npm run build && npm test && npm run lint && npm run typecheck)
 
 # Helper (테스트 103)
